@@ -105,7 +105,7 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
         });
         addRenderableWidget(new LibrarySectionTabs(contentX, 28, area, 4, true, section -> {
             if (!busy() && parentScreen instanceof ModelLibraryScreen catalog) {
-                minecraft.setScreen(catalog);
+                minecraft.gui.setScreen(catalog);
                 catalog.openSection(section);
             }
         }));
@@ -147,7 +147,7 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
                 FiguraText.of("gui.library.grants"), null, ignored -> {
                     if (LibraryAuthorization.available(selected) && !busy() && admin.active()) {
                         retainingChild = true;
-                        minecraft.setScreen(new ModelLibraryAuthorizationScreen(this, client, selected.modelId(), admin));
+                        minecraft.gui.setScreen(new ModelLibraryAuthorizationScreen(this, client, selected.modelId(), admin));
                     }
                 }));
         block = addRenderableWidget(new Button(contentX + 4 + column, height - 72, column, 20,
@@ -169,21 +169,21 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
                 FiguraText.of("gui.library.reports"), null, ignored -> {
                     if (admin.active() && !busy()) {
                         retainingChild = true;
-                        minecraft.setScreen(new ModelLibraryReportsScreen(this, client, admin, this::inspectReported));
+                        minecraft.gui.setScreen(new ModelLibraryReportsScreen(this, client, admin, this::inspectReported));
                     }
                 }));
         addRenderableWidget(new Button(contentX + 84 + managementWidth, height - 48, managementWidth, 20,
                 FiguraText.of("gui.library.manage_appeals"), null, ignored -> {
                     if (admin.active() && !busy()) {
                         retainingChild = true;
-                        minecraft.setScreen(new ModelLibraryAppealsScreen(this, client, admin));
+                        minecraft.gui.setScreen(new ModelLibraryAppealsScreen(this, client, admin));
                     }
                 }));
         addRenderableWidget(new Button(contentX, height - 24, (area - 4) / 2, 20,
                 FiguraText.of("gui.library.wardrobe_manage"), null, ignored -> {
                     if (admin.active() && !busy()) {
                         retainingChild = true;
-                        minecraft.setScreen(new ModelLibraryWardrobeScreen(this, client, admin));
+                        minecraft.gui.setScreen(new ModelLibraryWardrobeScreen(this, client, admin));
                     }
                 }));
         int toolbarWidth = Math.min(88, (area - 8) / 3);
@@ -194,7 +194,7 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
                     if (!busy() && admin.active()) {
                         retainingChild = true;
                         preview.clear();
-                        minecraft.setScreen(new ModelLibraryRecycleScreen(this, client, admin));
+                        minecraft.gui.setScreen(new ModelLibraryRecycleScreen(this, client, admin));
                     }
                 }));
         addRenderableWidget(new Button(contentX + 4 + (area - 4) / 2, height - 24, (area - 4) / 2, 20,
@@ -283,7 +283,7 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
                         if (!busy() && admin.active()) {
                             retainingChild = true;
                             preview.clear();
-                            minecraft.setScreen(new ModelLibraryEditScreen(this, client, capabilities,
+                            minecraft.gui.setScreen(new ModelLibraryEditScreen(this, client, capabilities,
                                     model.modelId(), admin));
                         }
                     }, LibraryRowList.Icon.EDIT));
@@ -292,7 +292,7 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
             actions.add(new LibraryRowList.Action(FiguraText.of("gui.library.grants"), FiguraText.of("gui.library.grants"), true, () -> {
                 if (!busy() && admin.active()) {
                     retainingChild = true;
-                    minecraft.setScreen(new ModelLibraryAuthorizationScreen(this, client, model.modelId(), admin));
+                    minecraft.gui.setScreen(new ModelLibraryAuthorizationScreen(this, client, model.modelId(), admin));
                 }
             }, LibraryRowList.Icon.GRANT));
         }

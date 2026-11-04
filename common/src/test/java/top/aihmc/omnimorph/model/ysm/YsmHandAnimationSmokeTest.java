@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.model.ysm;
 
+import net.minecraft.world.entity.EntityTypes;
+
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.component.DataComponentMap;
@@ -849,7 +851,7 @@ public final class YsmHandAnimationSmokeTest {
         private HumanoidArm mainArm;
 
         private HandEntity() {
-            super(EntityType.ARMOR_STAND, null);
+            super(EntityTypes.ARMOR_STAND, null);
         }
 
         @Override

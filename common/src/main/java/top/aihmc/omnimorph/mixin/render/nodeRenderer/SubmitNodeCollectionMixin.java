@@ -1,114 +1,89 @@
 package top.aihmc.omnimorph.mixin.render.nodeRenderer;
 
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.model.Model;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.SubmitNodeCollection;
-import net.minecraft.client.renderer.SubmitNodeStorage;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import net.minecraft.client.renderer.feature.FlameFeatureRenderer;
+import net.minecraft.client.renderer.feature.ItemFeatureRenderer;
 import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
-import net.minecraft.client.renderer.feature.ModelPartFeatureRenderer;
+import net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase;
+import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import org.apache.commons.lang3.function.TriFunction;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.AvatarManager;
-import top.aihmc.omnimorph.ducks.FlameSubmitExtension;
-import top.aihmc.omnimorph.model.rendering.nodeRenderer.FiguraSubmission;
-import top.aihmc.omnimorph.ducks.FiguraSubmitCallBackExtension;
-import top.aihmc.omnimorph.ducks.NodeCollectorExtension;
 import org.jetbrains.annotations.Nullable;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import java.util.ArrayList;
-import java.util.List;
+import top.aihmc.omnimorph.ducks.FiguraSubmitCallBackExtension;
+import top.aihmc.omnimorph.ducks.FlameSubmitExtension;
+import top.aihmc.omnimorph.ducks.NodeCollectorExtension;
+import top.aihmc.omnimorph.model.rendering.FiguraVertexSource;
+import top.aihmc.omnimorph.model.rendering.nodeRenderer.FiguraSubmission;
 
 @Mixin(SubmitNodeCollection.class)
-public class SubmitNodeCollectionMixin implements NodeCollectorExtension {
-    @Unique
-    List<FiguraSubmission> figuraSubmissions = new ArrayList<>();
-
-    public <S extends EntityRenderState> void submitFiguraModel(Avatar avatar, S renderState, TriFunction<Avatar, S, MultiBufferSource, Void> renderer) {
-        figuraSubmissions.add(new FiguraSubmission(avatar, renderState, (TriFunction<Avatar, EntityRenderState, MultiBufferSource, Void>) renderer));
-    }
+public abstract class SubmitNodeCollectionMixin implements NodeCollectorExtension {
+    @Shadow
+    @Final
+    public SimpleFeatureRenderPhase solid;
 
     @Override
-    public List<FiguraSubmission> getFiguraSubmissions() {
-        return figuraSubmissions;
+    public <S extends EntityRenderState> void submitFiguraModel(Avatar avatar, S renderState,
+            TriFunction<Avatar, S, FiguraVertexSource, Void> renderer) {
+        solid.submit(new FiguraSubmission(avatar, renderState,
+                (submittedAvatar, submittedState, vertices) -> renderer.apply(submittedAvatar, (S) submittedState, vertices)));
     }
 
-    @Inject(method = "submitModel", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/feature/ModelFeatureRenderer$Storage;add(Lnet/minecraft/client/renderer/rendertype/RenderType;Lnet/minecraft/client/renderer/SubmitNodeStorage$ModelSubmit;)V"))
-    private <S> void figura$onSubmitModel(Model<? super S> model, S object, PoseStack poseStack, RenderType renderType, int i, int j, int k, @Nullable TextureAtlasSprite textureAtlasSprite, int l, @Nullable ModelFeatureRenderer.CrumblingOverlay crumblingOverlay, CallbackInfo ci, @Local SubmitNodeStorage.ModelSubmit<S> modelSubmit) {
-        FiguraSubmitCallBackExtension modelSubmissionExtension = (FiguraSubmitCallBackExtension) (Object) modelSubmit;
-        FiguraSubmitCallBackExtension modelExtension = (FiguraSubmitCallBackExtension) model;
-        for (var callback : modelExtension.figura$getPreRenderingCallbacks()) {
-            modelSubmissionExtension.figura$addPreRenderingCallback(callback);
+    @Inject(method = "submitModel", at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/client/renderer/rendertype/RenderTypes;waterMask()Lnet/minecraft/client/renderer/rendertype/RenderType;"))
+    private <S> void figura$onSubmitModel(Model<? super S> model, S state, PoseStack poseStack,
+                                         RenderType renderType, int light, int overlay, int color,
+                                         @Nullable TextureAtlasSprite sprite, int outlineColor,
+                                         @Nullable ModelFeatureRenderer.CrumblingOverlay crumbling,
+                                         CallbackInfo ci, @Local ModelFeatureRenderer.Submit<S> submit) {
+        var destination = (FiguraSubmitCallBackExtension) (Object) submit;
+        // OrderedSubmitNodeCollector now wraps submitted ModelParts in Model.Simple.
+        if (model instanceof Model.Simple simple) {
+            figura$transferCallbacks((FiguraSubmitCallBackExtension) (Object) simple.root(), destination);
         }
-        for (var callback : modelExtension.figura$getPostRenderingCallbacks()) {
-            modelSubmissionExtension.figura$addPostRenderingCallback(callback);
-        }
-        modelSubmissionExtension.figura$setPreventAnimSetup(modelExtension.figura$getPreventAnimSetup());
-        modelExtension.figura$setPreventAnimSetup(false);
-        modelExtension.figura$getPreRenderingCallbacks().clear();
-        modelExtension.figura$getPostRenderingCallbacks().clear();
+        figura$transferCallbacks((FiguraSubmitCallBackExtension) model, destination);
     }
 
-    @WrapOperation(method = "submitModelPart", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/feature/ModelPartFeatureRenderer$Storage;add(Lnet/minecraft/client/renderer/rendertype/RenderType;Lnet/minecraft/client/renderer/SubmitNodeStorage$ModelPartSubmit;)V"))
-    private void figura$onSubmitModelPart(ModelPartFeatureRenderer.Storage instance, RenderType key, SubmitNodeStorage.ModelPartSubmit modelPartSubmit, Operation<Void> original) {
-        FiguraSubmitCallBackExtension modelSubmissionExtension = (FiguraSubmitCallBackExtension) (Object) modelPartSubmit;
-        FiguraSubmitCallBackExtension modelExtension = (FiguraSubmitCallBackExtension) (Object) modelPartSubmit.modelPart();
-        for (var callback : modelExtension.figura$getPreRenderingCallbacks()) {
-            modelSubmissionExtension.figura$addPreRenderingCallback(callback);
-        }
-        for (var callback : modelExtension.figura$getPostRenderingCallbacks()) {
-            modelSubmissionExtension.figura$addPostRenderingCallback(callback);
-        }
-        modelSubmissionExtension.figura$setPreventAnimSetup(modelExtension.figura$getPreventAnimSetup());
-        modelExtension.figura$setPreventAnimSetup(false);
-        modelExtension.figura$getPreRenderingCallbacks().clear();
-        modelExtension.figura$getPostRenderingCallbacks().clear();
-        original.call(instance, key, modelPartSubmit);
+    @ModifyExpressionValue(method = "submitItem", at = @At(value = "NEW",
+            target = "net/minecraft/client/renderer/feature/ItemFeatureRenderer$Submit", ordinal = 0))
+    private ItemFeatureRenderer.Submit figura$onSubmitItem(ItemFeatureRenderer.Submit submit) {
+        figura$transferCallbacks((FiguraSubmitCallBackExtension) (Object) submit.displayContext(),
+                (FiguraSubmitCallBackExtension) (Object) submit);
+        return submit;
     }
 
-    @WrapOperation(method = "submitItem", at = @At(value = "INVOKE", target = "Ljava/util/List;add(Ljava/lang/Object;)Z"))
-    private <E> boolean figura$onSubmitModelPart(List<E> instance, E e, Operation<Boolean> original) {
-        SubmitNodeStorage.ItemSubmit itemSubmit = (SubmitNodeStorage.ItemSubmit) e;
-
-        FiguraSubmitCallBackExtension itemSubmissionExtension = (FiguraSubmitCallBackExtension) (Object) itemSubmit;
-
-        FiguraSubmitCallBackExtension displayContextExtension = (FiguraSubmitCallBackExtension) (Object) itemSubmit.displayContext();
-        for (var callback : displayContextExtension.figura$getPreRenderingCallbacks()) {
-            itemSubmissionExtension.figura$addPreRenderingCallback(callback);
-        }
-        for (var callback : displayContextExtension.figura$getPostRenderingCallbacks()) {
-            itemSubmissionExtension.figura$addPostRenderingCallback(callback);
-        }
-        itemSubmissionExtension.figura$setPreventAnimSetup(displayContextExtension.figura$getPreventAnimSetup());
-        displayContextExtension.figura$setPreventAnimSetup(false);
-        displayContextExtension.figura$getPreRenderingCallbacks().clear();
-        displayContextExtension.figura$getPostRenderingCallbacks().clear();
-        return original.call(instance, e);
+    @ModifyExpressionValue(method = "submitFlame", at = @At(value = "NEW",
+            target = "net/minecraft/client/renderer/feature/FlameFeatureRenderer$Submit"))
+    private FlameFeatureRenderer.Submit figura$onSubmitFlame(FlameFeatureRenderer.Submit submit) {
+        ((FlameSubmitExtension) (Object) submit).figura$setAvatar(AvatarManager.getAvatar(submit.entityRenderState()));
+        return submit;
     }
 
-    @WrapOperation(method = "submitFlame", at = @At(value = "INVOKE", target = "Ljava/util/List;add(Ljava/lang/Object;)Z"))
-    private <E> boolean figura$onSubmitFlame(List<E> instance, E e, Operation<Boolean> original) {
-        SubmitNodeStorage.FlameSubmit flameSubmit = (SubmitNodeStorage.FlameSubmit) e;
-
-        FlameSubmitExtension itemSubmissionExtension = (FlameSubmitExtension) (Object) flameSubmit;
-        Avatar avatar = AvatarManager.getAvatar(flameSubmit.entityRenderState());
-        itemSubmissionExtension.figura$setAvatar(avatar);
-        return original.call(instance, e);
-    }
-
-    @Inject(method = "clear", at = @At("HEAD"))
-    private void figura$clearSubmissions(CallbackInfo ci) {
-        figuraSubmissions.clear();
+    @Unique
+    private static void figura$transferCallbacks(FiguraSubmitCallBackExtension source,
+                                                  FiguraSubmitCallBackExtension destination) {
+        for (var callback : source.figura$getPreRenderingCallbacks()) {
+            destination.figura$addPreRenderingCallback(callback);
+        }
+        for (var callback : source.figura$getPostRenderingCallbacks()) {
+            destination.figura$addPostRenderingCallback(callback);
+        }
+        destination.figura$setPreventAnimSetup(source.figura$getPreventAnimSetup());
+        source.figura$setPreventAnimSetup(false);
+        source.figura$getPreRenderingCallbacks().clear();
+        source.figura$getPostRenderingCallbacks().clear();
     }
 }

@@ -148,8 +148,8 @@ public class Label implements FiguraWidget, GuiEventListener, NarratableEntry {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean bl) {
-        if (hovered != null && Minecraft.getInstance().screen != null && hovered.getClickEvent() != null) {
-            Screen.defaultHandleGameClickEvent(hovered.getClickEvent(), Minecraft.getInstance(), Minecraft.getInstance().screen);
+        if (hovered != null && Minecraft.getInstance().gui.screen() != null && hovered.getClickEvent() != null) {
+            Screen.defaultHandleGameClickEvent(hovered.getClickEvent(), Minecraft.getInstance(), Minecraft.getInstance().gui.screen());
             return true;
         }
 

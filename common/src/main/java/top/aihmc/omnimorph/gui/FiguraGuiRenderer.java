@@ -1,13 +1,20 @@
 package top.aihmc.omnimorph.gui;
 
 import com.mojang.blaze3d.ProjectionType;
+import com.mojang.blaze3d.GpuFormat;
+import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.*;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.gui.render.TextureSetup;
+import net.minecraft.client.gui.render.GuiRenderer;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.render.pip.PictureInPictureRenderer;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.SubmitNodeStorage;
+import net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
+import top.aihmc.omnimorph.ducks.NodeCollectorExtension;
 import net.minecraft.client.renderer.Projection;
 import net.minecraft.client.renderer.ProjectionMatrixBuffer;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -28,10 +35,7 @@ public class FiguraGuiRenderer extends PictureInPictureRenderer<FiguraGuiRenderS
             "GUI-PIP - " + this.getClass().getSimpleName()
     );
     private final Projection projection = new Projection();
-
-    public FiguraGuiRenderer(MultiBufferSource.BufferSource bufferSource) {
-        super(bufferSource);
-    }
+    private final SubmitNodeStorage submissions = new SubmitNodeStorage();
 
     @Override
     public Class<FiguraGuiRenderState> getRenderStateClass() {
@@ -44,12 +48,17 @@ public class FiguraGuiRenderer extends PictureInPictureRenderer<FiguraGuiRenderS
     }
 
     @Override
-    protected void renderToTexture(FiguraGuiRenderState state, PoseStack poseStack) {
-        state.avatar().hudRender(poseStack, this.bufferSource, state.entity(), state.tickDelta());
+    protected void renderToTexture(FiguraGuiRenderState state, PoseStack poseStack, SubmitNodeCollector collector) {
+        Minecraft.getInstance().gameRenderer.lighting().setupFor(Lighting.Entry.ITEMS_FLAT);
+        ((NodeCollectorExtension) collector).submitFiguraModel(state.avatar(), null, (avatar, entityState, source) -> {
+            avatar.hudRender(poseStack, source, state.entity(), state.tickDelta());
+            return null;
+        });
     }
 
     @Override
-    public void prepare(FiguraGuiRenderState state, GuiRenderState guiRenderState, int guiScale) {
+    public void prepare(FiguraGuiRenderState state, GuiRenderState guiRenderState,
+                        FeatureRenderDispatcher dispatcher, int guiScale) {
         int pixelW = (state.x1() - state.x0()) * guiScale;
         int pixelH = (state.y1() - state.y0()) * guiScale;
         float guiWidth = (float) (state.x1() - state.x0());
@@ -75,11 +84,11 @@ public class FiguraGuiRenderer extends PictureInPictureRenderer<FiguraGuiRenderS
 
         if (texture == null) {
             texture = gpuDevice.createTexture(
-                    () -> "UI Figura GUI texture", 13, TextureFormat.RGBA8, pixelW, pixelH, 1, 1
+                    () -> "UI Figura GUI texture", 13, GpuFormat.RGBA8_UNORM, pixelW, pixelH, 1, 1
             );
             textureView = gpuDevice.createTextureView(texture);
             depthTexture = gpuDevice.createTexture(
-                    () -> "UI Figura GUI depth texture", 9, TextureFormat.DEPTH32, pixelW, pixelH, 1, 1
+                    () -> "UI Figura GUI depth texture", 9, GpuFormat.D32_FLOAT, pixelW, pixelH, 1, 1
             );
             depthTextureView = gpuDevice.createTextureView(depthTexture);
             sampler = gpuDevice.createSampler(
@@ -89,22 +98,17 @@ public class FiguraGuiRenderer extends PictureInPictureRenderer<FiguraGuiRenderS
             );
         }
 
-        gpuDevice.createCommandEncoder().clearColorAndDepthTextures(texture, 0, depthTexture, 1.0);
-
-        projection.setupOrtho(-1000.0F, 1000.0F, guiWidth, guiHeight, true);
-        RenderSystem.setProjectionMatrix(
-                projectionMatrixBuffer.getBuffer(projection), ProjectionType.ORTHOGRAPHIC
-        );
-
-        RenderSystem.outputColorTextureOverride = textureView;
-        RenderSystem.outputDepthTextureOverride = depthTextureView;
-
-        renderToTexture(state, new PoseStack());
-        this.bufferSource.endBatch();
-
-        RenderSystem.outputColorTextureOverride = null;
-        RenderSystem.outputDepthTextureOverride = null;
-
+        gpuDevice.createCommandEncoder().clearColorAndDepthTextures(texture, GuiRenderer.CLEAR_COLOR, depthTexture, 0.0);
+        try (var scope = new PipRenderStateScope()) {
+            projection.setupOrtho(-1000.0F, 1000.0F, guiWidth, guiHeight, true);
+            RenderSystem.setProjectionMatrix(projectionMatrixBuffer.getBuffer(projection), ProjectionType.ORTHOGRAPHIC);
+            RenderSystem.outputColorTextureOverride = textureView;
+            RenderSystem.outputDepthTextureOverride = depthTextureView;
+            renderToTexture(state, new PoseStack(), submissions);
+            dispatcher.renderAllFeatures(submissions);
+        } finally {
+            submissions.getSubmitsPerOrder().clear();
+        }
         blitTexture(state, guiRenderState);
     }
 
@@ -134,6 +138,7 @@ public class FiguraGuiRenderer extends PictureInPictureRenderer<FiguraGuiRenderS
             depthTextureView.close();
             sampler.close();
         }
+        projectionMatrixBuffer.close();
         super.close();
     }
 }

@@ -91,7 +91,7 @@ public class FiguraKeybind {
     public static boolean set(List<FiguraKeybind> bindings, InputConstants.Key key, boolean pressed, int modifiers) {
         boolean overrided = false;
         for (FiguraKeybind keybind : List.copyOf(bindings)) {
-            if (keybind.key == key && keybind.enabled && (keybind.gui || Minecraft.getInstance().screen == null))
+            if (keybind.key == key && keybind.enabled && (keybind.gui || Minecraft.getInstance().gui.screen() == null))
                 overrided = keybind.setDown(pressed, modifiers) || overrided;
         }
         return overrided;
@@ -211,7 +211,7 @@ public class FiguraKeybind {
     @LuaWhitelist
     @LuaMethodDoc("keybind.is_pressed")
     public boolean isPressed() {
-        return (this.gui || Minecraft.getInstance().screen == null) && this.isDown;
+        return (this.gui || Minecraft.getInstance().gui.screen() == null) && this.isDown;
     }
 
     @LuaWhitelist

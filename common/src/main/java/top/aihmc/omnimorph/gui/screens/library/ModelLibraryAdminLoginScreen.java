@@ -113,7 +113,7 @@ public final class ModelLibraryAdminLoginScreen extends LibraryFormScreen {
                 return;
             }
             if (failure == null && Boolean.TRUE.equals(value)) {
-                minecraft.setScreen(parentScreen);
+                minecraft.gui.setScreen(parentScreen);
                 authenticated.run();
             } else {
                 message = FiguraText.of("gui.library.login_failed");

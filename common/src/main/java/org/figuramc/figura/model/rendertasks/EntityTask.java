@@ -6,7 +6,8 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.debug.DebugScreenEntries;
 import net.minecraft.client.gui.components.debug.DebugScreenEntryStatus;
-import net.minecraft.client.renderer.MultiBufferSource;
+import top.aihmc.omnimorph.model.rendering.FiguraVertexSource;
+import top.aihmc.omnimorph.model.rendering.nodeRenderer.FeaturePreparationScope;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
@@ -47,7 +48,7 @@ public class EntityTask extends RenderTask {
     }
 
     @Override
-    public void render(PoseStack stack, MultiBufferSource buffer, int light, int overlay) {
+    public void render(PoseStack stack, FiguraVertexSource buffer, int light, int overlay) {
         stack.scale(16, 16, 16);
 
         if (entity != null) {
@@ -62,14 +63,14 @@ public class EntityTask extends RenderTask {
             float tickDelta = Minecraft.getInstance().getDeltaTracker().getGameTimeDeltaPartialTick(true);
             try {
                 CameraRenderState cameraRenderState = new CameraRenderState();
-                cameraRenderState.initialized = minecraft.gameRenderer.getMainCamera().isInitialized();
-                cameraRenderState.pos = minecraft.gameRenderer.getMainCamera().position();
-                cameraRenderState.blockPos = minecraft.gameRenderer.getMainCamera().blockPosition();
-                cameraRenderState.orientation = new Quaternionf(minecraft.gameRenderer.getMainCamera().rotation());
+                cameraRenderState.initialized = minecraft.gameRenderer.mainCamera().isInitialized();
+                cameraRenderState.pos = minecraft.gameRenderer.mainCamera().position();
+                cameraRenderState.blockPos = minecraft.gameRenderer.mainCamera().blockPosition();
+                cameraRenderState.orientation = new Quaternionf(minecraft.gameRenderer.mainCamera().rotation());
 
                 EntityRenderState state = dispatcher.extractEntity(entity, tickDelta);
                 state.lightCoords = this.customization.light != null ? this.customization.light : light;
-                dispatcher.submit(state, cameraRenderState, 0, 0, 0, stack, minecraft.gameRenderer.getSubmitNodeStorage());
+                dispatcher.submit(state, cameraRenderState, 0, 0, 0, stack, FeaturePreparationScope.current());
             }
             finally {
                 LivingEntityRendererAccessor.overrideOverlay = prev;
@@ -127,7 +128,8 @@ public class EntityTask extends RenderTask {
             }
 
             assert Minecraft.getInstance().level != null;
-            entity = EntityType.loadEntityRecursive(finalNbt, Minecraft.getInstance().level, EntitySpawnReason.SPAWN_ITEM_USE, EntityProcessor.NOP);
+            entity = EntityType.loadEntityRecursive(finalNbt, Minecraft.getInstance().level,
+                    new EntitySpawnRequest(EntitySpawnReason.SPAWN_ITEM_USE, false), EntityProcessor.NOP);
             if (entity == null) {
                 throw new LuaError("Could not create entity");
             }

@@ -119,7 +119,7 @@ public final class ModelLibraryWardrobeScreen extends LibraryFormScreen {
                     if (!busy() && admin.active()) {
                         retainingChild = true;
                         preview.clear();
-                        minecraft.setScreen(new ModelLibraryRecycleScreen(this, client, admin));
+                        minecraft.gui.setScreen(new ModelLibraryRecycleScreen(this, client, admin));
                     }
                 }));
         addRenderableOnly((gui, x, y, delta) -> UIHelper.renderScrollingText(gui, message, 8, 54, area, 0xffd3e7e1));

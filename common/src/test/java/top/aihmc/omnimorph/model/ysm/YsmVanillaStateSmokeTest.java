@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.model.ysm;
 
+import net.minecraft.world.entity.EntityTypes;
+
 import com.mojang.serialization.Lifecycle;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -543,8 +545,8 @@ public final class YsmVanillaStateSmokeTest {
         FixtureEntity vehicle = (FixtureEntity) ((Unsafe) unsafeField.get(null)).allocateInstance(FixtureEntity.class);
         FixtureEntity passenger = (FixtureEntity) ((Unsafe) unsafeField.get(null)).allocateInstance(FixtureEntity.class);
         vehicle.alive = passenger.alive = true;
-        vehicle.entityType = EntityType.ARMOR_STAND;
-        passenger.entityType = EntityType.PIG;
+        vehicle.entityType = EntityTypes.ARMOR_STAND;
+        passenger.entityType = EntityTypes.PIG;
         entity.vehicle = vehicle;
         entity.passenger = passenger;
         require(Integer.valueOf(1).equals(eval(engine, context, "ctrl.ride('vehicle','$minecraft:armor_stand',v.ride_unused=99);"))
@@ -561,7 +563,7 @@ public final class YsmVanillaStateSmokeTest {
         require(Integer.valueOf(0).equals(eval(engine, context, "ctrl.ride('VEHICLE','$armor_stand');")), "ride selector is reference case-sensitive");
         require(Integer.valueOf(0).equals(eval(engine, context, "ctrl.ride('vehicle','$invalid space');")), "malformed native ID is a mismatch");
         require(Integer.valueOf(0).equals(eval(engine, context, "ctrl.ride('vehicle','armor_stand');")), "unprefixed match is not a ride matcher");
-        var holder = EntityType.ARMOR_STAND.builtInRegistryHolder();
+        var holder = EntityTypes.ARMOR_STAND.builtInRegistryHolder();
         var previous = holder.tags().toList();
         var bindTags = holder.getClass().getDeclaredMethod("bindTags", java.util.Collection.class);
         bindTags.setAccessible(true);
@@ -1203,11 +1205,11 @@ public final class YsmVanillaStateSmokeTest {
         EntityType<?> originalType = entity.entityType;
         try {
             context.entity = entity;
-            entity.entityType = EntityType.ARMOR_STAND;
+            entity.entityType = EntityTypes.ARMOR_STAND;
             require("minecraft:armor_stand".equals(eval(engine, context, "ysm.entity_type;"))
                             && Boolean.FALSE.equals(eval(engine, context, "ysm.is_player;")),
                     "native registry identity and raw Boolean nonplayer result");
-            entity.entityType = EntityType.ZOMBIE;
+            entity.entityType = EntityTypes.ZOMBIE;
             require("minecraft:zombie".equals(eval(engine, context, "ysm.entity_type;")),
                     "entity type follows current native type without cached population");
             Avatar.MolangContext other = new Avatar.MolangContext(null);
@@ -2195,7 +2197,7 @@ public final class YsmVanillaStateSmokeTest {
         private float attackProgress;
 
         private FixtureEntity() {
-            super(EntityType.ARMOR_STAND, null);
+            super(EntityTypes.ARMOR_STAND, null);
         }
 
         @Override
@@ -2293,7 +2295,7 @@ public final class YsmVanillaStateSmokeTest {
 
         @Override
         public EntityType<?> getType() {
-            return entityType == null ? EntityType.ARMOR_STAND : entityType;
+            return entityType == null ? EntityTypes.ARMOR_STAND : entityType;
         }
 
         @Override

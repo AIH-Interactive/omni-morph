@@ -3,7 +3,7 @@ package org.figuramc.figura.mixin.render.renderers;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.object.projectile.TridentModel;
-import net.minecraft.client.renderer.MultiBufferSource;
+import top.aihmc.omnimorph.model.rendering.FiguraVertexSource;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.ThrownTridentRenderer;
 import net.minecraft.client.renderer.entity.EntityRenderer;

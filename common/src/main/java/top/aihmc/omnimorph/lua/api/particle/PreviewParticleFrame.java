@@ -4,7 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Camera;
 import net.minecraft.client.particle.SingleQuadParticle;
-import net.minecraft.client.renderer.MultiBufferSource;
+import top.aihmc.omnimorph.model.rendering.FiguraVertexSource;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.client.renderer.rendertype.RenderType;
@@ -46,7 +46,7 @@ public final class PreviewParticleFrame {
                 var ribbon = particle.extractRibbon(camera, null, partialTick,
                         CustomParticleRuntime.availableRibbonVertices(particle));
                 if (ribbon != null) {
-                    for (var layer : ribbon.layers()) {
+                    for (var layer : ribbon.ribbonLayers()) {
                         capture(batches, particle, layer.material(), offset, consumer -> ribbon.writeLayer(consumer, layer));
                     }
                 }
@@ -86,19 +86,10 @@ public final class PreviewParticleFrame {
         return batches.stream().mapToInt(batch -> batch.vertices().size()).sum();
     }
 
-    public void draw(Matrix4f entityToDraw, MultiBufferSource source) {
-        if (batches.isEmpty()) {
-            return;
-        }
-        if (source instanceof MultiBufferSource.BufferSource buffers) {
-            buffers.endBatch();
-        }
+    public void draw(Matrix4f entityToDraw, FiguraVertexSource source) {
         for (Batch batch : batches) {
             RenderType type = batch.renderType();
             batch.write(entityToDraw, source.getBuffer(type));
-            if (source instanceof MultiBufferSource.BufferSource buffers) {
-                buffers.endBatch(type);
-            }
         }
     }
 
@@ -114,7 +105,13 @@ public final class PreviewParticleFrame {
         RenderType renderType() {
             return new RenderType("omni_morph_preview_particle", RenderSetup.builder(material.pipeline())
                     .withTexture("Sampler0", material.textureAtlasLocation(), texture::getSampler)
-                    .useLightmap().createRenderSetup());
+                    .useLightmap().createRenderSetup()) {
+                @Override
+                public boolean canConsolidateConsecutiveGeometry() {
+                    // Author layers remain separate draws even when they share the same material.
+                    return false;
+                }
+            };
         }
 
         void write(Matrix4f transform, VertexConsumer consumer) {

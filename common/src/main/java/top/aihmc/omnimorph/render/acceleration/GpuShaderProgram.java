@@ -1,9 +1,11 @@
 package top.aihmc.omnimorph.render.acceleration;
 
 import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.pipeline.BindGroupLayout;
+import com.mojang.blaze3d.GpuFormat;
+import com.mojang.blaze3d.PrimitiveTopology;
 import com.mojang.blaze3d.shaders.UniformType;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import com.mojang.blaze3d.vertex.VertexFormatElement;
 import net.minecraft.resources.Identifier;
 
 import java.util.regex.Pattern;
@@ -292,7 +294,8 @@ final class GpuShaderProgram {
                 .withFragmentShader(original.getFragmentShader()).withCull(original.isCull())
                 .withPolygonMode(original.getPolygonMode()).withColorTargetState(original.getColorTargetState())
                 .withDepthStencilState(Optional.ofNullable(original.getDepthStencilState()))
-                .withVertexFormat(Format.VALUE, VertexFormat.Mode.TRIANGLES);
+                .withVertexBinding(0, Format.VALUE)
+                .withPrimitiveTopology(PrimitiveTopology.TRIANGLES);
         original.getShaderDefines().flags().forEach(builder::withShaderDefine);
         original.getShaderDefines().values().forEach((name, value) -> {
             try {
@@ -301,10 +304,10 @@ final class GpuShaderProgram {
                 builder.withShaderDefine(name, Float.parseFloat(value));
             }
         });
-        original.getSamplers().forEach(builder::withSampler);
-        original.getUniforms().forEach(uniform -> builder.withUniform(uniform.name(), uniform.type()));
+        original.getBindGroupLayouts().forEach(builder::withBindGroupLayout);
         if (uniformPose) {
-            builder.withUniform(UNIFORM, UniformType.UNIFORM_BUFFER);
+            builder.withBindGroupLayout(BindGroupLayout.builder()
+                    .withUniform(UNIFORM, UniformType.UNIFORM_BUFFER).build());
         }
         return builder.build();
     }
@@ -313,29 +316,18 @@ final class GpuShaderProgram {
         return Format.VALUE;
     }
 
-    /** Loaded only during enabled GPU probing. Unavailable attribute slots cause a controlled probe failure. */
+    /** Vertex formats now describe their own named attributes without a global attribute registry. */
     private static final class Format {
         static final VertexFormat VALUE = create();
 
         private static VertexFormat create() {
-            synchronized (VertexFormatElement.class) {
-                int[] free = new int[3];
-                int found = 0;
-                for (int id = 0; id < VertexFormatElement.MAX_COUNT && found < free.length; id++) {
-                    if (VertexFormatElement.byId(id) == null) {
-                        free[found++] = id;
-                    }
-                }
-                if (found != free.length) {
-                    throw new IllegalStateException("Insufficient graphics vertex attribute slots");
-                }
-                VertexFormatElement normal = VertexFormatElement.register(free[0], 0, VertexFormatElement.Type.FLOAT, false, 3);
-                VertexFormatElement weights = VertexFormatElement.register(free[1], 0, VertexFormatElement.Type.FLOAT, false, 4);
-                VertexFormatElement joints = VertexFormatElement.register(free[2], 0, VertexFormatElement.Type.INT, false, 4);
-                return VertexFormat.builder().add("OmniPosition", VertexFormatElement.POSITION)
-                        .add("OmniNormal", normal).add("OmniUV", VertexFormatElement.UV0)
-                        .add("OmniWeights", weights).add("OmniJoints", joints).build();
-            }
+            return VertexFormat.builder(0)
+                    .addAttribute("OmniPosition", GpuFormat.RGB32_FLOAT)
+                    .addAttribute("OmniNormal", GpuFormat.RGB32_FLOAT)
+                    .addAttribute("OmniUV", GpuFormat.RG32_FLOAT)
+                    .addAttribute("OmniWeights", GpuFormat.RGBA32_FLOAT)
+                    .addAttribute("OmniJoints", GpuFormat.RGBA32_SINT)
+                    .build();
         }
     }
 }

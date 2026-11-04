@@ -46,7 +46,7 @@ public class SoundScreen extends AbstractPanelScreen {
 
     @Override
     public void onClose() {
-        this.minecraft.setScreen(sourcePanel);
+        this.minecraft.gui.setScreen(sourcePanel);
     }
 
     @Override

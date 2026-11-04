@@ -101,19 +101,19 @@ public class AvatarControlsScreen extends Screen {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft == null || avatar == null)
             return;
-        if (minecraft.screen instanceof CosmeticAnimationScreen preview && preview.openControls(avatar, page)) {
+        if (minecraft.gui.screen() instanceof CosmeticAnimationScreen preview && preview.openControls(avatar, page)) {
             return;
         }
-        var formal = OutfitControlsScreen.create(minecraft.screen, avatar, page);
+        var formal = OutfitControlsScreen.create(minecraft.gui.screen(), avatar, page);
         if (formal != null) {
-            minecraft.setScreen(formal);
+            minecraft.gui.setScreen(formal);
             return;
         }
         if (avatar.cosmeticContext != null && avatar.cosmeticContext.scope()
                 != top.aihmc.omnimorph.model.outfit.CosmeticInstanceContext.Scope.DRAFT) {
             return;
         }
-        minecraft.setScreen(new AvatarControlsScreen(minecraft.screen, avatar, page));
+        minecraft.gui.setScreen(new AvatarControlsScreen(minecraft.gui.screen(), avatar, page));
     }
 
     @Override
@@ -362,7 +362,7 @@ public class AvatarControlsScreen extends Screen {
 
     @Override
     public void onClose() {
-        minecraft.setScreen(parentScreen);
+        minecraft.gui.setScreen(parentScreen);
     }
 
     private void addControlWidget(int x, int y, int width, Avatar owner, AvatarControlDefinition control) {

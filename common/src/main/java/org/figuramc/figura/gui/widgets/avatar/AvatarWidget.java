@@ -1,6 +1,7 @@
 package org.figuramc.figura.gui.widgets.avatar;
 
 import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -66,7 +67,7 @@ public class AvatarWidget extends AbstractAvatarWidget {
 
                 // description
                 Component parsedDescription = TextUtils.trimToWidthEllipsis(font, description, width, TextUtils.ELLIPSIS.copy().withStyle(description.getStyle()));
-                gui.text(font, parsedDescription, x + 22, y + font.lineHeight + 1, UIHelper.adjustColor(ChatFormatting.GRAY.getColor()));
+                gui.text(font, parsedDescription, x + 22, y + font.lineHeight + 1, UIHelper.adjustColor(TextColor.GRAY.getValue()));
 
                 // tooltip
                 if (parent.showsSourceBadge() || parsedName != getMessage() || parsedDescription != description) {

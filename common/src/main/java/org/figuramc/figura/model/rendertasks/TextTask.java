@@ -4,7 +4,8 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.gui.font.TextRenderable;
+import top.aihmc.omnimorph.model.rendering.FiguraVertexSource;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.network.chat.Component;
 import org.figuramc.figura.FiguraMod;
@@ -52,7 +53,7 @@ public class TextTask extends RenderTask {
     }
 
     @Override
-    public void render(PoseStack poseStack, MultiBufferSource buffer, int light, int overlay) {
+    public void render(PoseStack poseStack, FiguraVertexSource buffer, int light, int overlay) {
         if (opacity == 0) return; // lol
 
         // prepare matrices
@@ -86,13 +87,29 @@ public class TextTask extends RenderTask {
             int x = -alignment.apply(font, text);
 
             if (outline) {
-                font.drawInBatch8xOutline(text.getVisualOrderText(), x, j, -1, out, matrix, buffer, l);
-                if (seeThrough)
-                    font.drawInBatch(text, x, j, op, shadow, matrix, buffer, displayMode, 0, l);
+                drawPreparedText(font.prepare8xTextOutline(text.getVisualOrderText(), x, j, out),
+                        matrix, buffer, Font.DisplayMode.NORMAL, l);
+                drawPreparedText(font.prepareText(text.getVisualOrderText(), x, j, -1, false, false, 0),
+                        matrix, buffer, Font.DisplayMode.POLYGON_OFFSET, l);
+                if (seeThrough) {
+                    drawPreparedText(font.prepareText(text.getVisualOrderText(), x, j, op, shadow, false, 0),
+                            matrix, buffer, displayMode, l);
+                }
             } else {
-                font.drawInBatch(text, x, j, op, shadow, matrix, buffer, displayMode, 0, l);
+                drawPreparedText(font.prepareText(text.getVisualOrderText(), x, j, op, shadow, false, 0),
+                        matrix, buffer, displayMode, l);
             }
         }
+    }
+
+    private static void drawPreparedText(Font.PreparedText text, Matrix4f matrix, FiguraVertexSource source,
+                                         Font.DisplayMode displayMode, int light) {
+        text.visit(new Font.GlyphVisitor() {
+            @Override
+            public void acceptRenderable(TextRenderable renderable) {
+                renderable.render(matrix, source.getBuffer(renderable.renderType(displayMode)), light, false);
+            }
+        });
     }
 
     @Override

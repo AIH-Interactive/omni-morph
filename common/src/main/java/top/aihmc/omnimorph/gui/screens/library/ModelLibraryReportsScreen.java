@@ -98,7 +98,7 @@ public final class ModelLibraryReportsScreen extends LibraryFormScreen {
                 FiguraText.of("gui.library.inspect_model"), null, ignored -> {
                     if (selected != null && !busy()) {
                         UUID model = selected.modelId();
-                        minecraft.setScreen(parentScreen);
+                        minecraft.gui.setScreen(parentScreen);
                         inspect.accept(model);
                     }
                 }));

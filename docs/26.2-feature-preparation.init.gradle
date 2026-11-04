@@ -1,0 +1,17 @@
+gradle.projectsEvaluated {
+    def common = rootProject.project(':common')
+    def output = rootProject.layout.buildDirectory.dir('26.2-feature-preparation-slice')
+    def compile = rootProject.tasks.register('compile26_2FeaturePreparation', JavaCompile) {
+        source common.files('src/test/java/top/aihmc/omnimorph/model/rendering/nodeRenderer/NativeFeaturePreparationSmokeTest.java',
+            'src/main/java/top/aihmc/omnimorph/model/rendering/nodeRenderer/SameFrameFeaturePreparation.java')
+        classpath = common.configurations.compileClasspath
+        destinationDirectory = output
+        options.release = 25
+        options.encoding = 'UTF-8'
+    }
+    rootProject.tasks.register('native26_2FeaturePreparationSmokeTest', JavaExec) {
+        dependsOn compile
+        classpath = rootProject.files(output) + common.configurations.compileClasspath + common.configurations.runtimeClasspath
+        mainClass = 'top.aihmc.omnimorph.model.rendering.nodeRenderer.NativeFeaturePreparationSmokeTest'
+    }
+}

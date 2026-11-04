@@ -7,7 +7,7 @@ import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.client.player.AbstractClientPlayer;
-import net.minecraft.client.renderer.MultiBufferSource;
+import top.aihmc.omnimorph.model.rendering.FiguraVertexSource;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
@@ -63,7 +63,7 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
     private Component originalNameTag;
 
     @Unique
-    private static MultiBufferSource figura$singleBuffer(VertexConsumer consumer) {
+    private static FiguraVertexSource figura$singleBuffer(VertexConsumer consumer) {
         return type -> consumer;
     }
 
@@ -273,7 +273,7 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
         Avatar localAvatar = outfit == null ? AvatarManager.getAvatarForPlayer(player.getUUID())
                 : AvatarManager.getAvatar(outfitState);
         Matrix4f armToDraw = new Matrix4f(poseStack.last().pose());
-        BiFunction<MultiBufferSource, PoseStack, Boolean> lambda = (bufferSource, stack) -> {
+        BiFunction<FiguraVertexSource, PoseStack, Boolean> lambda = (bufferSource, stack) -> {
             if (outfit != null && localAvatar == null) {
                 RenderUtils.restoreModelPoseState(model, modelState);
                 OutfitNativeRenderer.drawVanillaArm(outfit, model, outfitState, delta,

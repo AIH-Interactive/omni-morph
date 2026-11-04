@@ -1,0 +1,101 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/eryth/.gradle/wrapper/dists/gradle-9.4.1-bin/arn2x92ynaizyzdaamcbpbhtj/gradle-9.4.1/lib/native-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Architect Plugin: 3.5.168
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\local\LocalAvatarLoader.java:423: 警告: ExtendedWatchEventModifier是内部专用 API, 可能会在未来发行版中删除
+> Task :common:compileJava
+            WatchKey key = IS_WINDOWS ? path.register(watcher, events, com.sun.nio.file.ExtendedWatchEventModifier.FILE_TREE) : path.register(watcher, events);
+                                                                                       ^
+注: 某些输入文件使用或覆盖了已过时的 API。
+注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+注: 某些输入文件使用了未经检查或不安全的操作。
+注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+1 个警告
+
+> Task :common:processResources
+> Task :common:classes
+> Task :common:jar
+
+> Task :fabric:compileJava
+D:\UserData\Desktop\Project\OMP\OMP_26.2\fabric\src\main\java\top\aihmc\omnimorph\mixin\fabric\LevelRendererMixinFabric.java:58: 错误: 找不到符号
+        Camera camera = this.minecraft.gameRenderer.getMainCamera();
+                                                   ^
+  符号:   方法 getMainCamera()
+  位置: 类型为GameRenderer的变量 gameRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\fabric\src\main\java\top\aihmc\omnimorph\mixin\fabric\LevelRendererMixinFabric.java:78: 错误: 程序包MultiBufferSource不存在
+        MultiBufferSource.BufferSource bufferSource = this.renderBuffers.bufferSource();
+                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\fabric\src\main\java\top\aihmc\omnimorph\mixin\fabric\LevelRendererMixinFabric.java:78: 错误: 找不到符号
+        MultiBufferSource.BufferSource bufferSource = this.renderBuffers.bufferSource();
+                                                                        ^
+  符号:   方法 bufferSource()
+  位置: 类型为RenderBuffers的变量 renderBuffers
+D:\UserData\Desktop\Project\OMP\OMP_26.2\fabric\src\main\java\top\aihmc\omnimorph\mixin\fabric\LevelRendererMixinFabric.java:101: 错误: 无法将类 FeatureRenderDispatcher中的方法 renderAllFeatures应用到给定类型;
+        featureRenderDispatcher.renderAllFeatures();
+                               ^
+  需要: SubmitNodeStorage
+  找到:    没有参数
+  原因: 实际参数列表和形式参数列表长度不同
+注: D:\UserData\Desktop\Project\OMP\OMP_26.2\fabric\src\main\java\top\aihmc\omnimorph\mixin\fabric\LevelRendererMixinFabric.java使用了未经检查或不安全的操作。
+注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+4 个错误
+
+> Task :fabric:compileJava FAILED
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_26.2/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':fabric:compileJava'.
+> Compilation failed; see the compiler output below.
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\fabric\src\main\java\top\aihmc\omnimorph\mixin\fabric\LevelRendererMixinFabric.java:101: 错误: 无法将类 FeatureRenderDispatcher中的方法 renderAllFeatures应用到给定类型;
+          featureRenderDispatcher.renderAllFeatures();
+                                 ^
+    需要: SubmitNodeStorage
+    找到:    没有参数
+    原因: 实际参数列表和形式参数列表长度不同
+  注: D:\UserData\Desktop\Project\OMP\OMP_26.2\fabric\src\main\java\top\aihmc\omnimorph\mixin\fabric\LevelRendererMixinFabric.java使用了未经检查或不安全的操作。
+  注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\fabric\src\main\java\top\aihmc\omnimorph\mixin\fabric\LevelRendererMixinFabric.java:78: 错误: 程序包MultiBufferSource不存在
+          MultiBufferSource.BufferSource bufferSource = this.renderBuffers.bufferSource();
+                           ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\fabric\src\main\java\top\aihmc\omnimorph\mixin\fabric\LevelRendererMixinFabric.java:58: 错误: 找不到符号
+          Camera camera = this.minecraft.gameRenderer.getMainCamera();
+                                                     ^
+    符号:   方法 getMainCamera()
+    位置: 类型为GameRenderer的变量 gameRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\fabric\src\main\java\top\aihmc\omnimorph\mixin\fabric\LevelRendererMixinFabric.java:78: 错误: 找不到符号
+          MultiBufferSource.BufferSource bufferSource = this.renderBuffers.bufferSource();
+                                                                          ^
+    符号:   方法 bufferSource()
+    位置: 类型为RenderBuffers的变量 renderBuffers
+  4 个错误
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+
+BUILD FAILED in 38s
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+7 actionable tasks: 4 executed, 3 up-to-date

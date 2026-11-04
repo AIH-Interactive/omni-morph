@@ -18,7 +18,6 @@ accessible class net/minecraft/client/StringSplitter$WidthLimitedCharSink
 
 accessible field net/minecraft/client/renderer/RenderPipelines GLOBALS_SNIPPET Lcom/mojang/blaze3d/pipeline/RenderPipeline$Snippet;
 accessible field net/minecraft/client/renderer/RenderPipelines MATRICES_FOG_SNIPPET Lcom/mojang/blaze3d/pipeline/RenderPipeline$Snippet;
-accessible field net/minecraft/client/renderer/RenderPipelines FOG_SNIPPET Lcom/mojang/blaze3d/pipeline/RenderPipeline$Snippet;
 accessible field net/minecraft/client/renderer/RenderPipelines LINES_SNIPPET Lcom/mojang/blaze3d/pipeline/RenderPipeline$Snippet;
 
 accessible method net/minecraft/client/renderer/RenderPipelines register (Lcom/mojang/blaze3d/pipeline/RenderPipeline;)Lcom/mojang/blaze3d/pipeline/RenderPipeline;
@@ -48,4 +47,9 @@ accessible class net/minecraft/client/resources/model/sprite/AtlasManager$AtlasE
 accessible field net/minecraft/client/renderer/rendertype/RenderType state Lnet/minecraft/client/renderer/rendertype/RenderSetup;
 accessible field net/minecraft/client/renderer/rendertype/RenderSetup layeringTransform Lnet/minecraft/client/renderer/rendertype/LayeringTransform;
 accessible field net/minecraft/client/renderer/rendertype/RenderSetup textureTransform Lnet/minecraft/client/renderer/rendertype/TextureTransform;
-accessible field net/minecraft/client/renderer/MultiBufferSource$BufferSource fixedBuffers Ljava/util/SequencedMap;
+
+# Prepare submissions emitted by Figura callbacks before the native shared-buffer upload.
+accessible class net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PhaseSubmitGrouper
+accessible class net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedGroup
+accessible field net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame allSubmits Ljava/util/List;
+accessible field net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame groupsByFeature Ljava/util/Map;

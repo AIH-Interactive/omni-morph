@@ -1,0 +1,35 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+PASS org/figuramc/figura/mixin/AABBInvoker -> net/minecraft/world/phys/AABB
+PASS org/figuramc/figura/mixin/BiomeAccessor -> net/minecraft/world/level/biome/Biome
+PASS org/figuramc/figura/mixin/BlockBehaviourAccessor -> net/minecraft/world/level/block/state/BlockBehaviour
+PASS org/figuramc/figura/mixin/ClientCommandSourceMixin -> net/minecraft/client/multiplayer/ClientSuggestionProvider
+PASS org/figuramc/figura/mixin/ClientLevelInvoker -> net/minecraft/client/multiplayer/ClientLevel
+PASS org/figuramc/figura/mixin/ClientPacketListenerMixin -> net/minecraft/client/multiplayer/ClientPacketListener
+OPTIONAL absent org/figuramc/figura/mixin/compat/GeckolibGeoArmorRendererMixin -> com/geckolib/renderer/GeoArmorRenderer
+OPTIONAL absent org/figuramc/figura/mixin/compat/GeckolibGeoRendererMixin -> com/geckolib/renderer/base/GeoRenderer
+OPTIONAL absent org/figuramc/figura/mixin/compat/SimpleVCMixin -> de/maxhenkel/voicechat/voice/client/RenderEvents
+PASS org/figuramc/figura/mixin/EntityAccessor -> net/minecraft/world/entity/Entity
+PASS org/figuramc/figura/mixin/EntityMixin -> net/minecraft/world/entity/Entity
+PASS org/figuramc/figura/mixin/font/BitmapGlyphMixin -> net/minecraft/client/gui/font/providers/BitmapProvider$Glyph
+PASS org/figuramc/figura/mixin/font/FontSetMixin -> net/minecraft/client/gui/font/FontSet
+PASS org/figuramc/figura/mixin/gui/books/BookViewScreenMixin -> net/minecraft/client/gui/screens/inventory/BookViewScreen
+PASS org/figuramc/figura/mixin/gui/books/LineInfoMixin -> net/minecraft/client/gui/components/MultiLineEditBox
+PASS org/figuramc/figura/mixin/gui/ChatComponentAccessor -> net/minecraft/client/gui/components/ChatComponent
+PASS org/figuramc/figura/mixin/gui/ChatComponentMixin -> net/minecraft/client/gui/components/ChatComponent
+PASS org/figuramc/figura/mixin/gui/ChatScreenAccessor -> net/minecraft/client/gui/screens/ChatScreen
+PASS org/figuramc/figura/mixin/gui/ChatScreenMixin -> net/minecraft/client/gui/screens/ChatScreen
+PASS org/figuramc/figura/mixin/gui/ClickEventActionMixin -> net/minecraft/network/chat/ClickEvent$Action
+PASS org/figuramc/figura/mixin/gui/GuiAccessor -> net/minecraft/client/gui/Hud
+PASS org/figuramc/figura/mixin/gui/GuiMessageLineMixin -> net/minecraft/client/multiplayer/chat/GuiMessage$Line
+PASS org/figuramc/figura/mixin/gui/GuiMessageMixin -> net/minecraft/client/multiplayer/chat/GuiMessage
+PASS org/figuramc/figura/mixin/gui/InventoryScreenMixin -> net/minecraft/client/gui/screens/inventory/InventoryScreen
+PASS org/figuramc/figura/mixin/gui/PauseScreenMixin -> net/minecraft/client/gui/screens/PauseScreen
+PASS org/figuramc/figura/mixin/gui/PlayerTabOverlayAccessor -> net/minecraft/client/gui/components/PlayerTabOverlay
+PASS org/figuramc/figura/mixin/gui/PlayerTabOverlayMixin -> net/minecraft/client/gui/components/PlayerTabOverlay
+PASS org/figuramc/figura/mixin/gui/ScreenAccessor -> net/minecraft/client/gui/screens/Screen
+PASS org/figuramc/figura/mixin/gui/ScreenMixin -> net/minecraft/client/gui/screens/Screen
+PASS org/figuramc/figura/mixin/gui/SplashManagerMixin -> net/minecraft/client/resources/SplashManager
+PASS org/figuramc/figura/mixin/gui/SplashRendererMixin -> net/minecraft/client/gui/components/SplashRenderer
+PASS org/figuramc/figura/mixin/gui/SuggestionsListMixin -> net/minecraft/client/gui/components/CommandSuggestions$SuggestionsList
+PASS org/figuramc/figura/mixin/input/InputConstantsTypeMixin -> com/mojang/blaze3d/platform/InputConstants$Type
+PASS org/figuramc/figura/mixin/input/KeyboardHandlerMixin -> net/minecraft/client/KeyboardHandler

@@ -1,0 +1,38 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+PASS line 1: public net.minecraft.world.level.biome.Biome$ClimateSettings
+PASS line 2: public net.minecraft.client.renderer.feature.FeatureRenderDispatcher$PreparedGroup
+PASS line 3: public net.minecraft.client.renderer.rendertype.RenderSetup textureTransform
+PASS line 4: public net.minecraft.client.renderer.rendertype.RenderSetup layeringTransform
+PASS line 5: public net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState blockState
+PASS line 6: public net.minecraft.client.renderer.entity.layers.EquipmentLayerRenderer$LayerTextureKey
+PASS line 7: public net.minecraft.client.renderer.entity.layers.EquipmentLayerRenderer$LayerTextureKey <init>(Lnet/minecraft/client/resources/model/EquipmentClientInfo$LayerType;Lnet/minecraft/client/resources/model/EquipmentClientInfo$Layer;)V
+PASS line 8: public net.minecraft.client.gui.components.SubtitleOverlay$Subtitle
+PASS line 9: public net.minecraft.client.renderer.rendertype.RenderType state
+PASS line 10: public net.minecraft.client.renderer.rendertype.RenderType <init>(Ljava/lang/String;Lnet/minecraft/client/renderer/rendertype/RenderSetup;)V
+PASS line 11: public net.minecraft.client.renderer.RenderPipelines MATRICES_FOG_SNIPPET
+PASS line 12: public net.minecraft.client.renderer.RenderPipelines GLOBALS_SNIPPET
+PASS line 13: public net.minecraft.client.renderer.RenderPipelines LINES_SNIPPET
+PASS line 14: public net.minecraft.client.renderer.RenderPipelines register(Lcom/mojang/blaze3d/pipeline/RenderPipeline;)Lcom/mojang/blaze3d/pipeline/RenderPipeline;
+PASS line 15: public net.minecraft.client.particle.ParticleResources$MutableSpriteSet
+PASS line 16: public net.minecraft.client.renderer.entity.layers.EquipmentLayerRenderer$TrimSpriteKey
+PASS line 17: public net.minecraft.client.renderer.entity.layers.EquipmentLayerRenderer$TrimSpriteKey <init>(Lnet/minecraft/world/item/equipment/trim/ArmorTrim;Lnet/minecraft/client/resources/model/EquipmentClientInfo$LayerType;Lnet/minecraft/resources/ResourceKey;)V
+PASS line 18: public net.minecraft.client.gui.GuiGraphicsExtractor$ScissorStack
+PASS line 19: public net.minecraft.client.renderer.feature.FeatureRenderDispatcher$PhaseSubmitGrouper
+PASS line 20: public-f net.minecraft.client.renderer.state.gui.GuiTextRenderState
+PASS line 21: public net.minecraft.client.gui.font.providers.BitmapProvider$Glyph
+PASS line 22: public net.minecraft.client.StringSplitter$WidthLimitedCharSink
+PASS line 23: public net.minecraft.client.gui.Font$PreparedTextBuilder
+PASS line 24: public net.minecraft.client.gui.Font$PreparedTextBuilder x
+PASS line 25: public net.minecraft.client.gui.Font$PreparedTextBuilder y
+PASS line 26: public-f net.minecraft.resources.Identifier
+PASS line 27: public net.minecraft.resources.Identifier <init>(Ljava/lang/String;Ljava/lang/String;)V
+PASS line 28: public net.minecraft.client.renderer.feature.FeatureRenderDispatcher$PreparedFrame groupsByFeature
+PASS line 29: public net.minecraft.client.renderer.feature.FeatureRenderDispatcher$PreparedFrame allSubmits
+PASS line 30: public net.minecraft.client.gui.screens.Screen defaultHandleGameClickEvent(Lnet/minecraft/network/chat/ClickEvent;Lnet/minecraft/client/Minecraft;Lnet/minecraft/client/gui/screens/Screen;)V
+PASS line 31: public net.minecraft.util.datafix.fixes.ItemStackComponentizationFix fixItemStack(Lnet/minecraft/util/datafix/fixes/ItemStackComponentizationFix$ItemStackData;Lcom/mojang/serialization/Dynamic;)V
+PASS line 32: public net.minecraft.util.datafix.fixes.ItemStackComponentizationFix$ItemStackData
+PASS line 33: public net.minecraft.util.datafix.fixes.ItemStackComponentizationFix$ItemStackData tag
+PASS line 34: public net.minecraft.client.resources.model.sprite.AtlasManager$AtlasEntry
+PASS line 35: public net.minecraft.client.gui.font.FontSet$SelectedGlyphs
+Checked 35 AT targets against D:\UserData\Desktop\Project\OMP\OMP_26.2\.gradle\loom-cache\minecraftMaven\net\minecraft\neoforge-26.2.0.93-minecraft-merged-d5c193bd01\26.2\neoforge-26.2.0.93-minecraft-merged-d5c193bd01-26.2.jar; failures=0
+Scope: declared target existence and exact descriptors; not loader transformation or runtime injection.

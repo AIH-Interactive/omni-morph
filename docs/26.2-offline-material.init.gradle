@@ -1,0 +1,36 @@
+gradle.projectsEvaluated {
+    def common = rootProject.project(':common')
+    def output = rootProject.layout.buildDirectory.dir('26.2-offline-material')
+    def compile = rootProject.tasks.register('compile26_2OfflineMaterial', JavaCompile) {
+        dependsOn common.tasks.named('classes')
+        source common.fileTree('src/test/java/top/aihmc/omnimorph/testing')
+        source common.files('src/test/java/top/aihmc/omnimorph/render/acceleration/GpuSubmissionSmokeTest.java',
+                'src/test/java/top/aihmc/omnimorph/render/acceleration/GpuAccelerationSmokeTest.java')
+        classpath = common.sourceSets.main.output + common.configurations.compileClasspath
+        destinationDirectory = output
+        options.release = 25
+        options.encoding = 'UTF-8'
+    }
+    def agent = rootProject.tasks.register('offline26_2MixinAgent', Jar) {
+        dependsOn compile
+        from(output)
+        from(common.file('src/test/resources'))
+        archiveFileName = 'omnimorph-offline-mixin-agent.jar'
+        destinationDirectory = rootProject.layout.buildDirectory.dir('26.2-offline-material-agent')
+        manifest.attributes('Premain-Class': 'top.aihmc.omnimorph.testing.OfflineMixinAgent')
+    }
+    rootProject.tasks.register('offline26_2DeferredMaterialSmokeTest', JavaExec) {
+        dependsOn agent
+        classpath = rootProject.files(agent.flatMap { it.archiveFile }) + common.sourceSets.main.output + common.configurations.compileClasspath + common.configurations.runtimeClasspath
+        mainClass = 'top.aihmc.omnimorph.testing.DeferredMaterialSmokeTest'
+        if (!Boolean.getBoolean('omnimorph.offline.red')) {
+            jvmArgs "-javaagent:${agent.get().archiveFile.get().asFile}=omnimorph-offline-material.mixins.json"
+        }
+    }
+    rootProject.tasks.register('offline26_2GpuSubmissionSmokeTest', JavaExec) {
+        dependsOn agent
+        classpath = rootProject.files(agent.flatMap { it.archiveFile }) + common.sourceSets.main.output + common.configurations.compileClasspath + common.configurations.runtimeClasspath
+        mainClass = 'top.aihmc.omnimorph.render.acceleration.GpuSubmissionSmokeTest'
+        jvmArgs "-javaagent:${agent.get().archiveFile.get().asFile}=omnimorph-offline-material.mixins.json"
+    }
+}

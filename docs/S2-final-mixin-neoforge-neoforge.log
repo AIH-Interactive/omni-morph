@@ -1,0 +1,8 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+PASS top/aihmc/omnimorph/mixin/neoforge/ClientCommandSourceMixinNeoForge -> net/minecraft/commands/CommandSourceStack
+PASS top/aihmc/omnimorph/mixin/neoforge/CommandSuggestionsMixinNeoForge -> net/minecraft/client/gui/components/CommandSuggestions
+PASS top/aihmc/omnimorph/mixin/neoforge/ElytraLayerAccessor -> net/minecraft/client/renderer/entity/layers/WingsLayer
+PASS top/aihmc/omnimorph/mixin/neoforge/HumanoidArmorLayerMixinNeoForge -> net/minecraft/client/renderer/entity/layers/HumanoidArmorLayer
+PASS top/aihmc/omnimorph/mixin/neoforge/LevelRendererMixinNeoForge -> net/minecraft/client/renderer/LevelRenderer
+Checked mixins=5, failures=0
+Scope: static targets, shadows, selectors and INVOKE sites; not transformation, locals or runtime behavior.

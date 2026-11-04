@@ -9,7 +9,7 @@ import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.textures.GpuSampler;
 import com.mojang.blaze3d.textures.GpuTexture;
 import com.mojang.blaze3d.textures.GpuTextureView;
-import com.mojang.blaze3d.textures.TextureFormat;
+import com.mojang.blaze3d.GpuFormat;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.minecraft.client.renderer.texture.MipmapStrategy;
@@ -289,7 +289,7 @@ public class FiguraTexture extends SimpleTexture {
             gpuDevice.createCommandEncoder().writeToTexture(texture, nativeImage);
             return;
         }
-        GpuTexture replacement = gpuDevice.createTexture(this.resourceId()::toString, 5, TextureFormat.RGBA8,
+        GpuTexture replacement = gpuDevice.createTexture(this.resourceId()::toString, 5, GpuFormat.RGBA8_UNORM,
                 nativeImage.getWidth(), nativeImage.getHeight(), 1, 1);
         GpuTextureView replacementView = null;
         try {

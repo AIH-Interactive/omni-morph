@@ -187,7 +187,7 @@ public class FiguraMod {
     public static void sendChatMessage(Component message) {
         if (Minecraft.getInstance().gui != null) {
             parseMessages = false;
-            Minecraft.getInstance().gui.getChat().addClientSystemMessage(TextUtils.replaceTabs(message));
+            Minecraft.getInstance().gui.hud.getChat().addClientSystemMessage(TextUtils.replaceTabs(message));
             parseMessages = true;
         } else {
             LOGGER.info(message.getString());

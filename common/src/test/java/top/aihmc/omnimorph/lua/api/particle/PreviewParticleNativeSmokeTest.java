@@ -282,7 +282,7 @@ final class PreviewParticleNativeSmokeTest {
 
     private static byte[] vertices(PreviewParticleFrame frame, Matrix4f transform) {
         try (var storage = ByteBufferBuilder.exactlySized(frame.vertexCount() * DefaultVertexFormat.PARTICLE.getVertexSize())) {
-            var builder = new BufferBuilder(storage, VertexFormat.Mode.QUADS, DefaultVertexFormat.PARTICLE);
+            var builder = new BufferBuilder(storage, com.mojang.blaze3d.PrimitiveTopology.QUADS, DefaultVertexFormat.PARTICLE);
             frame.draw(transform, type -> builder);
             try (var mesh = builder.build()) {
                 require(mesh != null && mesh.drawState().vertexCount() == frame.vertexCount(),

@@ -1,0 +1,8 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "top.aihmc.omnimorph.testing",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": ["OfflineRenderTypeMixin", "OfflineMaterialDrawMixin"],
+  "injectors": {"defaultRequire": 1}
+}

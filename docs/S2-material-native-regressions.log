@@ -1,0 +1,198 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/eryth/.gradle/wrapper/dists/gradle-9.4.1-bin/arn2x92ynaizyzdaamcbpbhtj/gradle-9.4.1/lib/native-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Architect Plugin: 3.5.168
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+
+> Task :common:compileJava
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\local\LocalAvatarLoader.java:423: 警告: ExtendedWatchEventModifier是内部专用 API, 可能会在未来发行版中删除
+            WatchKey key = IS_WINDOWS ? path.register(watcher, events, com.sun.nio.file.ExtendedWatchEventModifier.FILE_TREE) : path.register(watcher, events);
+                                                                                       ^
+注: 某些输入文件使用或覆盖了已过时的 API。
+注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+注: 某些输入文件使用了未经检查或不安全的操作。
+注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+1 个警告
+
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes
+> Task :common:extractIncludeTestProto UP-TO-DATE
+> Task :common:extractTestProto UP-TO-DATE
+> Task :common:generateTestProto NO-SOURCE
+> Task :common:compileTestJava UP-TO-DATE
+> Task :common:processTestResources UP-TO-DATE
+> Task :common:testClasses UP-TO-DATE
+
+> Task :common:ysmMaterialNativeSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.joml.MemUtil$MemUtilUnsafe (file:/C:/Users/eryth/.gradle/caches/modules-2/files-2.1/org.joml/joml/1.10.8/fc0a71dad90a2cf41d82a76156a0e700af8e4f8d/joml-1.10.8.jar)
+WARNING: Please consider reporting this to the maintainers of class org.joml.MemUtil$MemUtilUnsafe
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[00:15:22] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.lwjgl.system.Library$$Lambda/0x0000000027bd3be0 in an unnamed module (file:/C:/Users/eryth/.gradle/caches/modules-2/files-2.1/org.lwjgl/lwjgl/3.4.1/129e06a04f93992cb2a45172435b21fc4b60dd7d/lwjgl-3.4.1-unsafe.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[00:15:22] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:22] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:22] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:22] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:22] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:22] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:22] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:22] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:22] [main/INFO]: [STDOUT]: PASS Layered particles: native UV/tint/light extraction, blend/order hook, atomic leases, layer bounds and frame cleanup; real GPU/game MANUAL/PENDING
+[00:15:22] [main/INFO]: [STDOUT]: PASS native Ribbon: Lua mode/settings, extraction hook, actual particle vertex bytes, native submit nodes, frozen replay, shared vertices/trail slots and cleanup; GPU/game MANUAL/PENDING
+[00:15:22] [main/INFO]: [STDOUT]: PASS native particle motion: Lua properties, real acceleration/gravity/tick, all built-ins, native roll interpolation, actual EntityAPI target movement/ID reuse/loss and overflow cleanup
+[00:15:22] [main/INFO]: [STDOUT]: PASS native particle lights: Lua settings, production world hook/region identity, section invalidation, interpolated entities, shared count/settings policy and cleanup; GPU/game MANUAL/PENDING
+[00:15:23] [main/INFO]: [STDOUT]: PASS attached controller Ribbon: actual Lua/frame sampling, native vertices/submission, one history slot, failed transition, target/teleport/retirement and head light; pixels MANUAL/PENDING
+[00:15:23] [main/ERROR]: 
+java.io.IOException: YSM main model is empty
+	at top.aihmc.omnimorph.model.ysm.YsmModelRuntime.fromNbt(YsmModelRuntime.java:169)
+	at org.figuramc.figura.avatar.Avatar.load(Avatar.java:1034)
+	at org.figuramc.figura.avatar.Avatar.load(Avatar.java:970)
+	at org.figuramc.figura.avatar.Avatar.load(Avatar.java:965)
+	at org.figuramc.figura.avatar.Avatar.load(Avatar.java:961)
+	at top.aihmc.omnimorph.lua.api.particle.PreviewParticleNativeSmokeTest.preparationFence(PreviewParticleNativeSmokeTest.java:233)
+	at top.aihmc.omnimorph.lua.api.particle.PreviewParticleNativeSmokeTest.run(PreviewParticleNativeSmokeTest.java:59)
+	at top.aihmc.omnimorph.lua.api.particle.CustomParticleNativeSmokeTest.run(CustomParticleNativeSmokeTest.java:62)
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:298)
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:73)
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.main(YsmMaterialNativeSmokeTest.java:42)
+[00:15:23] [main/INFO]: [STDOUT]: PASS isolated preview particle lifecycle: public construction, no world engine/light, private budgets, tick/frame callbacks, native expiry, reload/retirement/session cleanup, frozen native GUI geometry; pixels MANUAL/PENDING
+[00:15:23] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:23] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:23] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:23] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:23] [main/INFO]: [STDOUT]: PASS authored cosmetic particles: actual NBT/Lua init, owned PNG name, native animation marker, next-tick creation, duplicate isolation, preview/world routing, reload and retirement; pixels MANUAL/PENDING
+[00:15:24] [main/INFO]: [STDOUT]: PASS created Trail emission: generated package -> authored Lua -> native particles, static/sprite UV, full bright, frame-independent rate, duplicate controls, reload/teleport/expiry and isolated GUI scope; controlled matrices and test-only scale mixin bridge, actual mixin/mounted draw/pixels MANUAL/PENDING
+[00:15:24] [main/WARN]: Avatar 3643d2db-f0f7-404e-8321-e54db52cd048 bypassed resource limits with 49 instructions
+[00:15:24] [main/WARN]: Outfit accessory allowance exhausted: permission=RENDER_INST, accessoryMax=64, accessoryRemaining=64, basePermission=-1, baseCounter=-1/-1, sharedUsed=64, observedBase=0
+[00:15:24] [main/WARN]: Avatar 4fe28bb4-6927-4b9a-9432-b8f5410be1f6 bypassed resource limits with 128 instructions
+[00:15:24] [main/WARN]: Avatar 24f4cd67-34a8-42a8-8ebf-628678bd7db1 bypassed resource limits with 64 instructions
+[00:15:24] [main/WARN]: Outfit accessory allowance exhausted: permission=TICK_INST, accessoryMax=64, accessoryRemaining=64, basePermission=-1, baseCounter=-1/-1, sharedUsed=64, observedBase=0
+[00:15:24] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:24] [main/INFO]: [STDOUT]: PASS cosmetic animation events: real Lua registration, native Figura/YSM sources, next-tick queue, generation/instance isolation, shared count/instructions, bounded reentry and reload; game timing MANUAL/PENDING
+[00:15:24] [main/INFO]: [STDOUT]: PASS particle callbacks: real Lua tick/frame hooks, shared count/instruction quotas, epoch/reentry guards, zero limits, removal and VM failure isolation; game MANUAL/PENDING
+[00:15:24] [main/INFO]: [STDOUT]: PASS custom Billboard: actual Lua wrappers/native quad extraction, UV/full-bright, shared capacity, execution cleanup and extracted texture lifetime; GPU/game MANUAL/PENDING
+[00:15:24] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:24] [main/INFO]: [STDOUT]: YSM Figura face complexity: visible/hidden geometry, per-frame draws, permission budget and detached preview PASS
+[00:15:24] [main/WARN]: Outfit accessory allowance exhausted: permission=COMPLEXITY, accessoryMax=8, accessoryRemaining=8, basePermission=8, baseCounter=8/8, sharedUsed=8, observedBase=0
+[00:15:24] [main/INFO]: [STDOUT]: PASS particle/model face budget: actual YSM vertices and layered quads, either order, counter reset, exact/insufficient allowance, hidden-owner refill, duplicate instances and frame retirement
+[00:15:24] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:24] [main/INFO]: [YSM Validation] main.json: 3 bones, 1 roots, 3 cubes, 18 quads, 0 locators - OK
+[00:15:24] [main/INFO]: [STDOUT]: Figura production emitter batch positions/normals/UV and retired deferred draw PASS.
+[00:15:24] [main/INFO]: [STDOUT]: Figura production emitter batch positions/normals/UV and retired deferred draw PASS.
+[00:15:24] [main/INFO]: [STDOUT]: PASS Figura/YSM bone fade: Java and accelerated emitters, selected subtree, deferred alpha and world isolation
+[00:15:24] [main/INFO]: [YSM Validation] main.json: 2 bones, 1 roots, 2 cubes, 12 quads, 0 locators - OK
+[00:15:24] [main/INFO]: [YSM Validation] main.json: 2 bones, 1 roots, 2 cubes, 12 quads, 0 locators - OK
+[00:15:24] [main/INFO]: [STDOUT]: PASS standing preview: controllers and hidden geometry retained, default idle changes vertices, GUI clip inactive
+[00:15:24] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:24] [main/INFO]: [YSM Validation] main.json: 4 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:24] [main/INFO]: [YSM Validation] main.json: 4 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:24] [main/INFO]: [YSM Validation] main.json: 4 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:24] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:25] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:25] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:25] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:25] [main/INFO]: [YSM Validation] main.json: 4 bones, 1 roots, 0 cubes, 0 quads, 2 locators - OK
+[00:15:25] [main/INFO]: [YSM Validation] main.json: 3 bones, 1 roots, 0 cubes, 0 quads, 2 locators - OK
+[00:15:25] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:25] [main/INFO]: [STDOUT]: M6 sub-entity instance foundation: native entity identity, independent clocks/queries/controllers/variables/events, ID reuse, native Boat/tag/passenger lifetime and unload PASS; rendering and native audio lifecycle remain separate.
+[00:15:25] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:25] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:25] [main/INFO]: [STDOUT]: M7 independent native model sync: content/schema identity, control/texture/action/controller/pose and observer authority PASS
+[00:15:25] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:25] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:25] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:25] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:25] [main/INFO]: [STDOUT]: B5 formal runtime CPU replay: loader delay, snapshot/delta, short action, refresh generation and world cleanup PASS
+[00:15:25] [main/INFO]: [STDOUT]: PASS observer idle continuity: control delta, unchanged snapshot and actual sampled bone pose
+[00:15:25] [ForkJoinPool.commonPool-worker-1/INFO]: Authenticating with OmniMorph server
+[00:15:25] [main/INFO]: [STDOUT]: B6 actual Configs lifecycle: switch disconnect/epoch/re-auth, stale callback discard and offline local runtime retention PASS
+[00:15:25] [main/INFO]: [STDOUT]: B7 actual Configs lifecycle: dual-protocol Debug revocation, authentication cancellation, retry/late callback rejection and local retention PASS
+[00:15:25] [ForkJoinPool.commonPool-worker-1/INFO]: Authenticating with OmniMorph server
+[00:15:25] [ForkJoinPool.commonPool-worker-1/INFO]: Authenticating with OmniMorph server
+[00:15:25] [main/INFO]: [STDOUT]: PASS automatic backend recovery: real tick scheduling, fresh epoch, one authentication and manual cancellation
+[00:15:25] [main/INFO]: [STDOUT]: M7 production connection CPU replay: Ping framing/budget, baseline/delta, short actions, late join, model reload, generation and reconnect PASS
+[00:15:25] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:25] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:25] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:26] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:26] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[00:15:26] [main/INFO]: [STDOUT]: PASS avatar provenance: stable IDs, raw hashes, source mutation/cancellation, archive restart and borrowed filesystem ownership
+[00:15:26] [OmniMorph model loader 1/ERROR]: 
+java.io.IOException: YSM main model is empty
+	at top.aihmc.omnimorph.model.ysm.YsmModelRuntime.fromNbt(YsmModelRuntime.java:169)
+	at org.figuramc.figura.avatar.Avatar.load(Avatar.java:1034)
+	at org.figuramc.figura.avatar.UserData.lambda$loadAvatar$1(UserData.java:76)
+	at java.base/java.util.concurrent.CompletableFuture$AsyncSupply.run(CompletableFuture.java:1789)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1474)
+[00:15:26] [main/INFO]: [STDOUT]: Actual avatar async preparation: nonblocking switch, newest generation, retired scope and failure retention PASS
+[00:15:26] [main/WARN]: Local model broadcast failed: HTTP 503
+[00:15:26] [main/WARN]: Local model broadcast failed: HTTP 429
+[00:15:26] [main/INFO]: [STDOUT]: Actual model broadcast: latest-only upload/equip, mid-upload switch, offline replay, unequip and Reload All source restoration PASS
+[00:15:26] [main/INFO]: [STDOUT]: PASS wardrobe cloud refresh: current UUID, retained authentication/model, Figura resource matching, 404 empty selection and 503 retention; GUI MANUAL/PENDING
+[00:15:26] [main/INFO]: [STDOUT]: Player loading progress: real byte counts, indeterminate stages, stale cancellation, cleanup and native head-label submission PASS; visual GUI pending
+[00:15:26] [main/INFO]: [STDOUT]: M5 native material objects: formal assembly, paired selection, model isolation, channel recreation and deferred NativeImage release PASS; GPU/shader/GUI pending.
+
+> Task :common:accelerationContractSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.joml.MemUtil$MemUtilUnsafe (file:/C:/Users/eryth/.gradle/caches/modules-2/files-2.1/org.joml/joml/1.10.8/fc0a71dad90a2cf41d82a76156a0e700af8e4f8d/joml-1.10.8.jar)
+WARNING: Please consider reporting this to the maintainers of class org.joml.MemUtil$MemUtilUnsafe
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+Acceleration contract passed: immutable data, numeric conventions, frame/resource/model retirement.
+
+> Task :common:gpuAccelerationSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.joml.MemUtil$MemUtilUnsafe (file:/C:/Users/eryth/.gradle/caches/modules-2/files-2.1/org.joml/joml/1.10.8/fc0a71dad90a2cf41d82a76156a0e700af8e4f8d/joml-1.10.8.jar)
+WARNING: Please consider reporting this to the maintainers of class org.joml.MemUtil$MemUtilUnsafe
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[00:15:34] [main/INFO]: [STDOUT]: PASS pose storage arena: alignment, limit fallback, incremental flushes, fence reuse, growth and release
+[00:15:34] [main/INFO]: [STDOUT]: PASS GPU probe waits for game shader sources instead of failing
+[00:15:34] [main/WARN]: GPU pose storage blocks disabled after 3 failures; uniform pose blocks remain
+java.lang.IllegalStateException: injected storage write failure
+	at top.aihmc.omnimorph.render.acceleration.GpuAccelerationSmokeTest$FakeDevice.writeStorage(GpuAccelerationSmokeTest.java:876)
+	at top.aihmc.omnimorph.render.acceleration.GpuPoseArena.flush(GpuPoseArena.java:93)
+	at top.aihmc.omnimorph.render.acceleration.GpuAccelerationBackend.drawPrepared(GpuAccelerationBackend.java:552)
+	at top.aihmc.omnimorph.render.acceleration.GpuAccelerationBackend.drawPrepared(GpuAccelerationBackend.java:524)
+	at top.aihmc.omnimorph.render.acceleration.GpuAccelerationBackend.draw(GpuAccelerationBackend.java:307)
+	at top.aihmc.omnimorph.render.acceleration.AccelerationService.tryDraw(AccelerationService.java:68)
+	at top.aihmc.omnimorph.render.acceleration.GpuAccelerationSmokeTest.storageRouting(GpuAccelerationSmokeTest.java:402)
+	at top.aihmc.omnimorph.render.acceleration.GpuAccelerationSmokeTest.main(GpuAccelerationSmokeTest.java:40)
+[00:15:34] [main/INFO]: [STDOUT]: PASS pose storage routing: lazy variant, arena draws, incremental writes, local failures and fallback
+[00:15:34] [main/INFO]: [STDOUT]: PASS R4-1 backend: interleaved 65-part group prepares one storage range and one draw
+[00:15:34] [main/INFO]: [STDOUT]: PASS R4-2 storage: shared pass reuse and closing before pending arena writes
+[00:15:34] [main/INFO]: [STDOUT]: PASS R4-3 routing: skinned-capable model draw for lit/tinted quad and triangle batches, gated by options
+[00:15:34] [main/INFO]: [STDOUT]: PASS authored rigid group index reuse, sorted per-frame indices and retirement
+[00:15:34] [main/INFO]: [STDOUT]: PASS H4 CPU contracts: raw cached geometry, frame poses, material/shader recipe, bounds, generations, fences and partial-draw fallback; real GPU pixels MANUAL/PENDING
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_26.2/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 58s
+12 actionable tasks: 4 executed, 8 up-to-date

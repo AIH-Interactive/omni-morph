@@ -229,9 +229,9 @@ public final class ParticleDynamicLights {
             terrainWorld = world;
             terrainTick = tick;
             pending = false;
-            if (world != null && client.levelRenderer != null) {
+            if (world != null && client.levelExtractor != null) {
                 for (var section : dirty) {
-                    client.levelRenderer.setSectionDirty(section.x(), section.y(), section.z());
+                    client.levelExtractor.setSectionDirty(section.x(), section.y(), section.z());
                 }
             }
         }

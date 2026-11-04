@@ -1,0 +1,533 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/eryth/.gradle/wrapper/dists/gradle-9.4.1-bin/arn2x92ynaizyzdaamcbpbhtj/gradle-9.4.1/lib/native-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Architect Plugin: 3.5.168
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+
+> Task :common:compileJava
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\EntityTask.java:72: 错误: 找不到符号
+                dispatcher.submit(state, cameraRenderState, 0, 0, 0, stack, minecraft.gameRenderer.getSubmitNodeStorage());
+                                                                                                  ^
+  符号:   方法 getSubmitNodeStorage()
+  位置: 类型为GameRenderer的变量 gameRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\EntityTask.java:130: 错误: 对于loadEntityRecursive(CompoundTag,ClientLevel,EntitySpawnReason,EntityProcessor), 找不到合适的方法
+            entity = EntityType.loadEntityRecursive(finalNbt, Minecraft.getInstance().level, EntitySpawnReason.SPAWN_ITEM_USE, EntityProcessor.NOP);
+                               ^
+    方法 EntityType.loadEntityRecursive(CompoundTag,Level,EntitySpawnRequest,EntityProcessor)不适用
+      (参数不匹配; EntitySpawnReason无法转换为EntitySpawnRequest)
+    方法 EntityType.loadEntityRecursive(ValueInput,Level,EntitySpawnReason,EntityProcessor)不适用
+      (参数不匹配; CompoundTag无法转换为ValueInput)
+    方法 EntityType.loadEntityRecursive(ValueInput,Level,EntitySpawnRequest,EntityProcessor)不适用
+      (参数不匹配; CompoundTag无法转换为ValueInput)
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\world\BlockStateAPI.java:162: 错误: 无法将类 BlockStateBase中的方法 emissiveRendering应用到给定类型;
+        return blockState.emissiveRendering(WorldAPI.getCurrentWorld(), getBlockPos());
+                         ^
+  需要: 没有参数
+  找到:    Level,BlockPos
+  原因: 实际参数列表和形式参数列表长度不同
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\permissions\Permissions.java:139: 错误: 找不到符号
+            this(index, formatting.getColor(), Style.EMPTY.applyFormat(formatting));
+                                  ^
+  符号:   方法 getColor()
+  位置: 类型为ChatFormatting的变量 formatting
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ColorUtils.java:113: 错误: 找不到符号
+            Integer i = formatting.getColor();
+                                  ^
+  符号:   方法 getColor()
+  位置: 类型为ChatFormatting的变量 formatting
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\local\LocalAvatarLoader.java:423: 警告: ExtendedWatchEventModifier是内部专用 API, 可能会在未来发行版中删除
+            WatchKey key = IS_WINDOWS ? path.register(watcher, events, com.sun.nio.file.ExtendedWatchEventModifier.FILE_TREE) : path.register(watcher, events);
+                                                                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\TextField.java:24: 错误: 找不到符号
+    public static final int ENABLED_COLOR = ChatFormatting.WHITE.getColor();
+                                                                ^
+  符号:   方法 getColor()
+  位置: 类型为ChatFormatting的变量 WHITE
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\TextField.java:25: 错误: 找不到符号
+    public static final int DISABLED_COLOR = ChatFormatting.DARK_GRAY.getColor();
+                                                                     ^
+  符号:   方法 getColor()
+  位置: 类型为ChatFormatting的变量 DARK_GRAY
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\Button.java:130: 错误: 找不到符号
+        return (!this.isActive() ? ChatFormatting.DARK_GRAY : ChatFormatting.WHITE).getColor();
+                                                                                   ^
+  符号:   方法 getColor()
+  位置: 类 ChatFormatting
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\FiguraToast.java:146: 错误: 找不到符号
+        ToastManager toasts = Minecraft.getInstance().getToastManager();
+                                                     ^
+  符号:   方法 getToastManager()
+  位置: 类 Minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\ContextMenu.java:230: 错误: 找不到符号
+            gui.fill(this.getX() + 4, getY() + 4, this.getX() + this.getWidth() - 4, getY() + 5, 0xFF000000 + ChatFormatting.DARK_GRAY.getColor());
+                                                                                                                                      ^
+  符号:   方法 getColor()
+  位置: 类型为ChatFormatting的变量 DARK_GRAY
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\config\AbstractConfigElement.java:62: 错误: 找不到符号
+        gui.text(font, config.name, getX() + 16, y, UIHelper.adjustColor((config.disabled ? ChatFormatting.DARK_GRAY : ChatFormatting.WHITE).getColor()));
+                                                                                                                                            ^
+  符号:   方法 getColor()
+  位置: 类 ChatFormatting
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\ContainerButton.java:56: 错误: 找不到符号
+        return !this.isToggled() ? ChatFormatting.DARK_GRAY.getColor() : super.getTextColor();
+                                                           ^
+  符号:   方法 getColor()
+  位置: 类型为ChatFormatting的变量 DARK_GRAY
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\KeybindWidgetHelper.java:25: 错误: 找不到符号
+                gui.fill(x, y, x + width, y + height, ChatFormatting.YELLOW.getColor() | 0xFF000000);
+                                                                           ^
+  符号:   方法 getColor()
+  位置: 类型为ChatFormatting的变量 YELLOW
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\KeybindWidgetHelper.java:29: 错误: 找不到符号
+                gui.fill(x, y, x + width, y + height, ChatFormatting.RED.getColor() | 0xFF000000);
+                                                                        ^
+  符号:   方法 getColor()
+  位置: 类型为ChatFormatting的变量 RED
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\permissions\PlayerPermPackElement.java:170: 错误: 无法将类 GlStateManager中的方法 _enableBlend应用到给定类型;
+                    GlStateManager._enableBlend();
+                                  ^
+  需要: int
+  找到:    没有参数
+  原因: 实际参数列表和形式参数列表长度不同
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\permissions\PlayerPermPackElement.java:172: 错误: 无法将类 GlStateManager中的方法 _disableBlend应用到给定类型;
+                    GlStateManager._disableBlend();
+                                  ^
+  需要: int
+  找到:    没有参数
+  原因: 实际参数列表和形式参数列表长度不同
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\avatar\AvatarWidget.java:69: 错误: 找不到符号
+                gui.text(font, parsedDescription, x + 22, y + font.lineHeight + 1, UIHelper.adjustColor(ChatFormatting.GRAY.getColor()));
+                                                                                                                           ^
+  符号:   方法 getColor()
+  位置: 类型为ChatFormatting的变量 GRAY
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\ClientAPI.java:170: 错误: 找不到符号
+        return Minecraft.getInstance().levelRenderer.getSectionStatistics();
+                                                    ^
+  符号:   方法 getSectionStatistics()
+  位置: 类型为LevelRenderer的变量 levelRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\ClientAPI.java:176: 错误: 找不到符号
+        return Minecraft.getInstance().levelRenderer.getEntityStatistics();
+                                                    ^
+  符号:   方法 getEntityStatistics()
+  位置: 类型为LevelRenderer的变量 levelRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\ClientAPI.java:635: 错误: 找不到符号
+            int id = playerTeam.getColor().getId();
+                                          ^
+  符号:   方法 getId()
+  位置: 类 Optional<TeamColor>
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\ClientAPI.java:637: 错误: 找不到符号
+                objectives.put("sidebar_team_" + playerTeam.getColor().getName(), scoreboard.getDisplayObjective(DisplaySlot.BY_ID.apply(3 + id)));
+                                                                      ^
+  符号:   方法 getName()
+  位置: 类 Optional<TeamColor>
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\entity\PlayerAPI.java:192: 错误: 找不到符号
+        map.put("color", team.getColor().getName());
+                                        ^
+  符号:   方法 getName()
+  位置: 类 Optional<TeamColor>
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\LevelRendererMixin.java:75: 错误: 找不到符号
+            if (multiBufferSource instanceof OutlineBufferSource outline && RenderUtils.vanillaModelAndScript(avatar) && avatar.luaRuntime.renderer.outlineColor != null) {
+                                             ^
+  符号:   类 OutlineBufferSource
+  位置: 类 LevelRendererMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\RenderUtils.java:165: 错误: 找不到符号
+        FeatureRenderDispatcher featureRenderDispatcher = client.gameRenderer.getFeatureRenderDispatcher();
+                                                                             ^
+  符号:   方法 getFeatureRenderDispatcher()
+  位置: 类型为GameRenderer的变量 gameRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\RenderUtils.java:166: 错误: 找不到符号
+        SubmitNodeStorage submitNodeStorage = featureRenderDispatcher.getSubmitNodeStorage();
+                                                                     ^
+  符号:   方法 getSubmitNodeStorage()
+  位置: 类型为FeatureRenderDispatcher的变量 featureRenderDispatcher
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:154: 错误: 找不到符号
+        int paddedSize = Mth.roundToward(Lighting.UBO_SIZE, gpuDevice.getUniformOffsetAlignment());
+                                                                     ^
+  符号:   方法 getUniformOffsetAlignment()
+  位置: 类型为GpuDevice的变量 gpuDevice
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:305: 错误: 无法将类 GlStateManager中的方法 _enableBlend应用到给定类型;
+        GlStateManager._enableBlend();
+                      ^
+  需要: int
+  找到:    没有参数
+  原因: 实际参数列表和形式参数列表长度不同
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:680: 错误: font 在 GuiTextRenderState 中是 private 访问控制
+                Font.PreparedTextBuilder preparedTextBuilder = font.new PreparedTextBuilder(0, 0, outlineColor, false, false);
+                                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:685: 错误: x 在 GuiTextRenderState 中是 private 访问控制
+                            float[] fs = new float[]{x};
+                                                     ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:690: 错误: font 在 GuiTextRenderState 中是 private 访问控制
+                                GlyphSource fontSet = ((FontAccessor) font).figura$getFontSet(style.getFont());
+                                                                      ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:693: 错误: y 在 GuiTextRenderState 中是 private 访问控制
+                                preparedTextBuilder.y = y + o * glyphInfo.getShadowOffset();
+                                                        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\AvatarLoadingRenderer.java:61: 错误: 无法将接口 OrderedSubmitNodeCollector中的方法 submitNameTag应用到给定类型;
+        collector.submitNameTag(poses, attachment, 0, label(progress,
+                 ^
+  需要: PoseStack,Vec3,int,Component,boolean,int,CameraRenderState
+  找到:    PoseStack,Vec3,int,Component,boolean,int,double,CameraRenderState
+  原因: 实际参数列表和形式参数列表长度不同
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\lua\api\particle\ParticleDynamicLights.java:234: 错误: 找不到符号
+                    client.levelRenderer.setSectionDirty(section.x(), section.y(), section.z());
+                                        ^
+  符号:   方法 setSectionDirty(int,int,int)
+  位置: 类型为LevelRenderer的变量 levelRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:318: 错误: 不兼容的类型: OptionalInt无法转换为Optional<Vector4fc>
+                    Objects.requireNonNull(context.color()), OptionalInt.empty(), context.depth(), OptionalDouble.empty());
+                                                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:326: 错误: 找不到符号
+                for (var binding : context.textures().entrySet()) {
+                                                     ^
+  符号:   方法 entrySet()
+  位置: 接口 List<Texture>
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:348: 错误: 不兼容的类型: GpuBuffer无法转换为GpuBufferSlice
+            pass.setVertexBuffer(0, geometry.vertices());
+                                                     ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:349: 错误: 找不到符号
+            pass.setIndexBuffer(indices == null ? geometry.indices() : ((BufferIndices) indices).buffer(), VertexFormat.IndexType.INT);
+                                                                                                                       ^
+  符号:   变量 IndexType
+  位置: 类 VertexFormat
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:352: 错误: 无法将类 RenderPass中的方法 drawIndexed应用到给定类型;
+                pass.drawIndexed(0, firstIndex, indexCount, 1);
+                    ^
+  需要: int,int,int,int,int
+  找到:    int,int,int,int
+  原因: 实际参数列表和形式参数列表长度不同
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:365: 错误: 无法将类 RenderPass中的方法 drawIndexed应用到给定类型;
+                pass.drawIndexed(0, firstIndex, indexCount, 1);
+                    ^
+  需要: int,int,int,int,int
+  找到:    int,int,int,int
+  原因: 实际参数列表和形式参数列表长度不同
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:432: 错误: 找不到符号
+                .withVertexFormat(GpuShaderProgram.format(), VertexFormat.Mode.TRIANGLES).build();
+                                                                         ^
+  符号:   变量 Mode
+  位置: 类 VertexFormat
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:482: 错误: 不兼容的类型: OptionalInt无法转换为Optional<Vector4fc>
+            try (var pass = encoder.createRenderPass(() -> "OmniMorph storage self-test", view, OptionalInt.of(0xff000000))) {
+                                                                                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:485: 错误: 找不到符号
+                pass.setIndexBuffer(geometry.indices(), VertexFormat.IndexType.INT);
+                                                                    ^
+  符号:   变量 IndexType
+  位置: 类 VertexFormat
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:506: 错误: 找不到符号
+            try (var mapped = encoder.mapBuffer(readback, true, false)) {
+                                     ^
+  符号:   方法 mapBuffer(GpuBuffer,boolean,boolean)
+  位置: 类型为CommandEncoder的变量 encoder
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:527: 错误: 找不到符号
+                .withVertexFormat(GpuShaderProgram.format(), VertexFormat.Mode.TRIANGLES).build();
+                                                                         ^
+  符号:   变量 Mode
+  位置: 类 VertexFormat
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:525: 错误: 找不到符号
+                .withUniform(GpuShaderProgram.UNIFORM, com.mojang.blaze3d.shaders.UniformType.UNIFORM_BUFFER)
+                ^
+  符号:   方法 withUniform(String,UniformType)
+  位置: 类 Builder
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:551: 错误: 不兼容的类型: OptionalInt无法转换为Optional<Vector4fc>
+            try (var pass = encoder.createRenderPass(() -> "OmniMorph activation self-test", view, OptionalInt.of(0xff000000))) {
+                                                                                                                 ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:555: 错误: 找不到符号
+                pass.setIndexBuffer(geometry.indices(), VertexFormat.IndexType.INT);
+                                                                    ^
+  符号:   变量 IndexType
+  位置: 类 VertexFormat
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:565: 错误: 找不到符号
+            try (var mapped = encoder.mapBuffer(readback, true, false)) {
+                                     ^
+  符号:   方法 mapBuffer(GpuBuffer,boolean,boolean)
+  位置: 类型为CommandEncoder的变量 encoder
+注: 某些输入文件使用或覆盖了已过时的 API。
+注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+注: 某些输入文件使用了未经检查或不安全的操作。
+注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+注: 某些消息已经过简化; 请使用 -Xdiags:verbose 重新编译以获得完整输出
+48 个错误
+1 个警告
+
+> Task :common:compileJava FAILED
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_26.2/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:compileJava'.
+> Compilation failed; see the compiler output below.
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\local\LocalAvatarLoader.java:423: 警告: ExtendedWatchEventModifier是内部专用 API, 可能会在未来发行版中删除
+              WatchKey key = IS_WINDOWS ? path.register(watcher, events, com.sun.nio.file.ExtendedWatchEventModifier.FILE_TREE) : path.register(watcher, events);
+                                                                                         ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\world\BlockStateAPI.java:162: 错误: 无法将类 BlockStateBase中的方法 emissiveRendering应用到给定类型;
+          return blockState.emissiveRendering(WorldAPI.getCurrentWorld(), getBlockPos());
+                           ^
+    需要: 没有参数
+    找到:    Level,BlockPos
+    原因: 实际参数列表和形式参数列表长度不同
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\permissions\PlayerPermPackElement.java:170: 错误: 无法将类 GlStateManager中的方法 _enableBlend应用到给定类型;
+                      GlStateManager._enableBlend();
+                                    ^
+    需要: int
+    找到:    没有参数
+    原因: 实际参数列表和形式参数列表长度不同
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\permissions\PlayerPermPackElement.java:172: 错误: 无法将类 GlStateManager中的方法 _disableBlend应用到给定类型;
+                      GlStateManager._disableBlend();
+                                    ^
+    需要: int
+    找到:    没有参数
+    原因: 实际参数列表和形式参数列表长度不同
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:305: 错误: 无法将类 GlStateManager中的方法 _enableBlend应用到给定类型;
+          GlStateManager._enableBlend();
+                        ^
+    需要: int
+    找到:    没有参数
+    原因: 实际参数列表和形式参数列表长度不同
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\AvatarLoadingRenderer.java:61: 错误: 无法将接口 OrderedSubmitNodeCollector中的方法 submitNameTag应用到给定类型;
+          collector.submitNameTag(poses, attachment, 0, label(progress,
+                   ^
+    需要: PoseStack,Vec3,int,Component,boolean,int,CameraRenderState
+    找到:    PoseStack,Vec3,int,Component,boolean,int,double,CameraRenderState
+    原因: 实际参数列表和形式参数列表长度不同
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:352: 错误: 无法将类 RenderPass中的方法 drawIndexed应用到给定类型;
+                  pass.drawIndexed(0, firstIndex, indexCount, 1);
+                      ^
+    需要: int,int,int,int,int
+    找到:    int,int,int,int
+    原因: 实际参数列表和形式参数列表长度不同
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:365: 错误: 无法将类 RenderPass中的方法 drawIndexed应用到给定类型;
+                  pass.drawIndexed(0, firstIndex, indexCount, 1);
+                      ^
+    需要: int,int,int,int,int
+    找到:    int,int,int,int
+    原因: 实际参数列表和形式参数列表长度不同
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\EntityTask.java:130: 错误: 对于loadEntityRecursive(CompoundTag,ClientLevel,EntitySpawnReason,EntityProcessor), 找不到合适的方法
+              entity = EntityType.loadEntityRecursive(finalNbt, Minecraft.getInstance().level, EntitySpawnReason.SPAWN_ITEM_USE, EntityProcessor.NOP);
+                                 ^
+      方法 EntityType.loadEntityRecursive(CompoundTag,Level,EntitySpawnRequest,EntityProcessor)不适用
+        (参数不匹配; EntitySpawnReason无法转换为EntitySpawnRequest)
+      方法 EntityType.loadEntityRecursive(ValueInput,Level,EntitySpawnReason,EntityProcessor)不适用
+        (参数不匹配; CompoundTag无法转换为ValueInput)
+      方法 EntityType.loadEntityRecursive(ValueInput,Level,EntitySpawnRequest,EntityProcessor)不适用
+        (参数不匹配; CompoundTag无法转换为ValueInput)
+  注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:318: 错误: 不兼容的类型: OptionalInt无法转换为Optional<Vector4fc>
+                      Objects.requireNonNull(context.color()), OptionalInt.empty(), context.depth(), OptionalDouble.empty());
+                                                                                ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:348: 错误: 不兼容的类型: GpuBuffer无法转换为GpuBufferSlice
+              pass.setVertexBuffer(0, geometry.vertices());
+                                                       ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:482: 错误: 不兼容的类型: OptionalInt无法转换为Optional<Vector4fc>
+              try (var pass = encoder.createRenderPass(() -> "OmniMorph storage self-test", view, OptionalInt.of(0xff000000))) {
+                                                                                                                ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:551: 错误: 不兼容的类型: OptionalInt无法转换为Optional<Vector4fc>
+              try (var pass = encoder.createRenderPass(() -> "OmniMorph activation self-test", view, OptionalInt.of(0xff000000))) {
+                                                                                                                   ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\LevelRendererMixin.java:75: 错误: 找不到符号
+              if (multiBufferSource instanceof OutlineBufferSource outline && RenderUtils.vanillaModelAndScript(avatar) && avatar.luaRuntime.renderer.outlineColor != null) {
+                                               ^
+    符号:   类 OutlineBufferSource
+    位置: 类 LevelRendererMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:349: 错误: 找不到符号
+              pass.setIndexBuffer(indices == null ? geometry.indices() : ((BufferIndices) indices).buffer(), VertexFormat.IndexType.INT);
+                                                                                                                         ^
+    符号:   变量 IndexType
+    位置: 类 VertexFormat
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:432: 错误: 找不到符号
+                  .withVertexFormat(GpuShaderProgram.format(), VertexFormat.Mode.TRIANGLES).build();
+                                                                           ^
+    符号:   变量 Mode
+    位置: 类 VertexFormat
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:485: 错误: 找不到符号
+                  pass.setIndexBuffer(geometry.indices(), VertexFormat.IndexType.INT);
+                                                                      ^
+    符号:   变量 IndexType
+    位置: 类 VertexFormat
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:527: 错误: 找不到符号
+                  .withVertexFormat(GpuShaderProgram.format(), VertexFormat.Mode.TRIANGLES).build();
+                                                                           ^
+    符号:   变量 Mode
+    位置: 类 VertexFormat
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:555: 错误: 找不到符号
+                  pass.setIndexBuffer(geometry.indices(), VertexFormat.IndexType.INT);
+                                                                      ^
+    符号:   变量 IndexType
+    位置: 类 VertexFormat
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:680: 错误: font 在 GuiTextRenderState 中是 private 访问控制
+                  Font.PreparedTextBuilder preparedTextBuilder = font.new PreparedTextBuilder(0, 0, outlineColor, false, false);
+                                                                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:685: 错误: x 在 GuiTextRenderState 中是 private 访问控制
+                              float[] fs = new float[]{x};
+                                                       ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:690: 错误: font 在 GuiTextRenderState 中是 private 访问控制
+                                  GlyphSource fontSet = ((FontAccessor) font).figura$getFontSet(style.getFont());
+                                                                        ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:693: 错误: y 在 GuiTextRenderState 中是 private 访问控制
+                                  preparedTextBuilder.y = y + o * glyphInfo.getShadowOffset();
+                                                          ^
+  注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+  注: 某些输入文件使用或覆盖了已过时的 API。
+  注: 某些消息已经过简化; 请使用 -Xdiags:verbose 重新编译以获得完整输出
+  注: 某些输入文件使用了未经检查或不安全的操作。
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\EntityTask.java:72: 错误: 找不到符号
+                  dispatcher.submit(state, cameraRenderState, 0, 0, 0, stack, minecraft.gameRenderer.getSubmitNodeStorage());
+                                                                                                    ^
+    符号:   方法 getSubmitNodeStorage()
+    位置: 类型为GameRenderer的变量 gameRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\permissions\Permissions.java:139: 错误: 找不到符号
+              this(index, formatting.getColor(), Style.EMPTY.applyFormat(formatting));
+                                    ^
+    符号:   方法 getColor()
+    位置: 类型为ChatFormatting的变量 formatting
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ColorUtils.java:113: 错误: 找不到符号
+              Integer i = formatting.getColor();
+                                    ^
+    符号:   方法 getColor()
+    位置: 类型为ChatFormatting的变量 formatting
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\TextField.java:24: 错误: 找不到符号
+      public static final int ENABLED_COLOR = ChatFormatting.WHITE.getColor();
+                                                                  ^
+    符号:   方法 getColor()
+    位置: 类型为ChatFormatting的变量 WHITE
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\TextField.java:25: 错误: 找不到符号
+      public static final int DISABLED_COLOR = ChatFormatting.DARK_GRAY.getColor();
+                                                                       ^
+    符号:   方法 getColor()
+    位置: 类型为ChatFormatting的变量 DARK_GRAY
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\Button.java:130: 错误: 找不到符号
+          return (!this.isActive() ? ChatFormatting.DARK_GRAY : ChatFormatting.WHITE).getColor();
+                                                                                     ^
+    符号:   方法 getColor()
+    位置: 类 ChatFormatting
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\FiguraToast.java:146: 错误: 找不到符号
+          ToastManager toasts = Minecraft.getInstance().getToastManager();
+                                                       ^
+    符号:   方法 getToastManager()
+    位置: 类 Minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\ContextMenu.java:230: 错误: 找不到符号
+              gui.fill(this.getX() + 4, getY() + 4, this.getX() + this.getWidth() - 4, getY() + 5, 0xFF000000 + ChatFormatting.DARK_GRAY.getColor());
+                                                                                                                                        ^
+    符号:   方法 getColor()
+    位置: 类型为ChatFormatting的变量 DARK_GRAY
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\config\AbstractConfigElement.java:62: 错误: 找不到符号
+          gui.text(font, config.name, getX() + 16, y, UIHelper.adjustColor((config.disabled ? ChatFormatting.DARK_GRAY : ChatFormatting.WHITE).getColor()));
+                                                                                                                                              ^
+    符号:   方法 getColor()
+    位置: 类 ChatFormatting
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\ContainerButton.java:56: 错误: 找不到符号
+          return !this.isToggled() ? ChatFormatting.DARK_GRAY.getColor() : super.getTextColor();
+                                                             ^
+    符号:   方法 getColor()
+    位置: 类型为ChatFormatting的变量 DARK_GRAY
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\KeybindWidgetHelper.java:25: 错误: 找不到符号
+                  gui.fill(x, y, x + width, y + height, ChatFormatting.YELLOW.getColor() | 0xFF000000);
+                                                                             ^
+    符号:   方法 getColor()
+    位置: 类型为ChatFormatting的变量 YELLOW
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\KeybindWidgetHelper.java:29: 错误: 找不到符号
+                  gui.fill(x, y, x + width, y + height, ChatFormatting.RED.getColor() | 0xFF000000);
+                                                                          ^
+    符号:   方法 getColor()
+    位置: 类型为ChatFormatting的变量 RED
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\avatar\AvatarWidget.java:69: 错误: 找不到符号
+                  gui.text(font, parsedDescription, x + 22, y + font.lineHeight + 1, UIHelper.adjustColor(ChatFormatting.GRAY.getColor()));
+                                                                                                                             ^
+    符号:   方法 getColor()
+    位置: 类型为ChatFormatting的变量 GRAY
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\ClientAPI.java:170: 错误: 找不到符号
+          return Minecraft.getInstance().levelRenderer.getSectionStatistics();
+                                                      ^
+    符号:   方法 getSectionStatistics()
+    位置: 类型为LevelRenderer的变量 levelRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\ClientAPI.java:176: 错误: 找不到符号
+          return Minecraft.getInstance().levelRenderer.getEntityStatistics();
+                                                      ^
+    符号:   方法 getEntityStatistics()
+    位置: 类型为LevelRenderer的变量 levelRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\ClientAPI.java:635: 错误: 找不到符号
+              int id = playerTeam.getColor().getId();
+                                            ^
+    符号:   方法 getId()
+    位置: 类 Optional<TeamColor>
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\ClientAPI.java:637: 错误: 找不到符号
+                  objectives.put("sidebar_team_" + playerTeam.getColor().getName(), scoreboard.getDisplayObjective(DisplaySlot.BY_ID.apply(3 + id)));
+                                                                        ^
+    符号:   方法 getName()
+    位置: 类 Optional<TeamColor>
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\entity\PlayerAPI.java:192: 错误: 找不到符号
+          map.put("color", team.getColor().getName());
+                                          ^
+    符号:   方法 getName()
+    位置: 类 Optional<TeamColor>
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\RenderUtils.java:165: 错误: 找不到符号
+          FeatureRenderDispatcher featureRenderDispatcher = client.gameRenderer.getFeatureRenderDispatcher();
+                                                                               ^
+    符号:   方法 getFeatureRenderDispatcher()
+    位置: 类型为GameRenderer的变量 gameRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\RenderUtils.java:166: 错误: 找不到符号
+          SubmitNodeStorage submitNodeStorage = featureRenderDispatcher.getSubmitNodeStorage();
+                                                                       ^
+    符号:   方法 getSubmitNodeStorage()
+    位置: 类型为FeatureRenderDispatcher的变量 featureRenderDispatcher
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:154: 错误: 找不到符号
+          int paddedSize = Mth.roundToward(Lighting.UBO_SIZE, gpuDevice.getUniformOffsetAlignment());
+                                                                       ^
+    符号:   方法 getUniformOffsetAlignment()
+    位置: 类型为GpuDevice的变量 gpuDevice
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\lua\api\particle\ParticleDynamicLights.java:234: 错误: 找不到符号
+                      client.levelRenderer.setSectionDirty(section.x(), section.y(), section.z());
+                                          ^
+    符号:   方法 setSectionDirty(int,int,int)
+    位置: 类型为LevelRenderer的变量 levelRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:326: 错误: 找不到符号
+                  for (var binding : context.textures().entrySet()) {
+                                                       ^
+    符号:   方法 entrySet()
+    位置: 接口 List<Texture>
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:506: 错误: 找不到符号
+              try (var mapped = encoder.mapBuffer(readback, true, false)) {
+                                       ^
+    符号:   方法 mapBuffer(GpuBuffer,boolean,boolean)
+    位置: 类型为CommandEncoder的变量 encoder
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:525: 错误: 找不到符号
+                  .withUniform(GpuShaderProgram.UNIFORM, com.mojang.blaze3d.shaders.UniformType.UNIFORM_BUFFER)
+                  ^
+    符号:   方法 withUniform(String,UniformType)
+    位置: 类 Builder
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:565: 错误: 找不到符号
+              try (var mapped = encoder.mapBuffer(readback, true, false)) {
+                                       ^
+    符号:   方法 mapBuffer(GpuBuffer,boolean,boolean)
+    位置: 类型为CommandEncoder的变量 encoder
+  48 个错误
+  1 个警告
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+BUILD FAILED in 23s
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+4 actionable tasks: 1 executed, 3 up-to-date

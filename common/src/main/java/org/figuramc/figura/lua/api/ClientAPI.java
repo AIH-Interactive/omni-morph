@@ -167,13 +167,13 @@ public class ClientAPI {
     @LuaWhitelist
     @LuaMethodDoc("client.get_chunk_statistics")
     public static String getChunkStatistics() {
-        return Minecraft.getInstance().levelRenderer.getSectionStatistics();
+        return Minecraft.getInstance().levelExtractor.sectionStatistics();
     }
 
     @LuaWhitelist
     @LuaMethodDoc("client.get_entity_statistics")
     public static String getEntityStatistics() {
-        return Minecraft.getInstance().levelRenderer.getEntityStatistics();
+        return Minecraft.getInstance().levelExtractor.entityStatistics();
     }
 
     @LuaWhitelist
@@ -239,7 +239,7 @@ public class ClientAPI {
     @LuaWhitelist
     @LuaMethodDoc("client.is_hud_enabled")
     public static boolean isHudEnabled() {
-        return Minecraft.renderNames();
+        return !Minecraft.getInstance().gui.hud.isHidden();
     }
 
     @LuaWhitelist
@@ -290,14 +290,14 @@ public class ClientAPI {
     @LuaWhitelist
     @LuaMethodDoc("client.get_camera_pos")
     public static FiguraVec3 getCameraPos() {
-        Vec3 pos = Minecraft.getInstance().gameRenderer.getMainCamera().position();
+        Vec3 pos = Minecraft.getInstance().gameRenderer.mainCamera().position();
         return FiguraVec3.fromVec3(pos);
     }
 
     @LuaWhitelist
     @LuaMethodDoc("client.get_camera_rot")
     public static FiguraVec3 getCameraRot() {
-        var quaternion = Minecraft.getInstance().gameRenderer.getMainCamera().rotation();
+        var quaternion = Minecraft.getInstance().gameRenderer.mainCamera().rotation();
         Vector3f vec = new Vector3f();
         quaternion.getEulerAnglesYXZ(vec);
         double f = 180d / Math.PI;
@@ -316,7 +316,7 @@ public class ClientAPI {
     @LuaWhitelist
     @LuaMethodDoc("client.get_camera_dir")
     public static FiguraVec3 getCameraDir() {
-        return FiguraVec3.fromVec3f(Minecraft.getInstance().gameRenderer.getMainCamera().forwardVector());
+        return FiguraVec3.fromVec3f(Minecraft.getInstance().gameRenderer.mainCamera().forwardVector());
     }
 
     @LuaWhitelist
@@ -600,21 +600,21 @@ public class ClientAPI {
     @LuaWhitelist
     @LuaMethodDoc("client.get_actionbar")
     public static Component getActionbar() {
-        Gui gui = Minecraft.getInstance().gui;
+        var gui = Minecraft.getInstance().gui.hud;
         return ((GuiAccessor) gui).getActionbarTime() > 0 ? ((GuiAccessor) gui).getActionbar() : null;
     }
 
     @LuaWhitelist
     @LuaMethodDoc("client.get_title")
     public static Component getTitle() {
-        Gui gui = Minecraft.getInstance().gui;
+        var gui = Minecraft.getInstance().gui.hud;
         return ((GuiAccessor) gui).getTime() > 0 ? ((GuiAccessor) gui).getTitle() : null;
     }
 
     @LuaWhitelist
     @LuaMethodDoc("client.get_subtitle")
     public static Component getSubtitle() {
-        Gui gui = Minecraft.getInstance().gui;
+        var gui = Minecraft.getInstance().gui.hud;
         return ((GuiAccessor) gui).getTime() > 0 ? ((GuiAccessor) gui).getSubtitle() : null;
     }
 
@@ -632,10 +632,8 @@ public class ClientAPI {
         assert Minecraft.getInstance().player != null;
         PlayerTeam playerTeam = scoreboard.getPlayersTeam(Minecraft.getInstance().player.getScoreboardName());
         if (playerTeam != null) {
-            int id = playerTeam.getColor().getId();
-            if (id >= 0) {
-                objectives.put("sidebar_team_" + playerTeam.getColor().getName(), scoreboard.getDisplayObjective(DisplaySlot.BY_ID.apply(3 + id)));
-            }
+            playerTeam.getColor().ifPresent(color -> objectives.put("sidebar_team_" + color.getSerializedName(),
+                    scoreboard.getDisplayObjective(color.displaySlot())));
         }
 
         objectives.put("list", scoreboard.getDisplayObjective(DisplaySlot.LIST));
@@ -698,7 +696,7 @@ public class ClientAPI {
     @LuaMethodDoc("client.get_tab_list")
     public static Map<String, Object> getTabList() {
         Map<String, Object> map = new HashMap<>();
-        PlayerTabOverlayAccessor accessor = (PlayerTabOverlayAccessor) Minecraft.getInstance().gui.getTabList();
+        PlayerTabOverlayAccessor accessor = (PlayerTabOverlayAccessor) Minecraft.getInstance().gui.hud.getTabList();
 
         // header
         Component header = accessor.getHeader();

@@ -2,7 +2,7 @@ package top.aihmc.omnimorph.mixin.gui;
 
 import net.minecraft.client.gui.render.pip.PictureInPictureRenderer;
 import net.minecraft.client.renderer.state.gui.pip.GuiEntityRenderState;
-import net.minecraft.client.renderer.MultiBufferSource;
+import top.aihmc.omnimorph.model.rendering.FiguraVertexSource;
 import top.aihmc.omnimorph.ducks.GuiEntityRenderStateExtension;
 import org.figuramc.figura.model.rendering.EntityRenderMode;
 import org.spongepowered.asm.mixin.Mixin;

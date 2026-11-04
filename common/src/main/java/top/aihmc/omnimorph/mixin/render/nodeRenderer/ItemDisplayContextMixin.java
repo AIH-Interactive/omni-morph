@@ -1,7 +1,7 @@
 package top.aihmc.omnimorph.mixin.render.nodeRenderer;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.renderer.MultiBufferSource;
+import top.aihmc.omnimorph.model.rendering.FiguraVertexSource;
 import net.minecraft.world.item.ItemDisplayContext;
 import top.aihmc.omnimorph.ducks.FiguraSubmitCallBackExtension;
 import org.spongepowered.asm.mixin.Mixin;
@@ -15,12 +15,12 @@ import java.util.function.BiFunction;
 @Mixin(ItemDisplayContext.class)
 public class ItemDisplayContextMixin implements FiguraSubmitCallBackExtension {
     @Unique
-    private final List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$preRenderingCallback = new ArrayList<>();
+    private final List<BiFunction<FiguraVertexSource, PoseStack, Boolean>> figura$preRenderingCallback = new ArrayList<>();
     @Unique
     private final List<Runnable> figura$postRenderingCallback = new ArrayList<>();
 
     @Override
-    public void figura$addPreRenderingCallback(BiFunction<MultiBufferSource, PoseStack, Boolean> callback) {
+    public void figura$addPreRenderingCallback(BiFunction<FiguraVertexSource, PoseStack, Boolean> callback) {
         this.figura$preRenderingCallback.add(callback);
     }
 
@@ -30,7 +30,7 @@ public class ItemDisplayContextMixin implements FiguraSubmitCallBackExtension {
     }
 
     @Override
-    public List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$getPreRenderingCallbacks() {
+    public List<BiFunction<FiguraVertexSource, PoseStack, Boolean>> figura$getPreRenderingCallbacks() {
         return figura$preRenderingCallback;
     }
 

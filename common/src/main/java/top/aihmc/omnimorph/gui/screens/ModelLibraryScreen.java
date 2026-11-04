@@ -171,7 +171,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                     this::select, this::favorite, model -> {
                         preview.clear();
                         retainingChild = true;
-                        minecraft.setScreen(new ModelReportScreen(this, client, model.modelId()));
+                        minecraft.gui.setScreen(new ModelReportScreen(this, client, model.modelId()));
                     });
         }
         if (grid != null) {
@@ -187,7 +187,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                         if (client.current() && capabilities != null && capabilities.enabled()) {
                             preview.clear();
                             retainingChild = true;
-                            minecraft.setScreen(new ModelLibraryAppealsScreen(this, client, null));
+                            minecraft.gui.setScreen(new ModelLibraryAppealsScreen(this, client, null));
                         }
                     }));
             var widget = new EntityPreview(rightX, 52, rightWidth,
@@ -202,7 +202,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                     if (client != null && LibraryModelEdits.available(selected, client.session().player())) {
                         preview.clear();
                         retainingChild = true;
-                        minecraft.setScreen(new ModelLibraryEditScreen(this, client, capabilities, selected.modelId()));
+                        minecraft.gui.setScreen(new ModelLibraryEditScreen(this, client, capabilities, selected.modelId()));
                     }
                 }));
         grants = actions.action(new LibraryIconButton("library_grants", 1, () -> 0,
@@ -210,7 +210,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                     if (LibraryAuthorization.available(selected)) {
                         preview.clear();
                         retainingChild = true;
-                        minecraft.setScreen(new ModelLibraryAuthorizationScreen(this, client, selected.modelId(), () -> ""));
+                        minecraft.gui.setScreen(new ModelLibraryAuthorizationScreen(this, client, selected.modelId(), () -> ""));
                     }
                 }));
         authorizationToggle = actions.action(new LibraryIconButton("library_authorization", 2,
@@ -300,7 +300,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
             if (section == 3) {
                 preview.clear();
                 retainingChild = true;
-                minecraft.setScreen(new ModelUploadScreen(this, client, capabilities, () -> {
+                minecraft.gui.setScreen(new ModelUploadScreen(this, client, capabilities, () -> {
                     if (collection != null && client.current()) {
                         collection.refresh();
                     }
@@ -614,20 +614,20 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         if (admin.active()) {
             preview.clear();
             retainingChild = true;
-            minecraft.setScreen(new ModelLibraryAdminScreen(this, client, admin, capabilities));
+            minecraft.gui.setScreen(new ModelLibraryAdminScreen(this, client, admin, capabilities));
         } else {
             if (adminRestore != null && !adminRestore.future().isDone()) {
                 return;
             }
             adminRestore = admin.restore();
             adminRestore.future().whenComplete((restored, failure) -> {
-                if (!closed && client.current() && minecraft.screen == this) {
+                if (!closed && client.current() && minecraft.gui.screen() == this) {
                     if (failure == null && Boolean.TRUE.equals(restored) && admin.active()) {
                         openAdmin();
                     } else {
                         preview.clear();
                         retainingChild = true;
-                        minecraft.setScreen(new ModelLibraryAdminLoginScreen(this, client, admin, this::openAdmin));
+                        minecraft.gui.setScreen(new ModelLibraryAdminLoginScreen(this, client, admin, this::openAdmin));
                     }
                 }
             });

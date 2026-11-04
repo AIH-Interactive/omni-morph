@@ -2,7 +2,7 @@ package top.aihmc.omnimorph.render.acceleration;
 
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.SharedConstants;
-import net.minecraft.client.renderer.MultiBufferSource;
+import top.aihmc.omnimorph.model.rendering.FiguraVertexSource;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.Bootstrap;
@@ -27,10 +27,10 @@ import java.util.function.Function;
 /** Exercises the production deferred Figura emitter, without a graphics device. */
 public final class FiguraAccelerationReplay {
     public static void main(String[] args) throws Exception {
-        replay(null);
+        replay(null, () -> {});
     }
 
-    public static void replay(Function<VertexConsumer, MultiBufferSource> sourceFactory) throws Exception {
+    public static void replay(Function<VertexConsumer, FiguraVertexSource> sourceFactory, Runnable flusher) throws Exception {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
         Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
@@ -83,7 +83,7 @@ public final class FiguraAccelerationReplay {
         Field bufferField = ImmediateFiguraRenderer.class.getDeclaredField("VERTEX_BUFFER");
         bufferField.setAccessible(true);
         Object buffer = bufferField.get(null);
-        var consume = buffer.getClass().getDeclaredMethod("consume", boolean.class, MultiBufferSource.class);
+        var consume = buffer.getClass().getDeclaredMethod("consume", boolean.class, FiguraVertexSource.class);
         consume.setAccessible(true);
         List<float[]> positions = new ArrayList<>();
         List<float[]> normals = new ArrayList<>();
@@ -110,10 +110,10 @@ public final class FiguraAccelerationReplay {
                     }
                     return method.getReturnType() == void.class ? null : proxy;
                 });
-        MultiBufferSource destination = sourceFactory == null ? type -> sink : sourceFactory.apply(sink);
+        FiguraVertexSource destination = sourceFactory == null ? type -> sink : sourceFactory.apply(sink);
         push.invoke(renderer, 1, data, customization, textures, vertices, null, null);
         consume.invoke(buffer, true, destination);
-        flush(destination);
+        flusher.run();
         require(positions.size() == 4 && positions.getFirst()[0] == 4 && positions.getFirst()[2] == 8,
                 "actual Figura draw consumes transformed batch positions");
         require(normals.size() == 4 && normals.getFirst()[1] == 0.5f,
@@ -128,7 +128,7 @@ public final class FiguraAccelerationReplay {
         uvs.clear();
         push.invoke(renderer, 1, data, customization, textures, vertices, null, null);
         consume.invoke(buffer, true, destination);
-        flush(destination);
+        flusher.run();
         require(positions.size() == 4 && positions.getFirst()[0] == 5 && uvs.getFirst()[0] == 0,
                 "in-place vertex position and UV edits take effect on the next draw");
         vertices.getFirst().x = 1;
@@ -137,7 +137,7 @@ public final class FiguraAccelerationReplay {
         uvs.clear();
         push.invoke(renderer, 1, data, customization, textures, vertices, null, null);
         consume.invoke(buffer, true, destination);
-        flush(destination);
+        flusher.run();
         require(positions.size() == 4 && positions.getFirst()[0] == 4 && uvs.getFirst()[0] == 0.5f,
                 "restoring the original vertex values restores the original output");
 
@@ -151,7 +151,7 @@ public final class FiguraAccelerationReplay {
         FiguraMat4[] deltas = {FiguraMat4.of().translate(2, 0, 0), FiguraMat4.of().translate(0, 4, 0)};
         push.invoke(renderer, 1, data, customization, textures, vertices, part, deltas);
         consume.invoke(buffer, true, destination);
-        flush(destination);
+        flusher.run();
         require(positions.size() == 4 && positions.getFirst()[0] == 4.5f && positions.getFirst()[1] == 9,
                 "actual Figura draw consumes the complete normalized skinning batch");
         if (sourceFactory == null) {
@@ -167,7 +167,7 @@ public final class FiguraAccelerationReplay {
                 push.invoke(renderer, 1, data, customization, textures, vertices, part, null);
                 // The renderer must retain captured alpha even after GUI frame references are released.
                 top.aihmc.omnimorph.model.library.PreviewBoneHighlight.finishFrame();
-                consume.invoke(buffer, true, (MultiBufferSource) type -> {
+                consume.invoke(buffer, true, (FiguraVertexSource) type -> {
                     materials.add(type);
                     return sink;
                 });
@@ -176,7 +176,7 @@ public final class FiguraAccelerationReplay {
                 colors.clear();
                 top.aihmc.omnimorph.model.library.PreviewBoneHighlight.capture(owner, selected);
                 push.invoke(renderer, 1, data, customization, textures, vertices, child, null);
-                consume.invoke(buffer, true, (MultiBufferSource) type -> sink);
+                consume.invoke(buffer, true, (FiguraVertexSource) type -> sink);
                 require(colors.size() == 4 && colors.getFirst()[3] == 127 && customization.alpha == 0.5f,
                         "selected descendants retain authored alpha without modifying model customization");
             } finally {
@@ -188,15 +188,9 @@ public final class FiguraAccelerationReplay {
         push.invoke(renderer, 1, data, customization, textures, vertices, null, null);
         owner.accelerationOwner().retire();
         consume.invoke(buffer, true, destination);
-        flush(destination);
+        flusher.run();
         require(positions.isEmpty(), "retired Avatar cannot emit a deferred Figura draw");
         System.out.println("Figura production emitter batch positions/normals/UV and retired deferred draw PASS.");
-    }
-
-    private static void flush(MultiBufferSource destination) {
-        if (destination instanceof MultiBufferSource.BufferSource source) {
-            source.endBatch();
-        }
     }
 
     private static void set(Object target, String name, Object value) throws Exception {

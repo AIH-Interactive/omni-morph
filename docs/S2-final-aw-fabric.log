@@ -1,0 +1,40 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+PASS line 3: accessible class net/minecraft/world/level/biome/Biome$ClimateSettings
+PASS line 4: accessible class net/minecraft/client/gui/font/providers/BitmapProvider$Glyph
+PASS line 5: accessible class net/minecraft/client/gui/font/FontSet$SelectedGlyphs
+PASS line 7: accessible method net/minecraft/client/renderer/rendertype/RenderType <init> (Ljava/lang/String;Lnet/minecraft/client/renderer/rendertype/RenderSetup;)V
+PASS line 9: accessible class net/minecraft/client/renderer/state/gui/GuiTextRenderState
+PASS line 10: extendable class net/minecraft/client/renderer/state/gui/GuiTextRenderState
+PASS line 12: accessible class net/minecraft/client/gui/Font$PreparedTextBuilder
+PASS line 13: accessible field net/minecraft/client/gui/Font$PreparedTextBuilder x F
+PASS line 14: accessible field net/minecraft/client/gui/Font$PreparedTextBuilder y F
+PASS line 16: accessible class net/minecraft/client/gui/GuiGraphicsExtractor$ScissorStack
+PASS line 17: accessible class net/minecraft/client/StringSplitter$WidthLimitedCharSink
+PASS line 19: accessible field net/minecraft/client/renderer/RenderPipelines GLOBALS_SNIPPET Lcom/mojang/blaze3d/pipeline/RenderPipeline$Snippet;
+PASS line 20: accessible field net/minecraft/client/renderer/RenderPipelines MATRICES_FOG_SNIPPET Lcom/mojang/blaze3d/pipeline/RenderPipeline$Snippet;
+PASS line 21: accessible field net/minecraft/client/renderer/RenderPipelines LINES_SNIPPET Lcom/mojang/blaze3d/pipeline/RenderPipeline$Snippet;
+PASS line 23: accessible method net/minecraft/client/renderer/RenderPipelines register (Lcom/mojang/blaze3d/pipeline/RenderPipeline;)Lcom/mojang/blaze3d/pipeline/RenderPipeline;
+PASS line 25: accessible class net/minecraft/util/datafix/fixes/ItemStackComponentizationFix$ItemStackData
+PASS line 26: accessible method net/minecraft/util/datafix/fixes/ItemStackComponentizationFix fixItemStack (Lnet/minecraft/util/datafix/fixes/ItemStackComponentizationFix$ItemStackData;Lcom/mojang/serialization/Dynamic;)V
+PASS line 27: accessible field net/minecraft/util/datafix/fixes/ItemStackComponentizationFix$ItemStackData tag Lcom/mojang/serialization/Dynamic;
+PASS line 28: accessible method net/minecraft/client/gui/screens/Screen defaultHandleGameClickEvent (Lnet/minecraft/network/chat/ClickEvent;Lnet/minecraft/client/Minecraft;Lnet/minecraft/client/gui/screens/Screen;)V
+PASS line 30: accessible class net/minecraft/resources/Identifier
+PASS line 31: extendable class net/minecraft/resources/Identifier
+PASS line 32: accessible method net/minecraft/resources/Identifier <init> (Ljava/lang/String;Ljava/lang/String;)V
+PASS line 34: accessible class net/minecraft/client/renderer/entity/layers/EquipmentLayerRenderer$LayerTextureKey
+PASS line 35: accessible method net/minecraft/client/renderer/entity/layers/EquipmentLayerRenderer$LayerTextureKey <init> (Lnet/minecraft/client/resources/model/EquipmentClientInfo$LayerType;Lnet/minecraft/client/resources/model/EquipmentClientInfo$Layer;)V
+PASS line 37: accessible class net/minecraft/client/renderer/entity/layers/EquipmentLayerRenderer$TrimSpriteKey
+PASS line 38: accessible method net/minecraft/client/renderer/entity/layers/EquipmentLayerRenderer$TrimSpriteKey <init> (Lnet/minecraft/world/item/equipment/trim/ArmorTrim;Lnet/minecraft/client/resources/model/EquipmentClientInfo$LayerType;Lnet/minecraft/resources/ResourceKey;)V
+PASS line 40: accessible field net/minecraft/client/renderer/blockentity/state/BlockEntityRenderState blockState Lnet/minecraft/world/level/block/state/BlockState;
+PASS line 42: accessible class net/minecraft/client/gui/components/SubtitleOverlay$Subtitle
+PASS line 43: accessible class net/minecraft/client/particle/ParticleResources$MutableSpriteSet
+PASS line 44: accessible class net/minecraft/client/resources/model/sprite/AtlasManager$AtlasEntry
+PASS line 47: accessible field net/minecraft/client/renderer/rendertype/RenderType state Lnet/minecraft/client/renderer/rendertype/RenderSetup;
+PASS line 48: accessible field net/minecraft/client/renderer/rendertype/RenderSetup layeringTransform Lnet/minecraft/client/renderer/rendertype/LayeringTransform;
+PASS line 49: accessible field net/minecraft/client/renderer/rendertype/RenderSetup textureTransform Lnet/minecraft/client/renderer/rendertype/TextureTransform;
+PASS line 52: accessible class net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PhaseSubmitGrouper
+PASS line 53: accessible class net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedGroup
+PASS line 54: accessible field net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame allSubmits Ljava/util/List;
+PASS line 55: accessible field net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame groupsByFeature Ljava/util/Map;
+Checked 37 AW targets against D:\UserData\Desktop\Project\OMP\OMP_26.2\.gradle\loom-cache\minecraftMaven\net\minecraft\minecraft-merged-384489983b\26.2-loom.mappings.26_2.layered+hash.31-v2\minecraft-merged-384489983b-26.2-loom.mappings.26_2.layered+hash.31-v2.jar; failures=0
+Scope: declared target existence and exact descriptors; not loader transformation or runtime injection.

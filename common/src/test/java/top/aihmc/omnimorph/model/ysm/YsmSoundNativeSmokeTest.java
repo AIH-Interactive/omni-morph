@@ -479,7 +479,7 @@ public final class YsmSoundNativeSmokeTest {
         AudioArrow arrow = allocate(AudioArrow.class);
         arrow.sourceOwner = owner;
         arrow.setId(id);
-        set(Entity.class, arrow, "type", net.minecraft.world.entity.EntityType.ARROW);
+        set(Entity.class, arrow, "type", net.minecraft.world.entity.EntityTypes.ARROW);
         set(Entity.class, arrow, "position", new Vec3(id, 2, 3));
         return arrow;
     }
@@ -494,7 +494,7 @@ public final class YsmSoundNativeSmokeTest {
         private Entity sourceOwner;
 
         private AudioArrow() {
-            super(net.minecraft.world.entity.EntityType.ARROW, null);
+            super(net.minecraft.world.entity.EntityTypes.ARROW, null);
         }
 
         @Override

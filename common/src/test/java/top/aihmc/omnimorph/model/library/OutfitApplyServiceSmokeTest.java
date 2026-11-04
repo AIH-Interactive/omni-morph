@@ -272,7 +272,7 @@ public final class OutfitApplyServiceSmokeTest {
     private static final class ObserverWearer extends net.minecraft.world.entity.decoration.ArmorStand
             implements org.figuramc.figura.mixin.EntityAccessor {
         private ObserverWearer() {
-            super(net.minecraft.world.entity.EntityType.ARMOR_STAND, null);
+            super(net.minecraft.world.entity.EntityTypes.ARMOR_STAND, null);
         }
 
         @Override

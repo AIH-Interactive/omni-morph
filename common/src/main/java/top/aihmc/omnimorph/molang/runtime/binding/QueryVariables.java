@@ -210,7 +210,7 @@ public final class QueryVariables {
 
     private static net.minecraft.client.Camera activeCamera() {
         Minecraft client = Minecraft.getInstance();
-        return client == null || client.gameRenderer == null ? null : client.gameRenderer.getMainCamera();
+        return client == null || client.gameRenderer == null ? null : client.gameRenderer.mainCamera();
     }
 
     // ===== Movement =====

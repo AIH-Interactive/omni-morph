@@ -1,6 +1,6 @@
 package org.figuramc.figura.gui.widgets.config;
 
-import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -59,7 +59,7 @@ public abstract class AbstractConfigElement extends AbstractContainerElement {
     }
 
     public void renderTitle(GuiGraphicsExtractor gui, Font font, int y) {
-        gui.text(font, config.name, getX() + 16, y, UIHelper.adjustColor((config.disabled ? ChatFormatting.DARK_GRAY : ChatFormatting.WHITE).getColor()));
+        gui.text(font, config.name, getX() + 16, y, UIHelper.adjustColor((config.disabled ? TextColor.DARK_GRAY : TextColor.WHITE).getValue()));
     }
 
     @Override

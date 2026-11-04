@@ -2186,10 +2186,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
             open.setAccessible(true);
             var store = new top.aihmc.omnimorph.model.outfit.LocalOutfitPresets(data);
             try (var original = new LibraryPreviewBinding(player, equipped)) {
-                minecraft.screen = wardrobe;
+                top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.setFixtureScreen(minecraft, wardrobe);
                 open.invoke(wardrobe);
-                awaitCondition(() -> minecraft.screen instanceof top.aihmc.omnimorph.gui.screens.OutfitPresetsScreen, drain);
-                var screen = (top.aihmc.omnimorph.gui.screens.OutfitPresetsScreen) minecraft.screen;
+                awaitCondition(() -> minecraft.gui.screen() instanceof top.aihmc.omnimorph.gui.screens.OutfitPresetsScreen, drain);
+                var screen = (top.aihmc.omnimorph.gui.screens.OutfitPresetsScreen) minecraft.gui.screen();
                 var screenType = screen.getClass();
                 screen.width = 640;
                 screen.height = 360;
@@ -2254,7 +2254,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 require(importButton.isActive(), "Import becomes available only after complete native preparation");
                 importButton.onPress(null);
                 awaitDraftComposition(wardrobe, parentPreview, drain);
-                require(minecraft.screen == wardrobe && draft.configuration().base() == null
+                require(minecraft.gui.screen() == wardrobe && draft.configuration().base() == null
                                 && draft.configuration().instances().size() == 2
                                 && !draft.configuration().instances().getFirst().instanceId().equals(first)
                                 && !draft.configuration().instances().getLast().instanceId().equals(second)
@@ -2274,7 +2274,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                         "cancelling an imported draft restores the original base snapshot and provenance");
                 field(type, "draftBasePersistent").setBoolean(wardrobe, false);
                 open.invoke(wardrobe);
-                var blocked = (top.aihmc.omnimorph.gui.screens.OutfitPresetsScreen) minecraft.screen;
+                var blocked = (top.aihmc.omnimorph.gui.screens.OutfitPresetsScreen) minecraft.gui.screen();
                 blocked.width = 640;
                 blocked.height = 360;
                 init.invoke(blocked);
@@ -2318,7 +2318,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     require(entered.await(5, TimeUnit.SECONDS), "preset screen reaches the bounded worker gate");
                     load.invoke(blocked, copiesId);
                     blocked.onClose();
-                    require(minecraft.screen == wardrobe && field(screenType, "closed").getBoolean(blocked),
+                    require(minecraft.gui.screen() == wardrobe && field(screenType, "closed").getBoolean(blocked),
                             "closing never waits behind queued preset reads");
                 } finally {
                     release.countDown();
@@ -2378,7 +2378,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             field(wardrobe.getClass(), "outfitPresetsOpen").setBoolean(wardrobe, true);
             var screen = new top.aihmc.omnimorph.gui.screens.OutfitPresetsScreen(wardrobe, draft, owner, data, limits,
                     client, new LibraryTransferService(client, data.resolve("cache")));
-            minecraft.setScreen(screen);
+            minecraft.gui.setScreen(screen);
             screen.width = 640;
             screen.height = 360;
             var type = screen.getClass();
@@ -2436,7 +2436,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var importButton = (org.figuramc.figura.gui.widgets.Button) field(type, "importPreset").get(screen);
             importButton.onPress(null);
             awaitDraftComposition(wardrobe, parentPreview, drain);
-            require(minecraft.screen == wardrobe && draft.configuration().base() == null && draft.dirty()
+            require(minecraft.gui.screen() == wardrobe && draft.configuration().base() == null && draft.dirty()
                             && AvatarManager.getAvatarForPlayer(owner) == equipped && server.unexpected.get() == 0,
                     "a cloud-owned preset imports only into the retained draft and never publishes or equips it");
             var cancel = wardrobe.getClass().getDeclaredMethod("cancelOutfitDraft");
@@ -2445,7 +2445,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             field(wardrobe.getClass(), "outfitPresetsOpen").setBoolean(wardrobe, true);
             var retired = new top.aihmc.omnimorph.gui.screens.OutfitPresetsScreen(wardrobe, draft, owner, data, limits,
                     client, new LibraryTransferService(client, data.resolve("cache")));
-            minecraft.setScreen(retired);
+            minecraft.gui.setScreen(retired);
             retired.width = 640;
             retired.height = 360;
             init.invoke(retired);
@@ -2609,14 +2609,14 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 }
             }
             var selectAnchor = (java.util.function.IntConsumer) field(selector.getClass(), "changed").get(selector);
-            var previousScreen = minecraft.screen;
+            var previousScreen = minecraft.gui.screen();
             var windowField = field(Minecraft.class, "window");
             Object previousWindow = windowField.get(minecraft);
             var viewport = (com.mojang.blaze3d.platform.Window) unsafe.allocateInstance(com.mojang.blaze3d.platform.Window.class);
             field(viewport.getClass(), "guiScaledWidth").setInt(viewport, 640);
             field(viewport.getClass(), "guiScaledHeight").setInt(viewport, 360);
             windowField.set(minecraft, viewport);
-            minecraft.screen = screen;
+            top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.setFixtureScreen(minecraft, screen);
             try {
                 selector.onPress(null);
                 var menu = org.figuramc.figura.utils.ui.UIHelper.getContext();
@@ -2631,7 +2631,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                         "next page opens a bounded menu without discarding remaining targets");
             } finally {
                 screen.contextMenu = null;
-                minecraft.screen = previousScreen;
+                top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.setFixtureScreen(minecraft, previousScreen);
                 windowField.set(minecraft, previousWindow);
             }
             selectAnchor.accept(manual);
@@ -2752,14 +2752,14 @@ public final class LibraryPreviewRuntimeSmokeTest {
         require(first.equals(draft.selectedInstance()) && before.equals(draft.configuration()),
                 "choosing another accessory's slot retains the pending child instead of switching to its parent");
         var minecraft = Minecraft.getInstance();
-        var previousScreen = minecraft.screen;
+        var previousScreen = minecraft.gui.screen();
         var windowField = field(Minecraft.class, "window");
         Object previousWindow = windowField.get(minecraft);
         var viewport = (com.mojang.blaze3d.platform.Window) unsafe.allocateInstance(com.mojang.blaze3d.platform.Window.class);
         field(viewport.getClass(), "guiScaledWidth").setInt(viewport, 640);
         field(viewport.getClass(), "guiScaledHeight").setInt(viewport, 360);
         windowField.set(minecraft, viewport);
-        minecraft.screen = screen;
+        top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.setFixtureScreen(minecraft, screen);
         try {
             var open = type.getDeclaredMethod("openAnchorActions", net.minecraft.client.gui.components.Button.class);
             open.setAccessible(true);
@@ -2829,7 +2829,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(draft.configuration().equals(afterUnmount), "a stale unmount menu cannot remove another instance");
         } finally {
             screen.contextMenu = null;
-            minecraft.screen = previousScreen;
+            top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.setFixtureScreen(minecraft, previousScreen);
             windowField.set(minecraft, previousWindow);
         }
         draft.remove(second);
@@ -3214,7 +3214,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         var firstGlobals = (org.luaj.vm2.Globals) field(first.luaRuntime.getClass(), "userGlobals").get(first.luaRuntime);
         var beforeSibling = draft.instance(second.cosmeticContext.instanceId());
         try (var screens = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.recordingScreens()) {
-            minecraft.screen = wardrobe;
+            top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.setFixtureScreen(minecraft, wardrobe);
             wardrobe.width = 640;
             wardrobe.height = 360;
             var menuMethod = wardrobe.getClass().getDeclaredMethod("openInstances", net.minecraft.client.gui.components.Button.class);
@@ -3226,10 +3226,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var open = (org.figuramc.figura.gui.widgets.Button) menu.getEntries().stream()
                     .filter(button -> button.getMessage().getString().equals(label)).findFirst().orElseThrow();
             open.onPress(null);
-            require(minecraft.screen instanceof top.aihmc.omnimorph.gui.screens.CosmeticAnimationScreen
+            require(minecraft.gui.screen() instanceof top.aihmc.omnimorph.gui.screens.CosmeticAnimationScreen
                             && session.outfitComposition() == composition && !menu.isVisible(),
                     "the actual instance-menu action retains the current draft composition and opens its wheel preview");
-            var preview = (top.aihmc.omnimorph.gui.screens.CosmeticAnimationScreen) minecraft.screen;
+            var preview = (top.aihmc.omnimorph.gui.screens.CosmeticAnimationScreen) minecraft.gui.screen();
             preview.width = 640;
             preview.height = 360;
             var initialize = preview.getClass().getDeclaredMethod("init");
@@ -3288,10 +3288,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     "an instance disabled in the draft cannot execute through a still-retained prepared composition");
             draft.setEnabled(first.cosmeticContext.instanceId(), true);
             top.aihmc.omnimorph.gui.screens.AvatarControlsScreen.open(first, "root");
-            require(minecraft.screen instanceof top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen
+            require(minecraft.gui.screen() instanceof top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen
                             && session.outfitComposition() == composition,
                     "an actual wheel controls-page action opens the scoped owner settings without retiring the preview");
-            var controls = (top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen) minecraft.screen;
+            var controls = (top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen) minecraft.gui.screen();
             controls.width = 640;
             controls.height = 360;
             var build = top.aihmc.omnimorph.gui.screens.AvatarControlsScreen.class.getDeclaredMethod("rebuild");
@@ -3301,15 +3301,15 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     .filter(child -> child.getClass().getSimpleName().equals("ControlSwitch")).findFirst().orElseThrow();
             toggle.onPress(null);
             controls.onClose();
-            require(minecraft.screen == preview && session.outfitComposition() == composition,
+            require(minecraft.gui.screen() == preview && session.outfitComposition() == composition,
                     "closing scoped settings returns to the same wheel and complete draft generation");
             var valid = draft.configuration();
             toggle.onPress(null);
             require(draft.configuration().equals(valid), "closed nested settings reject retained controls while the wheel remains open");
             top.aihmc.omnimorph.gui.screens.AvatarControlsScreen.open(session.outfitBase(), "root");
-            require(minecraft.screen instanceof top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen,
+            require(minecraft.gui.screen() instanceof top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen,
                     "an original base-wheel settings action also uses the retained preview scope");
-            var baseControls = (top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen) minecraft.screen;
+            var baseControls = (top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen) minecraft.gui.screen();
             baseControls.width = 640;
             baseControls.height = 360;
             build.invoke(baseControls);
@@ -3317,10 +3317,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
                             == session.outfitBase() && field(baseControls.getClass(), "resource").get(baseControls) == null,
                     "base controls keep their real preview Avatar instead of editing the first cosmetic");
             baseControls.onClose();
-            require(minecraft.screen == preview && session.outfitComposition() == composition,
+            require(minecraft.gui.screen() == preview && session.outfitComposition() == composition,
                     "base settings return without changing the draft composition's lifetime");
             preview.onClose();
-            require(minecraft.screen == wardrobe && session.outfitComposition() == composition
+            require(minecraft.gui.screen() == wardrobe && session.outfitComposition() == composition
                             && !field(wardrobe.getClass(), "cosmeticAnimationsOpen").getBoolean(wardrobe),
                     "Done returns to the wardrobe with the same private draft and no retained input scope");
             valid = draft.configuration();
@@ -3541,14 +3541,14 @@ public final class LibraryPreviewRuntimeSmokeTest {
         Object previousWidget = field(type, "previewWidget").get(screen);
         field(type, "previewWidget").set(screen, widget);
         var minecraft = Minecraft.getInstance();
-        var previousScreen = minecraft.screen;
+        var previousScreen = minecraft.gui.screen();
         var windowField = field(Minecraft.class, "window");
         Object previousWindow = windowField.get(minecraft);
         var viewport = (com.mojang.blaze3d.platform.Window) unsafe.allocateInstance(com.mojang.blaze3d.platform.Window.class);
         field(viewport.getClass(), "guiScaledWidth").setInt(viewport, 640);
         field(viewport.getClass(), "guiScaledHeight").setInt(viewport, 360);
         windowField.set(minecraft, viewport);
-        minecraft.screen = screen;
+        top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.setFixtureScreen(minecraft, screen);
         try {
             var configuration = draft.configuration();
             long preparation = field(type, "draftPreviewGeneration").getLong(screen);
@@ -3584,7 +3584,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             draft.setEnabled(bone.instanceId(), true);
         } finally {
             screen.contextMenu = null;
-            minecraft.screen = previousScreen;
+            top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.setFixtureScreen(minecraft, previousScreen);
             windowField.set(minecraft, previousWindow);
             field(type, "previewWidget").set(screen, previousWidget);
         }
@@ -3929,9 +3929,11 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var guiState = new net.minecraft.client.renderer.state.gui.GuiRenderState();
             var gui = (PreviewGraphics) unsafe.allocateInstance(PreviewGraphics.class);
             gui.state = guiState;
-            var scissorConstructor = net.minecraft.client.gui.GuiGraphicsExtractor.ScissorStack.class.getDeclaredConstructor();
+            var scissorConstructor = net.minecraft.client.gui.GuiGraphicsExtractor.ScissorStack.class
+                    .getDeclaredConstructor(net.minecraft.client.gui.navigation.ScreenRectangle.class);
             scissorConstructor.setAccessible(true);
-            gui.scissor = scissorConstructor.newInstance();
+            gui.scissor = scissorConstructor.newInstance(
+                    new net.minecraft.client.gui.navigation.ScreenRectangle(0, 0, 100, 100));
             require(session.submitIndependentFigura(gui, 50, 50, 30, -15, 30, 0.5f, 0, 0, 100, 100),
                     "wardrobe management explicitly submits an independent model state");
             var captured = new java.util.ArrayList<net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState>();
@@ -4951,7 +4953,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                         && refresh.getX() + refresh.getWidth() <= tree.getX() + tree.getWidth(),
                 "tree refresh is clickable alongside search without overlapping its input");
         Minecraft minecraft = Minecraft.getInstance();
-        var previousScreen = minecraft.screen;
+        var previousScreen = minecraft.gui.screen();
         var windowField = field(Minecraft.class, "window");
         Object previousWindow = windowField.get(minecraft);
         // Context-menu bounds need deterministic viewport metrics, without creating or rendering a window.
@@ -4961,7 +4963,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         field(viewport.getClass(), "guiScaledWidth").setInt(viewport, 640);
         field(viewport.getClass(), "guiScaledHeight").setInt(viewport, 360);
         windowField.set(minecraft, viewport);
-        minecraft.screen = screen;
+        top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.setFixtureScreen(minecraft, screen);
         try {
             var clearingMenu = new org.figuramc.figura.gui.widgets.ContextMenu() {
                 @Override
@@ -5048,7 +5050,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                         "mixed outfit keyboard navigation selects both local and cloud resources");
             }
         } finally {
-            minecraft.screen = previousScreen;
+            top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.setFixtureScreen(minecraft, previousScreen);
             windowField.set(minecraft, previousWindow);
         }
         for (String format : java.util.List.of("FIGURA", "YSM_PLAIN", "YSM_ENCRYPTED")) {
@@ -5152,20 +5154,20 @@ public final class LibraryPreviewRuntimeSmokeTest {
         field(screenType, "cancel").set(screen, cancel);
         var start = screenType.getDeclaredMethod("startBuild");
         start.setAccessible(true);
-        minecraft.screen = screen;
+        top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.setFixtureScreen(minecraft, screen);
         try {
             start.invoke(screen);
             start.invoke(screen);
             screen.onClose();
-            require(calls.get() == 1 && !build.isActive() && !cancel.isActive() && minecraft.screen == screen,
+            require(calls.get() == 1 && !build.isActive() && !cancel.isActive() && minecraft.gui.screen() == screen,
                     "Pending creation rejects repeated submission and closing before file work finishes");
             job.completeExceptionally(new java.io.IOException("Expected creation failure fixture"));
             screen.tick();
-            require(minecraft.screen == screen && build.isActive() && cancel.isActive()
+            require(minecraft.gui.screen() == screen && build.isActive() && cancel.isActive()
                             && wizard.getEntry(org.figuramc.figura.wizards.WizardEntry.NAME, "").equals("保留输入"),
                     "Actual failure callback preserves the form and restores retry/cancel controls");
         } finally {
-            minecraft.screen = parent;
+            top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.setFixtureScreen(minecraft, parent);
         }
         System.out.println("PASS creation menu/YSM form: actual native fields, metadata-only options, no files before Create, "
                 + "duplicate/close guards and failed-job retry state; GUI MANUAL/PENDING");
@@ -5186,11 +5188,11 @@ public final class LibraryPreviewRuntimeSmokeTest {
         var minecraft = Minecraft.getInstance();
         var input = field(Minecraft.class, "lastInputType");
         var previousInput = input.get(minecraft);
-        var parent = minecraft.screen;
+        var parent = minecraft.gui.screen();
         Path root = Files.createTempDirectory(FiguraMod.getFiguraDirectory(), "outfit-upload-ui-");
         try {
             input.set(minecraft, net.minecraft.client.InputType.MOUSE);
-            minecraft.screen = screen;
+            top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.setFixtureScreen(minecraft, screen);
             screen.width = 640;
             screen.height = 360;
             var initialize = type.getDeclaredMethod("init");
@@ -5232,7 +5234,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(field(type, "outfitPrepared").get(screen) == null, "closed Outfit source controls cannot restart work");
         } finally {
             screen.removed();
-            minecraft.screen = parent;
+            top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.setFixtureScreen(minecraft, parent);
             input.set(minecraft, previousInput);
             try (var paths = Files.walk(root)) {
                 for (Path path : paths.sorted(java.util.Comparator.reverseOrder()).toList()) {
@@ -5257,7 +5259,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         var inputField = field(Minecraft.class, "lastInputType");
         var previousInput = inputField.get(minecraft);
         inputField.set(minecraft, net.minecraft.client.InputType.MOUSE);
-        var parent = minecraft.screen;
+        var parent = minecraft.gui.screen();
         Path directory = Files.createTempDirectory(FiguraMod.getFiguraDirectory(), "upload-cosmetic-");
         String source = """
                 {"name":"Upload accessory","authors":["Author"],"category":"Trail","cosmetic_anchor":"hip"}
@@ -5265,7 +5267,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         Files.writeString(directory.resolve("cosmetic.json"), source);
         Files.writeString(directory.resolve("script.lua"), "return 1");
         try {
-            minecraft.screen = screen;
+            top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.setFixtureScreen(minecraft, screen);
             screen.width = 640;
             screen.height = 360;
             var initialize = type.getDeclaredMethod("init");
@@ -5309,7 +5311,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(field(type, "prepared").get(screen) == null, "closed upload controls cannot restart source preparation");
         } finally {
             screen.removed();
-            minecraft.screen = parent;
+            top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.setFixtureScreen(minecraft, parent);
             inputField.set(minecraft, previousInput);
             try (var paths = Files.walk(directory)) {
                 for (Path path : paths.sorted(java.util.Comparator.reverseOrder()).toList()) {
@@ -5586,7 +5588,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     avatar.renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.OTHER;
                 }
                 org.figuramc.figura.utils.ui.UIHelper.paperdoll = false;
-                new top.aihmc.omnimorph.model.rendering.nodeRenderer.FiguraFeatureRenderer().render(queue, null);
+                var context = new net.minecraft.client.renderer.feature.FeatureFrameContext(
+                        null, null, null, null, null, null, null, null);
+                new top.aihmc.omnimorph.model.rendering.nodeRenderer.FiguraFeatureRenderer()
+                        .prepareGroup(context, queue.submissions, false);
             }
         } finally {
             avatar.renderMode = previousMode;
@@ -5594,28 +5599,19 @@ public final class LibraryPreviewRuntimeSmokeTest {
         }
     }
 
-    private static final class DeferredFiguraQueue extends net.minecraft.client.renderer.SubmitNodeCollection
-            implements top.aihmc.omnimorph.ducks.NodeCollectorExtension {
+    private static final class DeferredFiguraQueue implements top.aihmc.omnimorph.ducks.NodeCollectorExtension {
         private final java.util.List<top.aihmc.omnimorph.model.rendering.nodeRenderer.FiguraSubmission> submissions =
                 new java.util.ArrayList<>();
-
-        private DeferredFiguraQueue() {
-            super(null);
-        }
 
         @Override
         public <S extends net.minecraft.client.renderer.entity.state.EntityRenderState> void submitFiguraModel(
                 Avatar avatar, S state,
                 org.apache.commons.lang3.function.TriFunction<Avatar, S,
-                        net.minecraft.client.renderer.MultiBufferSource, Void> renderer) {
+                        top.aihmc.omnimorph.model.rendering.FiguraVertexSource, Void> renderer) {
             submissions.add(new top.aihmc.omnimorph.model.rendering.nodeRenderer.FiguraSubmission(
                     avatar, state, (owner, captured, buffers) -> renderer.apply(owner, state, buffers)));
         }
 
-        @Override
-        public java.util.List<top.aihmc.omnimorph.model.rendering.nodeRenderer.FiguraSubmission> getFiguraSubmissions() {
-            return submissions;
-        }
     }
 
     private static void require(boolean condition, String message) {

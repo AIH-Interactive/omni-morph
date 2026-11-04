@@ -10,8 +10,10 @@ import net.minecraft.client.renderer.RenderPipelines;
 import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuTexture;
-import com.mojang.blaze3d.textures.TextureFormat;
-import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.blaze3d.GpuFormat;
+import com.mojang.blaze3d.IndexType;
+import com.mojang.blaze3d.PrimitiveTopology;
+import com.mojang.blaze3d.pipeline.BindGroupLayout;
 import net.minecraft.resources.Identifier;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import org.figuramc.figura.math.matrix.FiguraMat3;
@@ -22,7 +24,6 @@ import java.nio.ByteOrder;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalDouble;
-import java.util.OptionalInt;
 import java.util.function.BiFunction;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
@@ -315,7 +316,7 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
         BufferDrawPass(Material material, GpuDrawContext context) {
             this.material = material;
             pass = device.createCommandEncoder().createRenderPass(() -> "OmniMorph accelerated entity",
-                    Objects.requireNonNull(context.color()), OptionalInt.empty(), context.depth(), OptionalDouble.empty());
+                    Objects.requireNonNull(context.color()), Optional.empty(), context.depth(), OptionalDouble.empty());
             try {
                 pass.setPipeline(material.accelerated());
                 if (context.scissorEnabled()) {
@@ -323,8 +324,8 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
                 }
                 RenderSystem.bindDefaultUniforms(pass);
                 pass.setUniform("DynamicTransforms", Objects.requireNonNull(context.dynamicTransform()));
-                for (var binding : context.textures().entrySet()) {
-                    pass.bindTexture(binding.getKey(), binding.getValue().textureView(), binding.getValue().sampler());
+                for (var binding : context.textures()) {
+                    pass.bindTexture(binding.name(), binding.textureView(), binding.sampler());
                 }
             } catch (RuntimeException | Error failure) {
                 pass.close();
@@ -345,11 +346,11 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
             if (storagePose == null) {
                 pass.setUniform(GpuShaderProgram.UNIFORM, ((BufferPose) pose).buffer());
             }
-            pass.setVertexBuffer(0, geometry.vertices());
-            pass.setIndexBuffer(indices == null ? geometry.indices() : ((BufferIndices) indices).buffer(), VertexFormat.IndexType.INT);
+            pass.setVertexBuffer(0, geometry.vertices().slice());
+            pass.setIndexBuffer(indices == null ? geometry.indices() : ((BufferIndices) indices).buffer(), IndexType.INT);
             issuingDraw.run();
             if (storagePose == null) {
-                pass.drawIndexed(0, firstIndex, indexCount, 1);
+                pass.drawIndexed(indexCount, 1, firstIndex, 0, 0);
                 return;
             }
             // drawIndexed executes synchronously in the GL backend, so these bindings cover exactly this draw.
@@ -362,7 +363,7 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
                 GpuStorageSupport.bind(GpuShaderProgram.BATCH_BINDING, arena, storagePose.records.offset(), storagePose.records.bytes());
             }
             try {
-                pass.drawIndexed(0, firstIndex, indexCount, 1);
+                pass.drawIndexed(indexCount, 1, firstIndex, 0, 0);
             } finally {
                 GpuStorageSupport.unbind(GpuShaderProgram.STORAGE_BINDING);
                 GpuStorageSupport.unbind(GpuShaderProgram.REMAP_BINDING);
@@ -429,7 +430,7 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
                 "acceleration/activation_probe_storage_" + probe.name().toLowerCase(java.util.Locale.ROOT));
         RenderPipeline pipeline = RenderPipeline.builder().withLocation(location).withVertexShader(location).withFragmentShader(location)
                 .withColorTargetState(ColorTargetState.DEFAULT).withDepthStencilState(Optional.empty()).withCull(false)
-                .withVertexFormat(GpuShaderProgram.format(), VertexFormat.Mode.TRIANGLES).build();
+                .withVertexBinding(0, GpuShaderProgram.format()).withPrimitiveTopology(PrimitiveTopology.TRIANGLES).build();
         String vertex = switch (probe) {
             case ENTITY -> GpuShaderProgram.wrapStorageEntitySource(PROBE_VERTEX);
             case RIGID -> GpuShaderProgram.wrapStorageRigidEntitySource(PROBE_VERTEX);
@@ -475,20 +476,20 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
         try (BufferMesh geometry = (BufferMesh) uploadGeometry(vertexData, GpuBatchData.indices(mesh));
              GpuBuffer pose = device.createBuffer(() -> "OmniMorph storage pose probe", GpuBuffer.USAGE_UNIFORM, poseData);
              var target = device.createTexture("OmniMorph storage diagnostic", GpuTexture.USAGE_RENDER_ATTACHMENT | GpuTexture.USAGE_COPY_SRC,
-                     TextureFormat.RGBA8, 8, 8, 1, 1);
+                     GpuFormat.RGBA8_UNORM, 8, 8, 1, 1);
              var view = device.createTextureView(target);
              var readback = device.createBuffer(() -> "OmniMorph storage pixels", GpuBuffer.USAGE_COPY_DST | GpuBuffer.USAGE_MAP_READ, 8 * 8 * 4)) {
             var encoder = device.createCommandEncoder();
-            try (var pass = encoder.createRenderPass(() -> "OmniMorph storage self-test", view, OptionalInt.of(0xff000000))) {
+            try (var pass = encoder.createRenderPass(() -> "OmniMorph storage self-test", view, Optional.of(new org.joml.Vector4f(0, 0, 0, 1)))) {
                 pass.setPipeline(pipeline);
-                pass.setVertexBuffer(0, geometry.vertices());
-                pass.setIndexBuffer(geometry.indices(), VertexFormat.IndexType.INT);
+                pass.setVertexBuffer(0, geometry.vertices().slice());
+                pass.setIndexBuffer(geometry.indices(), IndexType.INT);
                 GpuStorageSupport.bind(GpuShaderProgram.STORAGE_BINDING, pose, 0, poseBytes);
                 if (remap != null) {
                     GpuStorageSupport.bind(secondBinding, remap, 0, remapBytes);
                 }
                 try {
-                    pass.drawIndexed(0, 0, 6, 1);
+                    pass.drawIndexed(6, 1, 0, 0, 0);
                 } finally {
                     GpuStorageSupport.unbind(GpuShaderProgram.STORAGE_BINDING);
                     if (remap != null) {
@@ -503,7 +504,7 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
                 }
             }
             RenderSystem.executePendingTasks();
-            try (var mapped = encoder.mapBuffer(readback, true, false)) {
+            try (var mapped = readback.map(true, false)) {
                 ByteBuffer pixels = mapped.data();
                 if (!green(pixels, 6, 4) || green(pixels, 2, 4)) {
                     throw new IllegalStateException("Acceleration storage self-test pixel mismatch");
@@ -522,9 +523,9 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
         RenderPipeline pipeline = grouped ? diagnosticGroupPipeline : diagnosticPipeline;
         if (pipeline == null) {
             pipeline = RenderPipeline.builder().withLocation(location).withVertexShader(location).withFragmentShader(location)
-                .withUniform(GpuShaderProgram.UNIFORM, com.mojang.blaze3d.shaders.UniformType.UNIFORM_BUFFER)
+                .withBindGroupLayout(BindGroupLayout.builder().withUniform(GpuShaderProgram.UNIFORM, com.mojang.blaze3d.shaders.UniformType.UNIFORM_BUFFER).build())
                 .withColorTargetState(ColorTargetState.DEFAULT).withDepthStencilState(Optional.empty()).withCull(false)
-                .withVertexFormat(GpuShaderProgram.format(), VertexFormat.Mode.TRIANGLES).build();
+                .withVertexBinding(0, GpuShaderProgram.format()).withPrimitiveTopology(PrimitiveTopology.TRIANGLES).build();
             if (grouped) {
                 diagnosticGroupPipeline = pipeline;
             } else {
@@ -544,16 +545,16 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
         try (BufferMesh geometry = (BufferMesh) uploadGeometry(vertexData, GpuBatchData.indices(mesh));
              BufferPose pose = (BufferPose) uploadPose(poseData);
              var target = device.createTexture("OmniMorph activation diagnostic", GpuTexture.USAGE_RENDER_ATTACHMENT | GpuTexture.USAGE_COPY_SRC,
-                     TextureFormat.RGBA8, 8, 8, 1, 1);
+                     GpuFormat.RGBA8_UNORM, 8, 8, 1, 1);
              var view = device.createTextureView(target);
              var readback = device.createBuffer(() -> "OmniMorph activation pixels", GpuBuffer.USAGE_COPY_DST | GpuBuffer.USAGE_MAP_READ, 8 * 8 * 4)) {
             var encoder = device.createCommandEncoder();
-            try (var pass = encoder.createRenderPass(() -> "OmniMorph activation self-test", view, OptionalInt.of(0xff000000))) {
+            try (var pass = encoder.createRenderPass(() -> "OmniMorph activation self-test", view, Optional.of(new org.joml.Vector4f(0, 0, 0, 1)))) {
                 pass.setPipeline(pipeline);
                 pass.setUniform(GpuShaderProgram.UNIFORM, pose.buffer());
-                pass.setVertexBuffer(0, geometry.vertices());
-                pass.setIndexBuffer(geometry.indices(), VertexFormat.IndexType.INT);
-                pass.drawIndexed(0, 0, 6, 1);
+                pass.setVertexBuffer(0, geometry.vertices().slice());
+                pass.setIndexBuffer(geometry.indices(), IndexType.INT);
+                pass.drawIndexed(6, 1, 0, 0, 0);
             }
             encoder.copyTextureToBuffer(target, readback, 0, () -> {}, 0);
             try (GpuFence completed = encoder.createFence()) {
@@ -562,7 +563,7 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
                 }
             }
             RenderSystem.executePendingTasks();
-            try (var mapped = encoder.mapBuffer(readback, true, false)) {
+            try (var mapped = readback.map(true, false)) {
                 ByteBuffer pixels = mapped.data();
                 if (!green(pixels, 6, 4) || green(pixels, 2, 4)) {
                     throw new IllegalStateException("Acceleration matrix self-test pixel mismatch");

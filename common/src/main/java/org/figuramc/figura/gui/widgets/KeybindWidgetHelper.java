@@ -1,6 +1,7 @@
 package org.figuramc.figura.gui.widgets;
 
 import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -22,11 +23,11 @@ public class KeybindWidgetHelper {
         // conflict bars
         if (vanillaConflict || avatarConflict) {
             if (avatarConflict) {
-                gui.fill(x, y, x + width, y + height, ChatFormatting.YELLOW.getColor() | 0xFF000000);
+                gui.fill(x, y, x + width, y + height, TextColor.YELLOW.getValue() | 0xFF000000);
                 x -= width + 4;
             }
             if (vanillaConflict) {
-                gui.fill(x, y, x + width, y + height, ChatFormatting.RED.getColor() | 0xFF000000);
+                gui.fill(x, y, x + width, y + height, TextColor.RED.getValue() | 0xFF000000);
             }
         }
     }

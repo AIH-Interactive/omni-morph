@@ -1042,20 +1042,20 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
     }
 
     private static class VertexBuffer {
-        private final HashMap<RenderType, List<Consumer<MultiBufferSource>>> primaryBuffers = new LinkedHashMap<>();
-        private final HashMap<RenderType, List<Consumer<MultiBufferSource>>> secondaryBuffers = new LinkedHashMap<>();
+        private final HashMap<RenderType, List<Consumer<FiguraVertexSource>>> primaryBuffers = new LinkedHashMap<>();
+        private final HashMap<RenderType, List<Consumer<FiguraVertexSource>>> secondaryBuffers = new LinkedHashMap<>();
 
-        public void getBufferFor(RenderType renderType, boolean primary, Consumer<MultiBufferSource> consumer) {
-            HashMap<RenderType, List<Consumer<MultiBufferSource>>> buffer = primary ? primaryBuffers : secondaryBuffers;
-            List<Consumer<MultiBufferSource>> list = buffer.computeIfAbsent(renderType, renderType1 -> new ArrayList<>());
+        public void getBufferFor(RenderType renderType, boolean primary, Consumer<FiguraVertexSource> consumer) {
+            HashMap<RenderType, List<Consumer<FiguraVertexSource>>> buffer = primary ? primaryBuffers : secondaryBuffers;
+            List<Consumer<FiguraVertexSource>> list = buffer.computeIfAbsent(renderType, renderType1 -> new ArrayList<>());
             list.add(consumer);
         }
 
-        public void consume(boolean primary, MultiBufferSource bufferSource) {
-            HashMap<RenderType, List<Consumer<MultiBufferSource>>> map = primary ? primaryBuffers : secondaryBuffers;
-            for (Map.Entry<RenderType, List<Consumer<MultiBufferSource>>> entry : map.entrySet()) {
-                List<Consumer<MultiBufferSource>> consumers = entry.getValue();
-                for (Consumer<MultiBufferSource> consumer : consumers)
+        public void consume(boolean primary, FiguraVertexSource bufferSource) {
+            HashMap<RenderType, List<Consumer<FiguraVertexSource>>> map = primary ? primaryBuffers : secondaryBuffers;
+            for (Map.Entry<RenderType, List<Consumer<FiguraVertexSource>>> entry : map.entrySet()) {
+                List<Consumer<FiguraVertexSource>> consumers = entry.getValue();
+                for (Consumer<FiguraVertexSource> consumer : consumers)
                     consumer.accept(bufferSource);
             }
             map.clear();

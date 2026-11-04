@@ -1,0 +1,679 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/eryth/.gradle/wrapper/dists/gradle-9.4.1-bin/arn2x92ynaizyzdaamcbpbhtj/gradle-9.4.1/lib/native-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Architect Plugin: 3.5.168
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+> Task :common:compileJava UP-TO-DATE
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes UP-TO-DATE
+> Task :common:extractIncludeTestProto UP-TO-DATE
+> Task :common:extractTestProto UP-TO-DATE
+> Task :common:generateTestProto NO-SOURCE
+
+> Task :common:compileTestJava
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\AnchorTrailNativeSmokeTest.java:29: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\CustomParticleNativeSmokeTest.java:29: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleLightNativeSmokeTest.java:19: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleMotionNativeSmokeTest.java:22: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:32: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitHandRenderingSmokeTest.java:17: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitFormalPreparationSmokeTest.java:6: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitParticleCallbackSmokeTest.java:13: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitParticleFaceBudgetSmokeTest.java:21: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitTrailRuntimeSmokeTest.java:13: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\AvatarAsyncLoadSmokeTest.java:16: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:33: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmBoneQuerySmokeTest.java:16: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmControlRuntimeSmokeTest.java:20: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFilterSmokeTest.java:6: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:35: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmHandAnimationSmokeTest.java:18: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmLanguageSmokeTest.java:22: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:22: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmNativeStateSmokeTest.java:15: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmParticleNativeSmokeTest.java:30: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmPerlinSmokeTest.java:6: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmSoundNativeSmokeTest.java:29: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmStabilitySmokeTest.java:30: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmSubEntitySmokeTest.java:17: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmVanillaStateSmokeTest.java:45: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\FiguraAccelerationReplay.java:9: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\AnchorTrailNativeSmokeTest.java:55: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    static void run(Unsafe unsafe, Runnable drain) throws Exception {
+                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\CustomParticleNativeSmokeTest.java:41: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    public static void run(Unsafe unsafe, Avatar first, Avatar second, Runnable drain) throws Exception {
+                           ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleLightNativeSmokeTest.java:40: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    static void run(Unsafe unsafe, Avatar first, Avatar second, Runnable drain) throws Exception {
+                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleLightNativeSmokeTest.java:66: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void luaWorldAndMovement(Unsafe unsafe, Avatar owner, FiguraTexture texture,
+                                            ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleMotionNativeSmokeTest.java:36: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    static void run(Unsafe unsafe, Avatar owner, Runnable drain) throws Exception {
+                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleMotionNativeSmokeTest.java:130: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void liveTargets(Unsafe unsafe, Avatar owner, MotionLevel world, FiguraTexture texture,
+                                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleMotionNativeSmokeTest.java:175: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static TrackedEntity entity(Unsafe unsafe, MotionLevel world, UUID uuid) throws Exception {
+                                        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:46: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    public static void run(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                           ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:297: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testOtherPlayerRouting(Unsafe unsafe, LibraryClient library) throws Exception {
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:365: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testOtherPlayerDraft(Unsafe unsafe, Runnable drain) throws Exception {
+                                             ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:405: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testCatalogOutfitPreview(Unsafe unsafe, Runnable drain) throws Exception {
+                                                 ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:687: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testCollectionOutfitImport(Unsafe unsafe, Runnable drain, LibraryClient client,
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:815: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testProvidedCosmetics(Unsafe unsafe, Runnable drain) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:898: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testPackagedYsmDraftBases(Unsafe unsafe, Runnable drain) throws Exception {
+                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:964: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testPackagedFiguraDraftAccessory(Unsafe unsafe, Runnable drain) throws Exception {
+                                                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1058: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testReportedAccessoryOnLocalBase(Unsafe unsafe, Runnable drain) throws Exception {
+                                                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1271: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testVanillaSelection(Unsafe unsafe, Runnable drain) throws Exception {
+                                             ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1408: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testOutfitTabShowsLoadedOutfit(Unsafe unsafe, Runnable drain) throws Exception {
+                                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1560: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testWardrobeDraftActions(Unsafe unsafe, Runnable drain) throws Exception {
+                                                 ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1832: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testLocalDraftPreview(Unsafe unsafe, Runnable drain, Object editor,
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1914: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testWardrobeCloudCosmetic(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2108: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testLocalPresetScreen(Unsafe unsafe, Runnable drain, LibraryClient client) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2532: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testInstanceTransformFields(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2697: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testTreeAttachmentActions(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3202: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                          ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3204: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var viewport = (com.mojang.blaze3d.platform.Window) ((Unsafe) unsafeField.get(null))
+                                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3407: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testBoneOverrideEditor(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3524: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testBoneHelperControls(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3772: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testCurrentPlayerFigura(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                                                ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3897: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testIndependentFigura(Unsafe unsafe, Runnable drain) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4177: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testPreviewAppearance(Unsafe unsafe) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4221: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testWardrobeDefaultPreview(Unsafe unsafe) throws Exception {
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4379: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testWardrobeVisibilityTicks(Unsafe unsafe) throws Exception {
+                                                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4959: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4959: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4959: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5465: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testHiddenFormalParticleEmitter(Unsafe unsafe, LibraryPreviewSession preview,
+                                                        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitApplyServiceSmokeTest.java:297: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var unsafeField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitApplyServiceSmokeTest.java:299: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var unsafe = (sun.misc.Unsafe) unsafeField.get(null);
+                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitApplyServiceSmokeTest.java:804: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var unsafeField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitApplyServiceSmokeTest.java:806: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var unsafe = (sun.misc.Unsafe) unsafeField.get(null);
+                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitHandRenderingSmokeTest.java:27: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    static void run(Unsafe unsafe, LibraryPreviewSession preview) throws Exception {
+                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitFormalPreparationSmokeTest.java:22: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var field = Unsafe.class.getDeclaredField("theUnsafe");
+                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitFormalPreparationSmokeTest.java:24: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var unsafe = (Unsafe) field.get(null);
+                      ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitParticleCallbackSmokeTest.java:33: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    public static void run(Unsafe unsafe) throws Exception {
+                           ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitParticleFaceBudgetSmokeTest.java:31: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    public static void run(Unsafe unsafe, Avatar owner, IntSupplier drawModel, Runnable drain) throws Exception {
+                           ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitTrailRuntimeSmokeTest.java:66: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var field = Unsafe.class.getDeclaredField("theUnsafe");
+                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitTrailRuntimeSmokeTest.java:68: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var unsafe = (Unsafe) field.get(null);
+                      ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\AvatarAsyncLoadSmokeTest.java:26: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    static void run(Unsafe unsafe, Minecraft client, Runnable drain) throws Exception {
+                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\AvatarAsyncLoadSmokeTest.java:30: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    static void run(Unsafe unsafe, Minecraft client, Runnable drain, java.nio.file.Path encrypted) throws Exception {
+                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:304: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                            ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:306: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) unsafeField.get(null);
+        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:306: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) unsafeField.get(null);
+                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:514: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            Field field = Unsafe.class.getDeclaredField("theUnsafe");
+                          ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:516: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            Unsafe unsafe = (Unsafe) field.get(null);
+            ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:516: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            Unsafe unsafe = (Unsafe) field.get(null);
+                             ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmBoneQuerySmokeTest.java:238: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                                ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmBoneQuerySmokeTest.java:240: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            Avatar owner = (Avatar) ((Unsafe) unsafeField.get(null)).allocateInstance(Avatar.class);
+                                      ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmControlRuntimeSmokeTest.java:252: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            Field field = Unsafe.class.getDeclaredField("theUnsafe");
+                          ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmControlRuntimeSmokeTest.java:254: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            owner = (Avatar) ((Unsafe) field.get(null)).allocateInstance(Avatar.class);
+                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmDisplayStateSmokeTest.java:64: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var unsafeField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmDisplayStateSmokeTest.java:66: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var unsafe = (sun.misc.Unsafe) unsafeField.get(null);
+                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFilterSmokeTest.java:280: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                                ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFilterSmokeTest.java:282: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            context.entity = (ArmorStand) ((Unsafe) unsafeField.get(null)).allocateInstance(ArmorStand.class);
+                                            ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:239: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                            ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:241: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        RemotePlayer player = (RemotePlayer) ((Unsafe) unsafeField.get(null)).allocateInstance(RemotePlayer.class);
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:260: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                            ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:262: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) unsafeField.get(null);
+        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:262: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) unsafeField.get(null);
+                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:312: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                            ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:314: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) unsafeField.get(null);
+        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:314: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) unsafeField.get(null);
+                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:336: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                            ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1546: 错误: 无法将类 FiguraAccelerationReplay中的方法 replay应用到给定类型;
+                top.aihmc.omnimorph.render.acceleration.FiguraAccelerationReplay.replay(null);
+                                                                                ^
+  需要: Function<VertexConsumer,FiguraVertexSource>,Runnable
+  找到:    <空值>
+  原因: 实际参数列表和形式参数列表长度不同
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\AccelerationGpuRouteProbe.java:97: 错误: 找不到符号
+                .withVertexFormatBinding(0, DefaultVertexFormat.POSITION)
+                ^
+  符号:   方法 withVertexFormatBinding(int,VertexFormat)
+  位置: 类 Builder
+注: 某些输入文件使用或覆盖了已过时的 API。
+注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+2 个错误
+100 个警告
+
+> Task :common:compileTestJava FAILED
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_26.2/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:compileTestJava'.
+> Compilation failed; see the compiler output below.
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\AnchorTrailNativeSmokeTest.java:29: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\CustomParticleNativeSmokeTest.java:29: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleLightNativeSmokeTest.java:19: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleMotionNativeSmokeTest.java:22: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:32: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitHandRenderingSmokeTest.java:17: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitFormalPreparationSmokeTest.java:6: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitParticleCallbackSmokeTest.java:13: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitParticleFaceBudgetSmokeTest.java:21: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitTrailRuntimeSmokeTest.java:13: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\AvatarAsyncLoadSmokeTest.java:16: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:33: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmBoneQuerySmokeTest.java:16: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmControlRuntimeSmokeTest.java:20: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFilterSmokeTest.java:6: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:35: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmHandAnimationSmokeTest.java:18: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmLanguageSmokeTest.java:22: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:22: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmNativeStateSmokeTest.java:15: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmParticleNativeSmokeTest.java:30: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmPerlinSmokeTest.java:6: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmSoundNativeSmokeTest.java:29: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmStabilitySmokeTest.java:30: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmSubEntitySmokeTest.java:17: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmVanillaStateSmokeTest.java:45: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\FiguraAccelerationReplay.java:9: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\AnchorTrailNativeSmokeTest.java:55: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      static void run(Unsafe unsafe, Runnable drain) throws Exception {
+                      ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\CustomParticleNativeSmokeTest.java:41: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      public static void run(Unsafe unsafe, Avatar first, Avatar second, Runnable drain) throws Exception {
+                             ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleLightNativeSmokeTest.java:40: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      static void run(Unsafe unsafe, Avatar first, Avatar second, Runnable drain) throws Exception {
+                      ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleLightNativeSmokeTest.java:66: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void luaWorldAndMovement(Unsafe unsafe, Avatar owner, FiguraTexture texture,
+                                              ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleMotionNativeSmokeTest.java:36: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      static void run(Unsafe unsafe, Avatar owner, Runnable drain) throws Exception {
+                      ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleMotionNativeSmokeTest.java:130: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void liveTargets(Unsafe unsafe, Avatar owner, MotionLevel world, FiguraTexture texture,
+                                      ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleMotionNativeSmokeTest.java:175: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static TrackedEntity entity(Unsafe unsafe, MotionLevel world, UUID uuid) throws Exception {
+                                          ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:46: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      public static void run(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                             ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:297: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testOtherPlayerRouting(Unsafe unsafe, LibraryClient library) throws Exception {
+                                                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:365: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testOtherPlayerDraft(Unsafe unsafe, Runnable drain) throws Exception {
+                                               ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:405: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testCatalogOutfitPreview(Unsafe unsafe, Runnable drain) throws Exception {
+                                                   ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:687: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testCollectionOutfitImport(Unsafe unsafe, Runnable drain, LibraryClient client,
+                                                     ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:815: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testProvidedCosmetics(Unsafe unsafe, Runnable drain) throws Exception {
+                                                ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:898: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testPackagedYsmDraftBases(Unsafe unsafe, Runnable drain) throws Exception {
+                                                    ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:964: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testPackagedFiguraDraftAccessory(Unsafe unsafe, Runnable drain) throws Exception {
+                                                           ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1058: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testReportedAccessoryOnLocalBase(Unsafe unsafe, Runnable drain) throws Exception {
+                                                           ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1271: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testVanillaSelection(Unsafe unsafe, Runnable drain) throws Exception {
+                                               ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1408: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testOutfitTabShowsLoadedOutfit(Unsafe unsafe, Runnable drain) throws Exception {
+                                                         ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1560: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testWardrobeDraftActions(Unsafe unsafe, Runnable drain) throws Exception {
+                                                   ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1832: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testLocalDraftPreview(Unsafe unsafe, Runnable drain, Object editor,
+                                                ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1914: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testWardrobeCloudCosmetic(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                                                    ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2108: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testLocalPresetScreen(Unsafe unsafe, Runnable drain, LibraryClient client) throws Exception {
+                                                ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2532: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testInstanceTransformFields(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                                      ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2697: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testTreeAttachmentActions(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                                    ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3202: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          var unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                            ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3204: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          var viewport = (com.mojang.blaze3d.platform.Window) ((Unsafe) unsafeField.get(null))
+                                                                ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3407: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testBoneOverrideEditor(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3524: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testBoneHelperControls(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3772: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testCurrentPlayerFigura(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                                                  ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3897: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testIndependentFigura(Unsafe unsafe, Runnable drain) throws Exception {
+                                                ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4177: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testPreviewAppearance(Unsafe unsafe) throws Exception {
+                                                ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4221: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testWardrobeDefaultPreview(Unsafe unsafe) throws Exception {
+                                                     ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4379: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testWardrobeVisibilityTicks(Unsafe unsafe) throws Exception {
+                                                      ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4959: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+          ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4959: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+                           ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4959: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+                                         ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5465: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testHiddenFormalParticleEmitter(Unsafe unsafe, LibraryPreviewSession preview,
+                                                          ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitApplyServiceSmokeTest.java:297: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          var unsafeField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+                                    ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitApplyServiceSmokeTest.java:299: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          var unsafe = (sun.misc.Unsafe) unsafeField.get(null);
+                                ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitApplyServiceSmokeTest.java:804: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          var unsafeField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+                                    ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitApplyServiceSmokeTest.java:806: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          var unsafe = (sun.misc.Unsafe) unsafeField.get(null);
+                                ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitHandRenderingSmokeTest.java:27: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      static void run(Unsafe unsafe, LibraryPreviewSession preview) throws Exception {
+                      ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitFormalPreparationSmokeTest.java:22: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          var field = Unsafe.class.getDeclaredField("theUnsafe");
+                      ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitFormalPreparationSmokeTest.java:24: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          var unsafe = (Unsafe) field.get(null);
+                        ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitParticleCallbackSmokeTest.java:33: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      public static void run(Unsafe unsafe) throws Exception {
+                             ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitParticleFaceBudgetSmokeTest.java:31: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      public static void run(Unsafe unsafe, Avatar owner, IntSupplier drawModel, Runnable drain) throws Exception {
+                             ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitTrailRuntimeSmokeTest.java:66: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          var field = Unsafe.class.getDeclaredField("theUnsafe");
+                      ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitTrailRuntimeSmokeTest.java:68: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          var unsafe = (Unsafe) field.get(null);
+                        ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\AvatarAsyncLoadSmokeTest.java:26: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      static void run(Unsafe unsafe, Minecraft client, Runnable drain) throws Exception {
+                      ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\AvatarAsyncLoadSmokeTest.java:30: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      static void run(Unsafe unsafe, Minecraft client, Runnable drain, java.nio.file.Path encrypted) throws Exception {
+                      ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:304: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                              ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:306: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Unsafe unsafe = (Unsafe) unsafeField.get(null);
+          ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:306: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Unsafe unsafe = (Unsafe) unsafeField.get(null);
+                           ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:514: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+              Field field = Unsafe.class.getDeclaredField("theUnsafe");
+                            ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:516: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+              Unsafe unsafe = (Unsafe) field.get(null);
+              ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:516: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+              Unsafe unsafe = (Unsafe) field.get(null);
+                               ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmBoneQuerySmokeTest.java:238: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+              Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                                  ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmBoneQuerySmokeTest.java:240: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+              Avatar owner = (Avatar) ((Unsafe) unsafeField.get(null)).allocateInstance(Avatar.class);
+                                        ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmControlRuntimeSmokeTest.java:252: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+              Field field = Unsafe.class.getDeclaredField("theUnsafe");
+                            ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmControlRuntimeSmokeTest.java:254: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+              owner = (Avatar) ((Unsafe) field.get(null)).allocateInstance(Avatar.class);
+                                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmDisplayStateSmokeTest.java:64: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          var unsafeField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+                                    ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmDisplayStateSmokeTest.java:66: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          var unsafe = (sun.misc.Unsafe) unsafeField.get(null);
+                                ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFilterSmokeTest.java:280: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+              Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                                  ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFilterSmokeTest.java:282: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+              context.entity = (ArmorStand) ((Unsafe) unsafeField.get(null)).allocateInstance(ArmorStand.class);
+                                              ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:239: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                              ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:241: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          RemotePlayer player = (RemotePlayer) ((Unsafe) unsafeField.get(null)).allocateInstance(RemotePlayer.class);
+                                                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:260: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                              ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:262: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Unsafe unsafe = (Unsafe) unsafeField.get(null);
+          ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:262: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Unsafe unsafe = (Unsafe) unsafeField.get(null);
+                           ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:312: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                              ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:314: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Unsafe unsafe = (Unsafe) unsafeField.get(null);
+          ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:314: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Unsafe unsafe = (Unsafe) unsafeField.get(null);
+                           ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:336: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                              ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1546: 错误: 无法将类 FiguraAccelerationReplay中的方法 replay应用到给定类型;
+                  top.aihmc.omnimorph.render.acceleration.FiguraAccelerationReplay.replay(null);
+                                                                                  ^
+    需要: Function<VertexConsumer,FiguraVertexSource>,Runnable
+    找到:    <空值>
+    原因: 实际参数列表和形式参数列表长度不同
+  注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+  注: 某些输入文件使用或覆盖了已过时的 API。
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\AccelerationGpuRouteProbe.java:97: 错误: 找不到符号
+                  .withVertexFormatBinding(0, DefaultVertexFormat.POSITION)
+                  ^
+    符号:   方法 withVertexFormatBinding(int,VertexFormat)
+    位置: 类 Builder
+  2 个错误
+  100 个警告
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 51s
+8 actionable tasks: 1 executed, 7 up-to-date

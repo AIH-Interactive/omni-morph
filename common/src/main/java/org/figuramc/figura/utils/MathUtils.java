@@ -72,7 +72,7 @@ public class MathUtils {
     }
 
     public static FiguraVec3 toCameraSpace(FiguraVec3 vec) {
-        Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+        Camera camera = Minecraft.getInstance().gameRenderer.mainCamera();
 
         FiguraMat3 transformMatrix = FiguraMat3.of().set(new Matrix3f().rotation(camera.rotation()));
         Vec3 pos = camera.position();
@@ -88,7 +88,7 @@ public class MathUtils {
 
     public static FiguraVec4 worldToScreenSpace(FiguraVec3 worldSpace) {
         Minecraft minecraft = Minecraft.getInstance();
-        Camera camera = minecraft.gameRenderer.getMainCamera();
+        Camera camera = minecraft.gameRenderer.mainCamera();
         Matrix3f transformMatrix = new Matrix3f().rotation(camera.rotation());
         transformMatrix.scale(-1, 1,-1);
         transformMatrix.invert();

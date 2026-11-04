@@ -1,0 +1,155 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+Compiled from "GuiRenderer.java"
+public class net.minecraft.client.gui.render.GuiRenderer implements java.lang.AutoCloseable {
+  private static final org.slf4j.Logger LOGGER;
+    descriptor: Lorg/slf4j/Logger;
+  private static final float MAX_GUI_Z;
+    descriptor: F
+  public static final float MIN_GUI_Z;
+    descriptor: F
+  private static final float GUI_Z_NEAR;
+    descriptor: F
+  public static final int GUI_3D_Z_FAR;
+    descriptor: I
+  public static final int GUI_3D_Z_NEAR;
+    descriptor: I
+  public static final int DEFAULT_ITEM_SIZE;
+    descriptor: I
+  public static final org.joml.Vector4fc CLEAR_COLOR;
+    descriptor: Lorg/joml/Vector4fc;
+  private static final java.util.Comparator<net.minecraft.client.gui.navigation.ScreenRectangle> SCISSOR_COMPARATOR;
+    descriptor: Ljava/util/Comparator;
+  private static final java.util.Comparator<net.minecraft.client.gui.render.TextureSetup> TEXTURE_COMPARATOR;
+    descriptor: Ljava/util/Comparator;
+  private static final java.util.Comparator<net.minecraft.client.renderer.state.gui.GuiElementRenderState> ELEMENT_SORT_COMPARATOR;
+    descriptor: Ljava/util/Comparator;
+  private final java.util.Map<java.lang.Object, net.minecraft.client.gui.render.pip.OversizedItemRenderer> oversizedItemRenderers;
+    descriptor: Ljava/util/Map;
+  private final net.minecraft.client.renderer.state.gui.GuiRenderState renderState;
+    descriptor: Lnet/minecraft/client/renderer/state/gui/GuiRenderState;
+  private final java.util.List<net.minecraft.client.gui.render.GuiRenderer$Draw> draws;
+    descriptor: Ljava/util/List;
+  private final net.minecraft.client.renderer.StagedVertexBuffer vertexBuffer;
+    descriptor: Lnet/minecraft/client/renderer/StagedVertexBuffer;
+  private int firstDrawIndexAfterBlur;
+    descriptor: I
+  private final net.minecraft.client.renderer.Projection guiProjection;
+    descriptor: Lnet/minecraft/client/renderer/Projection;
+  private final net.minecraft.client.renderer.ProjectionMatrixBuffer guiProjectionMatrixBuffer;
+    descriptor: Lnet/minecraft/client/renderer/ProjectionMatrixBuffer;
+  private final net.minecraft.client.renderer.feature.FeatureRenderDispatcher featureRenderDispatcher;
+    descriptor: Lnet/minecraft/client/renderer/feature/FeatureRenderDispatcher;
+  private final java.util.Map<java.lang.Class<? extends net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState>, net.neoforged.neoforge.client.gui.PictureInPictureRendererPool<?>> pictureInPictureRendererPools;
+    descriptor: Ljava/util/Map;
+  private final java.util.Set<net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState> pictureInPictureRenderStatesScratch;
+    descriptor: Ljava/util/Set;
+  private net.minecraft.client.gui.render.GuiItemAtlas itemAtlas;
+    descriptor: Lnet/minecraft/client/gui/render/GuiItemAtlas;
+  private int cachedGuiScale;
+    descriptor: I
+  private final net.minecraft.client.renderer.CubeMap cubeMap;
+    descriptor: Lnet/minecraft/client/renderer/CubeMap;
+  private net.minecraft.client.gui.navigation.ScreenRectangle previousScissorArea;
+    descriptor: Lnet/minecraft/client/gui/navigation/ScreenRectangle;
+  private com.mojang.blaze3d.pipeline.RenderPipeline previousPipeline;
+    descriptor: Lcom/mojang/blaze3d/pipeline/RenderPipeline;
+  private net.minecraft.client.gui.render.TextureSetup previousTextureSetup;
+    descriptor: Lnet/minecraft/client/gui/render/TextureSetup;
+  private net.minecraft.client.renderer.StagedVertexBuffer$Draw previousDraw;
+    descriptor: Lnet/minecraft/client/renderer/StagedVertexBuffer$Draw;
+  public net.minecraft.client.gui.render.GuiRenderer(net.minecraft.client.renderer.state.gui.GuiRenderState, net.minecraft.client.renderer.feature.FeatureRenderDispatcher, java.util.List<net.neoforged.neoforge.client.gui.PictureInPictureRendererRegistration<?>>);
+    descriptor: (Lnet/minecraft/client/renderer/state/gui/GuiRenderState;Lnet/minecraft/client/renderer/feature/FeatureRenderDispatcher;Ljava/util/List;)V
+
+  public void endFrame();
+    descriptor: ()V
+
+  public void render();
+    descriptor: ()V
+
+  private void clearUnusedOversizedItemRenderers();
+    descriptor: ()V
+
+  private void prepare();
+    descriptor: ()V
+
+  private void addElementsToMeshes(net.minecraft.client.renderer.state.gui.GuiRenderState$TraverseRange);
+    descriptor: (Lnet/minecraft/client/renderer/state/gui/GuiRenderState$TraverseRange;)V
+
+  private void draw();
+    descriptor: ()V
+
+  private void executeDrawRange(java.util.function.Supplier<java.lang.String>, com.mojang.blaze3d.pipeline.RenderTarget, com.mojang.blaze3d.buffers.GpuBufferSlice, int, int);
+    descriptor: (Ljava/util/function/Supplier;Lcom/mojang/blaze3d/pipeline/RenderTarget;Lcom/mojang/blaze3d/buffers/GpuBufferSlice;II)V
+
+  private void addElementToMesh(net.minecraft.client.renderer.state.gui.GuiElementRenderState);
+    descriptor: (Lnet/minecraft/client/renderer/state/gui/GuiElementRenderState;)V
+
+  private void prepareText();
+    descriptor: ()V
+
+  private void prepareItemElements();
+    descriptor: ()V
+
+  private void preparePictureInPicture();
+    descriptor: ()V
+
+  private <T extends net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState> boolean preparePictureInPictureState(T, int, boolean);
+    descriptor: (Lnet/minecraft/client/renderer/state/gui/pip/PictureInPictureRenderState;IZ)Z
+
+  private void submitBlitFromItemAtlas(net.minecraft.client.renderer.state.gui.GuiItemRenderState, net.minecraft.client.gui.render.GuiItemAtlas$SlotView);
+    descriptor: (Lnet/minecraft/client/renderer/state/gui/GuiItemRenderState;Lnet/minecraft/client/gui/render/GuiItemAtlas$SlotView;)V
+
+  private net.minecraft.client.gui.render.GuiItemAtlas prepareItemAtlas(java.util.Set<java.lang.Object>, int);
+    descriptor: (Ljava/util/Set;I)Lnet/minecraft/client/gui/render/GuiItemAtlas;
+
+  private int getGuiScaleInvalidatingItemAtlasIfChanged();
+    descriptor: ()I
+
+  private void invalidateItemAtlas();
+    descriptor: ()V
+
+  private void executeDraw(net.minecraft.client.gui.render.GuiRenderer$Draw, com.mojang.blaze3d.systems.RenderPass);
+    descriptor: (Lnet/minecraft/client/gui/render/GuiRenderer$Draw;Lcom/mojang/blaze3d/systems/RenderPass;)V
+
+  private boolean scissorChanged(net.minecraft.client.gui.navigation.ScreenRectangle, net.minecraft.client.gui.navigation.ScreenRectangle);
+    descriptor: (Lnet/minecraft/client/gui/navigation/ScreenRectangle;Lnet/minecraft/client/gui/navigation/ScreenRectangle;)Z
+
+  private void enableScissor(net.minecraft.client.gui.navigation.ScreenRectangle, com.mojang.blaze3d.systems.RenderPass);
+    descriptor: (Lnet/minecraft/client/gui/navigation/ScreenRectangle;Lcom/mojang/blaze3d/systems/RenderPass;)V
+
+  public void registerPanoramaTextures(net.minecraft.client.renderer.texture.TextureManager);
+    descriptor: (Lnet/minecraft/client/renderer/texture/TextureManager;)V
+
+  public void close();
+    descriptor: ()V
+
+  private void lambda$preparePictureInPicture$1(int, net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState);
+    descriptor: (ILnet/minecraft/client/renderer/state/gui/pip/PictureInPictureRenderState;)V
+
+  private void lambda$preparePictureInPicture$0(int, net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState);
+    descriptor: (ILnet/minecraft/client/renderer/state/gui/pip/PictureInPictureRenderState;)V
+
+  private void lambda$prepareItemElements$1(int, net.minecraft.client.renderer.state.gui.GuiItemRenderState);
+    descriptor: (ILnet/minecraft/client/renderer/state/gui/GuiItemRenderState;)V
+
+  private static net.minecraft.client.gui.render.pip.OversizedItemRenderer lambda$prepareItemElements$2(java.lang.Object);
+    descriptor: (Ljava/lang/Object;)Lnet/minecraft/client/gui/render/pip/OversizedItemRenderer;
+
+  private void lambda$prepareItemElements$0(org.apache.commons.lang3.mutable.MutableBoolean, net.minecraft.client.gui.render.GuiItemAtlas, net.minecraft.client.renderer.state.gui.GuiItemRenderState);
+    descriptor: (Lorg/apache/commons/lang3/mutable/MutableBoolean;Lnet/minecraft/client/gui/render/GuiItemAtlas;Lnet/minecraft/client/renderer/state/gui/GuiItemRenderState;)V
+
+  private void lambda$prepareText$0(net.minecraft.client.renderer.state.gui.GuiTextRenderState);
+    descriptor: (Lnet/minecraft/client/renderer/state/gui/GuiTextRenderState;)V
+
+  private static java.lang.String lambda$draw$1();
+    descriptor: ()Ljava/lang/String;
+
+  private static java.lang.String lambda$draw$0();
+    descriptor: ()Ljava/lang/String;
+
+  private static java.lang.String lambda$new$0();
+    descriptor: ()Ljava/lang/String;
+
+  static {};
+    descriptor: ()V
+}

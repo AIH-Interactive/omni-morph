@@ -1,0 +1,345 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+Compiled from "FeatureRenderDispatcher.java"
+public class net.minecraft.client.renderer.feature.FeatureRenderDispatcher implements java.lang.AutoCloseable {
+  private final net.minecraft.client.resources.model.ModelManager modelManager;
+
+  private final net.minecraft.client.resources.model.sprite.AtlasManager atlasManager;
+
+  private final net.minecraft.client.gui.Font font;
+
+  private final net.minecraft.client.renderer.state.GameRenderState gameRenderState;
+
+  private final net.minecraft.client.renderer.StagedVertexBuffer stagedVertexBuffer;
+
+  private final net.minecraft.client.renderer.feature.FeatureRendererMap featureRenderers;
+
+  private final net.minecraft.client.renderer.feature.FeatureRenderDispatcher$PreparedFrame preparedFrame;
+
+  public net.minecraft.client.renderer.feature.FeatureRenderDispatcher(net.minecraft.client.renderer.RenderBuffers, net.minecraft.client.resources.model.ModelManager, net.minecraft.client.resources.model.sprite.AtlasManager, net.minecraft.client.gui.Font, net.minecraft.client.renderer.state.GameRenderState);
+    Code:
+         0: aload_0
+         1: invokespecial #54                 // Method java/lang/Object."<init>":()V
+         4: aload_0
+         5: new           #56                 // class net/minecraft/client/renderer/feature/FeatureRendererMap
+         8: dup
+         9: invokespecial #57                 // Method net/minecraft/client/renderer/feature/FeatureRendererMap."<init>":()V
+        12: putfield      #59                 // Field featureRenderers:Lnet/minecraft/client/renderer/feature/FeatureRendererMap;
+        15: aload_0
+        16: new           #15                 // class net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame
+        19: dup
+        20: aload_0
+        21: invokespecial #62                 // Method net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame."<init>":(Lnet/minecraft/client/renderer/feature/FeatureRenderDispatcher;)V
+        24: putfield      #64                 // Field preparedFrame:Lnet/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame;
+        27: aload_0
+        28: aload_2
+        29: putfield      #66                 // Field modelManager:Lnet/minecraft/client/resources/model/ModelManager;
+        32: aload_0
+        33: aload_3
+        34: putfield      #68                 // Field atlasManager:Lnet/minecraft/client/resources/model/sprite/AtlasManager;
+        37: aload_0
+        38: aload         4
+        40: putfield      #70                 // Field font:Lnet/minecraft/client/gui/Font;
+        43: aload_0
+        44: aload         5
+        46: putfield      #72                 // Field gameRenderState:Lnet/minecraft/client/renderer/state/GameRenderState;
+        49: aload_0
+        50: aload_1
+        51: invokevirtual #77                 // Method net/minecraft/client/renderer/RenderBuffers.stagedVertexBuffer:()Lnet/minecraft/client/renderer/StagedVertexBuffer;
+        54: putfield      #79                 // Field stagedVertexBuffer:Lnet/minecraft/client/renderer/StagedVertexBuffer;
+        57: aload_0
+        58: getfield      #59                 // Field featureRenderers:Lnet/minecraft/client/renderer/feature/FeatureRendererMap;
+        61: getstatic     #85                 // Field net/minecraft/client/renderer/feature/ShadowFeatureRenderer.TYPE:Lnet/minecraft/client/renderer/feature/FeatureRendererType;
+        64: new           #81                 // class net/minecraft/client/renderer/feature/ShadowFeatureRenderer
+        67: dup
+        68: invokespecial #86                 // Method net/minecraft/client/renderer/feature/ShadowFeatureRenderer."<init>":()V
+        71: invokevirtual #90                 // Method net/minecraft/client/renderer/feature/FeatureRendererMap.put:(Lnet/minecraft/client/renderer/feature/FeatureRendererType;Lnet/minecraft/client/renderer/feature/FeatureRenderer;)V
+        74: aload_0
+        75: getfield      #59                 // Field featureRenderers:Lnet/minecraft/client/renderer/feature/FeatureRendererMap;
+        78: getstatic     #93                 // Field net/minecraft/client/renderer/feature/FlameFeatureRenderer.TYPE:Lnet/minecraft/client/renderer/feature/FeatureRendererType;
+        81: new           #92                 // class net/minecraft/client/renderer/feature/FlameFeatureRenderer
+        84: dup
+        85: invokespecial #94                 // Method net/minecraft/client/renderer/feature/FlameFeatureRenderer."<init>":()V
+        88: invokevirtual #90                 // Method net/minecraft/client/renderer/feature/FeatureRendererMap.put:(Lnet/minecraft/client/renderer/feature/FeatureRendererType;Lnet/minecraft/client/renderer/feature/FeatureRenderer;)V
+        91: aload_0
+        92: getfield      #59                 // Field featureRenderers:Lnet/minecraft/client/renderer/feature/FeatureRendererMap;
+        95: getstatic     #97                 // Field net/minecraft/client/renderer/feature/ModelFeatureRenderer.TYPE:Lnet/minecraft/client/renderer/feature/FeatureRendererType;
+        98: new           #96                 // class net/minecraft/client/renderer/feature/ModelFeatureRenderer
+       101: dup
+       102: invokespecial #98                 // Method net/minecraft/client/renderer/feature/ModelFeatureRenderer."<init>":()V
+       105: invokevirtual #90                 // Method net/minecraft/client/renderer/feature/FeatureRendererMap.put:(Lnet/minecraft/client/renderer/feature/FeatureRendererType;Lnet/minecraft/client/renderer/feature/FeatureRenderer;)V
+       108: aload_0
+       109: getfield      #59                 // Field featureRenderers:Lnet/minecraft/client/renderer/feature/FeatureRendererMap;
+       112: getstatic     #101                // Field net/minecraft/client/renderer/feature/NameTagFeatureRenderer.TYPE:Lnet/minecraft/client/renderer/feature/FeatureRendererType;
+       115: new           #100                // class net/minecraft/client/renderer/feature/NameTagFeatureRenderer
+       118: dup
+       119: invokespecial #102                // Method net/minecraft/client/renderer/feature/NameTagFeatureRenderer."<init>":()V
+       122: invokevirtual #90                 // Method net/minecraft/client/renderer/feature/FeatureRendererMap.put:(Lnet/minecraft/client/renderer/feature/FeatureRendererType;Lnet/minecraft/client/renderer/feature/FeatureRenderer;)V
+       125: aload_0
+       126: getfield      #59                 // Field featureRenderers:Lnet/minecraft/client/renderer/feature/FeatureRendererMap;
+       129: getstatic     #105                // Field net/minecraft/client/renderer/feature/TextFeatureRenderer.TYPE:Lnet/minecraft/client/renderer/feature/FeatureRendererType;
+       132: new           #104                // class net/minecraft/client/renderer/feature/TextFeatureRenderer
+       135: dup
+       136: invokespecial #106                // Method net/minecraft/client/renderer/feature/TextFeatureRenderer."<init>":()V
+       139: invokevirtual #90                 // Method net/minecraft/client/renderer/feature/FeatureRendererMap.put:(Lnet/minecraft/client/renderer/feature/FeatureRendererType;Lnet/minecraft/client/renderer/feature/FeatureRenderer;)V
+       142: aload_0
+       143: getfield      #59                 // Field featureRenderers:Lnet/minecraft/client/renderer/feature/FeatureRendererMap;
+       146: getstatic     #109                // Field net/minecraft/client/renderer/feature/LeashFeatureRenderer.TYPE:Lnet/minecraft/client/renderer/feature/FeatureRendererType;
+       149: new           #108                // class net/minecraft/client/renderer/feature/LeashFeatureRenderer
+       152: dup
+       153: invokespecial #110                // Method net/minecraft/client/renderer/feature/LeashFeatureRenderer."<init>":()V
+       156: invokevirtual #90                 // Method net/minecraft/client/renderer/feature/FeatureRendererMap.put:(Lnet/minecraft/client/renderer/feature/FeatureRendererType;Lnet/minecraft/client/renderer/feature/FeatureRenderer;)V
+       159: aload_0
+       160: getfield      #59                 // Field featureRenderers:Lnet/minecraft/client/renderer/feature/FeatureRendererMap;
+       163: getstatic     #113                // Field net/minecraft/client/renderer/feature/ItemFeatureRenderer.TYPE:Lnet/minecraft/client/renderer/feature/FeatureRendererType;
+       166: new           #112                // class net/minecraft/client/renderer/feature/ItemFeatureRenderer
+       169: dup
+       170: invokespecial #114                // Method net/minecraft/client/renderer/feature/ItemFeatureRenderer."<init>":()V
+       173: invokevirtual #90                 // Method net/minecraft/client/renderer/feature/FeatureRendererMap.put:(Lnet/minecraft/client/renderer/feature/FeatureRendererType;Lnet/minecraft/client/renderer/feature/FeatureRenderer;)V
+       176: aload_0
+       177: getfield      #59                 // Field featureRenderers:Lnet/minecraft/client/renderer/feature/FeatureRendererMap;
+       180: getstatic     #117                // Field net/minecraft/client/renderer/feature/CustomFeatureRenderer.TYPE:Lnet/minecraft/client/renderer/feature/FeatureRendererType;
+       183: new           #116                // class net/minecraft/client/renderer/feature/CustomFeatureRenderer
+       186: dup
+       187: invokespecial #118                // Method net/minecraft/client/renderer/feature/CustomFeatureRenderer."<init>":()V
+       190: invokevirtual #90                 // Method net/minecraft/client/renderer/feature/FeatureRendererMap.put:(Lnet/minecraft/client/renderer/feature/FeatureRendererType;Lnet/minecraft/client/renderer/feature/FeatureRenderer;)V
+       193: aload_0
+       194: getfield      #59                 // Field featureRenderers:Lnet/minecraft/client/renderer/feature/FeatureRendererMap;
+       197: getstatic     #121                // Field net/minecraft/client/renderer/feature/BlockModelFeatureRenderer.TYPE:Lnet/minecraft/client/renderer/feature/FeatureRendererType;
+       200: new           #120                // class net/minecraft/client/renderer/feature/BlockModelFeatureRenderer
+       203: dup
+       204: invokespecial #122                // Method net/minecraft/client/renderer/feature/BlockModelFeatureRenderer."<init>":()V
+       207: invokevirtual #90                 // Method net/minecraft/client/renderer/feature/FeatureRendererMap.put:(Lnet/minecraft/client/renderer/feature/FeatureRendererType;Lnet/minecraft/client/renderer/feature/FeatureRenderer;)V
+       210: aload_0
+       211: getfield      #59                 // Field featureRenderers:Lnet/minecraft/client/renderer/feature/FeatureRendererMap;
+       214: getstatic     #125                // Field net/minecraft/client/renderer/feature/MovingBlockFeatureRenderer.TYPE:Lnet/minecraft/client/renderer/feature/FeatureRendererType;
+       217: new           #124                // class net/minecraft/client/renderer/feature/MovingBlockFeatureRenderer
+       220: dup
+       221: invokespecial #126                // Method net/minecraft/client/renderer/feature/MovingBlockFeatureRenderer."<init>":()V
+       224: invokevirtual #90                 // Method net/minecraft/client/renderer/feature/FeatureRendererMap.put:(Lnet/minecraft/client/renderer/feature/FeatureRendererType;Lnet/minecraft/client/renderer/feature/FeatureRenderer;)V
+       227: aload_0
+       228: getfield      #59                 // Field featureRenderers:Lnet/minecraft/client/renderer/feature/FeatureRendererMap;
+       231: getstatic     #129                // Field net/minecraft/client/renderer/feature/QuadParticleFeatureRenderer.TYPE:Lnet/minecraft/client/renderer/feature/FeatureRendererType;
+       234: new           #128                // class net/minecraft/client/renderer/feature/QuadParticleFeatureRenderer
+       237: dup
+       238: invokespecial #130                // Method net/minecraft/client/renderer/feature/QuadParticleFeatureRenderer."<init>":()V
+       241: invokevirtual #90                 // Method net/minecraft/client/renderer/feature/FeatureRendererMap.put:(Lnet/minecraft/client/renderer/feature/FeatureRendererType;Lnet/minecraft/client/renderer/feature/FeatureRenderer;)V
+       244: aload_0
+       245: getfield      #59                 // Field featureRenderers:Lnet/minecraft/client/renderer/feature/FeatureRendererMap;
+       248: getstatic     #133                // Field net/minecraft/client/renderer/feature/ShapeOutlineFeatureRenderer.TYPE:Lnet/minecraft/client/renderer/feature/FeatureRendererType;
+       251: new           #132                // class net/minecraft/client/renderer/feature/ShapeOutlineFeatureRenderer
+       254: dup
+       255: invokespecial #134                // Method net/minecraft/client/renderer/feature/ShapeOutlineFeatureRenderer."<init>":()V
+       258: invokevirtual #90                 // Method net/minecraft/client/renderer/feature/FeatureRendererMap.put:(Lnet/minecraft/client/renderer/feature/FeatureRendererType;Lnet/minecraft/client/renderer/feature/FeatureRenderer;)V
+       261: aload_0
+       262: getfield      #59                 // Field featureRenderers:Lnet/minecraft/client/renderer/feature/FeatureRendererMap;
+       265: getstatic     #137                // Field net/minecraft/client/renderer/feature/GizmoFeatureRenderer.TYPE:Lnet/minecraft/client/renderer/feature/FeatureRendererType;
+       268: new           #136                // class net/minecraft/client/renderer/feature/GizmoFeatureRenderer
+       271: dup
+       272: invokespecial #138                // Method net/minecraft/client/renderer/feature/GizmoFeatureRenderer."<init>":()V
+       275: invokevirtual #90                 // Method net/minecraft/client/renderer/feature/FeatureRendererMap.put:(Lnet/minecraft/client/renderer/feature/FeatureRendererType;Lnet/minecraft/client/renderer/feature/FeatureRenderer;)V
+       278: getstatic     #144                // Field net/neoforged/neoforge/common/NeoForge.EVENT_BUS:Lnet/neoforged/bus/api/IEventBus;
+       281: new           #146                // class net/neoforged/neoforge/client/event/RegisterFeatureRenderersEvent
+       284: dup
+       285: aload_0
+       286: getfield      #59                 // Field featureRenderers:Lnet/minecraft/client/renderer/feature/FeatureRendererMap;
+       289: invokespecial #149                // Method net/neoforged/neoforge/client/event/RegisterFeatureRenderersEvent."<init>":(Lnet/minecraft/client/renderer/feature/FeatureRendererMap;)V
+       292: invokeinterface #155,  2          // InterfaceMethod net/neoforged/bus/api/IEventBus.post:(Lnet/neoforged/bus/api/Event;)Lnet/neoforged/bus/api/Event;
+       297: pop
+       298: return
+
+  public net.minecraft.client.renderer.feature.FeatureRenderDispatcher$PreparedFrame prepareFrame(net.minecraft.client.renderer.SubmitNodeStorage);
+    Code:
+         0: invokestatic  #167                // Method net/minecraft/client/Minecraft.getInstance:()Lnet/minecraft/client/Minecraft;
+         3: astore_2
+         4: aload_0
+         5: new           #169                // class net/minecraft/client/renderer/feature/FeatureFrameContext
+         8: dup
+         9: aload_0
+        10: getfield      #72                 // Field gameRenderState:Lnet/minecraft/client/renderer/state/GameRenderState;
+        13: getfield      #175                // Field net/minecraft/client/renderer/state/GameRenderState.optionsRenderState:Lnet/minecraft/client/renderer/state/OptionsRenderState;
+        16: aload_0
+        17: getfield      #70                 // Field font:Lnet/minecraft/client/gui/Font;
+        20: aload_0
+        21: getfield      #66                 // Field modelManager:Lnet/minecraft/client/resources/model/ModelManager;
+        24: invokevirtual #181                // Method net/minecraft/client/resources/model/ModelManager.getBlockStateModelSet:()Lnet/minecraft/client/renderer/block/BlockStateModelSet;
+        27: aload_2
+        28: invokevirtual #185                // Method net/minecraft/client/Minecraft.getBlockColors:()Lnet/minecraft/client/color/block/BlockColors;
+        31: aload_2
+        32: invokevirtual #189                // Method net/minecraft/client/Minecraft.getTextureManager:()Lnet/minecraft/client/renderer/texture/TextureManager;
+        35: aload_0
+        36: getfield      #68                 // Field atlasManager:Lnet/minecraft/client/resources/model/sprite/AtlasManager;
+        39: aload_2
+        40: getfield      #193                // Field net/minecraft/client/Minecraft.gameRenderer:Lnet/minecraft/client/renderer/GameRenderer;
+        43: invokevirtual #199                // Method net/minecraft/client/renderer/GameRenderer.lightmap:()Lcom/mojang/blaze3d/textures/GpuTextureView;
+        46: aload_0
+        47: getfield      #79                 // Field stagedVertexBuffer:Lnet/minecraft/client/renderer/StagedVertexBuffer;
+        50: invokespecial #202                // Method net/minecraft/client/renderer/feature/FeatureFrameContext."<init>":(Lnet/minecraft/client/renderer/state/OptionsRenderState;Lnet/minecraft/client/gui/Font;Lnet/minecraft/client/renderer/block/BlockStateModelSet;Lnet/minecraft/client/color/block/BlockColors;Lnet/minecraft/client/renderer/texture/TextureManager;Lnet/minecraft/client/resources/model/sprite/AtlasManager;Lcom/mojang/blaze3d/textures/GpuTextureView;Lnet/minecraft/client/renderer/StagedVertexBuffer;)V
+        53: aload_1
+        54: invokevirtual #206                // Method prepareFrameWithContext:(Lnet/minecraft/client/renderer/feature/FeatureFrameContext;Lnet/minecraft/client/renderer/SubmitNodeStorage;)Lnet/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame;
+        57: areturn
+
+  private net.minecraft.client.renderer.feature.FeatureRenderDispatcher$PreparedFrame prepareFrameWithContext(net.minecraft.client.renderer.feature.FeatureFrameContext, net.minecraft.client.renderer.SubmitNodeStorage);
+    Code:
+         0: aload_0
+         1: getfield      #64                 // Field preparedFrame:Lnet/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame;
+         4: aload_1
+         5: aload_2
+         6: invokevirtual #213                // Method net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame.begin:(Lnet/minecraft/client/renderer/feature/FeatureFrameContext;Lnet/minecraft/client/renderer/SubmitNodeStorage;)Lnet/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame;
+         9: astore_3
+        10: invokestatic  #219                // Method net/minecraft/util/profiling/Profiler.get:()Lnet/minecraft/util/profiling/ProfilerFiller;
+        13: astore        4
+        15: aload         4
+        17: ldc           #221                // String sort
+        19: invokeinterface #227,  2          // InterfaceMethod net/minecraft/util/profiling/ProfilerFiller.push:(Ljava/lang/String;)V
+        24: aload_2
+        25: aload_3
+        26: invokedynamic #247,  0            // InvokeDynamic #0:accept:(Lnet/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame;)Ljava/util/function/Consumer;
+        31: invokevirtual #253                // Method net/minecraft/client/renderer/SubmitNodeStorage.drainPhases:(Ljava/util/function/Consumer;)V
+        34: aload         4
+        36: ldc           #255                // String beginPrepare
+        38: invokeinterface #258,  2          // InterfaceMethod net/minecraft/util/profiling/ProfilerFiller.popPush:(Ljava/lang/String;)V
+        43: aload_0
+        44: getfield      #59                 // Field featureRenderers:Lnet/minecraft/client/renderer/feature/FeatureRendererMap;
+        47: invokevirtual #262                // Method net/minecraft/client/renderer/feature/FeatureRendererMap.values:()Ljava/lang/Iterable;
+        50: invokeinterface #268,  1          // InterfaceMethod java/lang/Iterable.iterator:()Ljava/util/Iterator;
+        55: astore        5
+        57: aload         5
+        59: invokeinterface #274,  1          // InterfaceMethod java/util/Iterator.hasNext:()Z
+        64: ifeq          90
+        67: aload         5
+        69: invokeinterface #278,  1          // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+        74: checkcast     #280                // class net/minecraft/client/renderer/feature/FeatureRenderer
+        77: astore        6
+        79: aload         6
+        81: aload_1
+        82: invokeinterface #283,  2          // InterfaceMethod net/minecraft/client/renderer/feature/FeatureRenderer.beginPrepare:(Lnet/minecraft/client/renderer/feature/FeatureFrameContext;)V
+        87: goto          57
+        90: aload         4
+        92: ldc_w         #285                // String prepare
+        95: invokeinterface #258,  2          // InterfaceMethod net/minecraft/util/profiling/ProfilerFiller.popPush:(Ljava/lang/String;)V
+       100: aload_3
+       101: getfield      #289                // Field net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame.groupsByFeature:Ljava/util/Map;
+       104: invokeinterface #293,  1          // InterfaceMethod java/util/Map.entrySet:()Ljava/util/Set;
+       109: invokeinterface #296,  1          // InterfaceMethod java/util/Set.iterator:()Ljava/util/Iterator;
+       114: astore        5
+       116: aload         5
+       118: invokeinterface #274,  1          // InterfaceMethod java/util/Iterator.hasNext:()Z
+       123: ifeq          224
+       126: aload         5
+       128: invokeinterface #278,  1          // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+       133: checkcast     #20                 // class java/util/Map$Entry
+       136: astore        6
+       138: aload         4
+       140: aload         6
+       142: invokeinterface #299,  1          // InterfaceMethod java/util/Map$Entry.getKey:()Ljava/lang/Object;
+       147: checkcast     #301                // class net/minecraft/client/renderer/feature/FeatureRendererType
+       150: invokevirtual #305                // Method net/minecraft/client/renderer/feature/FeatureRendererType.toString:()Ljava/lang/String;
+       153: invokeinterface #227,  2          // InterfaceMethod net/minecraft/util/profiling/ProfilerFiller.push:(Ljava/lang/String;)V
+       158: aload         6
+       160: invokeinterface #308,  1          // InterfaceMethod java/util/Map$Entry.getValue:()Ljava/lang/Object;
+       165: checkcast     #310                // class java/util/List
+       168: invokeinterface #311,  1          // InterfaceMethod java/util/List.iterator:()Ljava/util/Iterator;
+       173: astore        7
+       175: aload         7
+       177: invokeinterface #274,  1          // InterfaceMethod java/util/Iterator.hasNext:()Z
+       182: ifeq          214
+       185: aload         7
+       187: invokeinterface #278,  1          // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+       192: checkcast     #13                 // class net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedGroup
+       195: astore        8
+       197: aload         8
+       199: aload_1
+       200: aload_0
+       201: getfield      #59                 // Field featureRenderers:Lnet/minecraft/client/renderer/feature/FeatureRendererMap;
+       204: aload_3
+       205: getfield      #315                // Field net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame.allSubmits:Ljava/util/List;
+       208: invokevirtual #318                // Method net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedGroup.prepare:(Lnet/minecraft/client/renderer/feature/FeatureFrameContext;Lnet/minecraft/client/renderer/feature/FeatureRendererMap;Ljava/util/List;)V
+       211: goto          175
+       214: aload         4
+       216: invokeinterface #321,  1          // InterfaceMethod net/minecraft/util/profiling/ProfilerFiller.pop:()V
+       221: goto          116
+       224: aload         4
+       226: ldc_w         #323                // String finishPrepare
+       229: invokeinterface #258,  2          // InterfaceMethod net/minecraft/util/profiling/ProfilerFiller.popPush:(Ljava/lang/String;)V
+       234: aload_0
+       235: getfield      #59                 // Field featureRenderers:Lnet/minecraft/client/renderer/feature/FeatureRendererMap;
+       238: invokevirtual #262                // Method net/minecraft/client/renderer/feature/FeatureRendererMap.values:()Ljava/lang/Iterable;
+       241: invokeinterface #268,  1          // InterfaceMethod java/lang/Iterable.iterator:()Ljava/util/Iterator;
+       246: astore        5
+       248: aload         5
+       250: invokeinterface #274,  1          // InterfaceMethod java/util/Iterator.hasNext:()Z
+       255: ifeq          281
+       258: aload         5
+       260: invokeinterface #278,  1          // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+       265: checkcast     #280                // class net/minecraft/client/renderer/feature/FeatureRenderer
+       268: astore        6
+       270: aload         6
+       272: aload_1
+       273: invokeinterface #325,  2          // InterfaceMethod net/minecraft/client/renderer/feature/FeatureRenderer.finishPrepare:(Lnet/minecraft/client/renderer/feature/FeatureFrameContext;)V
+       278: goto          248
+       281: aload         4
+       283: ldc_w         #327                // String uploadSharedVertexBuffer
+       286: invokeinterface #258,  2          // InterfaceMethod net/minecraft/util/profiling/ProfilerFiller.popPush:(Ljava/lang/String;)V
+       291: aload_0
+       292: getfield      #79                 // Field stagedVertexBuffer:Lnet/minecraft/client/renderer/StagedVertexBuffer;
+       295: invokevirtual #332                // Method net/minecraft/client/renderer/StagedVertexBuffer.upload:()V
+       298: aload         4
+       300: invokeinterface #321,  1          // InterfaceMethod net/minecraft/util/profiling/ProfilerFiller.pop:()V
+       305: aload_3
+       306: areturn
+
+  public void renderAllFeatures(net.minecraft.client.renderer.SubmitNodeStorage);
+    Code:
+         0: aload_0
+         1: aload_1
+         2: invokevirtual #352                // Method prepareFrame:(Lnet/minecraft/client/renderer/SubmitNodeStorage;)Lnet/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame;
+         5: astore_2
+         6: aload_2
+         7: invokevirtual #355                // Method net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame.executeSolid:()V
+        10: aload_2
+        11: invokevirtual #358                // Method net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame.executeTranslucent:()V
+        14: aload_2
+        15: invokevirtual #361                // Method net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame.executeTranslucentAfterTerrain:()V
+        18: aload_2
+        19: invokevirtual #364                // Method net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame.executeAlwaysOnTop:()V
+        22: aload_2
+        23: ifnull        55
+        26: aload_2
+        27: invokevirtual #367                // Method net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame.close:()V
+        30: goto          55
+        33: astore_3
+        34: aload_2
+        35: ifnull        53
+        38: aload_2
+        39: invokevirtual #367                // Method net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame.close:()V
+        42: goto          53
+        45: astore        4
+        47: aload_3
+        48: aload         4
+        50: invokevirtual #371                // Method java/lang/Throwable.addSuppressed:(Ljava/lang/Throwable;)V
+        53: aload_3
+        54: athrow
+        55: return
+      Exception table:
+         from    to  target type
+             6    22    33   Class java/lang/Throwable
+            38    42    45   Class java/lang/Throwable
+
+  public void close();
+    Code:
+         0: aload_0
+         1: getfield      #59                 // Field featureRenderers:Lnet/minecraft/client/renderer/feature/FeatureRendererMap;
+         4: invokevirtual #372                // Method net/minecraft/client/renderer/feature/FeatureRendererMap.close:()V
+         7: return
+
+  private static void lambda$prepareFrameWithContext$0(net.minecraft.client.renderer.feature.FeatureRenderDispatcher$PreparedFrame, net.minecraft.client.renderer.feature.phase.FeatureRenderPhase);
+    Code:
+         0: aload_1
+         1: new           #17                 // class net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PhaseSubmitGrouper
+         4: dup
+         5: aload_0
+         6: aload_1
+         7: invokespecial #374                // Method net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PhaseSubmitGrouper."<init>":(Lnet/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame;Lnet/minecraft/client/renderer/feature/phase/FeatureRenderPhase;)V
+        10: invokeinterface #378,  2          // InterfaceMethod net/minecraft/client/renderer/feature/phase/FeatureRenderPhase.sortInto:(Lnet/minecraft/client/renderer/feature/phase/FeatureRenderPhase$Output;)V
+        15: return
+}

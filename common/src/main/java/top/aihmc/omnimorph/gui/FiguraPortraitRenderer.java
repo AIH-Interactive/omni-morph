@@ -1,8 +1,7 @@
 package top.aihmc.omnimorph.gui;
 
 import com.mojang.blaze3d.ProjectionType;
-import com.mojang.blaze3d.opengl.GlStateManager;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.GpuFormat;
 import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -10,18 +9,21 @@ import com.mojang.blaze3d.textures.*;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.render.TextureSetup;
+import net.minecraft.client.gui.render.GuiRenderer;
 import net.minecraft.client.gui.render.pip.PictureInPictureRenderer;
 import net.minecraft.client.renderer.state.gui.BlitRenderState;
 import net.minecraft.client.renderer.state.gui.GuiRenderState;
 import net.minecraft.client.renderer.Projection;
 import net.minecraft.client.renderer.ProjectionMatrixBuffer;
 import net.minecraft.util.LightCoordsUtil;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.SubmitNodeStorage;
+import net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
+import top.aihmc.omnimorph.ducks.NodeCollectorExtension;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.gui.widgets.permissions.PlayerPermPackElement;
-import org.figuramc.figura.utils.ui.UIHelper;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,10 +37,8 @@ public class FiguraPortraitRenderer extends PictureInPictureRenderer<FiguraPortr
     );
     private final Projection avatarProjection = new Projection();
     Map<Avatar, TextureEntry> avatarToTexture = new HashMap<>();
+    private final SubmitNodeStorage submissions = new SubmitNodeStorage();
     private boolean renderSkin;
-    public FiguraPortraitRenderer(MultiBufferSource.BufferSource bufferSource) {
-        super(bufferSource);
-    }
 
     @Override
     public Class<FiguraPortraitRenderState> getRenderStateClass() {
@@ -46,38 +46,44 @@ public class FiguraPortraitRenderer extends PictureInPictureRenderer<FiguraPortr
     }
 
     @Override
-    protected void renderToTexture(FiguraPortraitRenderState portraitState, PoseStack poseStack) {
-        Minecraft.getInstance().gameRenderer.getLighting().setupFor(Lighting.Entry.ITEMS_FLAT);
-
+    protected void renderToTexture(FiguraPortraitRenderState portraitState, PoseStack poseStack,
+                                   SubmitNodeCollector collector) {
+        Minecraft.getInstance().gameRenderer.lighting().setupFor(Lighting.Entry.ITEMS_FLAT);
+        renderSkin = true;
         Avatar avatar = portraitState.avatar();
         if (avatar != null) {
-            renderSkin = !avatar.renderHeadForPortrait(this.bufferSource, poseStack, LightCoordsUtil.FULL_BRIGHT, portraitState.modelScale(), portraitState.upsideDown());
-        } else {
-            renderSkin = true;
+            ((NodeCollectorExtension) collector).submitFiguraModel(avatar, null, (submittedAvatar, entityState, source) -> {
+                renderSkin = !submittedAvatar.renderHeadForPortrait(source, poseStack, LightCoordsUtil.FULL_BRIGHT,
+                        portraitState.modelScale(), portraitState.upsideDown());
+                return null;
+            });
         }
     }
 
     @Override
-    public void prepare(FiguraPortraitRenderState pictureInPictureRenderState, GuiRenderState guiRenderState, int i) {
+    public void prepare(FiguraPortraitRenderState pictureInPictureRenderState, GuiRenderState guiRenderState,
+                        FeatureRenderDispatcher dispatcher, int i) {
         int j = (pictureInPictureRenderState.x1() - pictureInPictureRenderState.x0()) * i;
         int k = (pictureInPictureRenderState.y1() - pictureInPictureRenderState.y0()) * i;
         if (pictureInPictureRenderState.avatar() != null) {
-            prepareTexturesAndProjectionForAvatar(pictureInPictureRenderState.avatar(), j, k);
-            TextureEntry textureEntry = avatarToTexture.get(pictureInPictureRenderState.avatar());
-            RenderSystem.outputColorTextureOverride = textureEntry.textureView;
-            RenderSystem.outputDepthTextureOverride = textureEntry.depthTextureView;
-            PoseStack poseStack = new PoseStack();
-            poseStack.translate(j / 2.0F, this.getTranslateY(k, i), 0.0F);
-            float f = i * pictureInPictureRenderState.scale();
-            poseStack.scale(f, f, -f);
-            this.renderToTexture(pictureInPictureRenderState, poseStack);
-            this.bufferSource.endBatch();
-            RenderSystem.outputColorTextureOverride = null;
-            RenderSystem.outputDepthTextureOverride = null;
+            try (var scope = new PipRenderStateScope()) {
+                prepareTexturesAndProjectionForAvatar(pictureInPictureRenderState.avatar(), j, k);
+                TextureEntry textureEntry = avatarToTexture.get(pictureInPictureRenderState.avatar());
+                RenderSystem.outputColorTextureOverride = textureEntry.textureView;
+                RenderSystem.outputDepthTextureOverride = textureEntry.depthTextureView;
+                PoseStack poseStack = new PoseStack();
+                poseStack.translate(j / 2.0F, this.getTranslateY(k, i), 0.0F);
+                float f = i * pictureInPictureRenderState.scale();
+                poseStack.scale(f, f, -f);
+                this.renderToTexture(pictureInPictureRenderState, poseStack, submissions);
+                dispatcher.renderAllFeatures(submissions);
+            } finally {
+                submissions.getSubmitsPerOrder().clear();
+            }
             this.blitTexture(pictureInPictureRenderState, guiRenderState);
         }
         else
-            super.prepare(pictureInPictureRenderState, guiRenderState, i);
+            super.prepare(pictureInPictureRenderState, guiRenderState, dispatcher, i);
     }
 
     private void prepareTexturesAndProjectionForAvatar(Avatar avatar, int i, int j) {
@@ -101,15 +107,15 @@ public class FiguraPortraitRenderer extends PictureInPictureRenderer<FiguraPortr
 
         GpuDevice gpuDevice = RenderSystem.getDevice();
         if (entry.texture == null) {
-            entry.texture = gpuDevice.createTexture(() -> "UI " + this.getTextureLabel() + " texture " + avatar.name, 13, TextureFormat.RGBA8, i, j, 1, 1);
+            entry.texture = gpuDevice.createTexture(() -> "UI " + this.getTextureLabel() + " texture " + avatar.name, 13, GpuFormat.RGBA8_UNORM, i, j, 1, 1);
             entry.textureView = gpuDevice.createTextureView(entry.texture);
-            entry.depthTexture = gpuDevice.createTexture(() -> "UI " + this.getTextureLabel() + " depth texture " + avatar.name, 9, TextureFormat.DEPTH32, i, j, 1, 1);
+            entry.depthTexture = gpuDevice.createTexture(() -> "UI " + this.getTextureLabel() + " depth texture " + avatar.name, 9, GpuFormat.D32_FLOAT, i, j, 1, 1);
             entry.depthTextureView = gpuDevice.createTextureView(entry.depthTexture);
             entry.sampler = gpuDevice.createSampler(AddressMode.CLAMP_TO_EDGE, AddressMode.CLAMP_TO_EDGE, FilterMode.NEAREST, FilterMode.NEAREST, 1, OptionalDouble.empty());
         }
 
-        gpuDevice.createCommandEncoder().clearColorAndDepthTextures(entry.texture, 0, entry.depthTexture, 1.0);
-        avatarProjection.setupOrtho(i, j, -1000.0F, 1000.0F, true);
+        gpuDevice.createCommandEncoder().clearColorAndDepthTextures(entry.texture, GuiRenderer.CLEAR_COLOR, entry.depthTexture, 0.0);
+        avatarProjection.setupOrtho(-1000.0F, 1000.0F, i, j, true);
         RenderSystem.setProjectionMatrix(this.avatarProjectionMatrixBuffer.getBuffer(avatarProjection), ProjectionType.ORTHOGRAPHIC);
     }
 
@@ -142,7 +148,6 @@ public class FiguraPortraitRenderer extends PictureInPictureRenderer<FiguraPortr
         if (pictureInPictureRenderState.fallbackSkin() != null) {
             Identifier texture = pictureInPictureRenderState.fallbackSkin();
             // render skin
-            UIHelper.enableBlend();
             GpuTextureView gpuTextureView = Minecraft.getInstance().getTextureManager().getTexture(texture).getTextureView();
             GpuSampler sampler = Minecraft.getInstance().getTextureManager().getTexture(texture).getSampler();
 
@@ -166,7 +171,6 @@ public class FiguraPortraitRenderer extends PictureInPictureRenderer<FiguraPortr
             );
 
             // hat
-            GlStateManager._enableBlend();
             guiRenderState.addBlitToCurrentLayer(
                     new BlitRenderState(
                             RenderPipelines.GUI_TEXTURED_PREMULTIPLIED_ALPHA,
@@ -185,7 +189,6 @@ public class FiguraPortraitRenderer extends PictureInPictureRenderer<FiguraPortr
                             null
                     )
             );
-            GlStateManager._disableBlend();
         } else {
             GpuTextureView gpuTextureView = Minecraft.getInstance().getTextureManager().getTexture(PlayerPermPackElement.UNKNOWN).getTextureView();
             GpuSampler sampler = Minecraft.getInstance().getTextureManager().getTexture(PlayerPermPackElement.UNKNOWN).getSampler();
@@ -223,6 +226,7 @@ public class FiguraPortraitRenderer extends PictureInPictureRenderer<FiguraPortr
             entry.getValue().textureView.close();
             entry.getValue().depthTexture.close();
             entry.getValue().depthTextureView.close();
+            entry.getValue().sampler.close();
         }
         avatarProjectionMatrixBuffer.close();
     }

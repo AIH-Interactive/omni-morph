@@ -129,7 +129,7 @@ final class AvatarBroadcastSmokeTest {
             scope.drain();
             require(NetworkStuff.getUploadProgress() == null && !AvatarManager.localUploaded,
                     "failed upload clears the bar and never reports the model as uploaded");
-            var toasts = net.minecraft.client.Minecraft.getInstance().getToastManager();
+            var toasts = net.minecraft.client.Minecraft.getInstance().gui.toastManager();
             toasts.clear();
             uploadStatus.set(429);
             NetworkStuff.uploadAvatar(avatar);

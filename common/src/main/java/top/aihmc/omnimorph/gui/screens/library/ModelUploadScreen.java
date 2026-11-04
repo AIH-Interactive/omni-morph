@@ -142,7 +142,7 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         sectionTabs = addRenderableWidget(new LibrarySectionTabs(layout.left(), layout.top(), left, 3,
                 limits.adminLoginAvailable(), section -> {
                     if (!busy() && parentScreen instanceof ModelLibraryScreen catalog) {
-                        minecraft.setScreen(catalog);
+                        minecraft.gui.setScreen(catalog);
                         catalog.openSection(section);
                     }
                 }));
@@ -388,7 +388,7 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
             directory = imagePath == null ? FiguraMod.getFiguraDirectory() : imagePath.toAbsolutePath().getParent();
         }
         retainingChild = true;
-        minecraft.setScreen(new ModelFilePickerScreen(this, client, directory, kind,
+        minecraft.gui.setScreen(new ModelFilePickerScreen(this, client, directory, kind,
                 kind == ModelFilePickerScreen.Kind.IMAGE ? this::selectImage : this::selectFile));
     }
 
@@ -790,8 +790,8 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
                     .anyMatch(instance -> instance.resource().source() == OutfitConfig.Source.LOCAL);
             if (!outfitLocalConfirmed && (localBase || localAccessory)) {
                 retainingChild = true;
-                minecraft.setScreen(new net.minecraft.client.gui.screens.ConfirmScreen(confirmed -> {
-                    minecraft.setScreen(this);
+                minecraft.gui.setScreen(new net.minecraft.client.gui.screens.ConfirmScreen(confirmed -> {
+                    minecraft.gui.setScreen(this);
                     if (confirmed) {
                         outfitLocalConfirmed = true;
                         submit();

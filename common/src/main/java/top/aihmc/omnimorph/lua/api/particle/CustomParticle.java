@@ -729,7 +729,7 @@ public final class CustomParticle extends SingleQuadParticle {
         }
         if (ribbon() && anchorTrail) {
             Vec3 position = lightPosition(partialTick);
-            return position == null ? 0 : net.minecraft.client.renderer.LevelRenderer.getLightCoords(level,
+            return position == null ? 0 : net.minecraft.util.LightCoordsUtil.getLightCoords(level,
                     net.minecraft.core.BlockPos.containing(position));
         }
         return super.getLightCoords(partialTick);

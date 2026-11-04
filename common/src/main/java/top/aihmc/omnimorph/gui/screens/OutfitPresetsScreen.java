@@ -544,7 +544,7 @@ public final class OutfitPresetsScreen extends AbstractPanelScreen {
         returning = true;
         close();
         wardrobe.closeOutfitPresets(true);
-        minecraft.setScreen(wardrobe);
+        minecraft.gui.setScreen(wardrobe);
     }
 
     private void close() {

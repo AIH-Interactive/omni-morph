@@ -1,5 +1,6 @@
 package top.aihmc.omnimorph.lua.api.particle;
 
+import com.mojang.blaze3d.PrimitiveTopology;
 import com.google.gson.Gson;
 import com.mojang.authlib.GameProfile;
 import com.mojang.blaze3d.platform.NativeImage;
@@ -126,8 +127,7 @@ final class AnchorTrailNativeSmokeTest {
                 }
                 var nodes = new SubmitNodeStorage();
                 extracted.submit(nodes, new CameraRenderState());
-                require(nodes.getSubmitsPerOrder().get(0).getParticleGroupRenderers().getFirst() == ribbon,
-                        "controller Ribbon reaches the same native submit queue as ordinary Ribbon");
+                RibbonNativeSmokeTest.requireSubmitted(nodes, ribbon);
                 ParticleDynamicLights.updateFrame(1);
                 require(ParticleDynamicLights.apply(world, 11, 20.75, 30, 0) > 0,
                         "attached dynamic light follows the controller head");
@@ -200,8 +200,10 @@ final class AnchorTrailNativeSmokeTest {
 
     private static byte[] vertices(RibbonRenderState ribbon) {
         try (var storage = ByteBufferBuilder.exactlySized(4 * DefaultVertexFormat.PARTICLE.getVertexSize())) {
-            var builder = new BufferBuilder(storage, VertexFormat.Mode.QUADS, DefaultVertexFormat.PARTICLE);
-            ribbon.writeVertices(builder);
+            var builder = new BufferBuilder(storage, PrimitiveTopology.QUADS, DefaultVertexFormat.PARTICLE);
+            for (var layer : ribbon.layers()) {
+                ribbon.buildLayer(layer, builder);
+            }
             try (var mesh = builder.build()) {
                 require(mesh != null && mesh.drawState().vertexCount() == 4, "one real segment has four native vertices");
                 byte[] bytes = new byte[mesh.vertexBuffer().remaining()];

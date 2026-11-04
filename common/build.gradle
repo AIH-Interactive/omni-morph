@@ -39,7 +39,7 @@ dependencies {
         exclude group: "net.fabricmc"
     }
 
-    implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:0.3.6"))
+    implementation(annotationProcessor("io.github.llamalad7:mixinextras-common:0.5.5"))
 
     // We depend on fabric loader here to use the fabric @Environment annotations and get the mixin dependencies
     // Do NOT use other classes from fabric loader
@@ -292,10 +292,65 @@ tasks.register('gpuAccelerationSmokeTest', JavaExec) {
 
 tasks.register('gpuSubmissionSmokeTest', JavaExec) {
     group = 'verification'
-    description = 'Exercises real BufferSource/RenderType flushes with recorded GPU draws and original face sorting.'
+    description = 'Exercises native prepared materials and the production Mixin with recorded GPU commands and face sorting.'
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = 'top.aihmc.omnimorph.render.acceleration.GpuSubmissionSmokeTest'
+}
+
+def offlineMixinAgent = tasks.register('offlineMixinAgent', Jar) {
+    group = 'verification'
+    description = 'Packages the local test-only Mixin host; never included in production artifacts.'
+    dependsOn testClasses
+    from(sourceSets.test.output) {
+        include 'top/aihmc/omnimorph/testing/**'
+        include 'META-INF/services/org.spongepowered.asm.service.IGlobalPropertyService'
+        include 'omnimorph-offline-*.mixins.json'
+    }
+    archiveFileName = 'omnimorph-offline-mixin-agent.jar'
+    destinationDirectory = layout.buildDirectory.dir('offline-mixin-agent')
+    manifest.attributes('Premain-Class': 'top.aihmc.omnimorph.testing.OfflineMixinAgent')
+}
+
+tasks.register('deferredMaterialSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks real PreparedRenderType and production Mixin once-only execution and exceptional cleanup.'
+    dependsOn offlineMixinAgent
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.testing.DeferredMaterialSmokeTest'
+}
+
+['deferredMaterialSmokeTest', 'gpuSubmissionSmokeTest', 'dualEngineGpuReplay', 'accelerationPreparationBenchmark', 'nativePipFailureSmokeTest'].each { taskName ->
+    tasks.matching { it.name == taskName }.configureEach {
+        dependsOn offlineMixinAgent
+        doFirst {
+            jvmArgs "-javaagent:${offlineMixinAgent.get().archiveFile.get().asFile}=omnimorph-offline-material.mixins.json"
+        }
+    }
+}
+
+tasks.register('nativeFeaturePreparationSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks same-frame callback submissions through native phases and item groups without a GPU or game window.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.rendering.nodeRenderer.NativeFeaturePreparationSmokeTest'
+}
+
+tasks.register('pipRenderStateScopeSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks nested PIP target, projection, lighting and matrix restoration without a GPU.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.gui.PipRenderStateScopeSmokeTest'
+}
+
+tasks.register('featurePreparationScopeSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks callback collector isolation across native world and picture-in-picture preparation.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.rendering.nodeRenderer.FeaturePreparationScopeSmokeTest'
 }
 
 tasks.register('gpuRigidDataSmokeTest', JavaExec) {
@@ -572,6 +627,33 @@ tasks.register('libraryPreviewRuntimeSmokeTest', JavaExec) {
     maxHeapSize = '2g'
     def model = project.findProperty('libraryPreviewModel')
     args '--library-preview', rootProject.file(model ?: 'common/src/test/resources/ysm/crypto-vectors/crypto1.ysm').path
+}
+
+tasks.register('hostScreenshotSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks real HostAPI readback publication and image/staging lifetime with recorded device pixels.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest'
+    args '--screenshot'
+}
+
+tasks.register('nativePipFailureSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Exercises actual native PIP preparation failure, restoration and resource ownership without a GPU.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest'
+    args '--pip-native-failure'
+}
+
+tasks.register('atlasReadbackSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks both atlas APIs through asynchronous readback, publication and retirement without a GPU.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest'
+    args '--atlas-readback'
 }
 
 tasks.register('libraryEquipmentSmokeTest', JavaExec) {

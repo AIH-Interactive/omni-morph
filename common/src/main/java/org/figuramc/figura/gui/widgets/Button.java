@@ -1,6 +1,7 @@
 package org.figuramc.figura.gui.widgets;
 
 import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Tooltip;
@@ -96,7 +97,6 @@ public class Button extends net.minecraft.client.gui.components.Button implement
         int v = this.v + this.getV() * this.regionSize;
 
         // draw texture
-        UIHelper.enableBlend();
 
         int size = this.regionSize;
         gui.blit(RenderPipelines.GUI_TEXTURED, this.texture, this.getX() + this.getWidth() / 2 - size / 2, this.getY() + this.getHeight() / 2 - size / 2, u, v, size, size, this.textureWidth, this.textureHeight);
@@ -127,7 +127,7 @@ public class Button extends net.minecraft.client.gui.components.Button implement
     }
 
     protected int getTextColor() {
-        return (!this.isActive() ? ChatFormatting.DARK_GRAY : ChatFormatting.WHITE).getColor();
+        return (!this.isActive() ? TextColor.DARK_GRAY : TextColor.WHITE).getValue();
     }
 
     public void setTooltip(Component tooltip) {

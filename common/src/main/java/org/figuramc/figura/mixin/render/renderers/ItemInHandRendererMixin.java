@@ -39,7 +39,7 @@ public abstract class ItemInHandRendererMixin {
 
     @Unique Avatar avatar;
 
-    @Inject(method = "renderHandsWithItems", at = @At("HEAD"))
+    @Inject(method = "submitHandsWithItems", at = @At("HEAD"))
     private void onRenderHandsWithItems(float tickDelta, PoseStack matrices, SubmitNodeCollector submitNodeCollector, LocalPlayer player, int light, CallbackInfo ci) {
         avatar = AvatarManager.getAvatarForPlayer(player.getUUID());
         if (avatar == null)
@@ -53,7 +53,7 @@ public abstract class ItemInHandRendererMixin {
         FiguraMod.popProfiler(3);
     }
 
-    @Inject(method = "renderHandsWithItems", at = @At(value = "RETURN"))
+    @Inject(method = "submitHandsWithItems", at = @At(value = "RETURN"))
     private void afterRenderHandsWithItems(float tickDelta, PoseStack matrices, SubmitNodeCollector submitNodeCollector, LocalPlayer player, int light, CallbackInfo ci) {
         if (avatar != null) {
             FiguraMod.pushProfiler(FiguraMod.MOD_ID);
@@ -68,7 +68,7 @@ public abstract class ItemInHandRendererMixin {
         top.aihmc.omnimorph.model.outfit.OutfitFirstPersonScripts.render(Minecraft.getInstance(), player, tickDelta);
     }
 
-    @Inject(method = "renderArmWithItem", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "submitArmWithItem", at = @At("HEAD"), cancellable = true)
     private void renderArmWithItem(AbstractClientPlayer player, float tickDelta, float pitch, InteractionHand hand, float swingProgress, ItemStack item, float equipProgress, PoseStack matrices, SubmitNodeCollector submitNodeCollector, int light, CallbackInfo ci) {
         if (player.isScoping())
             return;

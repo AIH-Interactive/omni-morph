@@ -64,14 +64,14 @@ final class YsmPreviewRenderTypes {
                 Optional.of(source.getVertexShader()),
                 Optional.of(source.getFragmentShader()),
                 Optional.of(defines),
-                Optional.of(source.getSamplers()),
-                Optional.of(source.getUniforms()),
-                Optional.of(source.getColorTargetState()),
+                Optional.of(source.getBindGroupLayouts()),
+                source.getColorTargetStates(),
+                source.getColorTargetStates().length,
                 Optional.ofNullable(source.getDepthStencilState()),
                 Optional.of(source.getPolygonMode()),
                 Optional.of(source.isCull()),
-                Optional.of(source.getVertexFormat()),
-                Optional.of(source.getVertexFormatMode()));
+                source.getVertexFormatBindings(),
+                Optional.of(source.getPrimitiveTopology()));
         String suffix = (translucent ? "translucent" : "cutout") + (cull ? "_cull" : "");
         return RenderPipelines.register(RenderPipeline.builder(snippet)
                 .withLocation(new FiguraIdentifier("pipeline/ysm_gui_unlit_" + suffix))

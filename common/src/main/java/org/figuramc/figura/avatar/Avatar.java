@@ -1,8 +1,6 @@
 package org.figuramc.figura.avatar;
 
 import com.mojang.blaze3d.audio.SoundBuffer;
-import com.mojang.blaze3d.opengl.GlStateManager;
-import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.datafixers.util.Pair;
@@ -14,7 +12,7 @@ import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.util.LightCoordsUtil;
-import net.minecraft.client.renderer.MultiBufferSource;
+import top.aihmc.omnimorph.model.rendering.FiguraVertexSource;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
@@ -29,6 +27,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -701,8 +700,8 @@ public class Avatar {
             }
 
             // Camera distance
-            if (mc.gameRenderer != null && mc.gameRenderer.getMainCamera() != null) {
-                var camera = mc.gameRenderer.getMainCamera();
+            if (mc.gameRenderer != null && mc.gameRenderer.mainCamera() != null) {
+                var camera = mc.gameRenderer.mainCamera();
                 float dxc = (float) (pos_x - camera.position().x);
                 float dyc = (float) (pos_y - camera.position().y);
                 float dzc = (float) (pos_z - camera.position().z);
@@ -717,7 +716,7 @@ public class Avatar {
                 rendering_in_paperdoll = isYsmGuiPreview() ? 1f : 0f;
             } else {
                 rendering_in_inventory = firstPerson ? 0f : 1f;
-                rendering_in_paperdoll = mc.screen != null ? 1f : 0f;
+                rendering_in_paperdoll = mc.gui.screen() != null ? 1f : 0f;
             }
         }
 
@@ -828,10 +827,10 @@ public class Avatar {
         this.owner = owner;
         this.cosmeticContext = cosmeticContext;
         this.entityType = type;
-        this.isHost = cosmeticContext == null && type == EntityType.PLAYER && FiguraMod.isLocal(owner);
+        this.isHost = cosmeticContext == null && type == EntityTypes.PLAYER && FiguraMod.isLocal(owner);
         this.isLibraryPreview = previewPermissions != null;
         this.permissions = previewPermissions != null ? previewPermissions
-                : type == EntityType.PLAYER ? PermissionManager.get(owner) : PermissionManager.getMobPermissions(owner);
+                : type == EntityTypes.PLAYER ? PermissionManager.get(owner) : PermissionManager.getMobPermissions(owner);
         this.complexity = new Instructions(permissions.get(Permissions.COMPLEXITY));
         this.init = new Instructions(permissions.get(Permissions.INIT_INST));
         this.render = new Instructions(permissions.get(Permissions.RENDER_INST));
@@ -873,7 +872,7 @@ public class Avatar {
         if (!customParticles) {
             permissions.insert(Permissions.PARTICLES, 0, FiguraMod.MOD_ID);
         }
-        return new Avatar(owner, EntityType.PLAYER, name, permissions);
+        return new Avatar(owner, EntityTypes.PLAYER, name, permissions);
     }
 
     /** Preserve the current player's normal Lua permissions while fencing particles before async preparation. */
@@ -914,12 +913,12 @@ public class Avatar {
                 Permissions.NAMEPLATE_EDIT, Permissions.CANCEL_SOUNDS, Permissions.OFFSCREEN_RENDERING)) {
             permissions.insert(permission, 0, FiguraMod.MOD_ID);
         }
-        return new Avatar(context.executionId(), EntityType.PLAYER, name, permissions, context);
+        return new Avatar(context.executionId(), EntityTypes.PLAYER, name, permissions, context);
     }
 
     /** Creates a detached evaluator owner for a model preview; it is never registered with AvatarManager. */
     public YsmModelRuntime createYsmPreviewRuntime(java.util.function.Function<Avatar, YsmModelRuntime> factory) {
-        Avatar preview = new Avatar(owner, entityType == null ? EntityType.PLAYER : entityType, entityName,
+        Avatar preview = new Avatar(owner, entityType == null ? EntityTypes.PLAYER : entityType, entityName,
                 isLibraryPreview ? permissions : null);
         preview.renderMode = EntityRenderMode.FIGURA_GUI;
         preview.molangContext = new MolangContext(preview) {
@@ -947,7 +946,7 @@ public class Avatar {
     }
 
     public Avatar(UUID owner) {
-        this(owner, EntityType.PLAYER, EntityUtils.getNameForUUID(owner));
+        this(owner, EntityTypes.PLAYER, EntityUtils.getNameForUUID(owner));
     }
 
     public Avatar(Entity entity) {
@@ -1297,7 +1296,7 @@ public class Avatar {
         return rendered;
     }
 
-    public boolean itemRenderEventDirect(ItemStackAPI item, String mode, FiguraVec3 pos, FiguraVec3 rot, FiguraVec3 scale, boolean leftHanded, PoseStack stack, MultiBufferSource bufferSource, int light, int overlay) {
+    public boolean itemRenderEventDirect(ItemStackAPI item, String mode, FiguraVec3 pos, FiguraVec3 rot, FiguraVec3 scale, boolean leftHanded, PoseStack stack, FiguraVertexSource bufferSource, int light, int overlay) {
         if (!loaded || renderer == null || !renderer.interceptRendersIntoFigura) {
             return false;
         }
@@ -1411,7 +1410,7 @@ public class Avatar {
         complexity.remaining = prev;
     }
 
-    public void render(Entity entity, float yaw, float delta, float alpha, PoseStack stack, MultiBufferSource bufferSource, int light, int overlay, EntityModel<?> entityModel, PartFilterScheme filter, boolean translucent, boolean glowing) {
+    public void render(Entity entity, float yaw, float delta, float alpha, PoseStack stack, FiguraVertexSource bufferSource, int light, int overlay, EntityModel<?> entityModel, PartFilterScheme filter, boolean translucent, boolean glowing) {
         if (renderer == null || !loaded)
             return;
 
@@ -1428,7 +1427,7 @@ public class Avatar {
         render();
     }
 
-    public synchronized void worldRender(Entity entity, double camX, double camY, double camZ, PoseStack stack, MultiBufferSource bufferSource, int lightFallback, float tickDelta, EntityRenderMode mode) {
+    public synchronized void worldRender(Entity entity, double camX, double camY, double camZ, PoseStack stack, FiguraVertexSource bufferSource, int lightFallback, float tickDelta, EntityRenderMode mode) {
         if (renderer == null || !loaded)
             return;
 
@@ -1456,7 +1455,7 @@ public class Avatar {
         renderer.updateLight = false;
     }
 
-    public void capeRender(Entity entity, MultiBufferSource bufferSource, PoseStack stack, int light, float tickDelta, ModelPart cloak) {
+    public void capeRender(Entity entity, FiguraVertexSource bufferSource, PoseStack stack, int light, float tickDelta, ModelPart cloak) {
         if (renderer == null || !loaded)
             return;
 
@@ -1478,7 +1477,7 @@ public class Avatar {
         FiguraMod.popProfiler(3);
     }
 
-    public void elytraRender(Entity entity, MultiBufferSource bufferSource, PoseStack stack, int light, float tickDelta, EntityModel<?> model) {
+    public void elytraRender(Entity entity, FiguraVertexSource bufferSource, PoseStack stack, int light, float tickDelta, EntityModel<?> model) {
         if (renderer == null || !loaded)
             return;
 
@@ -1508,7 +1507,7 @@ public class Avatar {
         FiguraMod.popProfiler(4);
     }
 
-    public void firstPersonWorldRender(Entity watcher, MultiBufferSource bufferSource, PoseStack matrices, Camera camera, float tickDelta) {
+    public void firstPersonWorldRender(Entity watcher, FiguraVertexSource bufferSource, PoseStack matrices, Camera camera, float tickDelta) {
         if (renderer == null || !loaded)
             return;
 
@@ -1524,7 +1523,7 @@ public class Avatar {
         FiguraMod.popProfiler(3);
     }
 
-    public void firstPersonRender(PoseStack stack, MultiBufferSource bufferSource, Player player, PlayerModel playerModel, ModelPart arm, int light, float tickDelta) {
+    public void firstPersonRender(PoseStack stack, FiguraVertexSource bufferSource, Player player, PlayerModel playerModel, ModelPart arm, int light, float tickDelta) {
         if (renderer == null || !loaded)
             return;
 
@@ -1556,7 +1555,7 @@ public class Avatar {
         FiguraMod.popProfiler(4);
     }
 
-    public void hudRender(PoseStack stack, MultiBufferSource bufferSource, Entity entity, float tickDelta) {
+    public void hudRender(PoseStack stack, FiguraVertexSource bufferSource, Entity entity, float tickDelta) {
         if (renderer == null || !loaded)
             return;
 
@@ -1564,31 +1563,23 @@ public class Avatar {
         FiguraMod.pushProfiler("hudRender");
 
         stack.pushPose();
-        stack.last().pose().scale(16, 16, -16);
-        stack.last().normal().scale(1, 1, -1);
-
-        Minecraft.getInstance().gameRenderer.getLighting().setupFor(Lighting.Entry.ITEMS_FLAT);
-        GlStateManager._disableDepthTest();
-
-        renderer.entity = entity;
-
-        renderer.setupRenderer(
-                PartFilterScheme.HUD, bufferSource, stack,
-                tickDelta, LightCoordsUtil.FULL_BRIGHT, 1f, OverlayTexture.NO_OVERLAY,
-                false, false
-        );
-
-        if (renderer.renderSpecialParts() > 0)
-            ((MultiBufferSource.BufferSource) renderer.bufferSource).endBatch();
-
-        GlStateManager._enableDepthTest();
-        Minecraft.getInstance().gameRenderer.getLighting().setupFor(Lighting.Entry.ITEMS_3D);
-        stack.popPose();
-
-        FiguraMod.popProfiler(2);
+        try {
+            stack.last().pose().scale(16, 16, -16);
+            stack.last().normal().scale(1, 1, -1);
+            renderer.entity = entity;
+            renderer.setupRenderer(
+                    PartFilterScheme.HUD, bufferSource, stack,
+                    tickDelta, LightCoordsUtil.FULL_BRIGHT, 1f, OverlayTexture.NO_OVERLAY,
+                    false, false
+            );
+            renderer.renderSpecialParts();
+        } finally {
+            stack.popPose();
+            FiguraMod.popProfiler(2);
+        }
     }
 
-    public boolean skullRender(PoseStack stack, MultiBufferSource bufferSource, int light, Direction direction, float yaw) {
+    public boolean skullRender(PoseStack stack, FiguraVertexSource bufferSource, int light, Direction direction, float yaw) {
         if (renderer == null || !loaded || !renderer.interceptRendersIntoFigura)
             return false;
         renderer.allowPivotParts = false;
@@ -1609,7 +1600,7 @@ public class Avatar {
         return bool;
     }
 
-    public boolean headRender(PoseStack stack, MultiBufferSource bufferSource, int light, boolean useComplexity) {
+    public boolean headRender(PoseStack stack, FiguraVertexSource bufferSource, int light, boolean useComplexity) {
         if (renderer == null || !loaded)
             return false;
 
@@ -1679,37 +1670,32 @@ public class Avatar {
         return true;
     }
 
-    public boolean renderHeadForPortrait(MultiBufferSource.BufferSource buffer, PoseStack stack, int light, float modelScale, boolean upsideDown) {
+    public boolean renderHeadForPortrait(FiguraVertexSource buffer, PoseStack stack, int light, float modelScale, boolean upsideDown) {
+        boolean previousPivotParts = renderer.allowPivotParts;
+        boolean previousPaperdoll = UIHelper.paperdoll;
+        float previousDollScale = UIHelper.dollScale;
         stack.pushPose();
-        stack.scale(2, 2, 2); // i have no clue why it's exactly 2x smaller than it should be
-        //stack.scale(modelScale, modelScale * (upsideDown ? 1 : -1), modelScale);
-        renderer.allowPivotParts = false;
-
-        UIHelper.paperdoll = true;
-        UIHelper.dollScale = 16f;
-
-        renderer.setupRenderer(
-                PartFilterScheme.PORTRAIT, buffer, stack,
-                1f, light, 1f, OverlayTexture.NO_OVERLAY,
-                false, false
-        );
-
-        // render
-        int comp = renderer.renderSpecialParts();
-        boolean ret = comp > 0 || headRender(stack, buffer, light, false);
-
-        // after render
-        stack.popPose();
-        buffer.endBatch();
-        UIHelper.paperdoll = false;
-
-        renderer.allowPivotParts = true;
-
-        // return
-        return ret;
+        try {
+            stack.scale(2, 2, 2);
+            renderer.allowPivotParts = false;
+            UIHelper.paperdoll = true;
+            UIHelper.dollScale = 16f;
+            renderer.setupRenderer(
+                    PartFilterScheme.PORTRAIT, buffer, stack,
+                    1f, light, 1f, OverlayTexture.NO_OVERLAY,
+                    false, false
+            );
+            int complexity = renderer.renderSpecialParts();
+            return complexity > 0 || headRender(stack, buffer, light, false);
+        } finally {
+            stack.popPose();
+            UIHelper.paperdoll = previousPaperdoll;
+            UIHelper.dollScale = previousDollScale;
+            renderer.allowPivotParts = previousPivotParts;
+        }
     }
 
-    public boolean renderArrow(PoseStack stack, MultiBufferSource bufferSource, float delta, int light) {
+    public boolean renderArrow(PoseStack stack, FiguraVertexSource bufferSource, float delta, int light) {
         if (renderer == null || !loaded)
             return false;
 
@@ -1731,7 +1717,7 @@ public class Avatar {
         return comp > 0;
     }
 
-    public boolean renderTrident(PoseStack stack, MultiBufferSource bufferSource, float delta, int light) {
+    public boolean renderTrident(PoseStack stack, FiguraVertexSource bufferSource, float delta, int light) {
         if (renderer == null || !loaded)
             return false;
 
@@ -1757,7 +1743,7 @@ public class Avatar {
         return renderer != null && loaded && modelPart.parentType == ParentType.Item;
     }
 
-    public boolean renderItem(PoseStack stack, MultiBufferSource bufferSource, FiguraModelPart part, int light, int overlay) {
+    public boolean renderItem(PoseStack stack, FiguraVertexSource bufferSource, FiguraModelPart part, int light, int overlay) {
         if (!isItemPart(part))
             return false;
 

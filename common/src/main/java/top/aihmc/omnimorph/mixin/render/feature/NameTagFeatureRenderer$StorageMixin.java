@@ -1,242 +1,173 @@
 package top.aihmc.omnimorph.mixin.render.feature;
 
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import com.llamalad7.mixinextras.sugar.Share;
-import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.renderer.SubmitNodeStorage;
+import net.minecraft.client.renderer.SubmitNodeCollection;
 import net.minecraft.client.renderer.feature.NameTagFeatureRenderer;
+import net.minecraft.client.renderer.feature.TextFeatureRenderer;
+import net.minecraft.client.renderer.feature.phase.SimpleFeatureRenderPhase;
+import net.minecraft.client.renderer.feature.phase.TranslucentFeatureRenderPhase;
+import net.minecraft.client.renderer.feature.submit.SubmitNode;
+import net.minecraft.client.renderer.feature.submit.TranslucentSubmit;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.Vec3;
 import org.figuramc.figura.FiguraMod;
-import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.config.Configs;
-import top.aihmc.omnimorph.ducks.CameraRenderStateExtension;
-import top.aihmc.omnimorph.ducks.NameTagFeatureRenderer$StorageExtension;
 import org.figuramc.figura.lua.api.nameplate.EntityNameplateCustomization;
-import org.figuramc.figura.math.vector.FiguraVec3;
 import org.figuramc.figura.permissions.Permissions;
 import org.figuramc.figura.utils.TextUtils;
 import org.joml.Matrix4f;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import top.aihmc.omnimorph.ducks.CameraRenderStateExtension;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@Mixin(NameTagFeatureRenderer.Storage.class)
-public class NameTagFeatureRenderer$StorageMixin implements NameTagFeatureRenderer$StorageExtension {
+/** Keeps existing nameplate customization on the native collection and text phases. */
+@Mixin(SubmitNodeCollection.class)
+public abstract class NameTagFeatureRenderer$StorageMixin {
+    @Shadow @Final public SimpleFeatureRenderPhase texts;
 
-    // i literally have to inject a new submission list for outlined text, *screams into void*
-    @Unique
-    final List<SubmitNodeStorage.NameTagSubmit> figura$outlineSubmits = new ArrayList<>();
+    @Unique private EntityNameplateCustomization figura$custom;
+    @Unique private List<Component> figura$textList;
+    @Unique private boolean figura$isRenderingName;
 
-    @Unique
-    Avatar figura$avatar;
-    @Unique
-    EntityNameplateCustomization figura$custom;
-    @Unique
-    List<Component> figura$textList;
+    @WrapMethod(method = "submitNameTag")
+    private void figura$withNameplate(PoseStack stack, Vec3 attachment, int offset, Component name,
+                                      boolean seeThrough, int light, CameraRenderState camera,
+                                      Operation<Void> original) {
+        var context = (CameraRenderStateExtension) camera;
+        var avatar = context.figura$getAvatar();
+        boolean renderingName = context.figura$isRenderingNameTag();
+        context.figura$setAvatar(null);
+        context.figura$setRenderingNameTag(false);
 
-    @Unique
-    boolean figura$hasCustomNameplate;
-    @Unique
-    boolean figura$enabled;
-
-    @Unique
-    boolean figura$isRenderingName;
-
-    @Inject(at = @At(value = "HEAD"), method = "add")
-    private void setupAvatar(PoseStack poseStack, Vec3 vec3, int i, Component component, boolean bl, int j, double d, CameraRenderState cameraRenderState, CallbackInfo ci) {
-
-        figura$avatar = ((CameraRenderStateExtension)cameraRenderState).figura$getAvatar();
-        figura$isRenderingName = ((CameraRenderStateExtension)cameraRenderState).figura$isRenderingNameTag();
-        ((CameraRenderStateExtension)cameraRenderState).figura$setAvatar(null);
-        ((CameraRenderStateExtension)cameraRenderState).figura$setRenderingNameTag(false);
-
-        if (figura$avatar == null)
-            return;
-
-        figura$custom = figura$avatar == null || figura$avatar.luaRuntime == null ? null : figura$avatar.luaRuntime.nameplate.ENTITY;
-        figura$hasCustomNameplate = figura$custom != null && figura$avatar.permissions.get(Permissions.NAMEPLATE_EDIT) == 1;
-        figura$enabled =  Configs.ENTITY_NAMEPLATE.value > 0 && !AvatarManager.panic && figura$hasCustomNameplate;
-
-        figura$textList = TextUtils.splitText(component, "\n");
+        var previousCustom = figura$custom;
+        var previousLines = figura$textList;
+        boolean previousRenderingName = figura$isRenderingName;
+        figura$custom = avatar == null || avatar.luaRuntime == null
+                || Configs.ENTITY_NAMEPLATE.value <= 0 || AvatarManager.panic
+                || avatar.permissions.get(Permissions.NAMEPLATE_EDIT) != 1
+                ? null : avatar.luaRuntime.nameplate.ENTITY;
+        figura$isRenderingName = renderingName;
+        figura$textList = figura$custom == null ? null : TextUtils.splitText(name, "\n");
+        try {
+            original.call(stack, attachment, offset, name, seeThrough, light, camera);
+        } finally {
+            figura$custom = previousCustom;
+            figura$textList = previousLines;
+            figura$isRenderingName = previousRenderingName;
+        }
     }
 
-    @Inject(at = @At(value = "TAIL"), method = "add")
-    private void clearAvatar(PoseStack poseStack, Vec3 vec3, int i, Component component, boolean bl, int j, double d, CameraRenderState cameraRenderState, CallbackInfo ci) {
-        figura$avatar = null;
-        figura$isRenderingName = false;
-        figura$custom = null;
-        figura$hasCustomNameplate = false;
-        figura$enabled =  false;
-        figura$textList = null;
-    }
-
-    // Push pivot transformations when the nametag is being pivoted (set to entity height in vanilla)
-    @WrapOperation(at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(DDD)V"), method = "add")
-    private void modifyPivot(PoseStack instance, double x, double y, double z, Operation<Void> original) {
-        FiguraVec3 pivot = FiguraVec3.of(x, y, z);
-        if (figura$enabled && figura$avatar != null) {
-            // pivot
+    @WrapOperation(method = "submitNameTag", at = @At(value = "INVOKE",
+            target = "Lcom/mojang/blaze3d/vertex/PoseStack;translate(DDD)V"))
+    private void figura$modifyPivot(PoseStack stack, double x, double y, double z, Operation<Void> original) {
+        if (figura$custom != null) {
             FiguraMod.pushProfiler("pivot");
-            if (figura$hasCustomNameplate && figura$custom.getPivot() != null)
-                pivot = figura$custom.getPivot();
         }
-        original.call(instance, pivot.x, pivot.y, pivot.z);
+        var pivot = figura$custom == null ? null : figura$custom.getPivot();
+        original.call(stack, pivot == null ? x : pivot.x, pivot == null ? y : pivot.y, pivot == null ? z : pivot.z);
     }
 
-    // Push position transformations after the nametag has been rotated to face the camera
-    @Inject(at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;mulPose(Lorg/joml/Quaternionfc;)V", shift = At.Shift.AFTER), method = "add")
-    private void modifyPos(PoseStack matrices, Vec3 vec3, int i, Component component, boolean bl, int j, double d, CameraRenderState cameraRenderState, CallbackInfo ci) {
-        if (figura$enabled && figura$avatar != null) {
-            // pos
+    @Inject(method = "submitNameTag", at = @At(value = "INVOKE",
+            target = "Lcom/mojang/blaze3d/vertex/PoseStack;mulPose(Lorg/joml/Quaternionfc;)V", shift = At.Shift.AFTER))
+    private void figura$modifyPosition(PoseStack stack, Vec3 attachment, int offset, Component name,
+                                       boolean seeThrough, int light, CameraRenderState camera, CallbackInfo ci) {
+        if (figura$custom != null) {
             FiguraMod.popPushProfiler("position");
-            if (figura$hasCustomNameplate && figura$custom.getPos() != null) {
-                FiguraVec3 pos = figura$custom.getPos();
-                matrices.translate(pos.x, pos.y, pos.z);
-            }
+        }
+        var position = figura$custom == null ? null : figura$custom.getPos();
+        if (position != null) {
+            stack.translate(position.x, position.y, position.z);
         }
     }
 
-    // push the scale when vanilla does so
-    @WrapOperation(at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack;scale(FFF)V"), method = "add")
-    private void modifyScale(PoseStack instance, float x, float y, float z, Operation<Void> original) {
-        FiguraVec3 scaleVec = FiguraVec3.of(x, y, z);
-        if (figura$enabled && figura$avatar != null) {
-            // scale
+    @WrapOperation(method = "submitNameTag", at = @At(value = "INVOKE",
+            target = "Lcom/mojang/blaze3d/vertex/PoseStack;scale(FFF)V"))
+    private void figura$modifyScale(PoseStack stack, float x, float y, float z, Operation<Void> original) {
+        if (figura$custom != null) {
             FiguraMod.popPushProfiler("scale");
-            if (figura$hasCustomNameplate && figura$custom.getScale() != null)
-                scaleVec.multiply(figura$custom.getScale());
         }
-        original.call(instance, (float) scaleVec.x, (float) scaleVec.y, (float) scaleVec.z);
+        var scale = figura$custom == null ? null : figura$custom.getScale();
+        original.call(stack, scale == null ? x : x * (float) scale.x,
+                scale == null ? y : y * (float) scale.y, scale == null ? z : z * (float) scale.z);
     }
 
-
-
-    @Inject(at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/vertex/PoseStack$Pose;pose()Lorg/joml/Matrix4f;"), method = "add")
-    private void setShadowMatrix(PoseStack matrices, Vec3 vec3, int i, Component component, boolean bl, int j, double d, CameraRenderState cameraRenderState, CallbackInfo ci, @Share("textMatrix") LocalRef<Matrix4f> textMatrix) {
-        if (!figura$enabled || figura$avatar == null || !figura$hasCustomNameplate || !figura$custom.shadow)
+    @WrapOperation(method = "submitNameTag", at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/client/renderer/feature/phase/TranslucentFeatureRenderPhase;submit(Lnet/minecraft/client/renderer/feature/submit/TranslucentSubmit;)V"))
+    private void figura$drawWithColor(TranslucentFeatureRenderPhase phase, TranslucentSubmit node,
+                                      Operation<Void> original) {
+        if (figura$custom == null) {
+            original.call(phase, node);
             return;
-
-        textMatrix.set(matrices.last().pose());
-        if (figura$enabled && figura$avatar != null && figura$hasCustomNameplate && figura$custom.shadow) {
-            matrices.pushPose();
-            textMatrix.set(matrices.last().pose());
-            matrices.popPose();
+        }
+        var submit = (NameTagFeatureRenderer.Submit) node;
+        int light = figura$custom.light == null ? submit.lightCoords() : figura$custom.light;
+        int background = figura$custom.background == null ? submit.backgroundColor() : figura$custom.background;
+        for (var line : figura$layout(submit)) {
+            original.call(phase, new NameTagFeatureRenderer.Submit(line.pose(), line.x(), line.y(), line.text(),
+                    light, line.color(), background, line.displayMode()));
         }
     }
 
-
-    @WrapOperation(method = "add",
-            at = @At(value = "INVOKE", target =
-                    "Ljava/util/List;add(Ljava/lang/Object;)Z"
-            , ordinal = 1))
-    private <E> boolean drawWithColor(List<E> instance, E e, Operation<Boolean> original) {
-        SubmitNodeStorage.NameTagSubmit submit = (SubmitNodeStorage.NameTagSubmit) e;
-
-        Font font = Minecraft.getInstance().font;
-
-        if (figura$enabled && figura$avatar != null && figura$hasCustomNameplate) {
-            int light = figura$custom.light != null ? figura$custom.light : submit.lightCoords();
-            int backgroundColor = figura$custom.background != null ? figura$custom.background : submit.backgroundColor();
-            boolean deadmau = submit.text().getString().equals("deadmau5");
-
-            // This renders the translucent part of the nametag you see when shifting, and the background
-            if (figura$isRenderingName) {
-                // If the player's name is being rendered, render by lines otherwise just render whatever component is being passed. Applies for the rest of the loops below
-                for (int i = 0; i < figura$textList.size(); i++) {
-                    Component text1 = figura$textList.get(i);
-
-                    if (text1.getString().isEmpty())
-                        continue;
-
-                    int line = i - figura$textList.size() + 1;
-                    float x = -font.width(text1) / 2f;
-                    float y =  (deadmau ? -10f : 0f) + (font.lineHeight + 1) * line;
-
-                    original.call(instance, new SubmitNodeStorage.NameTagSubmit(submit.pose(), x, y, text1, light, submit.color(), backgroundColor, submit.distanceToCameraSq()));
-                }
-                return true;
-            }  else {
-                return original.call(instance, new SubmitNodeStorage.NameTagSubmit(submit.pose(), submit.x(), submit.y(), submit.text(), light, submit.color(), backgroundColor, submit.distanceToCameraSq()));
-            }
+    @WrapOperation(method = "submitNameTag", at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/client/renderer/feature/phase/SimpleFeatureRenderPhase;submit(Lnet/minecraft/client/renderer/feature/submit/SubmitNode;)V",
+            ordinal = 0))
+    private void figura$drawWithOutline(SimpleFeatureRenderPhase phase, SubmitNode node, Operation<Void> original) {
+        if (figura$custom == null) {
+            original.call(phase, node);
+            return;
         }
-        return original.call(instance, e);
-    }
-
-
-    @WrapOperation(method = "add",
-            at = @At(value = "INVOKE", target =
-                    "Ljava/util/List;add(Ljava/lang/Object;)Z"
-                    , ordinal = 0))
-    private <E> boolean drawWithOutline(List<E> instance, E e, Operation<Boolean> original, @Share("textMatrix") LocalRef<Matrix4f> textMatrix) {
-        SubmitNodeStorage.NameTagSubmit submit = (SubmitNodeStorage.NameTagSubmit) e;
-
-        Font font = Minecraft.getInstance().font;
-
-        Matrix4f pose = new Matrix4f(submit.pose());
-        int color = submit.color();
-        boolean deadmau = submit.text().getString().equals("deadmau5");
-        Matrix4f shadowMatrix = textMatrix.get() != null ? textMatrix.get() : pose;
-        if (figura$enabled && figura$avatar != null && figura$hasCustomNameplate && figura$custom.outline) {
-            // This renders the opaque text with an outline if the player has that enabled.
-            int outlineColor = figura$custom.outlineColor != null ? figura$custom.outlineColor : 0x202020;
-
-            if (figura$isRenderingName) {
-                for (int i = 0; i < figura$textList.size(); i++) {
-                    Component text1 = figura$textList.get(i);
-
-                    if (text1.getString().isEmpty())
-                        continue;
-
-                    int line = i - figura$textList.size() + 1;
-                    float x = -font.width(text1) / 2f;
-                    float y = (deadmau ? -10f : 0f) + (font.lineHeight + 1) * line;
-                    // yes i am using the bg color field to store the outline color, sue me
-                    figura$outlineSubmits.add(new SubmitNodeStorage.NameTagSubmit(pose, x, y, text1,  submit.lightCoords(), color, outlineColor, submit.distanceToCameraSq()));
-                }
-            } else {
-                figura$outlineSubmits.add(new SubmitNodeStorage.NameTagSubmit(pose, submit.x(), submit.y(), submit.text(),  submit.lightCoords(), color, outlineColor, submit.distanceToCameraSq()));
+        var submit = (NameTagFeatureRenderer.Submit) node;
+        var lines = figura$layout(submit);
+        if (figura$custom.outline) {
+            int outlineColor = figura$custom.outlineColor == null ? 0x202020 : figura$custom.outlineColor;
+            for (var line : lines) {
+                texts.submit(new TextFeatureRenderer.Submit(new Matrix4f(line.pose()), line.x(), line.y(),
+                        line.text().getVisualOrderText(), false, Font.DisplayMode.NORMAL,
+                        line.lightCoords(), line.color(), 0, outlineColor));
             }
-            return original.call(instance, new SubmitNodeStorage.NameTagSubmit(shadowMatrix, submit.x(), submit.y(), Component.empty(),  submit.lightCoords(), color, submit.backgroundColor(), submit.distanceToCameraSq()));
+            original.call(phase, new NameTagFeatureRenderer.Submit(submit.pose(), submit.x(), submit.y(),
+                    Component.empty(), submit.lightCoords(), submit.color(), submit.backgroundColor(), submit.displayMode()));
         } else {
-            if (figura$enabled && figura$avatar != null && figura$hasCustomNameplate && figura$isRenderingName) {
-                // This renders the opaque part of the nametag, that is text
-                for (int i = 0; i < figura$textList.size(); i++) {
-                    Component text1 = figura$textList.get(i);
-
-                    if (text1.getString().isEmpty())
-                        continue;
-
-                    int line = i - figura$textList.size() + 1;
-                    float x = -font.width(text1) / 2f;
-                    float y = (deadmau ? -10f : 0f) + (font.lineHeight + 1) * line;
-                    original.call(instance, new SubmitNodeStorage.NameTagSubmit(shadowMatrix, x, y, text1, submit.lightCoords(), color, submit.backgroundColor(), submit.distanceToCameraSq()));
-                }
-                return true;
-            } else {
-                return original.call(instance, new SubmitNodeStorage.NameTagSubmit(shadowMatrix, submit.x(), submit.y(), submit.text(),  submit.lightCoords(), color, submit.backgroundColor(), submit.distanceToCameraSq()));
+            for (var line : lines) {
+                original.call(phase, line);
             }
         }
     }
 
-    @Inject(method = "clear", at = @At("HEAD"))
-    private void clearOutlineSubmits(CallbackInfo ci) {
-        figura$outlineSubmits.clear();
-    }
-
-    @Override
-    public List<SubmitNodeStorage.NameTagSubmit> getOutlineSubmits() {
-        return figura$outlineSubmits;
+    @Unique
+    private List<NameTagFeatureRenderer.Submit> figura$layout(NameTagFeatureRenderer.Submit submit) {
+        if (!figura$isRenderingName) {
+            return List.of(submit);
+        }
+        Font font = Minecraft.getInstance().font;
+        var result = new ArrayList<NameTagFeatureRenderer.Submit>();
+        boolean deadmau = submit.text().getString().equals("deadmau5");
+        for (int index = 0; index < figura$textList.size(); index++) {
+            Component text = figura$textList.get(index);
+            if (text.getString().isEmpty()) {
+                continue;
+            }
+            int line = index - figura$textList.size() + 1;
+            float x = -font.width(text) / 2f;
+            float y = (deadmau ? -10f : 0f) + (font.lineHeight + 1) * line;
+            result.add(new NameTagFeatureRenderer.Submit(submit.pose(), x, y, text, submit.lightCoords(),
+                    submit.color(), submit.backgroundColor(), submit.displayMode()));
+        }
+        return result;
     }
 }

@@ -99,6 +99,14 @@ public final class YsmMaterialNativeSmokeTest {
         var toasts = (RecordingToasts) unsafe.allocateInstance(RecordingToasts.class);
         toasts.entries = new ArrayList<>();
         client.toasts = toasts;
+        RecordingGui gui = (RecordingGui) unsafe.allocateInstance(RecordingGui.class);
+        gui.client = client;
+        Field guiToasts = net.minecraft.client.gui.Gui.class.getDeclaredField("toastManager");
+        guiToasts.setAccessible(true);
+        guiToasts.set(gui, toasts);
+        Field clientGui = Minecraft.class.getDeclaredField("gui");
+        clientGui.setAccessible(true);
+        clientGui.set(client, gui);
         client.manager = (RecordingTextures) unsafe.allocateInstance(RecordingTextures.class);
         client.manager.textures = new HashMap<>();
         Field byPath = TextureManager.class.getDeclaredField("byPath");
@@ -117,6 +125,18 @@ public final class YsmMaterialNativeSmokeTest {
             }
             instance.set(null, client);
             org.figuramc.figura.permissions.PermissionManager.init();
+            if (args.length == 1 && args[0].equals("--screenshot")) {
+                testScreenshotReadback(unsafe, client);
+                return;
+            }
+            if (args.length == 1 && args[0].equals("--atlas-readback")) {
+                testAtlasReadback(unsafe, client);
+                return;
+            }
+            if (args.length == 1 && args[0].equals("--pip-native-failure")) {
+                testNativePipFailure();
+                return;
+            }
             if ((args.length == 2 && args[0].equals("--library-preview"))
                     || (args.length == 2 && args[0].equals("--default-animations"))
                     || (args.length == 2 && args[0].equals("--cosmetic-sources"))
@@ -765,6 +785,280 @@ public final class YsmMaterialNativeSmokeTest {
         stack.popPose();
     }
 
+    private static void testNativePipFailure() throws Exception {
+        Field deviceField = RenderSystem.class.getDeclaredField("DEVICE");
+        deviceField.setAccessible(true);
+        Object previousDevice = deviceField.get(null);
+        PublicationDevice device = new PublicationDevice() {
+            @Override
+            public com.mojang.blaze3d.systems.DeviceInfo getDeviceInfo() {
+                return new com.mojang.blaze3d.systems.DeviceInfo(
+                        "CPU PIP fixture", "fixture", "none", false, "recording", 0,
+                        null, null, java.util.Set.of(), null, null);
+            }
+
+            @Override
+            public com.mojang.blaze3d.systems.CommandEncoder createCommandEncoder() {
+                return new com.mojang.blaze3d.systems.CommandEncoder(null, null, null) {
+                    @Override
+                    public void clearColorAndDepthTextures(com.mojang.blaze3d.textures.GpuTexture color,
+                            org.joml.Vector4fc clearColor, com.mojang.blaze3d.textures.GpuTexture depth,
+                            double clearDepth) {
+                        require(!color.isClosed() && !depth.isClosed(), "PIP clears live owned targets");
+                    }
+
+                    @Override
+                    public void writeToBuffer(com.mojang.blaze3d.buffers.GpuBufferSlice destination,
+                                              java.nio.ByteBuffer bytes) {
+                        try (var mapped = destination.map(false, true)) {
+                            mapped.data().put(bytes.duplicate());
+                        }
+                    }
+                };
+            }
+        };
+        var outerTexture = new PublicationGpuTexture(3, "outer target", com.mojang.blaze3d.GpuFormat.RGBA8_UNORM,
+                2, 2, 1, 1);
+        var outerView = new PublicationView(outerTexture);
+        var outerProjection = new com.mojang.blaze3d.buffers.GpuBufferSlice(null, 0, 64);
+        var outerLights = new com.mojang.blaze3d.buffers.GpuBufferSlice(null, 0, 32);
+        net.minecraft.client.renderer.SubmitNodeStorage[] submitted = {null};
+        deviceField.set(null, device);
+        RenderSystem.outputColorTextureOverride = outerView;
+        RenderSystem.outputDepthTextureOverride = outerView;
+        RenderSystem.setProjectionMatrix(outerProjection, com.mojang.blaze3d.ProjectionType.PERSPECTIVE);
+        RenderSystem.setShaderLights(outerLights);
+        RenderSystem.getModelViewStack().translation(3, 4, 5);
+        var matrix = RenderSystem.getModelViewMatrixCopy();
+        try (var renderer = new top.aihmc.omnimorph.gui.FiguraGuiEntityRenderer(null) {
+            @Override
+            protected void renderToTexture(net.minecraft.client.renderer.state.gui.pip.GuiEntityRenderState state,
+                    com.mojang.blaze3d.vertex.PoseStack pose, net.minecraft.client.renderer.SubmitNodeCollector collector) {
+                submitted[0] = (net.minecraft.client.renderer.SubmitNodeStorage) collector;
+                collector.submitCustomGeometry(pose, net.minecraft.client.renderer.rendertype.RenderTypes.lines(),
+                        (capturedPose, vertices) -> {});
+                RenderSystem.setShaderLights(null);
+                RenderSystem.getModelViewStack().translate(9, 8, 7);
+                throw new IllegalStateException("injected native PIP preparation failure");
+            }
+        }) {
+            var state = new net.minecraft.client.renderer.state.gui.pip.GuiEntityRenderState(
+                    new net.minecraft.client.renderer.entity.state.EntityRenderState(), new org.joml.Vector3f(),
+                    new org.joml.Quaternionf(), null, 0, 0, 2, 2, 1, null);
+            try {
+                renderer.prepare(state, new net.minecraft.client.renderer.state.gui.GuiRenderState(), null, 1);
+                throw new AssertionError("Native PIP preparation exception was swallowed");
+            } catch (IllegalStateException expected) {
+                require(expected.getMessage().equals("injected native PIP preparation failure"),
+                        "the tested failure comes from native PIP's actual renderToTexture call");
+            }
+            require(RenderSystem.outputColorTextureOverride == outerView
+                            && RenderSystem.outputDepthTextureOverride == outerView,
+                    "failed native OMP PIP must restore the caller's targets");
+            require(RenderSystem.getProjectionMatrixBuffer() == outerProjection
+                            && RenderSystem.getProjectionType() == com.mojang.blaze3d.ProjectionType.PERSPECTIVE
+                            && RenderSystem.getShaderLights() == outerLights,
+                    "failed native OMP PIP must restore projection and lights");
+            require(RenderSystem.getModelViewMatrixCopy().equals(matrix), "failed native PIP must restore its matrix");
+            require(submitted[0].getSubmitsPerOrder().isEmpty(), "failed native PIP must discard pending submissions");
+            try {
+                RenderSystem.getModelViewStack().popMatrix();
+                throw new AssertionError("Failed native PIP leaked a matrix stack entry");
+            } catch (IllegalStateException expected) {
+                // The native stack is back at its caller's original depth.
+            }
+        } finally {
+            RenderSystem.getModelViewStack().clear();
+            RenderSystem.outputColorTextureOverride = null;
+            RenderSystem.outputDepthTextureOverride = null;
+            RenderSystem.setProjectionMatrix(null, com.mojang.blaze3d.ProjectionType.PERSPECTIVE);
+            RenderSystem.setShaderLights(null);
+            outerView.close();
+            outerTexture.close();
+            deviceField.set(null, previousDevice);
+        }
+        require(device.created.stream().allMatch(PublicationGpuTexture::isClosed)
+                        && device.views.stream().allMatch(PublicationView::isClosed)
+                        && device.buffers.stream().allMatch(ReadbackBuffer::isClosed),
+                "closing failed native PIP releases its actual owned texture/view/projection records");
+        System.out.println("PASS actual native OMP PIP failure: targets, projection, lights, matrix depth, submissions and close; no GPU pixels");
+    }
+
+    private static void testScreenshotReadback(Unsafe unsafe, RecordingClient client) throws Exception {
+        Avatar avatar = owner(unsafe, 912);
+        install(avatar, "isHost", true);
+        install(avatar, "permissions", org.figuramc.figura.permissions.PermissionManager.get(avatar.owner));
+        var renderer = (top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer)
+                unsafe.allocateInstance(top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer.class);
+        Field customTextures = top.aihmc.omnimorph.model.rendering.FiguraRenderer.class.getDeclaredField("customTextures");
+        customTextures.setAccessible(true);
+        customTextures.set(renderer, new HashMap<>());
+        install(avatar, "renderer", renderer);
+        var runtime = (org.figuramc.figura.lua.FiguraLuaRuntime)
+                unsafe.allocateInstance(org.figuramc.figura.lua.FiguraLuaRuntime.class);
+        Field textures = runtime.getClass().getDeclaredField("texture");
+        textures.setAccessible(true);
+        textures.set(runtime, new org.figuramc.figura.lua.api.TextureAPI(avatar));
+        install(avatar, "luaRuntime", runtime);
+
+        Field deviceField = RenderSystem.class.getDeclaredField("DEVICE");
+        deviceField.setAccessible(true);
+        Object previousDevice = deviceField.get(null);
+        Field gameRendererField = Minecraft.class.getDeclaredField("gameRenderer");
+        gameRendererField.setAccessible(true);
+        Object previousRenderer = gameRendererField.get(client);
+        var gameRenderer = (net.minecraft.client.renderer.GameRenderer)
+                unsafe.allocateInstance(net.minecraft.client.renderer.GameRenderer.class);
+        var source = new PublicationGpuTexture(3, "screenshot source", com.mojang.blaze3d.GpuFormat.RGBA8_UNORM,
+                2, 2, 1, 1);
+        var target = new com.mojang.blaze3d.pipeline.RenderTarget(
+                "screenshot fixture", false, com.mojang.blaze3d.GpuFormat.RGBA8_UNORM) {
+            {
+                width = height = 2;
+                colorTexture = source;
+            }
+        };
+        Field mainTarget = gameRenderer.getClass().getDeclaredField("mainRenderTarget");
+        mainTarget.setAccessible(true);
+        mainTarget.set(gameRenderer, target);
+        var device = new PublicationDevice();
+        device.capturePixels = true;
+        try {
+            deviceField.set(null, device);
+            gameRendererField.set(client, gameRenderer);
+            var host = new org.figuramc.figura.lua.api.HostAPI(avatar);
+            FiguraTexture screenshot = host.screenshot("async");
+            require(device.readbacks.size() == 1 && device.uploadedPixels.isEmpty(),
+                    "screenshot returns while the native readback is pending");
+            screenshot.uploadIfDirty();
+            require(device.uploadedPixels.size() == 1, "texture may be sampled before GPU readback completes");
+            device.readbacks.remove().run();
+            screenshot.uploadIfDirty();
+            require(device.uploadedPixels.size() == 2,
+                    "completed screenshot must republish pixels after an early texture upload");
+            require(java.util.Arrays.equals(device.uploadedPixels.getLast(),
+                            new int[]{0xff998877, 0xffccbbaa, 0xff332211, 0xff665544}),
+                    "native screenshot readback preserves top/bottom rows, channels and opaque alpha");
+            screenshot.close();
+
+            FiguraTexture retired = host.screenshot("retired");
+            NativeImage image = image(retired);
+            retired.close();
+            require(!image.isClosed(), "pending native screenshot retains its destination image");
+            device.readbacks.remove().run();
+            require(image.isClosed() && device.buffers.stream().allMatch(ReadbackBuffer::isClosed),
+                    "readback completion releases retired image and every staging buffer");
+            System.out.println("PASS host screenshot: asynchronous publication, exact rows/channels/alpha, retirement and staging cleanup; no GPU pixels");
+        } finally {
+            renderer.customTextures.values().forEach(FiguraTexture::close);
+            source.close();
+            client.drain();
+            gameRendererField.set(client, previousRenderer);
+            deviceField.set(null, previousDevice);
+        }
+    }
+
+    private static void testAtlasReadback(Unsafe unsafe, RecordingClient client) throws Exception {
+        Avatar avatar = owner(unsafe, 913);
+        install(avatar, "permissions", org.figuramc.figura.permissions.PermissionManager.get(avatar.owner));
+        install(avatar, "render", new Avatar.Instructions(100));
+        var renderer = (top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer)
+                unsafe.allocateInstance(top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer.class);
+        Field customTextures = top.aihmc.omnimorph.model.rendering.FiguraRenderer.class.getDeclaredField("customTextures");
+        customTextures.setAccessible(true);
+        customTextures.set(renderer, new HashMap<>());
+        install(avatar, "renderer", renderer);
+        Field deviceField = RenderSystem.class.getDeclaredField("DEVICE");
+        deviceField.setAccessible(true);
+        Object previousDevice = deviceField.get(null);
+        var device = new PublicationDevice();
+        device.capturePixels = true;
+        var source = new PublicationGpuTexture(9, "atlas source", com.mojang.blaze3d.GpuFormat.RGBA8_UNORM,
+                2, 2, 1, 1);
+        var atlas = (RecordingAtlas) unsafe.allocateInstance(RecordingAtlas.class);
+        atlas.setSource(source);
+        var paths = new ArrayList<Identifier>();
+        try {
+            deviceField.set(null, device);
+            for (boolean customization : new boolean[]{false, true}) {
+                for (boolean retired : new boolean[]{false, true}) {
+                    Identifier path = Identifier.parse("omni-morph:atlas-" + customization + "-" + retired);
+                    paths.add(path);
+                    client.manager.textures.put(path, atlas);
+                    FiguraTexture texture = readAtlasThroughApi(avatar, path, customization);
+                    require(device.readbacks.size() == 1, "atlas copy waits for its native completion callback");
+                    NativeImage destination = image(texture);
+                    if (retired) {
+                        texture.close();
+                        require(!destination.isClosed(), "pending atlas readback retains its destination image");
+                    } else {
+                        texture.uploadIfDirty();
+                    }
+                    int uploadsBeforeCompletion = device.uploadedPixels.size();
+                    device.readbacks.remove().run();
+                    if (retired) {
+                        require(destination.isClosed(), "completed atlas readback releases its retired image");
+                    } else {
+                        texture.uploadIfDirty();
+                        require(device.uploadedPixels.size() == uploadsBeforeCompletion + 1,
+                                "completed atlas must republish pixels after an early texture upload");
+                        require(java.util.Arrays.equals(device.uploadedPixels.getLast(),
+                                        new int[]{0xff998877, 0xffccbbaa, 0xff332211, 0xff665544}),
+                                "atlas readback preserves existing rows, channels and opaque alpha");
+                        texture.close();
+                    }
+                    require(device.buffers.stream().allMatch(ReadbackBuffer::isClosed),
+                            "atlas readback releases every staging buffer");
+                }
+            }
+            require(!source.isClosed(), "atlas copy does not own or close the source texture");
+            System.out.println("PASS TextureAPI and TextureCustomization atlas readback: publication, pixels, retirement and staging; no GPU pixels");
+        } finally {
+            renderer.customTextures.values().forEach(FiguraTexture::close);
+            paths.forEach(client.manager.textures::remove);
+            source.close();
+            client.drain();
+            deviceField.set(null, previousDevice);
+        }
+    }
+
+    private static FiguraTexture readAtlasThroughApi(Avatar avatar, Identifier path, boolean customization) {
+        if (!customization) {
+            return new org.figuramc.figura.lua.api.TextureAPI(avatar).fromVanilla(path.toString(), path.toString());
+        }
+        var override = new org.figuramc.figura.model.TextureCustomization(
+                org.figuramc.figura.model.rendering.texture.FiguraTextureSet.OverrideType.RESOURCE, path.toString());
+        return override.getTexture(avatar,
+                new org.figuramc.figura.model.rendering.texture.FiguraTextureSet("atlas", null, null, null, null));
+    }
+
+    /** Only the atlas image/size boundary is replaced; both public readback paths remain real. */
+    private static final class RecordingAtlas extends net.minecraft.client.renderer.texture.TextureAtlas
+            implements org.figuramc.figura.mixin.render.TextureAtlasAccessor {
+        private RecordingAtlas() {
+            super(null);
+        }
+
+        private void setSource(com.mojang.blaze3d.textures.GpuTexture source) {
+            texture = source;
+        }
+
+        @Override
+        public int figura$getWidth() {
+            return 2;
+        }
+
+        @Override
+        public int figura$getHeight() {
+            return 2;
+        }
+
+        @Override
+        public Map<Identifier, net.minecraft.client.renderer.texture.TextureAtlasSprite> figura$getTexturesByName() {
+            return Map.of();
+        }
+    }
+
     private static void testTexturePublication(Unsafe unsafe, RecordingClient client) throws Exception {
         var texture = new PublicationTexture(owner(unsafe, 56));
         client.manager.inspectRegistration = true;
@@ -821,18 +1115,18 @@ public final class YsmMaterialNativeSmokeTest {
                     .withTexture("Sampler0", texture.getLocation()).createRenderSetup();
             texture.getTextureView().close();
             texture.clearView();
-            require(!setup.getTextures().get("Sampler0").textureView().isClosed(),
+            require(!setup.prepareTextures(client.manager, null, null, null).stream().filter(binding -> binding.name().equals("Sampler0")).findFirst().orElseThrow().textureView().isClosed(),
                     "the vanilla delayed read repairs a missing live view without an upload call at the consumer");
             int liveLoads = texture.loads;
             var pending = texture.loadContents(null);
             texture.apply(pending);
             require(pending.image().isClosed(), "resource reload copies are released after apply");
             texture.close();
-            require(setup.getTextures().get("Sampler0").textureView() == fallback.getTextureView(),
+            require(setup.prepareTextures(client.manager, null, null, null).stream().filter(binding -> binding.name().equals("Sampler0")).findFirst().orElseThrow().textureView() == fallback.getTextureView(),
                     "a batch can resolve a retired binding before queued removal runs");
             // The vanilla registration entry point can finish after the model has been retired.
             client.manager.registerAndLoad(texture.getLocation(), texture);
-            require(setup.getTextures().get("Sampler0").textureView() == fallback.getTextureView(),
+            require(setup.prepareTextures(client.manager, null, null, null).stream().filter(binding -> binding.name().equals("Sampler0")).findFirst().orElseThrow().textureView() == fallback.getTextureView(),
                     "late registration of a retired texture resolves to the initialized missing texture");
             require(texture.getTexture() == fallback.getTexture() && texture.getSampler() == fallback.getSampler(),
                     "all retired GPU accessors use the same live fallback binding");
@@ -978,14 +1272,18 @@ public final class YsmMaterialNativeSmokeTest {
     }
 
     /** Records GPU ownership and failure ordering; no graphics backend or window is created. */
-    private static final class PublicationDevice extends com.mojang.blaze3d.systems.GpuDevice {
+    private static class PublicationDevice extends com.mojang.blaze3d.systems.GpuDevice {
         private final List<PublicationGpuTexture> created = new ArrayList<>();
         private final List<PublicationView> views = new ArrayList<>();
         private boolean failView;
         private boolean failWrite;
+        private boolean capturePixels;
+        private final List<int[]> uploadedPixels = new ArrayList<>();
+        private final java.util.Queue<Runnable> readbacks = new java.util.ArrayDeque<>();
+        private final List<ReadbackBuffer> buffers = new ArrayList<>();
 
         private PublicationDevice() {
-            super(null);
+            super(null, () -> {});
         }
 
         @Override
@@ -1032,7 +1330,7 @@ public final class YsmMaterialNativeSmokeTest {
 
         @Override
         public com.mojang.blaze3d.textures.GpuTexture createTexture(java.util.function.Supplier<String> label, int usage,
-                com.mojang.blaze3d.textures.TextureFormat format, int width, int height, int layers, int levels) {
+                com.mojang.blaze3d.GpuFormat format, int width, int height, int layers, int levels) {
             var texture = new PublicationGpuTexture(usage, label.get(), format, width, height, layers, levels);
             created.add(texture);
             return texture;
@@ -1050,22 +1348,74 @@ public final class YsmMaterialNativeSmokeTest {
 
         @Override
         public com.mojang.blaze3d.systems.CommandEncoder createCommandEncoder() {
-            return new com.mojang.blaze3d.systems.CommandEncoder(null, null) {
+            return new com.mojang.blaze3d.systems.CommandEncoder(null, null, null) {
                 @Override
                 public void writeToTexture(com.mojang.blaze3d.textures.GpuTexture texture, NativeImage image) {
                     require(!texture.isClosed() && !image.isClosed(), "uploads require live source and destination");
                     if (failWrite) {
                         throw new IllegalStateException("fixture pixel upload failure");
                     }
+                    if (capturePixels) {
+                        int[] pixels = new int[image.getWidth() * image.getHeight()];
+                        for (int y = 0; y < image.getHeight(); y++) {
+                            for (int x = 0; x < image.getWidth(); x++) {
+                                pixels[y * image.getWidth() + x] = image.getPixel(x, y);
+                            }
+                        }
+                        uploadedPixels.add(pixels);
+                    }
+                }
+
+                @Override
+                public void copyTextureToBuffer(com.mojang.blaze3d.textures.GpuTexture source,
+                                                com.mojang.blaze3d.buffers.GpuBuffer destination,
+                                                long offset, Runnable completion, int mipLevel) {
+                    readbacks.add(completion);
                 }
             };
+        }
+
+        @Override
+        public com.mojang.blaze3d.buffers.GpuBuffer createBuffer(
+                java.util.function.Supplier<String> label, int usage, long size) {
+            var buffer = new ReadbackBuffer(usage, size);
+            buffers.add(buffer);
+            return buffer;
+        }
+    }
+
+    private static final class ReadbackBuffer extends com.mojang.blaze3d.buffers.GpuBuffer {
+        private boolean closed;
+        private final java.nio.ByteBuffer bytes;
+
+        private ReadbackBuffer(int usage, long size) {
+            super(usage, size);
+            bytes = java.nio.ByteBuffer.allocate(Math.toIntExact(size)).order(java.nio.ByteOrder.nativeOrder());
+            bytes.asIntBuffer().put(new int[]{0x00112233, 0x00445566, 0x00778899, 0x00aabbcc});
+        }
+
+        @Override
+        public boolean isClosed() {
+            return closed;
+        }
+
+        @Override
+        public void close() {
+            closed = true;
+        }
+
+        @Override
+        public com.mojang.blaze3d.buffers.GpuBufferSlice.MappedView map(
+                long offset, long length, boolean read, boolean write) {
+            return new com.mojang.blaze3d.buffers.GpuBufferSlice.MappedView(slice(offset, length),
+                    bytes.slice(Math.toIntExact(offset), Math.toIntExact(length)).order(bytes.order()), () -> {});
         }
     }
 
     private static final class PublicationGpuTexture extends com.mojang.blaze3d.textures.GpuTexture {
         private boolean closed;
 
-        private PublicationGpuTexture(int usage, String label, com.mojang.blaze3d.textures.TextureFormat format,
+        private PublicationGpuTexture(int usage, String label, com.mojang.blaze3d.GpuFormat format,
                                       int width, int height, int layers, int levels) {
             super(usage, label, format, width, height, layers, levels);
         }
@@ -1192,11 +1542,11 @@ public final class YsmMaterialNativeSmokeTest {
                     "world skin changes update the borrowed preview material without changing the default pose");
             require(recreated.geometry().bones.get("root").cubes.getFirst().quads.stream().noneMatch(YsmGeometry.Quad::visible),
                     "borrowed material changes refresh the preview's own alpha metadata");
-            var previousScreen = client.screen;
+            var previousScreen = client.gui.screen();
             try {
                 var settings = (top.aihmc.omnimorph.gui.screens.AvatarControlsScreen) unsafe.allocateInstance(
                         top.aihmc.omnimorph.gui.screens.AvatarControlsScreen.class);
-                client.screen = settings;
+                top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.setFixtureScreen(client, settings);
                 require(runtime.forRenderPass() == recreated,
                         "model settings use the same isolated standing preview");
                 runtime.owner().controls.get("ysm.width_scale").setValue(1.1d);
@@ -1209,11 +1559,11 @@ public final class YsmMaterialNativeSmokeTest {
                         top.aihmc.omnimorph.molang.runtime.ExpressionEvaluator.evaluator(world), false);
                 require(runtime.forRenderPass().captureRenderPose(false).part("root").animPosRaw().y == 0d,
                         "settings preview stays standing while the world samples its custom idle animation");
-                client.screen = new org.figuramc.figura.gui.screens.AvatarScreen(1f, 0f, 0f, null, settings);
+                top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.setFixtureScreen(client, new org.figuramc.figura.gui.screens.AvatarScreen(1f, 0f, 0f, null, settings));
                 require(runtime.forRenderPass().isPreviewRuntime(),
                         "expanded settings preview also uses isolated standing playback");
             } finally {
-                client.screen = previousScreen;
+                top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.setFixtureScreen(client, previousScreen);
             }
             for (String declaration : List.of("", "missing_preview_clip")) {
                 var input = fixture.runtimeTag.copy();
@@ -1257,7 +1607,7 @@ public final class YsmMaterialNativeSmokeTest {
             require(opaque.pipeline().getVertexShader().equals(source.getVertexShader())
                             && opaque.pipeline().getFragmentShader().equals(source.getFragmentShader())
                             && opaque.pipeline().getShaderDefines().values().equals(source.getShaderDefines().values())
-                            && opaque.pipeline().getUniforms().equals(source.getUniforms()),
+                            && opaque.pipeline().getBindGroupLayouts().equals(source.getBindGroupLayouts()),
                     "unlit GUI material uses the native emissive shaders, numeric defines and uniforms");
             var unlitDefines = opaque.pipeline().getShaderDefines();
             require(unlitDefines.flags().contains("EMISSIVE") && unlitDefines.flags().contains("NO_CARDINAL_LIGHTING")
@@ -1347,7 +1697,7 @@ public final class YsmMaterialNativeSmokeTest {
         YsmRenderer renderer = new YsmRenderer(runtime) {
             @Override
             public boolean render(com.mojang.blaze3d.vertex.PoseStack stack,
-                                  net.minecraft.client.renderer.MultiBufferSource buffers, int light,
+                                  top.aihmc.omnimorph.model.rendering.FiguraVertexSource buffers, int light,
                                   YsmPartMask mask, YsmRenderPose pose) {
                 trace.add("body");
                 return true;
@@ -1355,7 +1705,7 @@ public final class YsmMaterialNativeSmokeTest {
 
             @Override
             public boolean renderAttachments(com.mojang.blaze3d.vertex.PoseStack stack,
-                                             net.minecraft.client.renderer.MultiBufferSource buffers,
+                                             top.aihmc.omnimorph.model.rendering.FiguraVertexSource buffers,
                                              int light, YsmRenderPose pose) {
                 trace.add("attachments");
                 return false;
@@ -1389,7 +1739,7 @@ public final class YsmMaterialNativeSmokeTest {
                 "native sorted feature buckets place regular items and special model parts on the requested side of the body");
         require(body == storage.order(renderer.bodySubmitOrder()) && body != nativeItems,
                 "body uses the stable native bucket independently of collection time");
-        storage.clear();
+        storage.drainPhases(phase -> phase.sortInto((submit, strictlyOrdered) -> {}));
     }
 
     private static boolean testCorpusHeldItems(Unsafe unsafe, RecordingClient client, Path path, int index) throws Exception {
@@ -1535,7 +1885,7 @@ public final class YsmMaterialNativeSmokeTest {
                 if (accelerated) {
                     backend.set(service, new top.aihmc.omnimorph.render.acceleration.JavaAccelerationBackend());
                 }
-                top.aihmc.omnimorph.render.acceleration.FiguraAccelerationReplay.replay(null);
+                top.aihmc.omnimorph.render.acceleration.FiguraAccelerationReplay.replay(null, () -> {});
                 var alphas = new ArrayList<Float>();
                 var currentMaterial = new java.util.concurrent.atomic.AtomicReference<net.minecraft.client.renderer.rendertype.RenderType>();
                 var consumer = (com.mojang.blaze3d.vertex.VertexConsumer) java.lang.reflect.Proxy.newProxyInstance(
@@ -1553,8 +1903,8 @@ public final class YsmMaterialNativeSmokeTest {
                     return method.getReturnType() == void.class ? null : proxy;
                 });
                 com.mojang.blaze3d.vertex.VertexConsumer ignored = vertexRecorder(new ArrayList<>());
-                net.minecraft.client.renderer.MultiBufferSource source = material -> {
-                    if (material.mode() == com.mojang.blaze3d.vertex.VertexFormat.Mode.LINES) {
+                top.aihmc.omnimorph.model.rendering.FiguraVertexSource source = material -> {
+                    if (material.primitiveTopology() == com.mojang.blaze3d.PrimitiveTopology.LINES) {
                         return ignored;
                     }
                     currentMaterial.set(material);
@@ -2099,17 +2449,44 @@ public final class YsmMaterialNativeSmokeTest {
     public static AutoCloseable recordingScreens() {
         var client = (RecordingClient) Minecraft.getInstance();
         var previous = client.screenDispatcher;
-        var previousScreen = client.screen;
+        var previousScreen = client.gui.screen();
         client.screenDispatcher = next -> {
-            if (client.screen != null) {
-                client.screen.removed();
+            if (client.gui.screen() != null) {
+                client.gui.screen().removed();
             }
-            client.screen = next;
+            top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.setFixtureScreen(client, next);
         };
         return () -> {
             client.screenDispatcher = previous;
-            client.screen = previousScreen;
+            top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.setFixtureScreen(client, previousScreen);
         };
+    }
+
+    public static void setFixtureScreen(Minecraft client, net.minecraft.client.gui.screens.Screen screen) {
+        ((RecordingGui) client.gui).screen = screen;
+    }
+
+    private static final class RecordingGui extends net.minecraft.client.gui.Gui {
+        private RecordingClient client;
+        private net.minecraft.client.gui.screens.Screen screen;
+
+        private RecordingGui() {
+            super(null, null, null);
+        }
+
+        @Override
+        public net.minecraft.client.gui.screens.Screen screen() {
+            return screen;
+        }
+
+        @Override
+        public void setScreen(net.minecraft.client.gui.screens.Screen screen) {
+            if (client.screenDispatcher == null) {
+                super.setScreen(screen);
+            } else {
+                client.screenDispatcher.accept(screen);
+            }
+        }
     }
 
     private static final class RecordingClient extends Minecraft implements top.aihmc.omnimorph.mixin.MinecraftAccesor {
@@ -2121,15 +2498,6 @@ public final class YsmMaterialNativeSmokeTest {
 
         private RecordingClient() {
             super(null);
-        }
-
-        @Override
-        public void setScreen(net.minecraft.client.gui.screens.Screen screen) {
-            if (screenDispatcher == null) {
-                super.setScreen(screen);
-            } else {
-                screenDispatcher.accept(screen);
-            }
         }
 
         @Override
@@ -2169,11 +2537,6 @@ public final class YsmMaterialNativeSmokeTest {
         }
 
         @Override
-        public net.minecraft.client.gui.components.toasts.ToastManager getToastManager() {
-            return toasts;
-        }
-
-        @Override
         public void execute(Runnable task) {
             if (RenderSystem.isOnRenderThread()) {
                 task.run();
@@ -2209,7 +2572,7 @@ public final class YsmMaterialNativeSmokeTest {
             if (inspectRegistration) {
                 net.minecraft.client.renderer.rendertype.RenderSetup.builder(
                                 net.minecraft.client.renderer.RenderPipelines.GUI_TEXTURED)
-                        .withTexture("Sampler0", location).createRenderSetup().getTextures();
+                        .withTexture("Sampler0", location).createRenderSetup().prepareTextures(this, null, null, null);
             }
         }
 

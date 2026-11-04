@@ -159,7 +159,7 @@ public class BlockStateAPI {
     @LuaWhitelist
     @LuaMethodDoc("blockstate.has_emissive_lighting")
     public boolean hasEmissiveLighting() {
-        return blockState.emissiveRendering(WorldAPI.getCurrentWorld(), getBlockPos());
+        return blockState.emissiveRendering();
     }
 
     @LuaWhitelist

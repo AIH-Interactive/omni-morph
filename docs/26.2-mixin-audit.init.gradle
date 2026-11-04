@@ -1,0 +1,13 @@
+gradle.projectsEvaluated {
+    [':common', ':fabric', ':neoforge'].each { projectPath ->
+        def targetProject = gradle.rootProject.project(projectPath)
+        targetProject.tasks.register('writeMixinAuditClasspath') {
+            doLast {
+                def output = gradle.rootProject.file("build/mixin-audit-${targetProject.name}-classpath.txt")
+                output.parentFile.mkdirs()
+                def common = gradle.rootProject.project(':common')
+                output.text = (targetProject.sourceSets.main.compileClasspath + common.sourceSets.main.compileClasspath).asPath
+            }
+        }
+    }
+}

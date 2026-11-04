@@ -112,7 +112,7 @@ public final class CosmeticAnimationScreen extends Screen {
         }
         wheel.execute(session.outfitBase(), index, left);
         save(owner);
-        if (minecraft.screen != this) {
+        if (minecraft.gui.screen() != this) {
             release();
         }
     }
@@ -193,7 +193,7 @@ public final class CosmeticAnimationScreen extends Screen {
         }
         release();
         retainingControls = true;
-        minecraft.setScreen(new CosmeticControlsScreen(wardrobe, session, composition, draft, account,
+        minecraft.gui.setScreen(new CosmeticControlsScreen(wardrobe, session, composition, draft, account,
                 this, owner, page));
         return true;
     }
@@ -228,7 +228,7 @@ public final class CosmeticAnimationScreen extends Screen {
         returning = true;
         release();
         wardrobe.closeCosmeticAnimations(true);
-        minecraft.setScreen(wardrobe);
+        minecraft.gui.setScreen(wardrobe);
     }
 
     @Override

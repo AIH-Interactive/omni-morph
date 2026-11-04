@@ -153,7 +153,7 @@ public final class ModelFilePickerScreen extends AbstractPanelScreen {
                     if (!item.selectable()) {
                         navigate(item.path());
                     } else {
-                        minecraft.setScreen(parentScreen);
+                        minecraft.gui.setScreen(parentScreen);
                         selected.accept(item.path());
                     }
                 })).toList());

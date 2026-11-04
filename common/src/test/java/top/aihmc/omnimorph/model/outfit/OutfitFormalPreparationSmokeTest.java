@@ -360,7 +360,7 @@ public final class OutfitFormalPreparationSmokeTest {
     /** Plain JVM fixtures do not install Minecraft Mixins. Supply the real accessor contract explicitly. */
     private static final class TestWearer extends ArmorStand implements org.figuramc.figura.mixin.EntityAccessor {
         private TestWearer() {
-            super(net.minecraft.world.entity.EntityType.ARMOR_STAND, null);
+            super(net.minecraft.world.entity.EntityTypes.ARMOR_STAND, null);
         }
 
         @Override

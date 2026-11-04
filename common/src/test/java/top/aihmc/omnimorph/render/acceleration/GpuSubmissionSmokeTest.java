@@ -5,7 +5,8 @@ import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.SharedConstants;
-import net.minecraft.client.renderer.MultiBufferSource;
+import top.aihmc.omnimorph.testing.NativeFeatureVertices;
+import com.mojang.blaze3d.IndexType;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.resources.Identifier;
@@ -24,10 +25,10 @@ import java.util.List;
 import java.util.Map;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 
-/** Executes real native BufferSource/RenderType flush boundaries with command-recording device operations. */
+/** Executes real native prepared-material execution boundaries with command-recording device operations. */
 public final class GpuSubmissionSmokeTest {
     private static final Identifier TEXTURE = Identifier.parse("omni-morph:submission_contract");
-    private static final GpuDrawContext CONTEXT = new GpuDrawContext(null, null, Map.of(), null, false, 0, 0, 0, 0);
+    private static final GpuDrawContext CONTEXT = new GpuDrawContext(null, null, List.of(), null, false, 0, 0, 0, 0);
 
     public static void main(String[] args) throws Exception {
         SharedConstants.tryDetectVersion();
@@ -55,7 +56,7 @@ public final class GpuSubmissionSmokeTest {
         retirementBeforeFlush();
         diagnosticRecording();
         faceSortingMatchesVanilla();
-        System.out.println("PASS actual BufferSource ordering, rigid palettes, bounded fallback, owner retirement and 100 backend cycles; GPU pixels MANUAL/PENDING");
+        System.out.println("PASS native preparation/execute ordering, rigid palettes, bounded fallback, owner retirement and 100 backend cycles; GPU pixels MANUAL/PENDING");
     }
 
     /** The primitive face sort must reproduce vanilla's order exactly, ties and signed zeros included. */
@@ -115,12 +116,12 @@ public final class GpuSubmissionSmokeTest {
 
     private static void opaqueBoundary() {
         try (Fixture fixture = new Fixture(); ByteBufferBuilder memory = new ByteBufferBuilder(256)) {
-            MultiBufferSource.BufferSource source = MultiBufferSource.immediate(memory);
-            RenderType material = RenderTypes.entityCutout(TEXTURE);
+            NativeFeatureVertices source = new NativeFeatureVertices(memory);
+            RenderType material = NativeFeatureVertices.material(RenderTypes.entityCutout(TEXTURE));
             fixture.offer(source, batch(fixture.service, fixture.owner, material, 1, 2));
             fixture.offer(source, batch(fixture.service, fixture.owner, material, 3));
             require(fixture.device.drawCalls == 0, "no GPU draw during model preparation");
-            source.endBatch();
+            source.execute();
             require(fixture.device.drawn.equals(List.of(1f, 2f, 3f)) && fixture.javaFaces.isEmpty(),
                     "native material flush consumes GPU geometry in authored order exactly once");
             require(fixture.device.uploads == 2 && fixture.scopesOpened == fixture.scopesClosed,
@@ -131,17 +132,17 @@ public final class GpuSubmissionSmokeTest {
     private static void transparentBoundary(int failure) {
         try (Fixture fixture = new Fixture(failure == 3 ? GpuBatchData.POSE_BYTES : 100_000);
              ByteBufferBuilder memory = new ByteBufferBuilder(256)) {
-            RenderType material = RenderTypes.entityTranslucent(TEXTURE);
+            RenderType material = NativeFeatureVertices.material(RenderTypes.entityTranslucent(TEXTURE));
             // First encounter queues compilation; the next frame prepares it outside model traversal.
             fixture.gpu.supports(AccelerationBackend.Operation.GPU_DRAW, batch(fixture.service, fixture.owner, material, 1));
             fixture.service.beginFrame();
             fixture.submission.nextFrame();
             fixture.device.failBeforeAt = failure == 1 ? 1 : 0;
             fixture.device.failAfterAt = failure == 2 ? 1 : 0;
-            MultiBufferSource.BufferSource source = MultiBufferSource.immediate(memory);
+            NativeFeatureVertices source = new NativeFeatureVertices(memory);
             fixture.offer(source, batch(fixture.service, fixture.owner, material, 1, 3));
             fixture.offer(source, batch(fixture.service, fixture.owner, material, 4, 2));
-            source.endBatch();
+            source.execute();
             List<Float> total = new ArrayList<>(fixture.device.drawn);
             total.addAll(fixture.javaFaces);
             require(total.equals(List.of(4f, 3f, 2f, 1f)), "transparent face order matches native distance sorting across model batches");
@@ -170,15 +171,15 @@ public final class GpuSubmissionSmokeTest {
     private static void retirementBeforeFlush() {
         for (boolean frameChange : new boolean[]{false, true}) {
             try (Fixture fixture = new Fixture(); ByteBufferBuilder memory = new ByteBufferBuilder(256)) {
-                MultiBufferSource.BufferSource source = MultiBufferSource.immediate(memory);
-                fixture.offer(source, batch(fixture.service, fixture.owner, RenderTypes.entityCutout(TEXTURE), 1));
+                NativeFeatureVertices source = new NativeFeatureVertices(memory);
+                fixture.offer(source, batch(fixture.service, fixture.owner, NativeFeatureVertices.material(RenderTypes.entityCutout(TEXTURE)), 1));
                 if (frameChange) {
                     fixture.submission.nextFrame();
                     fixture.service.beginFrame();
                 } else {
                     fixture.owner.retire();
                 }
-                source.endBatch();
+                source.execute();
                 require(fixture.device.drawCalls == 0 && fixture.javaFaces.isEmpty() && fixture.device.uploads == 0,
                         "queued old frame/owner never draws or allocates during a later flush");
             }
@@ -189,7 +190,7 @@ public final class GpuSubmissionSmokeTest {
         var device = new GroupingDevice();
         try (Fixture fixture = new Fixture(failure == 3 ? 20_000 : 100_000, device);
              ByteBufferBuilder memory = new ByteBufferBuilder(256)) {
-            RenderType material = RenderTypes.entityTranslucent(TEXTURE);
+            RenderType material = NativeFeatureVertices.material(RenderTypes.entityTranslucent(TEXTURE));
             fixture.gpu.supports(AccelerationBackend.Operation.GPU_DRAW, batch(fixture.service, fixture.owner, material, 1));
             fixture.service.beginFrame();
             fixture.submission.nextFrame();
@@ -197,13 +198,13 @@ public final class GpuSubmissionSmokeTest {
             device.failAfterAt = failure == 2 ? 1 : 0;
             device.failIndices = failure == 4;
             device.failPoseUpload = failure == 5;
-            MultiBufferSource.BufferSource source = MultiBufferSource.immediate(memory);
+            NativeFeatureVertices source = new NativeFeatureVertices(memory);
             for (int depth = 1; depth <= 65; depth++) {
                 DrawBatch original = batch(fixture.service, fixture.owner, material, depth);
                 var pose = new PoseSnapshot(FiguraMat4.of().translate(0, 0, depth / 1024.0), FiguraMat3.of());
                 fixture.offer(source, new DrawBatch(original.lease(), original.mesh(), pose, original.semantics()));
             }
-            source.endBatch();
+            source.execute();
             List<Float> expected = new ArrayList<>();
             for (int depth = 65; depth > 0; depth--) {
                 expected.add(depth + depth / 1024f);
@@ -235,9 +236,9 @@ public final class GpuSubmissionSmokeTest {
         var device = new GroupingDevice();
         device.complete = true;
         try (Fixture fixture = new Fixture(100_000, device); ByteBufferBuilder memory = new ByteBufferBuilder(256)) {
-            RenderType material = RenderTypes.entityTranslucent(TEXTURE);
+            RenderType material = NativeFeatureVertices.material(RenderTypes.entityTranslucent(TEXTURE));
             fixture.gpu.supports(AccelerationBackend.Operation.GPU_DRAW, batch(fixture.service, fixture.owner, material, 1));
-            MultiBufferSource.BufferSource source = MultiBufferSource.immediate(memory);
+            NativeFeatureVertices source = new NativeFeatureVertices(memory);
             for (int frame = 0; frame < 3; frame++) {
                 fixture.service.beginFrame();
                 fixture.submission.nextFrame();
@@ -251,7 +252,7 @@ public final class GpuSubmissionSmokeTest {
                     fixture.offer(source, new DrawBatch(original.lease(), original.mesh(), pose, original.semantics()));
                     expected.add(authored + translation);
                 }
-                source.endBatch();
+                source.execute();
                 expected.sort(java.util.Comparator.reverseOrder());
                 require(device.drawn.equals(expected) && fixture.javaFaces.isEmpty(),
                         "pose changes rebuild sorted indices and preserve every face across cached frames");
@@ -261,7 +262,7 @@ public final class GpuSubmissionSmokeTest {
             device.drawn.clear();
             fixture.offer(source, batch(fixture.service, fixture.owner, material, 1));
             fixture.owner.retire();
-            source.endBatch();
+            source.execute();
             fixture.service.beginFrame();
             require(device.drawn.isEmpty() && device.liveBytes == 0 && fixture.gpu.residentBytes() == 0,
                     "retired owner rejects pending faces and fences every combined mesh, pose and index buffer");
@@ -273,11 +274,11 @@ public final class GpuSubmissionSmokeTest {
             var device = new GroupingDevice();
             device.complete = true;
             try (Fixture fixture = new Fixture(100_000, device); ByteBufferBuilder memory = new ByteBufferBuilder(256)) {
-                RenderType material = RenderTypes.entityCutout(TEXTURE);
-                MultiBufferSource.BufferSource source = MultiBufferSource.immediate(memory);
+                RenderType material = NativeFeatureVertices.material(RenderTypes.entityCutout(TEXTURE));
+                NativeFeatureVertices source = new NativeFeatureVertices(memory);
                 fixture.offer(source, batch(fixture.service, fixture.owner, material, 1));
                 fixture.offer(source, batch(fixture.service, fixture.owner, material, 2));
-                source.endBatch();
+                source.execute();
                 require(device.drawCalls == 1 && device.uploads == 1 && fixture.javaFaces.isEmpty(),
                         "each backend cycle submits a real grouped command before releasing it");
             }
@@ -447,7 +448,7 @@ public final class GpuSubmissionSmokeTest {
                     for (int face = 0; face < geometry.drawState().vertexCount() / 4; face++) {
                         int index = face * 4;
                         if (indices != null) {
-                            index = geometry.drawState().indexType() == VertexFormat.IndexType.INT
+                            index = geometry.drawState().indexType() == IndexType.INT
                                     ? indices.getInt(face * 6 * 4) : Short.toUnsignedInt(indices.getShort(face * 6 * 2));
                         }
                         javaFaces.add(data.getFloat(index * stride + 8));
@@ -456,9 +457,9 @@ public final class GpuSubmissionSmokeTest {
             });
         }
 
-        void offer(MultiBufferSource source, DrawBatch batch) {
+        void offer(NativeFeatureVertices source, DrawBatch batch) {
             double[][] transformed = {null};
-            require(submission.offer(source, batch, (vertices, first, count) -> {
+            require(submission.offer(source.source(), batch, (vertices, first, count) -> {
                 if (transformed[0] == null) {
                     transformed[0] = service.transform(batch.lease(), ignored -> batch);
                 }
@@ -470,7 +471,7 @@ public final class GpuSubmissionSmokeTest {
                     vertices.addVertex((float) transformed[0][offset], (float) transformed[0][offset + 1], (float) transformed[0][offset + 2])
                             .setColor(1f, 1f, 1f, 1f).setUv(0, 0).setOverlay(0).setLight(0).setNormal(0, 1, 0);
                 }
-            }), "common public batch accepted by actual BufferSource boundary");
+            }), "common public batch accepted by native preparation/execute boundary");
         }
 
         @Override

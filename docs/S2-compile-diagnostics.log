@@ -1,0 +1,2181 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/eryth/.gradle/wrapper/dists/gradle-9.4.1-bin/arn2x92ynaizyzdaamcbpbhtj/gradle-9.4.1/lib/native-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Architect Plugin: 3.5.168
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+
+> Task :common:compileJava
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:17: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\RenderTask.java:5: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\FiguraRenderer.java:7: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendering\texture\FiguraTexture.java:12: 错误: 找不到符号
+import com.mojang.blaze3d.textures.TextureFormat;
+                                  ^
+  符号:   类 TextureFormat
+  位置: 程序包 com.mojang.blaze3d.textures
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\TextTask.java:7: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\ItemTask.java:5: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\BlockTask.java:7: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\SpriteTask.java:5: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\EntityTask.java:9: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\EntityTask.java:50: 错误: 找不到符号
+    public void render(PoseStack stack, MultiBufferSource buffer, int light, int overlay) {
+                                        ^
+  符号:   类 MultiBufferSource
+  位置: 类 EntityTask
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\SpriteTask.java:52: 错误: 找不到符号
+    public void render(PoseStack poseStack, MultiBufferSource buffer, int light, int overlay) {
+                                            ^
+  符号:   类 MultiBufferSource
+  位置: 类 SpriteTask
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\BlockTask.java:45: 错误: 找不到符号
+    public void render(PoseStack poseStack, MultiBufferSource buffer, int light, int overlay) {
+                                            ^
+  符号:   类 MultiBufferSource
+  位置: 类 BlockTask
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\ItemTask.java:43: 错误: 找不到符号
+    public void render(PoseStack poseStack, MultiBufferSource buffer, int light, int overlay) {
+                                            ^
+  符号:   类 MultiBufferSource
+  位置: 类 ItemTask
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\TextTask.java:55: 错误: 找不到符号
+    public void render(PoseStack poseStack, MultiBufferSource buffer, int light, int overlay) {
+                                            ^
+  符号:   类 MultiBufferSource
+  位置: 类 TextTask
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\ImmediateFiguraRenderer.java:1045: 错误: 找不到符号
+        private final HashMap<RenderType, List<Consumer<MultiBufferSource>>> primaryBuffers = new LinkedHashMap<>();
+                                                        ^
+  符号:   类 MultiBufferSource
+  位置: 类 VertexBuffer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\ImmediateFiguraRenderer.java:1046: 错误: 找不到符号
+        private final HashMap<RenderType, List<Consumer<MultiBufferSource>>> secondaryBuffers = new LinkedHashMap<>();
+                                                        ^
+  符号:   类 MultiBufferSource
+  位置: 类 VertexBuffer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\ImmediateFiguraRenderer.java:1048: 错误: 找不到符号
+        public void getBufferFor(RenderType renderType, boolean primary, Consumer<MultiBufferSource> consumer) {
+                                                                                  ^
+  符号:   类 MultiBufferSource
+  位置: 类 VertexBuffer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\ImmediateFiguraRenderer.java:1054: 错误: 找不到符号
+        public void consume(boolean primary, MultiBufferSource bufferSource) {
+                                             ^
+  符号:   类 MultiBufferSource
+  位置: 类 VertexBuffer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\FiguraRenderer.java:65: 错误: 找不到符号
+    public MultiBufferSource bufferSource;
+           ^
+  符号:   类 MultiBufferSource
+  位置: 类 FiguraRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\FiguraRenderer.java:233: 错误: 找不到符号
+    public void setupRenderer(PartFilterScheme currentFilterScheme, MultiBufferSource bufferSource, PoseStack matrices, float tickDelta, int light, float alpha, int overlay, boolean translucent, boolean glowing) {
+                                                                    ^
+  符号:   类 MultiBufferSource
+  位置: 类 FiguraRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\FiguraRenderer.java:238: 错误: 找不到符号
+    public void setupRenderer(PartFilterScheme currentFilterScheme, MultiBufferSource bufferSource, PoseStack matrices, float tickDelta, int light, float alpha, int overlay, boolean translucent, boolean glowing, double camX, double camY, double camZ) {
+                                                                    ^
+  符号:   类 MultiBufferSource
+  位置: 类 FiguraRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\FiguraRenderer.java:243: 错误: 找不到符号
+    private void setupRenderer(PartFilterScheme currentFilterScheme, MultiBufferSource bufferSource, float tickDelta, int light, float alpha, int overlay, boolean translucent, boolean glowing) {
+                                                                     ^
+  符号:   类 MultiBufferSource
+  位置: 类 FiguraRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\RenderTask.java:41: 错误: 找不到符号
+    public void render(PartCustomization.PartCustomizationStack stack, MultiBufferSource buffer, int light, int overlay) {
+                                                                       ^
+  符号:   类 MultiBufferSource
+  位置: 类 RenderTask
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\RenderTask.java:48: 错误: 找不到符号
+    public abstract void render(PoseStack stack, MultiBufferSource buffer, int light, int overlay);
+                                                 ^
+  符号:   类 MultiBufferSource
+  位置: 类 RenderTask
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmModelRuntime.java:9: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1300: 错误: 找不到符号
+    public boolean itemRenderEventDirect(ItemStackAPI item, String mode, FiguraVec3 pos, FiguraVec3 rot, FiguraVec3 scale, boolean leftHanded, PoseStack stack, MultiBufferSource bufferSource, int light, int overlay) {
+                                                                                                                                                                ^
+  符号:   类 MultiBufferSource
+  位置: 类 Avatar
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1414: 错误: 找不到符号
+    public void render(Entity entity, float yaw, float delta, float alpha, PoseStack stack, MultiBufferSource bufferSource, int light, int overlay, EntityModel<?> entityModel, PartFilterScheme filter, boolean translucent, boolean glowing) {
+                                                                                            ^
+  符号:   类 MultiBufferSource
+  位置: 类 Avatar
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1431: 错误: 找不到符号
+    public synchronized void worldRender(Entity entity, double camX, double camY, double camZ, PoseStack stack, MultiBufferSource bufferSource, int lightFallback, float tickDelta, EntityRenderMode mode) {
+                                                                                                                ^
+  符号:   类 MultiBufferSource
+  位置: 类 Avatar
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1459: 错误: 找不到符号
+    public void capeRender(Entity entity, MultiBufferSource bufferSource, PoseStack stack, int light, float tickDelta, ModelPart cloak) {
+                                          ^
+  符号:   类 MultiBufferSource
+  位置: 类 Avatar
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1481: 错误: 找不到符号
+    public void elytraRender(Entity entity, MultiBufferSource bufferSource, PoseStack stack, int light, float tickDelta, EntityModel<?> model) {
+                                            ^
+  符号:   类 MultiBufferSource
+  位置: 类 Avatar
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1511: 错误: 找不到符号
+    public void firstPersonWorldRender(Entity watcher, MultiBufferSource bufferSource, PoseStack matrices, Camera camera, float tickDelta) {
+                                                       ^
+  符号:   类 MultiBufferSource
+  位置: 类 Avatar
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1527: 错误: 找不到符号
+    public void firstPersonRender(PoseStack stack, MultiBufferSource bufferSource, Player player, PlayerModel playerModel, ModelPart arm, int light, float tickDelta) {
+                                                   ^
+  符号:   类 MultiBufferSource
+  位置: 类 Avatar
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1559: 错误: 找不到符号
+    public void hudRender(PoseStack stack, MultiBufferSource bufferSource, Entity entity, float tickDelta) {
+                                           ^
+  符号:   类 MultiBufferSource
+  位置: 类 Avatar
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1591: 错误: 找不到符号
+    public boolean skullRender(PoseStack stack, MultiBufferSource bufferSource, int light, Direction direction, float yaw) {
+                                                ^
+  符号:   类 MultiBufferSource
+  位置: 类 Avatar
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1612: 错误: 找不到符号
+    public boolean headRender(PoseStack stack, MultiBufferSource bufferSource, int light, boolean useComplexity) {
+                                               ^
+  符号:   类 MultiBufferSource
+  位置: 类 Avatar
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1682: 错误: 程序包MultiBufferSource不存在
+    public boolean renderHeadForPortrait(MultiBufferSource.BufferSource buffer, PoseStack stack, int light, float modelScale, boolean upsideDown) {
+                                                          ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1712: 错误: 找不到符号
+    public boolean renderArrow(PoseStack stack, MultiBufferSource bufferSource, float delta, int light) {
+                                                ^
+  符号:   类 MultiBufferSource
+  位置: 类 Avatar
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1734: 错误: 找不到符号
+    public boolean renderTrident(PoseStack stack, MultiBufferSource bufferSource, float delta, int light) {
+                                                  ^
+  符号:   类 MultiBufferSource
+  位置: 类 Avatar
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1760: 错误: 找不到符号
+    public boolean renderItem(PoseStack stack, MultiBufferSource bufferSource, FiguraModelPart part, int light, int overlay) {
+                                               ^
+  符号:   类 MultiBufferSource
+  位置: 类 Avatar
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\lua\api\particle\PreviewParticleFrame.java:7: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\lua\api\particle\PreviewParticleFrame.java:89: 错误: 找不到符号
+    public void draw(Matrix4f entityToDraw, MultiBufferSource source) {
+                                            ^
+  符号:   类 MultiBufferSource
+  位置: 类 PreviewParticleFrame
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\lua\api\particle\CustomParticlePipelines.java:7: 错误: 找不到符号
+import com.mojang.blaze3d.platform.DestFactor;
+                                  ^
+  符号:   类 DestFactor
+  位置: 程序包 com.mojang.blaze3d.platform
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\lua\api\particle\CustomParticlePipelines.java:8: 错误: 找不到符号
+import com.mojang.blaze3d.platform.SourceFactor;
+                                  ^
+  符号:   类 SourceFactor
+  位置: 程序包 com.mojang.blaze3d.platform
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\lua\api\particle\RibbonRenderState.java:12: 错误: 找不到符号
+import net.minecraft.client.renderer.feature.ParticleFeatureRenderer;
+                                            ^
+  符号:   类 ParticleFeatureRenderer
+  位置: 程序包 net.minecraft.client.renderer.feature
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\lua\api\particle\RibbonRenderState.java:26: 错误: 找不到符号
+final class RibbonRenderState implements ParticleGroupRenderState, SubmitNodeCollector.ParticleGroupRenderer {
+                                                                                      ^
+  符号:   类 ParticleGroupRenderer
+  位置: 接口 SubmitNodeCollector
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\lua\api\particle\RibbonRenderState.java:75: 错误: 程序包ParticleFeatureRenderer不存在
+    public QuadParticleRenderState.PreparedBuffers prepare(ParticleFeatureRenderer.ParticleBufferCache cache,
+                                                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\lua\api\particle\RibbonRenderState.java:75: 错误: 找不到符号
+    public QuadParticleRenderState.PreparedBuffers prepare(ParticleFeatureRenderer.ParticleBufferCache cache,
+                                  ^
+  符号:   类 PreparedBuffers
+  位置: 类 QuadParticleRenderState
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\lua\api\particle\RibbonRenderState.java:140: 错误: 找不到符号
+    public void render(QuadParticleRenderState.PreparedBuffers prepared,
+                                              ^
+  符号:   类 PreparedBuffers
+  位置: 类 QuadParticleRenderState
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\lua\api\particle\RibbonRenderState.java:141: 错误: 程序包ParticleFeatureRenderer不存在
+                       ParticleFeatureRenderer.ParticleBufferCache cache, RenderPass pass, TextureManager textures) {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:8: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmModelRuntime.java:837: 错误: 找不到符号
+    public boolean renderSubEntity(PoseStack stack, MultiBufferSource bufferSource, int light, String kind, String entityId) {
+                                                    ^
+  符号:   类 MultiBufferSource
+  位置: 类 YsmModelRuntime
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmModelRuntime.java:841: 错误: 找不到符号
+    public boolean renderSubEntity(PoseStack stack, MultiBufferSource bufferSource, int light,
+                                                    ^
+  符号:   类 MultiBufferSource
+  位置: 类 YsmModelRuntime
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmModelRuntime.java:1649: 错误: 找不到符号
+    public boolean renderFirstPersonArm(PoseStack stack, MultiBufferSource bufferSource, int light, boolean left) {
+                                                         ^
+  符号:   类 MultiBufferSource
+  位置: 类 YsmModelRuntime
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmModelRuntime.java:1653: 错误: 找不到符号
+    public boolean renderFirstPersonArm(PoseStack stack, MultiBufferSource bufferSource, int light,
+                                                         ^
+  符号:   类 MultiBufferSource
+  位置: 类 YsmModelRuntime
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuDrawContext.java:11: 错误: 找不到符号
+                             Map<String, RenderSetup.TextureAndSampler> textures,
+                                                    ^
+  符号:   类 TextureAndSampler
+  位置: 类 RenderSetup
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuSubmission.java:12: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuSubmission.java:60: 错误: 程序包MultiBufferSource不存在
+    private final Map<MultiBufferSource.BufferSource, Map<RenderType, Boundary>> sources = new WeakHashMap<>();
+                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuSubmission.java:75: 错误: 找不到符号
+    public static boolean enqueue(MultiBufferSource source, DrawBatch batch, JavaEmitter fallback) {
+                                  ^
+  符号:   类 MultiBufferSource
+  位置: 类 GpuSubmission
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuSubmission.java:98: 错误: 找不到符号
+    boolean offer(MultiBufferSource source, DrawBatch batch, JavaEmitter fallback) {
+                  ^
+  符号:   类 MultiBufferSource
+  位置: 类 GpuSubmission
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:78: 错误: 找不到符号
+    public boolean render(PoseStack stack, MultiBufferSource bufferSource, int light) {
+                                           ^
+  符号:   类 MultiBufferSource
+  位置: 类 YsmRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:82: 错误: 找不到符号
+    public boolean render(PoseStack stack, MultiBufferSource bufferSource, int light, YsmPartMask mask) {
+                                           ^
+  符号:   类 MultiBufferSource
+  位置: 类 YsmRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:86: 错误: 找不到符号
+    public boolean render(PoseStack stack, MultiBufferSource bufferSource, int light, YsmPartMask mask, YsmRenderPose pose) {
+                                           ^
+  符号:   类 MultiBufferSource
+  位置: 类 YsmRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:115: 错误: 找不到符号
+    public boolean renderWithAttachments(PoseStack stack, MultiBufferSource bufferSource, int light,
+                                                          ^
+  符号:   类 MultiBufferSource
+  位置: 类 YsmRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:128: 错误: 找不到符号
+    public boolean renderSubEntity(PoseStack stack, MultiBufferSource bufferSource, int light, YsmSubEntity entity) {
+                                                    ^
+  符号:   类 MultiBufferSource
+  位置: 类 YsmRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:148: 错误: 找不到符号
+    public boolean renderAttachments(PoseStack stack, MultiBufferSource bufferSource, int light) {
+                                                      ^
+  符号:   类 MultiBufferSource
+  位置: 类 YsmRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:152: 错误: 找不到符号
+    public boolean renderAttachments(PoseStack stack, MultiBufferSource bufferSource, int light, YsmRenderPose pose) {
+                                                      ^
+  符号:   类 MultiBufferSource
+  位置: 类 YsmRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:158: 错误: 找不到符号
+    public boolean renderAttachmentType(PoseStack stack, MultiBufferSource bufferSource, int light, YsmAttachmentType type) {
+                                                         ^
+  符号:   类 MultiBufferSource
+  位置: 类 YsmRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:162: 错误: 找不到符号
+    private boolean renderAttachmentType(PoseStack stack, MultiBufferSource bufferSource, int light,
+                                                          ^
+  符号:   类 MultiBufferSource
+  位置: 类 YsmRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:183: 错误: 找不到符号
+    public boolean renderAttachment(PoseStack stack, MultiBufferSource bufferSource, int light, String name) {
+                                                     ^
+  符号:   类 MultiBufferSource
+  位置: 类 YsmRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:187: 错误: 找不到符号
+    public boolean renderAttachment(PoseStack stack, MultiBufferSource bufferSource, int light, YsmAttachmentPoint point) {
+                                                     ^
+  符号:   类 MultiBufferSource
+  位置: 类 YsmRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:191: 错误: 找不到符号
+    private boolean renderAttachment(PoseStack stack, MultiBufferSource bufferSource, int light,
+                                                      ^
+  符号:   类 MultiBufferSource
+  位置: 类 YsmRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:240: 错误: 找不到符号
+    public boolean renderFirstPersonArm(PoseStack stack, MultiBufferSource bufferSource, int light, boolean left) {
+                                                         ^
+  符号:   类 MultiBufferSource
+  位置: 类 YsmRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:244: 错误: 找不到符号
+    public boolean renderFirstPersonArm(PoseStack stack, MultiBufferSource bufferSource, int light,
+                                                         ^
+  符号:   类 MultiBufferSource
+  位置: 类 YsmRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:35: 错误: 找不到符号
+    private record DrawTarget(MultiBufferSource source, RenderType material, Identifier texture,
+                              ^
+  符号:   类 MultiBufferSource
+  位置: 类 DrawTarget
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:37: 错误: 找不到符号
+        DrawTarget(MultiBufferSource source, RenderType material, Identifier texture, String channel, int order) {
+                   ^
+  符号:   类 MultiBufferSource
+  位置: 类 DrawTarget
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\library\PreviewBoneHighlight.java:7: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\outfit\OutfitComposition.java:696: 错误: 找不到符号
+        public void drawLocalParticles(Matrix4fc entityToDraw, net.minecraft.client.renderer.MultiBufferSource buffers,
+                                                                                            ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\library\PreviewBoneHighlight.java:170: 错误: 找不到符号
+    public static void drawSkeleton(List<Segment> segments, Matrix4fc entityToDraw, MultiBufferSource source) {
+                                                                                    ^
+  符号:   类 MultiBufferSource
+  位置: 类 PreviewBoneHighlight
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\library\PreviewBoneHighlight.java:196: 错误: 找不到符号
+    public static void figura(FiguraModelPart part, PartCustomization transform, MultiBufferSource source) {
+                                                                                 ^
+  符号:   类 MultiBufferSource
+  位置: 类 PreviewBoneHighlight
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\library\PreviewBoneHighlight.java:211: 错误: 找不到符号
+    public static void ysm(YsmGeometry.Bone bone, PoseStack stack, MultiBufferSource source) {
+                                                                   ^
+  符号:   类 MultiBufferSource
+  位置: 类 PreviewBoneHighlight
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\compat\SimpleVCCompat.java:4: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\compat\SimpleVCCompat.java:27: 错误: 找不到符号
+    public static void renderSimpleVCIcon(EntityRenderState state, Component text, PoseStack stack, MultiBufferSource multiBufferSource, int light) {
+                                                                                                    ^
+  符号:   类 MultiBufferSource
+  位置: 类 SimpleVCCompat
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\compat\GeckolibGeoArmorRendererMixin.java:4: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\EntityRenderDispatcherMixin.java:17: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\GameRendererMixin.java:17: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\GameRendererMixin.java:200: 错误: 程序包MultiBufferSource不存在
+    private List<PictureInPictureRenderer<?>> addPortraitRenderer(List<PictureInPictureRenderer<?>> list, @Local MultiBufferSource.BufferSource source) {
+                                                                                                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\layers\CapeLayerMixin.java:10: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\layers\CustomHeadLayerMixin.java:11: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\layers\elytra\ElytraLayerMixin.java:10: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\layers\items\ItemInHandLayerMixin.java:10: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\layers\items\PlayerItemInHandLayerMixin.java:7: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemRendererMixin.java:5: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\PlayerRendererMixin.java:10: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\PlayerRendererMixin.java:66: 错误: 找不到符号
+    private static MultiBufferSource figura$singleBuffer(VertexConsumer consumer) {
+                   ^
+  符号:   类 MultiBufferSource
+  位置: 类 PlayerRendererMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ScreenEffectRendererMixin.java:5: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ScreenEffectRendererMixin.java:25: 错误: 找不到符号
+    private static void renderFire(PoseStack poseStack, MultiBufferSource multiBufferSource, TextureAtlasSprite textureAtlasSprite, CallbackInfo ci) {
+                                                        ^
+  符号:   类 MultiBufferSource
+  位置: 类 ScreenEffectRendererMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\SkullBlockRendererMixin.java:6: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\TridentRendererMixin.java:6: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\FiguraArmorPartRenderer.java:5: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\RenderUtils.java:12: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\RenderUtils.java:177: 错误: 找不到符号
+    public static void createDummySubmission(BitSet selection, SubmitNodeCollector submitNodeStorage, BiFunction<MultiBufferSource, PoseStack, Boolean> preRender, Runnable postRender) {
+                                                                                                                 ^
+  符号:   类 MultiBufferSource
+  位置: 类 RenderUtils
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\ducks\FiguraSubmitCallBackExtension.java:4: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\ducks\FiguraSubmitCallBackExtension.java:12: 错误: 找不到符号
+    void figura$addPreRenderingCallback(BiFunction<MultiBufferSource, PoseStack, Boolean> callback);
+                                                   ^
+  符号:   类 MultiBufferSource
+  位置: 接口 FiguraSubmitCallBackExtension
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\ducks\FiguraSubmitCallBackExtension.java:13: 错误: 找不到符号
+    default List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$getPreRenderingCallbacks() {
+                            ^
+  符号:   类 MultiBufferSource
+  位置: 接口 FiguraSubmitCallBackExtension
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\ducks\NameTagFeatureRenderer$StorageExtension.java:8: 错误: 找不到符号
+    List<SubmitNodeStorage.NameTagSubmit> getOutlineSubmits();
+                          ^
+  符号:   类 NameTagSubmit
+  位置: 类 SubmitNodeStorage
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\ducks\NodeCollectorExtension.java:3: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\ducks\NodeCollectorExtension.java:18: 错误: 找不到符号
+    <S extends EntityRenderState> void submitFiguraModel(Avatar avatar, S renderState, TriFunction<Avatar, S, MultiBufferSource, Void> renderer);
+                                                                                                              ^
+  符号:   类 MultiBufferSource
+  位置: 接口 NodeCollectorExtension
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\nodeRenderer\FiguraSubmission.java:3: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\nodeRenderer\FiguraSubmission.java:11: 错误: 找不到符号
+                               TriFunction<Avatar, EntityRenderState, MultiBufferSource, Void> renderer,
+                                                                      ^
+  符号:   类 MultiBufferSource
+  位置: 类 FiguraSubmission
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\nodeRenderer\FiguraSubmission.java:15: 错误: 找不到符号
+                            TriFunction<Avatar, EntityRenderState, MultiBufferSource, Void> renderer) {
+                                                                   ^
+  符号:   类 MultiBufferSource
+  位置: 类 FiguraSubmission
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\FiguraGuiEntityRenderer.java:4: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\FiguraGuiEntityRenderer.java:9: 错误: 程序包MultiBufferSource不存在
+    public FiguraGuiEntityRenderer(MultiBufferSource.BufferSource bufferSource, EntityRenderDispatcher entityRenderDispatcher) {
+                                                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\FiguraGuiRenderer.java:10: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\FiguraGuiRenderer.java:32: 错误: 程序包MultiBufferSource不存在
+    public FiguraGuiRenderer(MultiBufferSource.BufferSource bufferSource) {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\FiguraPortraitRenderer.java:19: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\FiguraPortraitRenderer.java:39: 错误: 程序包MultiBufferSource不存在
+    public FiguraPortraitRenderer(MultiBufferSource.BufferSource bufferSource) {
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\gui\GuiEntityRendererMixin.java:11: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\gui\GuiEntityRendererMixin.java:36: 错误: 程序包MultiBufferSource不存在
+    protected GuiEntityRendererMixin(MultiBufferSource.BufferSource bufferSource) {
+                                                      ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\gui\GuiEntityRenderStateMixin.java:5: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\gui\GuiRendererAccessor.java:5: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\gui\GuiRendererAccessor.java:15: 错误: 程序包MultiBufferSource不存在
+    MultiBufferSource.BufferSource figura$getBufferSource();
+                     ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\gui\GuiRendererMixin.java:14: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\gui\GuiRendererMixin.java:54: 错误: 程序包MultiBufferSource不存在
+    private void initializePaperDollRenderer(GuiRenderState guiRenderState, MultiBufferSource.BufferSource bufferSource, SubmitNodeCollector submitNodeCollector, FeatureRenderDispatcher featureRenderDispatcher, List<PictureInPictureRenderer<?>> list, CallbackInfo ci) {
+                                                                                             ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\particle\ParticleWorldLightMixin.java:21: 错误: 找不到符号
+    private static int figura$particleWorldLight(int original, LevelRenderer.BrightnessGetter brightness,
+                                                                            ^
+  符号:   类 BrightnessGetter
+  位置: 类 LevelRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\AvatarRendererMixin.java:7: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\AvatarRendererMixin.java:35: 错误: 找不到符号
+    private static MultiBufferSource singleBuffer(VertexConsumer consumer) {
+                   ^
+  符号:   类 MultiBufferSource
+  位置: 类 AvatarRendererMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\FeatureRendererDispatcherMixin.java:4: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\FeatureRendererDispatcherMixin.java:19: 错误: 程序包MultiBufferSource不存在
+    private MultiBufferSource.BufferSource bufferSource;
+                             ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\nodeRenderer\FiguraFeatureRenderer.java:4: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\nodeRenderer\FiguraFeatureRenderer.java:16: 错误: 程序包MultiBufferSource不存在
+    public void render(SubmitNodeCollection submitNodeCollection, MultiBufferSource.BufferSource bufferSource) {
+                                                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\FlameFeatureRendererMixin.java:5: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\FlameFeatureRendererMixin.java:6: 错误: 找不到符号
+import net.minecraft.client.renderer.OutlineBufferSource;
+                                    ^
+  符号:   类 OutlineBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\FlameFeatureRendererMixin.java:47: 错误: 程序包MultiBufferSource不存在
+            SubmitNodeCollection submitNodeCollection, MultiBufferSource.BufferSource bufferSource, AtlasManager atlasManager, CallbackInfo ci, @Local SubmitNodeStorage.FlameSubmit flameSubmit ) {
+                                                                        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\FlameFeatureRendererMixin.java:47: 错误: 找不到符号
+            SubmitNodeCollection submitNodeCollection, MultiBufferSource.BufferSource bufferSource, AtlasManager atlasManager, CallbackInfo ci, @Local SubmitNodeStorage.FlameSubmit flameSubmit ) {
+                                                                                                                                                                        ^
+  符号:   类 FlameSubmit
+  位置: 类 SubmitNodeStorage
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ItemFeatureRendererMixin.java:4: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ItemFeatureRendererMixin.java:5: 错误: 找不到符号
+import net.minecraft.client.renderer.OutlineBufferSource;
+                                    ^
+  符号:   类 OutlineBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ItemFeatureRendererMixin.java:18: 错误: 程序包MultiBufferSource不存在
+    private void figura$preRender(MultiBufferSource.BufferSource bufferSource,
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ItemFeatureRendererMixin.java:19: 错误: 找不到符号
+                                  OutlineBufferSource outlineBufferSource,
+                                  ^
+  符号:   类 OutlineBufferSource
+  位置: 类 ItemFeatureRendererMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ItemFeatureRendererMixin.java:20: 错误: 找不到符号
+                                  SubmitNodeStorage.ItemSubmit itemSubmit,
+                                                   ^
+  符号:   类 ItemSubmit
+  位置: 类 SubmitNodeStorage
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ItemFeatureRendererMixin.java:45: 错误: 程序包MultiBufferSource不存在
+    private void figura$postRender(MultiBufferSource.BufferSource bufferSource,
+                                                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ItemFeatureRendererMixin.java:46: 错误: 找不到符号
+                                   OutlineBufferSource outlineBufferSource,
+                                   ^
+  符号:   类 OutlineBufferSource
+  位置: 类 ItemFeatureRendererMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ItemFeatureRendererMixin.java:47: 错误: 找不到符号
+                                   SubmitNodeStorage.ItemSubmit itemSubmit,
+                                                    ^
+  符号:   类 ItemSubmit
+  位置: 类 SubmitNodeStorage
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelFeatureRendererMixin.java:7: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelFeatureRendererMixin.java:8: 错误: 找不到符号
+import net.minecraft.client.renderer.OutlineBufferSource;
+                                    ^
+  符号:   类 OutlineBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelFeatureRendererMixin.java:33: 错误: 找不到符号
+    private <S> void figura$beforeSetupAnim(SubmitNodeStorage.ModelSubmit<S> modelSubmit, RenderType renderType, VertexConsumer vertexConsumer,
+                                                             ^
+  符号:   类 ModelSubmit
+  位置: 类 SubmitNodeStorage
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelFeatureRendererMixin.java:34: 错误: 找不到符号
+                                            OutlineBufferSource outlineBufferSource, MultiBufferSource.BufferSource bufferSource, CallbackInfo ci) {
+                                            ^
+  符号:   类 OutlineBufferSource
+  位置: 类 ModelFeatureRendererMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelFeatureRendererMixin.java:34: 错误: 程序包MultiBufferSource不存在
+                                            OutlineBufferSource outlineBufferSource, MultiBufferSource.BufferSource bufferSource, CallbackInfo ci) {
+                                                                                                      ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelFeatureRendererMixin.java:42: 错误: 找不到符号
+    private <S> void figura$preRender(SubmitNodeStorage.ModelSubmit<S> modelSubmit, RenderType renderType, VertexConsumer vertexConsumer,
+                                                       ^
+  符号:   类 ModelSubmit
+  位置: 类 SubmitNodeStorage
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelFeatureRendererMixin.java:43: 错误: 找不到符号
+                                            OutlineBufferSource outlineBufferSource, MultiBufferSource.BufferSource bufferSource, CallbackInfo ci) {
+                                            ^
+  符号:   类 OutlineBufferSource
+  位置: 类 ModelFeatureRendererMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelFeatureRendererMixin.java:43: 错误: 程序包MultiBufferSource不存在
+                                            OutlineBufferSource outlineBufferSource, MultiBufferSource.BufferSource bufferSource, CallbackInfo ci) {
+                                                                                                      ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelFeatureRendererMixin.java:69: 错误: 找不到符号
+    private <S> void figura$postRender(SubmitNodeStorage.ModelSubmit<S> modelSubmit, RenderType renderType, VertexConsumer vertexConsumer,
+                                                        ^
+  符号:   类 ModelSubmit
+  位置: 类 SubmitNodeStorage
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelFeatureRendererMixin.java:70: 错误: 找不到符号
+                                      OutlineBufferSource outlineBufferSource, MultiBufferSource.BufferSource bufferSource, CallbackInfo ci) {
+                                      ^
+  符号:   类 OutlineBufferSource
+  位置: 类 ModelFeatureRendererMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelFeatureRendererMixin.java:70: 错误: 程序包MultiBufferSource不存在
+                                      OutlineBufferSource outlineBufferSource, MultiBufferSource.BufferSource bufferSource, CallbackInfo ci) {
+                                                                                                ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelPartFeatureRendererMixin.java:8: 错误: 找不到符号
+import net.minecraft.client.renderer.feature.ModelPartFeatureRenderer;
+                                            ^
+  符号:   类 ModelPartFeatureRenderer
+  位置: 程序包 net.minecraft.client.renderer.feature
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelPartFeatureRendererMixin.java:25: 错误: 程序包MultiBufferSource不存在
+    private <S> void figura$preRender(Map<?, ?> map, MultiBufferSource.BufferSource bufferSource,
+                                                                      ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelPartFeatureRendererMixin.java:26: 错误: 找不到符号
+                                      OutlineBufferSource outlineBufferSource, MultiBufferSource.BufferSource crumblingBufferSource, CallbackInfo ci, @Local SubmitNodeStorage.ModelPartSubmit modelSubmit) {
+                                      ^
+  符号:   类 OutlineBufferSource
+  位置: 类 ModelPartFeatureRendererMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelPartFeatureRendererMixin.java:26: 错误: 程序包MultiBufferSource不存在
+                                      OutlineBufferSource outlineBufferSource, MultiBufferSource.BufferSource crumblingBufferSource, CallbackInfo ci, @Local SubmitNodeStorage.ModelPartSubmit modelSubmit) {
+                                                                                                ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelPartFeatureRendererMixin.java:26: 错误: 找不到符号
+                                      OutlineBufferSource outlineBufferSource, MultiBufferSource.BufferSource crumblingBufferSource, CallbackInfo ci, @Local SubmitNodeStorage.ModelPartSubmit modelSubmit) {
+                                                                                                                                                                              ^
+  符号:   类 ModelPartSubmit
+  位置: 类 SubmitNodeStorage
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelPartFeatureRendererMixin.java:45: 错误: 程序包MultiBufferSource不存在
+    private <S> void figura$postRender(Map<?, ?> map, MultiBufferSource.BufferSource bufferSource,
+                                                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelPartFeatureRendererMixin.java:46: 错误: 找不到符号
+                                       OutlineBufferSource outlineBufferSource, MultiBufferSource.BufferSource crumblingBufferSource, CallbackInfo ci, @Local SubmitNodeStorage.ModelPartSubmit modelSubmit) {
+                                       ^
+  符号:   类 OutlineBufferSource
+  位置: 类 ModelPartFeatureRendererMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelPartFeatureRendererMixin.java:46: 错误: 程序包MultiBufferSource不存在
+                                       OutlineBufferSource outlineBufferSource, MultiBufferSource.BufferSource crumblingBufferSource, CallbackInfo ci, @Local SubmitNodeStorage.ModelPartSubmit modelSubmit) {
+                                                                                                 ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelPartFeatureRendererMixin.java:46: 错误: 找不到符号
+                                       OutlineBufferSource outlineBufferSource, MultiBufferSource.BufferSource crumblingBufferSource, CallbackInfo ci, @Local SubmitNodeStorage.ModelPartSubmit modelSubmit) {
+                                                                                                                                                                               ^
+  符号:   类 ModelPartSubmit
+  位置: 类 SubmitNodeStorage
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\NameTagFeatureRenderer$StorageMixin.java:40: 错误: 找不到符号
+    final List<SubmitNodeStorage.NameTagSubmit> figura$outlineSubmits = new ArrayList<>();
+                                ^
+  符号:   类 NameTagSubmit
+  位置: 类 SubmitNodeStorage
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\NameTagFeatureRenderer$StorageMixin.java:239: 错误: 找不到符号
+    public List<SubmitNodeStorage.NameTagSubmit> getOutlineSubmits() {
+                                 ^
+  符号:   类 NameTagSubmit
+  位置: 类 SubmitNodeStorage
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\NameTagFeatureRendererMixin.java:5: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\NameTagFeatureRendererMixin.java:17: 错误: 程序包MultiBufferSource不存在
+    private void renderOutlineTexts(CallbackInfo ci, @Local(argsOnly = true) MultiBufferSource.BufferSource bufferSource,
+                                                                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\NameTagFeatureRendererMixin.java:18: 错误: 找不到符号
+                                    @Local(argsOnly = true) Font font, @Local NameTagFeatureRenderer.Storage storage) {
+                                                                                                    ^
+  符号:   类 Storage
+  位置: 类 NameTagFeatureRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\model\ModelMixin.java:6: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\model\ModelMixin.java:18: 错误: 找不到符号
+    private final List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$preRenderingCallback = new ArrayList<>();
+                                  ^
+  符号:   类 MultiBufferSource
+  位置: 类 ModelMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\model\ModelMixin.java:23: 错误: 找不到符号
+    public void figura$addPreRenderingCallback(BiFunction<MultiBufferSource, PoseStack, Boolean> callback) {
+                                                          ^
+  符号:   类 MultiBufferSource
+  位置: 类 ModelMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\model\ModelMixin.java:38: 错误: 找不到符号
+    public List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$getPreRenderingCallbacks() {
+                           ^
+  符号:   类 MultiBufferSource
+  位置: 类 ModelMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\model\ModelPartMixin.java:8: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\model\ModelPartMixin.java:28: 错误: 找不到符号
+    private final List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$preRenderingCallback = new ArrayList<>();
+                                  ^
+  符号:   类 MultiBufferSource
+  位置: 类 ModelPartMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\model\ModelPartMixin.java:33: 错误: 找不到符号
+    public void figura$addPreRenderingCallback(BiFunction<MultiBufferSource, PoseStack, Boolean> callback) {
+                                                          ^
+  符号:   类 MultiBufferSource
+  位置: 类 ModelPartMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\model\ModelPartMixin.java:48: 错误: 找不到符号
+    public List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$getPreRenderingCallbacks() {
+                           ^
+  符号:   类 MultiBufferSource
+  位置: 类 ModelPartMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\ItemDisplayContextMixin.java:4: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\ItemDisplayContextMixin.java:18: 错误: 找不到符号
+    private final List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$preRenderingCallback = new ArrayList<>();
+                                  ^
+  符号:   类 MultiBufferSource
+  位置: 类 ItemDisplayContextMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\ItemDisplayContextMixin.java:23: 错误: 找不到符号
+    public void figura$addPreRenderingCallback(BiFunction<MultiBufferSource, PoseStack, Boolean> callback) {
+                                                          ^
+  符号:   类 MultiBufferSource
+  位置: 类 ItemDisplayContextMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\ItemDisplayContextMixin.java:33: 错误: 找不到符号
+    public List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$getPreRenderingCallbacks() {
+                           ^
+  符号:   类 MultiBufferSource
+  位置: 类 ItemDisplayContextMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeCollectionMixin.java:8: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeCollectionMixin.java:14: 错误: 找不到符号
+import net.minecraft.client.renderer.feature.ModelPartFeatureRenderer;
+                                            ^
+  符号:   类 ModelPartFeatureRenderer
+  位置: 程序包 net.minecraft.client.renderer.feature
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeCollectionMixin.java:38: 错误: 找不到符号
+    public <S extends EntityRenderState> void submitFiguraModel(Avatar avatar, S renderState, TriFunction<Avatar, S, MultiBufferSource, Void> renderer) {
+                                                                                                                     ^
+  符号:   类 MultiBufferSource
+  位置: 类 SubmitNodeCollectionMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeCollectionMixin.java:48: 错误: 找不到符号
+    private <S> void figura$onSubmitModel(Model<? super S> model, S object, PoseStack poseStack, RenderType renderType, int i, int j, int k, @Nullable TextureAtlasSprite textureAtlasSprite, int l, @Nullable ModelFeatureRenderer.CrumblingOverlay crumblingOverlay, CallbackInfo ci, @Local SubmitNodeStorage.ModelSubmit<S> modelSubmit) {
+                                                                                                                                                                                                                                                                                                                ^
+  符号:   类 ModelSubmit
+  位置: 类 SubmitNodeStorage
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeCollectionMixin.java:64: 错误: 程序包ModelPartFeatureRenderer不存在
+    private void figura$onSubmitModelPart(ModelPartFeatureRenderer.Storage instance, RenderType key, SubmitNodeStorage.ModelPartSubmit modelPartSubmit, Operation<Void> original) {
+                                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeCollectionMixin.java:64: 错误: 找不到符号
+    private void figura$onSubmitModelPart(ModelPartFeatureRenderer.Storage instance, RenderType key, SubmitNodeStorage.ModelPartSubmit modelPartSubmit, Operation<Void> original) {
+                                                                                                                      ^
+  符号:   类 ModelPartSubmit
+  位置: 类 SubmitNodeStorage
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ItemSubmitMixin.java:4: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ItemSubmitMixin.java:17: 错误: 找不到符号
+    private final List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$preRenderingCallback = new ArrayList<>();
+                                  ^
+  符号:   类 MultiBufferSource
+  位置: 类 SubmitNodeStorage$ItemSubmitMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ItemSubmitMixin.java:22: 错误: 找不到符号
+    public void figura$addPreRenderingCallback(BiFunction<MultiBufferSource, PoseStack, Boolean> callback) {
+                                                          ^
+  符号:   类 MultiBufferSource
+  位置: 类 SubmitNodeStorage$ItemSubmitMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ItemSubmitMixin.java:32: 错误: 找不到符号
+    public List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$getPreRenderingCallbacks() {
+                           ^
+  符号:   类 MultiBufferSource
+  位置: 类 SubmitNodeStorage$ItemSubmitMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ModelPartSubmitMixin.java:4: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ModelPartSubmitMixin.java:17: 错误: 找不到符号
+    private final List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$preRenderingCallback = new ArrayList<>();
+                                  ^
+  符号:   类 MultiBufferSource
+  位置: 类 SubmitNodeStorage$ModelPartSubmitMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ModelPartSubmitMixin.java:22: 错误: 找不到符号
+    public void figura$addPreRenderingCallback(BiFunction<MultiBufferSource, PoseStack, Boolean> callback) {
+                                                          ^
+  符号:   类 MultiBufferSource
+  位置: 类 SubmitNodeStorage$ModelPartSubmitMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ModelPartSubmitMixin.java:32: 错误: 找不到符号
+    public List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$getPreRenderingCallbacks() {
+                           ^
+  符号:   类 MultiBufferSource
+  位置: 类 SubmitNodeStorage$ModelPartSubmitMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ModelSubmitMixin.java:4: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ModelSubmitMixin.java:17: 错误: 找不到符号
+    private final List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$preRenderingCallback = new ArrayList<>();
+                                  ^
+  符号:   类 MultiBufferSource
+  位置: 类 SubmitNodeStorage$ModelSubmitMixin<S>
+  其中, S是类型变量:
+    S扩展已在类 SubmitNodeStorage$ModelSubmitMixin中声明的Object
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ModelSubmitMixin.java:22: 错误: 找不到符号
+    public void figura$addPreRenderingCallback(BiFunction<MultiBufferSource, PoseStack, Boolean> callback) {
+                                                          ^
+  符号:   类 MultiBufferSource
+  位置: 类 SubmitNodeStorage$ModelSubmitMixin<S>
+  其中, S是类型变量:
+    S扩展已在类 SubmitNodeStorage$ModelSubmitMixin中声明的Object
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ModelSubmitMixin.java:32: 错误: 找不到符号
+    public List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$getPreRenderingCallbacks() {
+                           ^
+  符号:   类 MultiBufferSource
+  位置: 类 SubmitNodeStorage$ModelSubmitMixin<S>
+  其中, S是类型变量:
+    S扩展已在类 SubmitNodeStorage$ModelSubmitMixin中声明的Object
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorageMixin.java:3: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorageMixin.java:23: 错误: 找不到符号
+    public <S extends EntityRenderState> void submitFiguraModel(Avatar avatar, S renderState, TriFunction<Avatar, S, MultiBufferSource, Void> renderer) {
+                                                                                                                     ^
+  符号:   类 MultiBufferSource
+  位置: 类 SubmitNodeStorageMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\renderers\ItemStackRenderStateMixin.java:4: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\renderers\ItemStackRenderStateMixin.java:34: 错误: 找不到符号
+    private final List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$preRenderingCallback = new ArrayList<>();
+                                  ^
+  符号:   类 MultiBufferSource
+  位置: 类 ItemStackRenderStateMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\renderers\ItemStackRenderStateMixin.java:77: 错误: 找不到符号
+    public void figura$addPreRenderingCallback(BiFunction<MultiBufferSource, PoseStack, Boolean> callback) {
+                                                          ^
+  符号:   类 MultiBufferSource
+  位置: 类 ItemStackRenderStateMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\renderers\ItemStackRenderStateMixin.java:92: 错误: 找不到符号
+    public List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$getPreRenderingCallbacks() {
+                           ^
+  符号:   类 MultiBufferSource
+  位置: 类 ItemStackRenderStateMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\library\LibraryFiguraPreviewRenderer.java:9: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\library\LibraryFiguraPreviewRenderer.java:27: 错误: 程序包MultiBufferSource不存在
+    public LibraryFiguraPreviewRenderer(MultiBufferSource.BufferSource source) {
+                                                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\library\LibraryFiguraPreviewRenderer.java:58: 错误: 找不到符号
+    static void draw(LibraryFiguraPreviewState state, PoseStack stack, MultiBufferSource source, PlayerModel model) {
+                                                                       ^
+  符号:   类 MultiBufferSource
+  位置: 类 LibraryFiguraPreviewRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\library\PreviewBoneHighlight.java:255: 错误: 找不到符号
+        void draw(PoseStack.Pose pose, MultiBufferSource source) {
+                                       ^
+  符号:   类 MultiBufferSource
+  位置: 类 Bounds
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\outfit\OutfitFirstPersonScripts.java:8: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\outfit\OutfitFirstPersonScripts.java:96: 错误: 找不到符号
+                                MultiBufferSource discard) {
+                                ^
+  符号:   类 MultiBufferSource
+  位置: 类 OutfitFirstPersonScripts
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\outfit\OutfitFirstPersonScripts.java:115: 错误: 找不到符号
+                                   MultiBufferSource discard) {
+                                   ^
+  符号:   类 MultiBufferSource
+  位置: 类 OutfitFirstPersonScripts
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\outfit\OutfitNativeRenderer.java:4: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\outfit\OutfitNativeRenderer.java:28: 错误: 找不到符号
+                                   MultiBufferSource buffers, EntityRenderMode mode) {
+                                   ^
+  符号:   类 MultiBufferSource
+  位置: 类 OutfitNativeRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\outfit\OutfitNativeRenderer.java:35: 错误: 找不到符号
+                                      MultiBufferSource buffers, boolean left) {
+                                      ^
+  符号:   类 MultiBufferSource
+  位置: 类 OutfitNativeRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\outfit\OutfitNativeRenderer.java:42: 错误: 找不到符号
+                            MultiBufferSource buffers, EntityRenderMode mode) {
+                            ^
+  符号:   类 MultiBufferSource
+  位置: 类 OutfitNativeRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\outfit\OutfitNativeRenderer.java:57: 错误: 找不到符号
+                                    MultiBufferSource buffers, int light, EntityRenderMode mode) {
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 类 OutfitNativeRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\outfit\OutfitNativeRenderer.java:62: 错误: 找不到符号
+                                     Matrix4fc entityToDraw, MultiBufferSource buffers, int light, EntityRenderMode mode) {
+                                                             ^
+  符号:   类 MultiBufferSource
+  位置: 类 OutfitNativeRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:13: 错误: 找不到符号
+import com.mojang.blaze3d.textures.TextureFormat;
+                                  ^
+  符号:   类 TextureFormat
+  位置: 程序包 com.mojang.blaze3d.textures
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelPartFeatureRendererMixin.java:18: 错误: 找不到符号
+@Mixin(ModelPartFeatureRenderer.class)
+       ^
+  符号: 类 ModelPartFeatureRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\NameTagFeatureRenderer$StorageMixin.java:35: 错误: 找不到符号
+@Mixin(NameTagFeatureRenderer.Storage.class)
+                             ^
+  符号:   类 Storage
+  位置: 类 NameTagFeatureRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$FlameSubmitMixin.java:9: 错误: 找不到符号
+@Mixin(SubmitNodeStorage.FlameSubmit.class)
+                        ^
+  符号:   类 FlameSubmit
+  位置: 类 SubmitNodeStorage
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ItemSubmitMixin.java:14: 错误: 找不到符号
+@Mixin(SubmitNodeStorage.ItemSubmit.class)
+                        ^
+  符号:   类 ItemSubmit
+  位置: 类 SubmitNodeStorage
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ModelPartSubmitMixin.java:14: 错误: 找不到符号
+@Mixin(SubmitNodeStorage.ModelPartSubmit.class)
+                        ^
+  符号:   类 ModelPartSubmit
+  位置: 类 SubmitNodeStorage
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ModelSubmitMixin.java:14: 错误: 找不到符号
+@Mixin(SubmitNodeStorage.ModelSubmit.class)
+                        ^
+  符号:   类 ModelSubmit
+  位置: 类 SubmitNodeStorage
+223 个错误
+
+> Task :common:compileJava FAILED
+
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_26.2/build/reports/problems/problems-report.html
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:compileJava'.
+> Compilation failed; see the compiler output below.
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:17: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\RenderTask.java:5: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\FiguraRenderer.java:7: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendering\texture\FiguraTexture.java:12: 错误: 找不到符号
+  import com.mojang.blaze3d.textures.TextureFormat;
+                                    ^
+    符号:   类 TextureFormat
+    位置: 程序包 com.mojang.blaze3d.textures
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\TextTask.java:7: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\ItemTask.java:5: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\BlockTask.java:7: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\SpriteTask.java:5: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\EntityTask.java:9: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\EntityTask.java:50: 错误: 找不到符号
+      public void render(PoseStack stack, MultiBufferSource buffer, int light, int overlay) {
+                                          ^
+    符号:   类 MultiBufferSource
+    位置: 类 EntityTask
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\SpriteTask.java:52: 错误: 找不到符号
+      public void render(PoseStack poseStack, MultiBufferSource buffer, int light, int overlay) {
+                                              ^
+    符号:   类 MultiBufferSource
+    位置: 类 SpriteTask
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\BlockTask.java:45: 错误: 找不到符号
+      public void render(PoseStack poseStack, MultiBufferSource buffer, int light, int overlay) {
+                                              ^
+    符号:   类 MultiBufferSource
+    位置: 类 BlockTask
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\ItemTask.java:43: 错误: 找不到符号
+      public void render(PoseStack poseStack, MultiBufferSource buffer, int light, int overlay) {
+                                              ^
+    符号:   类 MultiBufferSource
+    位置: 类 ItemTask
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\TextTask.java:55: 错误: 找不到符号
+      public void render(PoseStack poseStack, MultiBufferSource buffer, int light, int overlay) {
+                                              ^
+    符号:   类 MultiBufferSource
+    位置: 类 TextTask
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\ImmediateFiguraRenderer.java:1045: 错误: 找不到符号
+          private final HashMap<RenderType, List<Consumer<MultiBufferSource>>> primaryBuffers = new LinkedHashMap<>();
+                                                          ^
+    符号:   类 MultiBufferSource
+    位置: 类 VertexBuffer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\ImmediateFiguraRenderer.java:1046: 错误: 找不到符号
+          private final HashMap<RenderType, List<Consumer<MultiBufferSource>>> secondaryBuffers = new LinkedHashMap<>();
+                                                          ^
+    符号:   类 MultiBufferSource
+    位置: 类 VertexBuffer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\ImmediateFiguraRenderer.java:1048: 错误: 找不到符号
+          public void getBufferFor(RenderType renderType, boolean primary, Consumer<MultiBufferSource> consumer) {
+                                                                                    ^
+    符号:   类 MultiBufferSource
+    位置: 类 VertexBuffer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\ImmediateFiguraRenderer.java:1054: 错误: 找不到符号
+          public void consume(boolean primary, MultiBufferSource bufferSource) {
+                                               ^
+    符号:   类 MultiBufferSource
+    位置: 类 VertexBuffer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\FiguraRenderer.java:65: 错误: 找不到符号
+      public MultiBufferSource bufferSource;
+             ^
+    符号:   类 MultiBufferSource
+    位置: 类 FiguraRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\FiguraRenderer.java:233: 错误: 找不到符号
+      public void setupRenderer(PartFilterScheme currentFilterScheme, MultiBufferSource bufferSource, PoseStack matrices, float tickDelta, int light, float alpha, int overlay, boolean translucent, boolean glowing) {
+                                                                      ^
+    符号:   类 MultiBufferSource
+    位置: 类 FiguraRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\FiguraRenderer.java:238: 错误: 找不到符号
+      public void setupRenderer(PartFilterScheme currentFilterScheme, MultiBufferSource bufferSource, PoseStack matrices, float tickDelta, int light, float alpha, int overlay, boolean translucent, boolean glowing, double camX, double camY, double camZ) {
+                                                                      ^
+    符号:   类 MultiBufferSource
+    位置: 类 FiguraRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\FiguraRenderer.java:243: 错误: 找不到符号
+      private void setupRenderer(PartFilterScheme currentFilterScheme, MultiBufferSource bufferSource, float tickDelta, int light, float alpha, int overlay, boolean translucent, boolean glowing) {
+                                                                       ^
+    符号:   类 MultiBufferSource
+    位置: 类 FiguraRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\RenderTask.java:41: 错误: 找不到符号
+      public void render(PartCustomization.PartCustomizationStack stack, MultiBufferSource buffer, int light, int overlay) {
+                                                                         ^
+    符号:   类 MultiBufferSource
+    位置: 类 RenderTask
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\RenderTask.java:48: 错误: 找不到符号
+      public abstract void render(PoseStack stack, MultiBufferSource buffer, int light, int overlay);
+                                                   ^
+    符号:   类 MultiBufferSource
+    位置: 类 RenderTask
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmModelRuntime.java:9: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1300: 错误: 找不到符号
+      public boolean itemRenderEventDirect(ItemStackAPI item, String mode, FiguraVec3 pos, FiguraVec3 rot, FiguraVec3 scale, boolean leftHanded, PoseStack stack, MultiBufferSource bufferSource, int light, int overlay) {
+                                                                                                                                                                  ^
+    符号:   类 MultiBufferSource
+    位置: 类 Avatar
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1414: 错误: 找不到符号
+      public void render(Entity entity, float yaw, float delta, float alpha, PoseStack stack, MultiBufferSource bufferSource, int light, int overlay, EntityModel<?> entityModel, PartFilterScheme filter, boolean translucent, boolean glowing) {
+                                                                                              ^
+    符号:   类 MultiBufferSource
+    位置: 类 Avatar
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1431: 错误: 找不到符号
+      public synchronized void worldRender(Entity entity, double camX, double camY, double camZ, PoseStack stack, MultiBufferSource bufferSource, int lightFallback, float tickDelta, EntityRenderMode mode) {
+                                                                                                                  ^
+    符号:   类 MultiBufferSource
+    位置: 类 Avatar
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1459: 错误: 找不到符号
+      public void capeRender(Entity entity, MultiBufferSource bufferSource, PoseStack stack, int light, float tickDelta, ModelPart cloak) {
+                                            ^
+    符号:   类 MultiBufferSource
+    位置: 类 Avatar
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1481: 错误: 找不到符号
+      public void elytraRender(Entity entity, MultiBufferSource bufferSource, PoseStack stack, int light, float tickDelta, EntityModel<?> model) {
+                                              ^
+    符号:   类 MultiBufferSource
+    位置: 类 Avatar
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1511: 错误: 找不到符号
+      public void firstPersonWorldRender(Entity watcher, MultiBufferSource bufferSource, PoseStack matrices, Camera camera, float tickDelta) {
+                                                         ^
+    符号:   类 MultiBufferSource
+    位置: 类 Avatar
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1527: 错误: 找不到符号
+      public void firstPersonRender(PoseStack stack, MultiBufferSource bufferSource, Player player, PlayerModel playerModel, ModelPart arm, int light, float tickDelta) {
+                                                     ^
+    符号:   类 MultiBufferSource
+    位置: 类 Avatar
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1559: 错误: 找不到符号
+      public void hudRender(PoseStack stack, MultiBufferSource bufferSource, Entity entity, float tickDelta) {
+                                             ^
+    符号:   类 MultiBufferSource
+    位置: 类 Avatar
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1591: 错误: 找不到符号
+      public boolean skullRender(PoseStack stack, MultiBufferSource bufferSource, int light, Direction direction, float yaw) {
+                                                  ^
+    符号:   类 MultiBufferSource
+    位置: 类 Avatar
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1612: 错误: 找不到符号
+      public boolean headRender(PoseStack stack, MultiBufferSource bufferSource, int light, boolean useComplexity) {
+                                                 ^
+    符号:   类 MultiBufferSource
+    位置: 类 Avatar
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1712: 错误: 找不到符号
+      public boolean renderArrow(PoseStack stack, MultiBufferSource bufferSource, float delta, int light) {
+                                                  ^
+    符号:   类 MultiBufferSource
+    位置: 类 Avatar
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1734: 错误: 找不到符号
+      public boolean renderTrident(PoseStack stack, MultiBufferSource bufferSource, float delta, int light) {
+                                                    ^
+    符号:   类 MultiBufferSource
+    位置: 类 Avatar
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1760: 错误: 找不到符号
+      public boolean renderItem(PoseStack stack, MultiBufferSource bufferSource, FiguraModelPart part, int light, int overlay) {
+                                                 ^
+    符号:   类 MultiBufferSource
+    位置: 类 Avatar
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\lua\api\particle\PreviewParticleFrame.java:7: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\lua\api\particle\PreviewParticleFrame.java:89: 错误: 找不到符号
+      public void draw(Matrix4f entityToDraw, MultiBufferSource source) {
+                                              ^
+    符号:   类 MultiBufferSource
+    位置: 类 PreviewParticleFrame
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\lua\api\particle\CustomParticlePipelines.java:7: 错误: 找不到符号
+  import com.mojang.blaze3d.platform.DestFactor;
+                                    ^
+    符号:   类 DestFactor
+    位置: 程序包 com.mojang.blaze3d.platform
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\lua\api\particle\CustomParticlePipelines.java:8: 错误: 找不到符号
+  import com.mojang.blaze3d.platform.SourceFactor;
+                                    ^
+    符号:   类 SourceFactor
+    位置: 程序包 com.mojang.blaze3d.platform
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\lua\api\particle\RibbonRenderState.java:12: 错误: 找不到符号
+  import net.minecraft.client.renderer.feature.ParticleFeatureRenderer;
+                                              ^
+    符号:   类 ParticleFeatureRenderer
+    位置: 程序包 net.minecraft.client.renderer.feature
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\lua\api\particle\RibbonRenderState.java:26: 错误: 找不到符号
+  final class RibbonRenderState implements ParticleGroupRenderState, SubmitNodeCollector.ParticleGroupRenderer {
+                                                                                        ^
+    符号:   类 ParticleGroupRenderer
+    位置: 接口 SubmitNodeCollector
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\lua\api\particle\RibbonRenderState.java:75: 错误: 找不到符号
+      public QuadParticleRenderState.PreparedBuffers prepare(ParticleFeatureRenderer.ParticleBufferCache cache,
+                                    ^
+    符号:   类 PreparedBuffers
+    位置: 类 QuadParticleRenderState
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\lua\api\particle\RibbonRenderState.java:140: 错误: 找不到符号
+      public void render(QuadParticleRenderState.PreparedBuffers prepared,
+                                                ^
+    符号:   类 PreparedBuffers
+    位置: 类 QuadParticleRenderState
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:8: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmModelRuntime.java:837: 错误: 找不到符号
+      public boolean renderSubEntity(PoseStack stack, MultiBufferSource bufferSource, int light, String kind, String entityId) {
+                                                      ^
+    符号:   类 MultiBufferSource
+    位置: 类 YsmModelRuntime
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmModelRuntime.java:841: 错误: 找不到符号
+      public boolean renderSubEntity(PoseStack stack, MultiBufferSource bufferSource, int light,
+                                                      ^
+    符号:   类 MultiBufferSource
+    位置: 类 YsmModelRuntime
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmModelRuntime.java:1649: 错误: 找不到符号
+      public boolean renderFirstPersonArm(PoseStack stack, MultiBufferSource bufferSource, int light, boolean left) {
+                                                           ^
+    符号:   类 MultiBufferSource
+    位置: 类 YsmModelRuntime
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmModelRuntime.java:1653: 错误: 找不到符号
+      public boolean renderFirstPersonArm(PoseStack stack, MultiBufferSource bufferSource, int light,
+                                                           ^
+    符号:   类 MultiBufferSource
+    位置: 类 YsmModelRuntime
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuDrawContext.java:11: 错误: 找不到符号
+                               Map<String, RenderSetup.TextureAndSampler> textures,
+                                                      ^
+    符号:   类 TextureAndSampler
+    位置: 类 RenderSetup
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuSubmission.java:12: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuSubmission.java:75: 错误: 找不到符号
+      public static boolean enqueue(MultiBufferSource source, DrawBatch batch, JavaEmitter fallback) {
+                                    ^
+    符号:   类 MultiBufferSource
+    位置: 类 GpuSubmission
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuSubmission.java:98: 错误: 找不到符号
+      boolean offer(MultiBufferSource source, DrawBatch batch, JavaEmitter fallback) {
+                    ^
+    符号:   类 MultiBufferSource
+    位置: 类 GpuSubmission
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:78: 错误: 找不到符号
+      public boolean render(PoseStack stack, MultiBufferSource bufferSource, int light) {
+                                             ^
+    符号:   类 MultiBufferSource
+    位置: 类 YsmRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:82: 错误: 找不到符号
+      public boolean render(PoseStack stack, MultiBufferSource bufferSource, int light, YsmPartMask mask) {
+                                             ^
+    符号:   类 MultiBufferSource
+    位置: 类 YsmRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:86: 错误: 找不到符号
+      public boolean render(PoseStack stack, MultiBufferSource bufferSource, int light, YsmPartMask mask, YsmRenderPose pose) {
+                                             ^
+    符号:   类 MultiBufferSource
+    位置: 类 YsmRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:115: 错误: 找不到符号
+      public boolean renderWithAttachments(PoseStack stack, MultiBufferSource bufferSource, int light,
+                                                            ^
+    符号:   类 MultiBufferSource
+    位置: 类 YsmRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:128: 错误: 找不到符号
+      public boolean renderSubEntity(PoseStack stack, MultiBufferSource bufferSource, int light, YsmSubEntity entity) {
+                                                      ^
+    符号:   类 MultiBufferSource
+    位置: 类 YsmRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:148: 错误: 找不到符号
+      public boolean renderAttachments(PoseStack stack, MultiBufferSource bufferSource, int light) {
+                                                        ^
+    符号:   类 MultiBufferSource
+    位置: 类 YsmRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:152: 错误: 找不到符号
+      public boolean renderAttachments(PoseStack stack, MultiBufferSource bufferSource, int light, YsmRenderPose pose) {
+                                                        ^
+    符号:   类 MultiBufferSource
+    位置: 类 YsmRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:158: 错误: 找不到符号
+      public boolean renderAttachmentType(PoseStack stack, MultiBufferSource bufferSource, int light, YsmAttachmentType type) {
+                                                           ^
+    符号:   类 MultiBufferSource
+    位置: 类 YsmRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:162: 错误: 找不到符号
+      private boolean renderAttachmentType(PoseStack stack, MultiBufferSource bufferSource, int light,
+                                                            ^
+    符号:   类 MultiBufferSource
+    位置: 类 YsmRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:183: 错误: 找不到符号
+      public boolean renderAttachment(PoseStack stack, MultiBufferSource bufferSource, int light, String name) {
+                                                       ^
+    符号:   类 MultiBufferSource
+    位置: 类 YsmRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:187: 错误: 找不到符号
+      public boolean renderAttachment(PoseStack stack, MultiBufferSource bufferSource, int light, YsmAttachmentPoint point) {
+                                                       ^
+    符号:   类 MultiBufferSource
+    位置: 类 YsmRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:191: 错误: 找不到符号
+      private boolean renderAttachment(PoseStack stack, MultiBufferSource bufferSource, int light,
+                                                        ^
+    符号:   类 MultiBufferSource
+    位置: 类 YsmRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:240: 错误: 找不到符号
+      public boolean renderFirstPersonArm(PoseStack stack, MultiBufferSource bufferSource, int light, boolean left) {
+                                                           ^
+    符号:   类 MultiBufferSource
+    位置: 类 YsmRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:244: 错误: 找不到符号
+      public boolean renderFirstPersonArm(PoseStack stack, MultiBufferSource bufferSource, int light,
+                                                           ^
+    符号:   类 MultiBufferSource
+    位置: 类 YsmRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:35: 错误: 找不到符号
+      private record DrawTarget(MultiBufferSource source, RenderType material, Identifier texture,
+                                ^
+    符号:   类 MultiBufferSource
+    位置: 类 DrawTarget
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmRenderer.java:37: 错误: 找不到符号
+          DrawTarget(MultiBufferSource source, RenderType material, Identifier texture, String channel, int order) {
+                     ^
+    符号:   类 MultiBufferSource
+    位置: 类 DrawTarget
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\library\PreviewBoneHighlight.java:7: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\outfit\OutfitComposition.java:696: 错误: 找不到符号
+          public void drawLocalParticles(Matrix4fc entityToDraw, net.minecraft.client.renderer.MultiBufferSource buffers,
+                                                                                              ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\library\PreviewBoneHighlight.java:170: 错误: 找不到符号
+      public static void drawSkeleton(List<Segment> segments, Matrix4fc entityToDraw, MultiBufferSource source) {
+                                                                                      ^
+    符号:   类 MultiBufferSource
+    位置: 类 PreviewBoneHighlight
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\library\PreviewBoneHighlight.java:196: 错误: 找不到符号
+      public static void figura(FiguraModelPart part, PartCustomization transform, MultiBufferSource source) {
+                                                                                   ^
+    符号:   类 MultiBufferSource
+    位置: 类 PreviewBoneHighlight
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\library\PreviewBoneHighlight.java:211: 错误: 找不到符号
+      public static void ysm(YsmGeometry.Bone bone, PoseStack stack, MultiBufferSource source) {
+                                                                     ^
+    符号:   类 MultiBufferSource
+    位置: 类 PreviewBoneHighlight
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\compat\SimpleVCCompat.java:4: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\compat\SimpleVCCompat.java:27: 错误: 找不到符号
+      public static void renderSimpleVCIcon(EntityRenderState state, Component text, PoseStack stack, MultiBufferSource multiBufferSource, int light) {
+                                                                                                      ^
+    符号:   类 MultiBufferSource
+    位置: 类 SimpleVCCompat
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\compat\GeckolibGeoArmorRendererMixin.java:4: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\EntityRenderDispatcherMixin.java:17: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\GameRendererMixin.java:17: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\layers\CapeLayerMixin.java:10: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\layers\CustomHeadLayerMixin.java:11: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\layers\elytra\ElytraLayerMixin.java:10: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\layers\items\ItemInHandLayerMixin.java:10: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\layers\items\PlayerItemInHandLayerMixin.java:7: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemRendererMixin.java:5: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\PlayerRendererMixin.java:10: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\PlayerRendererMixin.java:66: 错误: 找不到符号
+      private static MultiBufferSource figura$singleBuffer(VertexConsumer consumer) {
+                     ^
+    符号:   类 MultiBufferSource
+    位置: 类 PlayerRendererMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ScreenEffectRendererMixin.java:5: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ScreenEffectRendererMixin.java:25: 错误: 找不到符号
+      private static void renderFire(PoseStack poseStack, MultiBufferSource multiBufferSource, TextureAtlasSprite textureAtlasSprite, CallbackInfo ci) {
+                                                          ^
+    符号:   类 MultiBufferSource
+    位置: 类 ScreenEffectRendererMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\SkullBlockRendererMixin.java:6: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\TridentRendererMixin.java:6: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\FiguraArmorPartRenderer.java:5: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\RenderUtils.java:12: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\RenderUtils.java:177: 错误: 找不到符号
+      public static void createDummySubmission(BitSet selection, SubmitNodeCollector submitNodeStorage, BiFunction<MultiBufferSource, PoseStack, Boolean> preRender, Runnable postRender) {
+                                                                                                                   ^
+    符号:   类 MultiBufferSource
+    位置: 类 RenderUtils
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\ducks\FiguraSubmitCallBackExtension.java:4: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\ducks\FiguraSubmitCallBackExtension.java:12: 错误: 找不到符号
+      void figura$addPreRenderingCallback(BiFunction<MultiBufferSource, PoseStack, Boolean> callback);
+                                                     ^
+    符号:   类 MultiBufferSource
+    位置: 接口 FiguraSubmitCallBackExtension
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\ducks\FiguraSubmitCallBackExtension.java:13: 错误: 找不到符号
+      default List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$getPreRenderingCallbacks() {
+                              ^
+    符号:   类 MultiBufferSource
+    位置: 接口 FiguraSubmitCallBackExtension
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\ducks\NameTagFeatureRenderer$StorageExtension.java:8: 错误: 找不到符号
+      List<SubmitNodeStorage.NameTagSubmit> getOutlineSubmits();
+                            ^
+    符号:   类 NameTagSubmit
+    位置: 类 SubmitNodeStorage
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\ducks\NodeCollectorExtension.java:3: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\ducks\NodeCollectorExtension.java:18: 错误: 找不到符号
+      <S extends EntityRenderState> void submitFiguraModel(Avatar avatar, S renderState, TriFunction<Avatar, S, MultiBufferSource, Void> renderer);
+                                                                                                                ^
+    符号:   类 MultiBufferSource
+    位置: 接口 NodeCollectorExtension
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\nodeRenderer\FiguraSubmission.java:3: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\nodeRenderer\FiguraSubmission.java:11: 错误: 找不到符号
+                                 TriFunction<Avatar, EntityRenderState, MultiBufferSource, Void> renderer,
+                                                                        ^
+    符号:   类 MultiBufferSource
+    位置: 类 FiguraSubmission
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\nodeRenderer\FiguraSubmission.java:15: 错误: 找不到符号
+                              TriFunction<Avatar, EntityRenderState, MultiBufferSource, Void> renderer) {
+                                                                     ^
+    符号:   类 MultiBufferSource
+    位置: 类 FiguraSubmission
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\FiguraGuiEntityRenderer.java:4: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\FiguraGuiRenderer.java:10: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\FiguraPortraitRenderer.java:19: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\gui\GuiEntityRendererMixin.java:11: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\gui\GuiEntityRenderStateMixin.java:5: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\gui\GuiRendererAccessor.java:5: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\gui\GuiRendererMixin.java:14: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\particle\ParticleWorldLightMixin.java:21: 错误: 找不到符号
+      private static int figura$particleWorldLight(int original, LevelRenderer.BrightnessGetter brightness,
+                                                                              ^
+    符号:   类 BrightnessGetter
+    位置: 类 LevelRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\AvatarRendererMixin.java:7: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\AvatarRendererMixin.java:35: 错误: 找不到符号
+      private static MultiBufferSource singleBuffer(VertexConsumer consumer) {
+                     ^
+    符号:   类 MultiBufferSource
+    位置: 类 AvatarRendererMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\FeatureRendererDispatcherMixin.java:4: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\nodeRenderer\FiguraFeatureRenderer.java:4: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\FlameFeatureRendererMixin.java:5: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\FlameFeatureRendererMixin.java:6: 错误: 找不到符号
+  import net.minecraft.client.renderer.OutlineBufferSource;
+                                      ^
+    符号:   类 OutlineBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\FlameFeatureRendererMixin.java:47: 错误: 找不到符号
+              SubmitNodeCollection submitNodeCollection, MultiBufferSource.BufferSource bufferSource, AtlasManager atlasManager, CallbackInfo ci, @Local SubmitNodeStorage.FlameSubmit flameSubmit ) {
+                                                                                                                                                                          ^
+    符号:   类 FlameSubmit
+    位置: 类 SubmitNodeStorage
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ItemFeatureRendererMixin.java:4: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ItemFeatureRendererMixin.java:5: 错误: 找不到符号
+  import net.minecraft.client.renderer.OutlineBufferSource;
+                                      ^
+    符号:   类 OutlineBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ItemFeatureRendererMixin.java:19: 错误: 找不到符号
+                                    OutlineBufferSource outlineBufferSource,
+                                    ^
+    符号:   类 OutlineBufferSource
+    位置: 类 ItemFeatureRendererMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ItemFeatureRendererMixin.java:20: 错误: 找不到符号
+                                    SubmitNodeStorage.ItemSubmit itemSubmit,
+                                                     ^
+    符号:   类 ItemSubmit
+    位置: 类 SubmitNodeStorage
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ItemFeatureRendererMixin.java:46: 错误: 找不到符号
+                                     OutlineBufferSource outlineBufferSource,
+                                     ^
+    符号:   类 OutlineBufferSource
+    位置: 类 ItemFeatureRendererMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ItemFeatureRendererMixin.java:47: 错误: 找不到符号
+                                     SubmitNodeStorage.ItemSubmit itemSubmit,
+                                                      ^
+    符号:   类 ItemSubmit
+    位置: 类 SubmitNodeStorage
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelFeatureRendererMixin.java:7: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelFeatureRendererMixin.java:8: 错误: 找不到符号
+  import net.minecraft.client.renderer.OutlineBufferSource;
+                                      ^
+    符号:   类 OutlineBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelFeatureRendererMixin.java:33: 错误: 找不到符号
+      private <S> void figura$beforeSetupAnim(SubmitNodeStorage.ModelSubmit<S> modelSubmit, RenderType renderType, VertexConsumer vertexConsumer,
+                                                               ^
+    符号:   类 ModelSubmit
+    位置: 类 SubmitNodeStorage
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelFeatureRendererMixin.java:34: 错误: 找不到符号
+                                              OutlineBufferSource outlineBufferSource, MultiBufferSource.BufferSource bufferSource, CallbackInfo ci) {
+                                              ^
+    符号:   类 OutlineBufferSource
+    位置: 类 ModelFeatureRendererMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelFeatureRendererMixin.java:42: 错误: 找不到符号
+      private <S> void figura$preRender(SubmitNodeStorage.ModelSubmit<S> modelSubmit, RenderType renderType, VertexConsumer vertexConsumer,
+                                                         ^
+    符号:   类 ModelSubmit
+    位置: 类 SubmitNodeStorage
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelFeatureRendererMixin.java:43: 错误: 找不到符号
+                                              OutlineBufferSource outlineBufferSource, MultiBufferSource.BufferSource bufferSource, CallbackInfo ci) {
+                                              ^
+    符号:   类 OutlineBufferSource
+    位置: 类 ModelFeatureRendererMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelFeatureRendererMixin.java:69: 错误: 找不到符号
+      private <S> void figura$postRender(SubmitNodeStorage.ModelSubmit<S> modelSubmit, RenderType renderType, VertexConsumer vertexConsumer,
+                                                          ^
+    符号:   类 ModelSubmit
+    位置: 类 SubmitNodeStorage
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelFeatureRendererMixin.java:70: 错误: 找不到符号
+                                        OutlineBufferSource outlineBufferSource, MultiBufferSource.BufferSource bufferSource, CallbackInfo ci) {
+                                        ^
+    符号:   类 OutlineBufferSource
+    位置: 类 ModelFeatureRendererMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelPartFeatureRendererMixin.java:8: 错误: 找不到符号
+  import net.minecraft.client.renderer.feature.ModelPartFeatureRenderer;
+                                              ^
+    符号:   类 ModelPartFeatureRenderer
+    位置: 程序包 net.minecraft.client.renderer.feature
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelPartFeatureRendererMixin.java:26: 错误: 找不到符号
+                                        OutlineBufferSource outlineBufferSource, MultiBufferSource.BufferSource crumblingBufferSource, CallbackInfo ci, @Local SubmitNodeStorage.ModelPartSubmit modelSubmit) {
+                                        ^
+    符号:   类 OutlineBufferSource
+    位置: 类 ModelPartFeatureRendererMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelPartFeatureRendererMixin.java:26: 错误: 找不到符号
+                                        OutlineBufferSource outlineBufferSource, MultiBufferSource.BufferSource crumblingBufferSource, CallbackInfo ci, @Local SubmitNodeStorage.ModelPartSubmit modelSubmit) {
+                                                                                                                                                                                ^
+    符号:   类 ModelPartSubmit
+    位置: 类 SubmitNodeStorage
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelPartFeatureRendererMixin.java:46: 错误: 找不到符号
+                                         OutlineBufferSource outlineBufferSource, MultiBufferSource.BufferSource crumblingBufferSource, CallbackInfo ci, @Local SubmitNodeStorage.ModelPartSubmit modelSubmit) {
+                                         ^
+    符号:   类 OutlineBufferSource
+    位置: 类 ModelPartFeatureRendererMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelPartFeatureRendererMixin.java:46: 错误: 找不到符号
+                                         OutlineBufferSource outlineBufferSource, MultiBufferSource.BufferSource crumblingBufferSource, CallbackInfo ci, @Local SubmitNodeStorage.ModelPartSubmit modelSubmit) {
+                                                                                                                                                                                 ^
+    符号:   类 ModelPartSubmit
+    位置: 类 SubmitNodeStorage
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\NameTagFeatureRenderer$StorageMixin.java:40: 错误: 找不到符号
+      final List<SubmitNodeStorage.NameTagSubmit> figura$outlineSubmits = new ArrayList<>();
+                                  ^
+    符号:   类 NameTagSubmit
+    位置: 类 SubmitNodeStorage
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\NameTagFeatureRenderer$StorageMixin.java:239: 错误: 找不到符号
+      public List<SubmitNodeStorage.NameTagSubmit> getOutlineSubmits() {
+                                   ^
+    符号:   类 NameTagSubmit
+    位置: 类 SubmitNodeStorage
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\NameTagFeatureRendererMixin.java:5: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\NameTagFeatureRendererMixin.java:18: 错误: 找不到符号
+                                      @Local(argsOnly = true) Font font, @Local NameTagFeatureRenderer.Storage storage) {
+                                                                                                      ^
+    符号:   类 Storage
+    位置: 类 NameTagFeatureRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\model\ModelMixin.java:6: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\model\ModelMixin.java:18: 错误: 找不到符号
+      private final List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$preRenderingCallback = new ArrayList<>();
+                                    ^
+    符号:   类 MultiBufferSource
+    位置: 类 ModelMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\model\ModelMixin.java:23: 错误: 找不到符号
+      public void figura$addPreRenderingCallback(BiFunction<MultiBufferSource, PoseStack, Boolean> callback) {
+                                                            ^
+    符号:   类 MultiBufferSource
+    位置: 类 ModelMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\model\ModelMixin.java:38: 错误: 找不到符号
+      public List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$getPreRenderingCallbacks() {
+                             ^
+    符号:   类 MultiBufferSource
+    位置: 类 ModelMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\model\ModelPartMixin.java:8: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\model\ModelPartMixin.java:28: 错误: 找不到符号
+      private final List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$preRenderingCallback = new ArrayList<>();
+                                    ^
+    符号:   类 MultiBufferSource
+    位置: 类 ModelPartMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\model\ModelPartMixin.java:33: 错误: 找不到符号
+      public void figura$addPreRenderingCallback(BiFunction<MultiBufferSource, PoseStack, Boolean> callback) {
+                                                            ^
+    符号:   类 MultiBufferSource
+    位置: 类 ModelPartMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\model\ModelPartMixin.java:48: 错误: 找不到符号
+      public List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$getPreRenderingCallbacks() {
+                             ^
+    符号:   类 MultiBufferSource
+    位置: 类 ModelPartMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\ItemDisplayContextMixin.java:4: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\ItemDisplayContextMixin.java:18: 错误: 找不到符号
+      private final List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$preRenderingCallback = new ArrayList<>();
+                                    ^
+    符号:   类 MultiBufferSource
+    位置: 类 ItemDisplayContextMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\ItemDisplayContextMixin.java:23: 错误: 找不到符号
+      public void figura$addPreRenderingCallback(BiFunction<MultiBufferSource, PoseStack, Boolean> callback) {
+                                                            ^
+    符号:   类 MultiBufferSource
+    位置: 类 ItemDisplayContextMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\ItemDisplayContextMixin.java:33: 错误: 找不到符号
+      public List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$getPreRenderingCallbacks() {
+                             ^
+    符号:   类 MultiBufferSource
+    位置: 类 ItemDisplayContextMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeCollectionMixin.java:8: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeCollectionMixin.java:14: 错误: 找不到符号
+  import net.minecraft.client.renderer.feature.ModelPartFeatureRenderer;
+                                              ^
+    符号:   类 ModelPartFeatureRenderer
+    位置: 程序包 net.minecraft.client.renderer.feature
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeCollectionMixin.java:38: 错误: 找不到符号
+      public <S extends EntityRenderState> void submitFiguraModel(Avatar avatar, S renderState, TriFunction<Avatar, S, MultiBufferSource, Void> renderer) {
+                                                                                                                       ^
+    符号:   类 MultiBufferSource
+    位置: 类 SubmitNodeCollectionMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeCollectionMixin.java:48: 错误: 找不到符号
+      private <S> void figura$onSubmitModel(Model<? super S> model, S object, PoseStack poseStack, RenderType renderType, int i, int j, int k, @Nullable TextureAtlasSprite textureAtlasSprite, int l, @Nullable ModelFeatureRenderer.CrumblingOverlay crumblingOverlay, CallbackInfo ci, @Local SubmitNodeStorage.ModelSubmit<S> modelSubmit) {
+                                                                                                                                                                                                                                                                                                                  ^
+    符号:   类 ModelSubmit
+    位置: 类 SubmitNodeStorage
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeCollectionMixin.java:64: 错误: 找不到符号
+      private void figura$onSubmitModelPart(ModelPartFeatureRenderer.Storage instance, RenderType key, SubmitNodeStorage.ModelPartSubmit modelPartSubmit, Operation<Void> original) {
+                                                                                                                        ^
+    符号:   类 ModelPartSubmit
+    位置: 类 SubmitNodeStorage
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ItemSubmitMixin.java:4: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ItemSubmitMixin.java:17: 错误: 找不到符号
+      private final List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$preRenderingCallback = new ArrayList<>();
+                                    ^
+    符号:   类 MultiBufferSource
+    位置: 类 SubmitNodeStorage$ItemSubmitMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ItemSubmitMixin.java:22: 错误: 找不到符号
+      public void figura$addPreRenderingCallback(BiFunction<MultiBufferSource, PoseStack, Boolean> callback) {
+                                                            ^
+    符号:   类 MultiBufferSource
+    位置: 类 SubmitNodeStorage$ItemSubmitMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ItemSubmitMixin.java:32: 错误: 找不到符号
+      public List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$getPreRenderingCallbacks() {
+                             ^
+    符号:   类 MultiBufferSource
+    位置: 类 SubmitNodeStorage$ItemSubmitMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ModelPartSubmitMixin.java:4: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ModelPartSubmitMixin.java:17: 错误: 找不到符号
+      private final List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$preRenderingCallback = new ArrayList<>();
+                                    ^
+    符号:   类 MultiBufferSource
+    位置: 类 SubmitNodeStorage$ModelPartSubmitMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ModelPartSubmitMixin.java:22: 错误: 找不到符号
+      public void figura$addPreRenderingCallback(BiFunction<MultiBufferSource, PoseStack, Boolean> callback) {
+                                                            ^
+    符号:   类 MultiBufferSource
+    位置: 类 SubmitNodeStorage$ModelPartSubmitMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ModelPartSubmitMixin.java:32: 错误: 找不到符号
+      public List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$getPreRenderingCallbacks() {
+                             ^
+    符号:   类 MultiBufferSource
+    位置: 类 SubmitNodeStorage$ModelPartSubmitMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ModelSubmitMixin.java:4: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ModelSubmitMixin.java:17: 错误: 找不到符号
+      private final List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$preRenderingCallback = new ArrayList<>();
+                                    ^
+    符号:   类 MultiBufferSource
+    位置: 类 SubmitNodeStorage$ModelSubmitMixin<S>
+    其中, S是类型变量:
+      S扩展已在类 SubmitNodeStorage$ModelSubmitMixin中声明的Object
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ModelSubmitMixin.java:22: 错误: 找不到符号
+      public void figura$addPreRenderingCallback(BiFunction<MultiBufferSource, PoseStack, Boolean> callback) {
+                                                            ^
+    符号:   类 MultiBufferSource
+    位置: 类 SubmitNodeStorage$ModelSubmitMixin<S>
+    其中, S是类型变量:
+      S扩展已在类 SubmitNodeStorage$ModelSubmitMixin中声明的Object
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ModelSubmitMixin.java:32: 错误: 找不到符号
+      public List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$getPreRenderingCallbacks() {
+                             ^
+    符号:   类 MultiBufferSource
+    位置: 类 SubmitNodeStorage$ModelSubmitMixin<S>
+    其中, S是类型变量:
+      S扩展已在类 SubmitNodeStorage$ModelSubmitMixin中声明的Object
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorageMixin.java:3: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorageMixin.java:23: 错误: 找不到符号
+      public <S extends EntityRenderState> void submitFiguraModel(Avatar avatar, S renderState, TriFunction<Avatar, S, MultiBufferSource, Void> renderer) {
+                                                                                                                       ^
+    符号:   类 MultiBufferSource
+    位置: 类 SubmitNodeStorageMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\renderers\ItemStackRenderStateMixin.java:4: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\renderers\ItemStackRenderStateMixin.java:34: 错误: 找不到符号
+      private final List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$preRenderingCallback = new ArrayList<>();
+                                    ^
+    符号:   类 MultiBufferSource
+    位置: 类 ItemStackRenderStateMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\renderers\ItemStackRenderStateMixin.java:77: 错误: 找不到符号
+      public void figura$addPreRenderingCallback(BiFunction<MultiBufferSource, PoseStack, Boolean> callback) {
+                                                            ^
+    符号:   类 MultiBufferSource
+    位置: 类 ItemStackRenderStateMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\renderers\ItemStackRenderStateMixin.java:92: 错误: 找不到符号
+      public List<BiFunction<MultiBufferSource, PoseStack, Boolean>> figura$getPreRenderingCallbacks() {
+                             ^
+    符号:   类 MultiBufferSource
+    位置: 类 ItemStackRenderStateMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\library\LibraryFiguraPreviewRenderer.java:9: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\library\LibraryFiguraPreviewRenderer.java:58: 错误: 找不到符号
+      static void draw(LibraryFiguraPreviewState state, PoseStack stack, MultiBufferSource source, PlayerModel model) {
+                                                                         ^
+    符号:   类 MultiBufferSource
+    位置: 类 LibraryFiguraPreviewRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\library\PreviewBoneHighlight.java:255: 错误: 找不到符号
+          void draw(PoseStack.Pose pose, MultiBufferSource source) {
+                                         ^
+    符号:   类 MultiBufferSource
+    位置: 类 Bounds
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\outfit\OutfitFirstPersonScripts.java:8: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\outfit\OutfitFirstPersonScripts.java:96: 错误: 找不到符号
+                                  MultiBufferSource discard) {
+                                  ^
+    符号:   类 MultiBufferSource
+    位置: 类 OutfitFirstPersonScripts
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\outfit\OutfitFirstPersonScripts.java:115: 错误: 找不到符号
+                                     MultiBufferSource discard) {
+                                     ^
+    符号:   类 MultiBufferSource
+    位置: 类 OutfitFirstPersonScripts
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\outfit\OutfitNativeRenderer.java:4: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\outfit\OutfitNativeRenderer.java:28: 错误: 找不到符号
+                                     MultiBufferSource buffers, EntityRenderMode mode) {
+                                     ^
+    符号:   类 MultiBufferSource
+    位置: 类 OutfitNativeRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\outfit\OutfitNativeRenderer.java:35: 错误: 找不到符号
+                                        MultiBufferSource buffers, boolean left) {
+                                        ^
+    符号:   类 MultiBufferSource
+    位置: 类 OutfitNativeRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\outfit\OutfitNativeRenderer.java:42: 错误: 找不到符号
+                              MultiBufferSource buffers, EntityRenderMode mode) {
+                              ^
+    符号:   类 MultiBufferSource
+    位置: 类 OutfitNativeRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\outfit\OutfitNativeRenderer.java:57: 错误: 找不到符号
+                                      MultiBufferSource buffers, int light, EntityRenderMode mode) {
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 类 OutfitNativeRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\outfit\OutfitNativeRenderer.java:62: 错误: 找不到符号
+                                       Matrix4fc entityToDraw, MultiBufferSource buffers, int light, EntityRenderMode mode) {
+                                                               ^
+    符号:   类 MultiBufferSource
+    位置: 类 OutfitNativeRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:13: 错误: 找不到符号
+  import com.mojang.blaze3d.textures.TextureFormat;
+                                    ^
+    符号:   类 TextureFormat
+    位置: 程序包 com.mojang.blaze3d.textures
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\NameTagFeatureRenderer$StorageMixin.java:35: 错误: 找不到符号
+  @Mixin(NameTagFeatureRenderer.Storage.class)
+                               ^
+    符号:   类 Storage
+    位置: 类 NameTagFeatureRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$FlameSubmitMixin.java:9: 错误: 找不到符号
+  @Mixin(SubmitNodeStorage.FlameSubmit.class)
+                          ^
+    符号:   类 FlameSubmit
+    位置: 类 SubmitNodeStorage
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ItemSubmitMixin.java:14: 错误: 找不到符号
+  @Mixin(SubmitNodeStorage.ItemSubmit.class)
+                          ^
+    符号:   类 ItemSubmit
+    位置: 类 SubmitNodeStorage
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ModelPartSubmitMixin.java:14: 错误: 找不到符号
+  @Mixin(SubmitNodeStorage.ModelPartSubmit.class)
+                          ^
+    符号:   类 ModelPartSubmit
+    位置: 类 SubmitNodeStorage
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeStorage$ModelSubmitMixin.java:14: 错误: 找不到符号
+  @Mixin(SubmitNodeStorage.ModelSubmit.class)
+                          ^
+    符号:   类 ModelSubmit
+    位置: 类 SubmitNodeStorage
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelPartFeatureRendererMixin.java:18: 错误: 找不到符号
+  @Mixin(ModelPartFeatureRenderer.class)
+         ^
+    符号: 类 ModelPartFeatureRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:1682: 错误: 程序包MultiBufferSource不存在
+      public boolean renderHeadForPortrait(MultiBufferSource.BufferSource buffer, PoseStack stack, int light, float modelScale, boolean upsideDown) {
+                                                            ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\lua\api\particle\RibbonRenderState.java:75: 错误: 程序包ParticleFeatureRenderer不存在
+      public QuadParticleRenderState.PreparedBuffers prepare(ParticleFeatureRenderer.ParticleBufferCache cache,
+                                                                                    ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\lua\api\particle\RibbonRenderState.java:141: 错误: 程序包ParticleFeatureRenderer不存在
+                         ParticleFeatureRenderer.ParticleBufferCache cache, RenderPass pass, TextureManager textures) {
+                                                ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuSubmission.java:60: 错误: 程序包MultiBufferSource不存在
+      private final Map<MultiBufferSource.BufferSource, Map<RenderType, Boundary>> sources = new WeakHashMap<>();
+                                         ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\GameRendererMixin.java:200: 错误: 程序包MultiBufferSource不存在
+      private List<PictureInPictureRenderer<?>> addPortraitRenderer(List<PictureInPictureRenderer<?>> list, @Local MultiBufferSource.BufferSource source) {
+                                                                                                                                    ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\FiguraGuiEntityRenderer.java:9: 错误: 程序包MultiBufferSource不存在
+      public FiguraGuiEntityRenderer(MultiBufferSource.BufferSource bufferSource, EntityRenderDispatcher entityRenderDispatcher) {
+                                                      ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\FiguraGuiRenderer.java:32: 错误: 程序包MultiBufferSource不存在
+      public FiguraGuiRenderer(MultiBufferSource.BufferSource bufferSource) {
+                                                ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\FiguraPortraitRenderer.java:39: 错误: 程序包MultiBufferSource不存在
+      public FiguraPortraitRenderer(MultiBufferSource.BufferSource bufferSource) {
+                                                     ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\gui\GuiEntityRendererMixin.java:36: 错误: 程序包MultiBufferSource不存在
+      protected GuiEntityRendererMixin(MultiBufferSource.BufferSource bufferSource) {
+                                                        ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\gui\GuiRendererAccessor.java:15: 错误: 程序包MultiBufferSource不存在
+      MultiBufferSource.BufferSource figura$getBufferSource();
+                       ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\gui\GuiRendererMixin.java:54: 错误: 程序包MultiBufferSource不存在
+      private void initializePaperDollRenderer(GuiRenderState guiRenderState, MultiBufferSource.BufferSource bufferSource, SubmitNodeCollector submitNodeCollector, FeatureRenderDispatcher featureRenderDispatcher, List<PictureInPictureRenderer<?>> list, CallbackInfo ci) {
+                                                                                               ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\FeatureRendererDispatcherMixin.java:19: 错误: 程序包MultiBufferSource不存在
+      private MultiBufferSource.BufferSource bufferSource;
+                               ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\nodeRenderer\FiguraFeatureRenderer.java:16: 错误: 程序包MultiBufferSource不存在
+      public void render(SubmitNodeCollection submitNodeCollection, MultiBufferSource.BufferSource bufferSource) {
+                                                                                     ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\FlameFeatureRendererMixin.java:47: 错误: 程序包MultiBufferSource不存在
+              SubmitNodeCollection submitNodeCollection, MultiBufferSource.BufferSource bufferSource, AtlasManager atlasManager, CallbackInfo ci, @Local SubmitNodeStorage.FlameSubmit flameSubmit ) {
+                                                                          ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ItemFeatureRendererMixin.java:18: 错误: 程序包MultiBufferSource不存在
+      private void figura$preRender(MultiBufferSource.BufferSource bufferSource,
+                                                     ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ItemFeatureRendererMixin.java:45: 错误: 程序包MultiBufferSource不存在
+      private void figura$postRender(MultiBufferSource.BufferSource bufferSource,
+                                                      ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelFeatureRendererMixin.java:34: 错误: 程序包MultiBufferSource不存在
+                                              OutlineBufferSource outlineBufferSource, MultiBufferSource.BufferSource bufferSource, CallbackInfo ci) {
+                                                                                                        ^
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+4 actionable tasks: 1 executed, 3 up-to-date
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelFeatureRendererMixin.java:43: 错误: 程序包MultiBufferSource不存在
+                                              OutlineBufferSource outlineBufferSource, MultiBufferSource.BufferSource bufferSource, CallbackInfo ci) {
+                                                                                                        ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelFeatureRendererMixin.java:70: 错误: 程序包MultiBufferSource不存在
+                                        OutlineBufferSource outlineBufferSource, MultiBufferSource.BufferSource bufferSource, CallbackInfo ci) {
+                                                                                                  ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelPartFeatureRendererMixin.java:25: 错误: 程序包MultiBufferSource不存在
+      private <S> void figura$preRender(Map<?, ?> map, MultiBufferSource.BufferSource bufferSource,
+                                                                        ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelPartFeatureRendererMixin.java:26: 错误: 程序包MultiBufferSource不存在
+                                        OutlineBufferSource outlineBufferSource, MultiBufferSource.BufferSource crumblingBufferSource, CallbackInfo ci, @Local SubmitNodeStorage.ModelPartSubmit modelSubmit) {
+                                                                                                  ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelPartFeatureRendererMixin.java:45: 错误: 程序包MultiBufferSource不存在
+      private <S> void figura$postRender(Map<?, ?> map, MultiBufferSource.BufferSource bufferSource,
+                                                                         ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\ModelPartFeatureRendererMixin.java:46: 错误: 程序包MultiBufferSource不存在
+                                         OutlineBufferSource outlineBufferSource, MultiBufferSource.BufferSource crumblingBufferSource, CallbackInfo ci, @Local SubmitNodeStorage.ModelPartSubmit modelSubmit) {
+                                                                                                   ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\feature\NameTagFeatureRendererMixin.java:17: 错误: 程序包MultiBufferSource不存在
+      private void renderOutlineTexts(CallbackInfo ci, @Local(argsOnly = true) MultiBufferSource.BufferSource bufferSource,
+                                                                                                ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\render\nodeRenderer\SubmitNodeCollectionMixin.java:64: 错误: 程序包ModelPartFeatureRenderer不存在
+      private void figura$onSubmitModelPart(ModelPartFeatureRenderer.Storage instance, RenderType key, SubmitNodeStorage.ModelPartSubmit modelPartSubmit, Operation<Void> original) {
+                                                                    ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\library\LibraryFiguraPreviewRenderer.java:27: 错误: 程序包MultiBufferSource不存在
+      public LibraryFiguraPreviewRenderer(MultiBufferSource.BufferSource source) {
+                                                           ^
+  223 个错误
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+BUILD FAILED in 18s

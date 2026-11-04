@@ -1,0 +1,18 @@
+gradle.projectsEvaluated {
+    def common = rootProject.project(':common')
+    def output = rootProject.layout.buildDirectory.dir('26.2-pip-state-slice')
+    def compile = rootProject.tasks.register('compile26_2PipState', JavaCompile) {
+        source common.files('src/main/java/top/aihmc/omnimorph/gui/PipRenderStateScope.java',
+            'src/main/java/top/aihmc/omnimorph/gui/FiguraGuiEntityRenderer.java',
+            'src/test/java/top/aihmc/omnimorph/gui/PipRenderStateScopeSmokeTest.java')
+        classpath = common.configurations.compileClasspath
+        destinationDirectory = output
+        options.release = 25
+        options.encoding = 'UTF-8'
+    }
+    rootProject.tasks.register('native26_2PipStateSmokeTest', JavaExec) {
+        dependsOn compile
+        classpath = rootProject.files(output) + common.configurations.compileClasspath + common.configurations.runtimeClasspath
+        mainClass = 'top.aihmc.omnimorph.gui.PipRenderStateScopeSmokeTest'
+    }
+}

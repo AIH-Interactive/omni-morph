@@ -1,6 +1,7 @@
 package org.figuramc.figura.gui.widgets;
 
 import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -53,6 +54,6 @@ public class ContainerButton extends SwitchButton {
 
     @Override
     protected int getTextColor() {
-        return !this.isToggled() ? ChatFormatting.DARK_GRAY.getColor() : super.getTextColor();
+        return !this.isToggled() ? TextColor.DARK_GRAY.getValue() : super.getTextColor();
     }
 }

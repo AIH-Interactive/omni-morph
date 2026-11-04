@@ -1,0 +1,84 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/eryth/.gradle/wrapper/dists/gradle-9.4.1-bin/arn2x92ynaizyzdaamcbpbhtj/gradle-9.4.1/lib/native-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Architect Plugin: 3.5.168
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+> Task :common:compileJava UP-TO-DATE
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes UP-TO-DATE
+
+> Task :compile26_2OfflineMaterial FAILED
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\GpuAccelerationSmokeTest.java:28: 错误: 不兼容的类型: 不存在类型变量K,V的实例, 以使Map<K,V>与List<Texture>一致
+    private static final GpuDrawContext CONTEXT = new GpuDrawContext(null, null, Map.of(), null, false, 0, 0, 0, 0);
+                                                  ^
+  其中, K,V是类型变量:
+    K扩展已在方法 <K,V>of()中声明的Object
+    V扩展已在方法 <K,V>of()中声明的Object
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\GpuAccelerationSmokeTest.java:77: 错误: 找不到符号
+        require(accelerated.getVertexFormat().getVertexSize() == GpuBatchData.VERTEX_BYTES, "actual VertexFormat stride");
+                           ^
+  符号:   方法 getVertexFormat()
+  位置: 类型为RenderPipeline的变量 accelerated
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\GpuAccelerationSmokeTest.java:83: 错误: 找不到符号
+        require(accelerated.getUniforms().stream().anyMatch(value -> value.name().equals(GpuShaderProgram.UNIFORM)), "actual matrix uniform declared");
+                           ^
+  符号:   方法 getUniforms()
+  位置: 类型为RenderPipeline的变量 accelerated
+注: D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\testing\OfflineMixinService.java使用或覆盖了已过时的 API。
+注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+注: 某些消息已经过简化; 请使用 -Xdiags:verbose 重新编译以获得完整输出
+3 个错误
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_26.2/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compile26_2OfflineMaterial'.
+> Compilation failed; see the compiler output below.
+  注: D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\testing\OfflineMixinService.java使用或覆盖了已过时的 API。
+  注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\GpuAccelerationSmokeTest.java:28: 错误: 不兼容的类型: 不存在类型变量K,V的实例, 以使Map<K,V>与List<Texture>一致
+      private static final GpuDrawContext CONTEXT = new GpuDrawContext(null, null, Map.of(), null, false, 0, 0, 0, 0);
+                                                    ^
+    其中, K,V是类型变量:
+      K扩展已在方法 <K,V>of()中声明的Object
+      V扩展已在方法 <K,V>of()中声明的Object
+  注: 某些消息已经过简化; 请使用 -Xdiags:verbose 重新编译以获得完整输出
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\GpuAccelerationSmokeTest.java:77: 错误: 找不到符号
+          require(accelerated.getVertexFormat().getVertexSize() == GpuBatchData.VERTEX_BYTES, "actual VertexFormat stride");
+                             ^
+    符号:   方法 getVertexFormat()
+    位置: 类型为RenderPipeline的变量 accelerated
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\GpuAccelerationSmokeTest.java:83: 错误: 找不到符号
+          require(accelerated.getUniforms().stream().anyMatch(value -> value.name().equals(GpuShaderProgram.UNIFORM)), "actual matrix uniform declared");
+                             ^
+    符号:   方法 getUniforms()
+    位置: 类型为RenderPipeline的变量 accelerated
+  3 个错误
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 14s
+6 actionable tasks: 1 executed, 5 up-to-date

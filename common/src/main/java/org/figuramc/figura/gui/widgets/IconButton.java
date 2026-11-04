@@ -15,8 +15,6 @@ public class IconButton extends Button {
     @Override
     protected void renderTexture(GuiGraphicsExtractor gui, float delta) {
         this.renderDefaultTexture(gui, delta);
-
-        UIHelper.enableBlend();
         int size = getTextureSize();
         gui.blit(RenderPipelines.GUI_TEXTURED, texture, getX() + 2, getY() + (getHeight() - size) / 2,  u, v, size, size, regionSize, regionSize, textureWidth, textureHeight);
     }

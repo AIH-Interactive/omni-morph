@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /** Fast CPU contract tests. Fake device command records are explicitly not GPU/visual evidence. */
 public final class GpuAccelerationSmokeTest {
-    private static final GpuDrawContext CONTEXT = new GpuDrawContext(null, null, Map.of(), null, false, 0, 0, 0, 0);
+    private static final GpuDrawContext CONTEXT = new GpuDrawContext(null, null, List.of(), null, false, 0, 0, 0, 0);
 
     public static void main(String[] args) throws Exception {
         SharedConstants.tryDetectVersion();
@@ -74,13 +74,14 @@ public final class GpuAccelerationSmokeTest {
         }
         RenderPipeline original = RenderPipelines.ENTITY_CUTOUT_CULL;
         RenderPipeline accelerated = GpuShaderProgram.pipeline(original, Identifier.parse("omni-morph:gpu_contract"));
-        require(accelerated.getVertexFormat().getVertexSize() == GpuBatchData.VERTEX_BYTES, "actual VertexFormat stride");
+        require(accelerated.getVertexFormatBinding(0).getVertexSize() == GpuBatchData.VERTEX_BYTES, "actual VertexFormat stride");
         require(accelerated.isCull() == original.isCull()
                 && accelerated.getColorTargetState().equals(original.getColorTargetState())
                 && accelerated.getDepthStencilState().equals(original.getDepthStencilState())
                 && accelerated.getShaderDefines().equals(original.getShaderDefines())
                 && accelerated.getFragmentShader().equals(original.getFragmentShader()), "material state/defines/fragment preserved");
-        require(accelerated.getUniforms().stream().anyMatch(value -> value.name().equals(GpuShaderProgram.UNIFORM)), "actual matrix uniform declared");
+        require(accelerated.getBindGroupLayouts().stream().flatMap(layout -> layout.getUniforms().stream())
+                .anyMatch(value -> value.name().equals(GpuShaderProgram.UNIFORM)), "actual matrix uniform declared");
     }
 
     private static void cacheAndRetirement() {

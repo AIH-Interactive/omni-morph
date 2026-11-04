@@ -1,42 +1,35 @@
 package top.aihmc.omnimorph.model.rendering.nodeRenderer;
 
-import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.rendertype.RenderType;
-import net.minecraft.client.renderer.SubmitNodeCollection;
-import net.minecraft.client.renderer.SubmitNodeStorage;
-import net.minecraft.client.renderer.feature.CustomFeatureRenderer;
-import top.aihmc.omnimorph.ducks.NodeCollectorExtension;
+import net.minecraft.client.renderer.feature.FeatureFrameContext;
+import net.minecraft.client.renderer.feature.FeatureRendererType;
+import net.minecraft.client.renderer.feature.RenderTypeFeatureRenderer;
 import org.figuramc.figura.utils.ui.UIHelper;
+import top.aihmc.omnimorph.model.rendering.FiguraVertexSource;
 
 import java.util.List;
-import java.util.Map;
 
-public class FiguraFeatureRenderer {
-    public void render(SubmitNodeCollection submitNodeCollection, MultiBufferSource.BufferSource bufferSource) {
-        List<FiguraSubmission> figuraSubmissions = new java.util.ArrayList<>(((NodeCollectorExtension) submitNodeCollection).getFiguraSubmissions());
+/** Figura and YSM geometry shares the native preparation, upload and material execution lifecycle. */
+public final class FiguraFeatureRenderer extends RenderTypeFeatureRenderer<FiguraSubmission> {
+    public static final FeatureRendererType<FiguraSubmission> TYPE = FeatureRendererType.create("OmniMorph");
 
-        for (FiguraSubmission figuraSubmission : figuraSubmissions) {
-            if (figuraSubmission.avatar() == null)
+    @Override
+    protected void buildGroup(FeatureFrameContext context, List<FiguraSubmission> submissions) {
+        var vertices = FiguraVertexSource.nativePreparation(this::getVertexBuilder);
+        for (FiguraSubmission submission : submissions) {
+            if (submission.avatar() == null) {
                 continue;
-
-            var avatar = figuraSubmission.avatar();
+            }
+            var avatar = submission.avatar();
             var previousMode = avatar.renderMode;
             boolean previousPaperdoll = UIHelper.paperdoll;
-            // World and wardrobe submissions can share an Avatar but execute after both
-            // views have been submitted. Use the context captured by this command.
-            avatar.renderMode = figuraSubmission.renderMode();
-            UIHelper.paperdoll = figuraSubmission.paperdoll();
+            avatar.renderMode = submission.renderMode();
+            UIHelper.paperdoll = submission.paperdoll();
             try {
-                figuraSubmission.renderer().apply(avatar, figuraSubmission.renderState(), bufferSource);
+                submission.renderer().apply(avatar, submission.renderState(), vertices);
             } finally {
                 avatar.renderMode = previousMode;
                 UIHelper.paperdoll = previousPaperdoll;
             }
-        }
-
-        if (UIHelper.paperdoll) {
-            bufferSource.endBatch();
         }
     }
 }

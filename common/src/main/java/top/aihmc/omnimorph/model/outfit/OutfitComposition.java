@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.model.outfit;
 
+import top.aihmc.omnimorph.model.rendering.FiguraVertexSource;
+
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.world.entity.LivingEntity;
@@ -693,11 +695,11 @@ public final class OutfitComposition implements AutoCloseable {
             return previewHelpers;
         }
 
-        public void drawLocalParticles(Matrix4fc entityToDraw, net.minecraft.client.renderer.MultiBufferSource buffers,
+        public void drawLocalParticles(Matrix4fc entityToDraw, FiguraVertexSource buffers,
                                        float partialTick) {
             if (previewParticles != null && LocalOutfitPreview.shows(OutfitComposition.this) && viewWearer != null) {
                 previewParticles.extract(viewWearer.getPosition(partialTick),
-                        net.minecraft.client.Minecraft.getInstance().gameRenderer.getMainCamera().rotation(), partialTick)
+                        net.minecraft.client.Minecraft.getInstance().gameRenderer.mainCamera().rotation(), partialTick)
                         .draw(new Matrix4f(entityToDraw), buffers);
             }
         }

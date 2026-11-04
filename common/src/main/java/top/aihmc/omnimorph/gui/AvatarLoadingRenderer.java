@@ -60,6 +60,6 @@ public final class AvatarLoadingRenderer {
                 ? new Vec3(0, state.boundingBoxHeight + 0.6, 0) : state.nameTagAttachment.add(0, 0.45, 0);
         collector.submitNameTag(poses, attachment, 0, label(progress,
                         top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.currentFrame()),
-                true, state.lightCoords, state.distanceToCameraSq, camera);
+                true, state.lightCoords, camera);
     }
 }

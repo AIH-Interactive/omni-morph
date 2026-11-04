@@ -46,8 +46,6 @@ public class FiguraToast implements Toast {
         int titleTime = Math.round(Configs.TOAST_TITLE_TIME.value * 1000);
 
         long timeDiff = startTime - this.startTime;
-
-        UIHelper.enableBlend();
         int frame = Configs.REDUCED_MOTION.value ? 0 : (int) ((FiguraMod.ticks / 5f) % type.frames);
         gui.blit(RenderPipelines.GUI_TEXTURED, type.texture, 0, 0, 0f, frame * height(), width(), height(), width(), height() * type.frames);
 
@@ -143,7 +141,7 @@ public class FiguraToast implements Toast {
                 type = ToastType.CHEESE;
         }
 
-        ToastManager toasts = Minecraft.getInstance().getToastManager();
+        ToastManager toasts = Minecraft.getInstance().gui.toastManager();
         FiguraToast toast = toasts.getToast(FiguraToast.class, type);
 
         FiguraMod.debug("Sent toast: \"{}\", \"{}\" of type: \"{}\"", text.getString(), text2.getString(), type.name());

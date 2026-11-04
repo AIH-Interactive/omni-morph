@@ -1,12 +1,12 @@
 package top.aihmc.omnimorph.mixin.render.nodeRenderer;
 
-import net.minecraft.client.renderer.SubmitNodeStorage;
+import net.minecraft.client.renderer.feature.FlameFeatureRenderer;
 import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.ducks.FlameSubmitExtension;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 
-@Mixin(SubmitNodeStorage.FlameSubmit.class)
+@Mixin(FlameFeatureRenderer.Submit.class)
 public class SubmitNodeStorage$FlameSubmitMixin implements FlameSubmitExtension {
     @Unique
     private Avatar figura$avatar = null;

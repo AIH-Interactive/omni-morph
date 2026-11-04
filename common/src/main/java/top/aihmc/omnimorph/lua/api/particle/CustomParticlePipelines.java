@@ -4,8 +4,7 @@ import com.mojang.blaze3d.pipeline.BlendFunction;
 import com.mojang.blaze3d.pipeline.ColorTargetState;
 import com.mojang.blaze3d.pipeline.DepthStencilState;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
-import com.mojang.blaze3d.platform.DestFactor;
-import com.mojang.blaze3d.platform.SourceFactor;
+import com.mojang.blaze3d.platform.BlendFactor;
 import net.minecraft.client.particle.SingleQuadParticle;
 import net.minecraft.client.renderer.RenderPipelines;
 import org.figuramc.figura.utils.FiguraIdentifier;
@@ -79,17 +78,17 @@ public final class CustomParticlePipelines {
             RenderPipeline base = SingleQuadParticle.Layer.TRANSLUCENT.pipeline();
             var snippet = new RenderPipeline.Snippet(Optional.of(base.getVertexShader()),
                     Optional.of(base.getFragmentShader()), Optional.of(base.getShaderDefines()),
-                    Optional.of(base.getSamplers()), Optional.of(base.getUniforms()),
-                    Optional.of(base.getColorTargetState()), Optional.of(base.getDepthStencilState()),
+                    Optional.of(base.getBindGroupLayouts()), base.getColorTargetStates(),
+                    base.getColorTargetStates().length, Optional.of(base.getDepthStencilState()),
                     Optional.of(base.getPolygonMode()), Optional.of(base.isCull()),
-                    Optional.of(base.getVertexFormat()), Optional.of(base.getVertexFormatMode()));
+                    base.getVertexFormatBindings(), Optional.of(base.getPrimitiveTopology()));
             var pipelines = new RenderPipeline[HARD_MAX_LAYERS][Blend.values().length];
             for (int layer = 0; layer < HARD_MAX_LAYERS; layer++) {
                 for (Blend blend : Blend.values()) {
                     ColorTargetState color = switch (blend) {
                         case ALPHA -> new ColorTargetState(BlendFunction.TRANSLUCENT);
-                        case ADDITIVE -> new ColorTargetState(new BlendFunction(SourceFactor.SRC_ALPHA,
-                                DestFactor.ONE, SourceFactor.ONE, DestFactor.ONE_MINUS_SRC_ALPHA));
+                        case ADDITIVE -> new ColorTargetState(new BlendFunction(BlendFactor.SRC_ALPHA,
+                                BlendFactor.ONE, BlendFactor.ONE, BlendFactor.ONE_MINUS_SRC_ALPHA));
                         case OPAQUE -> ColorTargetState.DEFAULT;
                     };
                     // All custom layers share the translucent pass, with depth testing but no depth writes.

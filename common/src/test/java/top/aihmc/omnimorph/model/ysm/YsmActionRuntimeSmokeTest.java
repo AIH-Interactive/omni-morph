@@ -311,6 +311,10 @@ public final class YsmActionRuntimeSmokeTest {
         cached.setAccessible(true);
         Object previousWorld = cached.get(null);
         ScreenClient client = (ScreenClient) unsafe.allocateInstance(ScreenClient.class);
+        ScreenGui gui = (ScreenGui) unsafe.allocateInstance(ScreenGui.class);
+        Field clientGui = Minecraft.class.getDeclaredField("gui");
+        clientGui.setAccessible(true);
+        clientGui.set(client, gui);
         client.level = (RegistryLevel) unsafe.allocateInstance(RegistryLevel.class);
         instance.set(null, client);
         try {
@@ -433,14 +437,14 @@ public final class YsmActionRuntimeSmokeTest {
                 """);
         YsmActionsAPI api = new YsmActionsAPI(fixture.owner);
         ScreenClient client = (ScreenClient) Minecraft.getInstance();
-        require(!api.trigger("extra_animation.settings") && client.screen == null,
+        require(!api.trigger("extra_animation.settings") && client.gui.screen() == null,
                 "non-host model cannot open the local player's controls");
         install(fixture.owner, "isHost", true);
         require(api.trigger("extra_animation.settings"), "Lua trigger resolves a form reference");
-        require(client.screen instanceof AvatarControlsScreen, "existing controls screen receives the request");
+        require(client.gui.screen() instanceof AvatarControlsScreen, "existing controls screen receives the request");
         Field page = AvatarControlsScreen.class.getDeclaredField("page");
         page.setAccessible(true);
-        require("style".equals(page.get(client.screen)), "form action routes to its declared page");
+        require("style".equals(page.get(client.gui.screen())), "form action routes to its declared page");
         YsmActionWheelLayoutStore.set("layout-a", "extra_animation.settings", "favorites", 5);
         require(api.triggerWheelPageSlot("favorites", 5), "Lua wheel-slot trigger resolves the form reference");
         var direct = api.bindAction("Settings", "extra_animation.settings", "key.keyboard.unknown", false);
@@ -453,6 +457,20 @@ public final class YsmActionRuntimeSmokeTest {
     private static final class ScreenClient extends Minecraft {
         private ScreenClient() {
             super(null);
+        }
+
+    }
+
+    private static final class ScreenGui extends net.minecraft.client.gui.Gui {
+        private Screen screen;
+
+        private ScreenGui() {
+            super(null, null, null);
+        }
+
+        @Override
+        public Screen screen() {
+            return screen;
         }
 
         @Override

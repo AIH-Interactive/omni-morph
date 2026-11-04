@@ -700,9 +700,9 @@ public class WardrobeScreen extends AbstractPanelScreen {
             avatarActions.add(deleteButton);
             actions.separator();
             avatarActions.add(actions.action(icon(0, 0, "sound", "sound",
-                    button -> minecraft.setScreen(new SoundScreen(this)))));
+                    button -> minecraft.gui.setScreen(new SoundScreen(this)))));
             avatarActions.add(actions.action(icon(0, 0, "keybind", "keybinds",
-                    button -> minecraft.setScreen(new KeybindScreen(this)))));
+                    button -> minecraft.gui.setScreen(new KeybindScreen(this)))));
             avatarActions.add(actions.action(icon(0, 0, "unselect", "clear_current", button -> {
                 AvatarManager.loadLocalAvatar(null);
                 AvatarList.selectedEntry = null;
@@ -756,7 +756,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 return;
             }
             outfitPresetsOpen = true;
-            minecraft.setScreen(new OutfitPresetsScreen(this, draft, FiguraMod.getLocalPlayerUUID(),
+            minecraft.gui.setScreen(new OutfitPresetsScreen(this, draft, FiguraMod.getLocalPlayerUUID(),
                     FiguraMod.getFiguraDirectory(), client == null ? OutfitLimits.defaults() : outfitLimits, client, transfers));
         });
     }
@@ -833,7 +833,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
             return;
         }
         cosmeticControlsOpen = true;
-        minecraft.setScreen(new CosmeticControlsScreen(this, preview, composition, outfitDraft,
+        minecraft.gui.setScreen(new CosmeticControlsScreen(this, preview, composition, outfitDraft,
                 FiguraMod.getLocalPlayerUUID()));
     }
 
@@ -869,7 +869,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
             return;
         }
         cosmeticAnimationsOpen = true;
-        minecraft.setScreen(new CosmeticAnimationScreen(this, preview, composition, outfitDraft,
+        minecraft.gui.setScreen(new CosmeticAnimationScreen(this, preview, composition, outfitDraft,
                 FiguraMod.getLocalPlayerUUID()));
     }
 
@@ -965,7 +965,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
                         error(failure);
                     } else if (capabilities.enabled()) {
                         preview.clear();
-                        minecraft.setScreen(new ModelLibraryEditScreen(this, client, capabilities, model.modelId()));
+                        minecraft.gui.setScreen(new ModelLibraryEditScreen(this, client, capabilities, model.modelId()));
                     }
                 }
             });
@@ -975,7 +975,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
             var model = selectedCollectionModel();
             if (LibraryAuthorization.available(model) && !collectionBusy()) {
                 preview.clear();
-                minecraft.setScreen(new ModelLibraryAuthorizationScreen(this, client, model.modelId(), () -> ""));
+                minecraft.gui.setScreen(new ModelLibraryAuthorizationScreen(this, client, model.modelId(), () -> ""));
             }
         }));
         collectionAuthorizationButton = actions.action(new LibraryIconButton("library_authorization", 2,
@@ -1917,7 +1917,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
 
     private void openAppeals() {
         if (client != null && client.current()) {
-            minecraft.setScreen(new ModelLibraryAppealsScreen(this, client, null));
+            minecraft.gui.setScreen(new ModelLibraryAppealsScreen(this, client, null));
         }
     }
 
@@ -2833,11 +2833,11 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private void openCreateMenu(net.minecraft.client.gui.components.Button parent) {
         var menu = new org.figuramc.figura.gui.widgets.ContextMenu(parent);
         menu.addAction(text("create_figura"), null,
-                button -> minecraft.setScreen(new AvatarWizardScreen(this)));
-        menu.addAction(text("create_ysm"), null, button -> minecraft.setScreen(new AvatarWizardScreen(this,
+                button -> minecraft.gui.setScreen(new AvatarWizardScreen(this)));
+        menu.addAction(text("create_ysm"), null, button -> minecraft.gui.setScreen(new AvatarWizardScreen(this,
                 new top.aihmc.omnimorph.wizards.YsmAvatarWizard())));
         menu.addAction(text("create_cosmetic"), null,
-                button -> minecraft.setScreen(new CosmeticWizardScreen(this)));
+                button -> minecraft.gui.setScreen(new CosmeticWizardScreen(this)));
         menu.setX(parent.getX());
         menu.setY(parent.getY() + parent.getHeight());
         menu.setVisible(true);
@@ -2931,12 +2931,12 @@ public class WardrobeScreen extends AbstractPanelScreen {
         for (UUID dependent : affected) {
             names = names.copy().append(instanceName(outfitDraft.instance(dependent))).append("\n");
         }
-        minecraft.setScreen(new FiguraConfirmScreen(confirmed -> {
+        minecraft.gui.setScreen(new FiguraConfirmScreen(confirmed -> {
             if (confirmed && outfitDraft == expected) {
                 outfitDraft.remove(id);
                 pruneDraftResources();
             }
-            minecraft.setScreen(this);
+            minecraft.gui.setScreen(this);
             previewOutfitDraft();
         }, text("instance_remove_dependents"), names.getString(), this));
     }
@@ -3205,9 +3205,9 @@ public class WardrobeScreen extends AbstractPanelScreen {
         }
         if (outfitDraft != null && outfitDraft.dirty()) {
             outfitRefreshConfirmOpen = true;
-            minecraft.setScreen(new FiguraConfirmScreen(confirmed -> {
+            minecraft.gui.setScreen(new FiguraConfirmScreen(confirmed -> {
                 outfitRefreshConfirmOpen = false;
-                minecraft.setScreen(this);
+                minecraft.gui.setScreen(this);
                 if (confirmed) {
                     reloadOutfitDraft();
                 }
@@ -4084,7 +4084,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
     public void onFilesDrop(List<Path> paths) {
         super.onFilesDrop(paths);
         String names = paths.stream().map(IOUtils::getFileNameOrEmpty).collect(java.util.stream.Collectors.joining("\n"));
-        minecraft.setScreen(new FiguraConfirmScreen(confirmed -> {
+        minecraft.gui.setScreen(new FiguraConfirmScreen(confirmed -> {
             if (confirmed) {
                 try {
                     LocalAvatarFetcher.loadExternal(paths);
@@ -4094,7 +4094,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
                     FiguraMod.LOGGER.error("Failed to copy files", failure);
                 }
             }
-            minecraft.setScreen(this);
+            minecraft.gui.setScreen(this);
         }, FiguraText.of("gui.wardrobe.drop_files"), names, this));
     }
 }

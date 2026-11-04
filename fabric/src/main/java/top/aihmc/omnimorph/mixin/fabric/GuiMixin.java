@@ -2,7 +2,7 @@ package top.aihmc.omnimorph.mixin.fabric;
 
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Gui;
+import net.minecraft.client.gui.Hud;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.gui.FiguraGui;
@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(Gui.class)
+@Mixin(Hud.class)
 public class GuiMixin {
 
     @Shadow @Final private Minecraft minecraft;

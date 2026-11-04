@@ -1,0 +1,21 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+Compiled from "RenderEvents.java"
+public class de.maxhenkel.voicechat.voice.client.RenderEvents {
+  private static final net.minecraft.resources.Identifier MICROPHONE_ICON;
+  private static final net.minecraft.resources.Identifier WHISPER_MICROPHONE_ICON;
+  private static final net.minecraft.resources.Identifier MICROPHONE_OFF_ICON;
+  private static final net.minecraft.resources.Identifier SPEAKER_ICON;
+  private static final net.minecraft.resources.Identifier WHISPER_SPEAKER_ICON;
+  private static final net.minecraft.resources.Identifier SPEAKER_OFF_ICON;
+  private static final net.minecraft.resources.Identifier DISCONNECT_ICON;
+  private static final net.minecraft.resources.Identifier GROUP_ICON;
+  private final net.minecraft.client.Minecraft minecraft;
+  public de.maxhenkel.voicechat.voice.client.RenderEvents();
+  private void onRenderHUD(net.minecraft.client.gui.GuiGraphicsExtractor, float);
+  private boolean isStartup();
+  private void renderIcon(net.minecraft.client.gui.GuiGraphicsExtractor, net.minecraft.resources.Identifier);
+  private void onRenderName(net.minecraft.client.renderer.entity.state.EntityRenderState, net.minecraft.client.renderer.state.level.CameraRenderState, com.mojang.blaze3d.vertex.PoseStack, net.minecraft.client.renderer.SubmitNodeCollector);
+  private void renderPlayerIcon(java.util.UUID, boolean, net.minecraft.network.chat.Component, net.minecraft.resources.Identifier, com.mojang.blaze3d.vertex.PoseStack, net.minecraft.client.renderer.SubmitNodeCollector, int);
+  private boolean shouldShowIcons();
+  static {};
+}

@@ -4,7 +4,8 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.renderer.MultiBufferSource;
+import top.aihmc.omnimorph.model.rendering.FiguraVertexSource;
+import top.aihmc.omnimorph.testing.NativeFeatureVertices;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.Identifier;
@@ -106,11 +107,11 @@ public final class AccelerationPreparationBenchmark {
         });
     }
 
-    private static void renderYsm(YsmModelRuntime runtime, MultiBufferSource source) {
+    private static void renderYsm(YsmModelRuntime runtime, FiguraVertexSource source) {
         runtime.renderer().renderWithAttachments(new PoseStack(), source, 0x00f000a0, runtime.captureRenderPose(false));
     }
 
-    private static void renderFigura(Avatar avatar, MultiBufferSource source) {
+    private static void renderFigura(Avatar avatar, FiguraVertexSource source) {
         boolean failedBefore = avatar.scriptError;
         avatar.render(null, 0, .5f, 1, new PoseStack(), source, 0x00f000a0, OverlayTexture.NO_OVERLAY,
                 null, PartFilterScheme.MODEL, false, false);
@@ -123,11 +124,12 @@ public final class AccelerationPreparationBenchmark {
         return avatar.errorText == null ? "unknown" : avatar.errorText.getString();
     }
 
-    private static void measure(Consumer<MultiBufferSource> render, String sample) {
+    private static void measure(Consumer<FiguraVertexSource> render, String sample) {
         try (ByteBufferBuilder memory = new ByteBufferBuilder(1 << 20)) {
             var recipes = new LinkedHashMap<RenderType, DiscardingMaterial>();
-            var nativeSource = MultiBufferSource.immediate(memory);
-            MultiBufferSource javaSource = original -> nativeSource.getBuffer(
+            var nativeSource = new NativeFeatureVertices(memory,
+                    (material, geometry) -> ((DiscardingMaterial) material).consume(geometry));
+            FiguraVertexSource javaSource = original -> nativeSource.getBuffer(
                     recipes.computeIfAbsent(original, DiscardingMaterial::new));
             SERVICE.useBackend(null);
             frame(render, javaSource, nativeSource);
@@ -161,7 +163,7 @@ public final class AccelerationPreparationBenchmark {
                         SERVICE.useBackend(mode.equals("SIMD") ? new NativeSimdBackend() : null);
                     }
                     try {
-                        MultiBufferSource source = mode.equals("GPU_PREPARATION") ? nativeSource : javaSource;
+                        FiguraVertexSource source = mode.equals("GPU_PREPARATION") ? nativeSource.source() : javaSource;
                         for (int warmup = 0; warmup < (QUICK ? 1 : 30); warmup++) {
                             frame(render, source, nativeSource);
                         }
@@ -195,13 +197,13 @@ public final class AccelerationPreparationBenchmark {
         }
     }
 
-    private static void frame(Consumer<MultiBufferSource> render, MultiBufferSource source,
-                              MultiBufferSource.BufferSource nativeSource) {
+    private static void frame(Consumer<FiguraVertexSource> render, FiguraVertexSource source,
+                              NativeFeatureVertices nativeSource) {
         YsmRenderFrameClock.beginFrame();
         GpuSubmission.beginFrame();
         SERVICE.beginFrame();
         render.accept(source);
-        nativeSource.endBatch();
+        nativeSource.execute();
     }
 
     private static long percentile(long[] sorted, double fraction) {
@@ -227,8 +229,7 @@ public final class AccelerationPreparationBenchmark {
             super("omnimorph_cpu_preparation_measurement", original.state);
         }
 
-        @Override
-        public void draw(MeshData geometry) {
+        public void consume(MeshData geometry) {
             vertices += geometry.drawState().vertexCount();
             geometry.close();
         }

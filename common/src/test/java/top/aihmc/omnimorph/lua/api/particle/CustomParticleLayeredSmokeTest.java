@@ -1,8 +1,7 @@
 package top.aihmc.omnimorph.lua.api.particle;
 
 import com.mojang.blaze3d.pipeline.BlendFunction;
-import com.mojang.blaze3d.platform.DestFactor;
-import com.mojang.blaze3d.platform.SourceFactor;
+import com.mojang.blaze3d.platform.BlendFactor;
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
@@ -140,7 +139,8 @@ public final class CustomParticleLayeredSmokeTest {
         require(first.pipeline().getColorTargetState().blendFunction().orElseThrow().equals(BlendFunction.TRANSLUCENT),
                 "alpha layer uses source alpha compositing");
         var additive = second.pipeline().getColorTargetState().blendFunction().orElseThrow();
-        require(additive.sourceColor() == SourceFactor.SRC_ALPHA && additive.destColor() == DestFactor.ONE,
+        require(additive.color().sourceFactor() == BlendFactor.SRC_ALPHA
+                        && additive.color().destFactor() == BlendFactor.ONE,
                 "additive layer still respects source opacity");
         require(first.translucent() && second.translucent()
                         && !first.pipeline().getDepthStencilState().writeDepth()

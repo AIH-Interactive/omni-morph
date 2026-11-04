@@ -105,7 +105,7 @@ public final class AccelerationService {
         if (preferredBackend instanceof GpuAccelerationBackend gpu) {
             return geometry -> gpu.drawJava(material, geometry);
         }
-        return material::draw;
+        return geometry -> GpuSubmission.drawMinecraftJava(material, geometry);
     }
 
     public GpuAccelerationBackend.Prepared prepareGpuDraw(DrawBatch batch) {

@@ -5,7 +5,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.renderer.MultiBufferSource;
+import top.aihmc.omnimorph.model.rendering.FiguraVertexSource;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
@@ -65,12 +65,12 @@ public final class OutfitFirstPersonScripts {
         if (composition == null || base == null || base.renderer == null) {
             return;
         }
-        Vec3 camera = minecraft.gameRenderer.getMainCamera().position();
+        Vec3 camera = minecraft.gameRenderer.mainCamera().position();
         Vec3 feet = player.getPosition(delta);
         Matrix4f entityToDraw = new Matrix4f().translate(
                 (float) (feet.x - camera.x), (float) (feet.y - camera.y), (float) (feet.z - camera.z));
         float bodyYaw = Mth.rotLerp(delta, player.yBodyRotO, player.yBodyRot);
-        MultiBufferSource discard = type -> (VertexConsumer) Proxy.newProxyInstance(
+        FiguraVertexSource discard = type -> (VertexConsumer) Proxy.newProxyInstance(
                 OutfitFirstPersonScripts.class.getClassLoader(),
                 new Class<?>[]{VertexConsumer.class}, DISCARD);
         EntityRenderMode previousMode = base.renderMode;
@@ -93,7 +93,7 @@ public final class OutfitFirstPersonScripts {
 
     private static void drawYsm(OutfitComposition.Frame composition, Avatar base, AvatarRenderState state,
                                 LocalPlayer player, float delta, Matrix4f entityToDraw, float bodyYaw,
-                                MultiBufferSource discard) {
+                                FiguraVertexSource discard) {
         YsmModelRuntime runtime = base.getYsmRuntime() == null ? null : base.getYsmRuntime().forRenderPass();
         if (runtime == null) {
             return;
@@ -112,7 +112,7 @@ public final class OutfitFirstPersonScripts {
 
     private static void drawFigura(OutfitComposition.Frame composition, Avatar base, AvatarRenderState state,
                                    LocalPlayer player, float delta, Matrix4f entityToDraw, float bodyYaw,
-                                   MultiBufferSource discard) {
+                                   FiguraVertexSource discard) {
         PoseStack stack = new PoseStack();
         stack.last().pose().set(entityToDraw);
         stack.mulPose(Axis.YP.rotationDegrees(180.0f - bodyYaw));

@@ -83,7 +83,7 @@ public class AvatarWizardScreen extends AbstractPanelScreen {
                 return;
             }
             FiguraToast.sendToast(FiguraText.of("toast.avatar_wizard.success"));
-            if (minecraft.screen == this) {
+            if (minecraft.gui.screen() == this) {
                 onClose();
             }
         }));
@@ -92,7 +92,7 @@ public class AvatarWizardScreen extends AbstractPanelScreen {
     @Override
     public void onClose() {
         if (!building) {
-            this.minecraft.setScreen(sourcePanel);
+            this.minecraft.gui.setScreen(sourcePanel);
         }
     }
 

@@ -62,7 +62,6 @@ import org.figuramc.figura.math.vector.FiguraVec4;
 import top.aihmc.omnimorph.mixin.font.FontAccessor;
 import top.aihmc.omnimorph.mixin.font.FontSet$SourceAccessor;
 import top.aihmc.omnimorph.mixin.gui.GuiGraphicsAccessor;
-import top.aihmc.omnimorph.mixin.gui.GuiRendererAccessor;
 import org.figuramc.figura.model.rendering.EntityRenderMode;
 import top.aihmc.omnimorph.model.library.LibraryPreviewBinding;
 import org.figuramc.figura.utils.FiguraIdentifier;
@@ -121,7 +120,7 @@ public final class UIHelper {
         GlStateManager._clear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL30.GL_STENCIL_BUFFER_BIT);
 
         Matrix4f mf = RenderSystem.getProjectionMatrix();
-        Minecraft.getInstance().getMainRenderTarget().blitToScreen(width, height);
+        Minecraft.getInstance().gameRenderer.mainRenderTarget().blitToScreen(width, height);
         RenderSystem.setProjectionMatrix(mf, ProjectionType.ORTHOGRAPHIC);
     }
 
@@ -152,7 +151,7 @@ public final class UIHelper {
             return;
 
         GpuDevice gpuDevice = RenderSystem.getDevice();
-        int paddedSize = Mth.roundToward(Lighting.UBO_SIZE, gpuDevice.getUniformOffsetAlignment());
+        int paddedSize = Mth.roundToward(Lighting.UBO_SIZE, gpuDevice.getDeviceInfo().limits().minUniformOffsetAlignment());
         buffer = gpuDevice.createBuffer(() -> "Figura Lighting UBO", 136, paddedSize);
         Vector3f lighting0 = Util.make(new Vector3f(-0.2f, -1f, 1f), Vector3f::normalize);
         Vector3f lighting1 = Util.make(new Vector3f(-0.2f, 0.4f, 0.3f), Vector3f::normalize);
@@ -198,7 +197,7 @@ public final class UIHelper {
                 }
 
                 // lightning
-                Minecraft.getInstance().gameRenderer.getLighting().setupFor(Lighting.Entry.ENTITY_IN_UI);
+                Minecraft.getInstance().gameRenderer.lighting().setupFor(Lighting.Entry.ENTITY_IN_UI);
 
                 // invisibility
                 if (Configs.PAPERDOLL_INVISIBLE.value)
@@ -233,7 +232,7 @@ public final class UIHelper {
                 entity.yHeadRot = -yaw + bodyY;
 
                 // lightning
-                Minecraft.getInstance().gameRenderer.getLighting().setupFor(Lighting.Entry.ENTITY_IN_UI);
+                Minecraft.getInstance().gameRenderer.lighting().setupFor(Lighting.Entry.ENTITY_IN_UI);
             }
         }
 
@@ -293,18 +292,13 @@ public final class UIHelper {
 
         // pop matrix
         pose.popMatrix();
-        Minecraft.getInstance().gameRenderer.getLighting().setupFor(Lighting.Entry.ITEMS_3D);
+        Minecraft.getInstance().gameRenderer.lighting().setupFor(Lighting.Entry.ITEMS_3D);
 
         // restore entity data
         entity.setXRot(headX);
         entity.yHeadRot = headY;
         entity.setInvisible(invisible);
         if (avatar != null) avatar.renderMode = previousRenderMode;
-    }
-
-    public static void enableBlend() {
-        GlStateManager._enableBlend();
-        GlStateManager._blendFuncSeparate(770, 771, 1, 0);
     }
 
     public static void blit(GuiGraphicsExtractor gui, int x, int y, int width, int height, Identifier texture) {
@@ -388,7 +382,6 @@ public final class UIHelper {
     }
 
     public static void renderHalfTexture(GuiGraphicsExtractor gui, int x, int y, int width, int height, float u, float v, int regionWidth, int regionHeight, int textureWidth, int textureHeight, Identifier texture) {
-        enableBlend();
 
         // left
         int w = width / 2;
@@ -437,7 +430,7 @@ public final class UIHelper {
     public static void highlight(GuiGraphicsExtractor gui, FiguraWidget widget, Component text) {
         // screen
         int screenW, screenH;
-        if (Minecraft.getInstance().screen instanceof AbstractPanelScreen panel) {
+        if (Minecraft.getInstance().gui.screen() instanceof AbstractPanelScreen panel) {
             screenW = panel.width;
             screenH = panel.height;
         } else {
@@ -621,9 +614,9 @@ public final class UIHelper {
 
     public static Runnable openURL(String url) {
         Minecraft minecraft = Minecraft.getInstance();
-        return () -> minecraft.setScreen(new FiguraConfirmScreen.FiguraConfirmLinkScreen((bl) -> {
+        return () -> minecraft.gui.setScreen(new FiguraConfirmScreen.FiguraConfirmLinkScreen((bl) -> {
             if (bl) Util.getPlatform().openUri(url);
-        }, url, minecraft.screen));
+        }, url, minecraft.gui.screen()));
     }
 
     public static void renderLoading(GuiGraphicsExtractor gui, int x, int y) {
@@ -633,18 +626,18 @@ public final class UIHelper {
     }
 
     public static void setContext(ContextMenu context) {
-        if (Minecraft.getInstance().screen instanceof AbstractPanelScreen panelScreen)
+        if (Minecraft.getInstance().gui.screen() instanceof AbstractPanelScreen panelScreen)
             panelScreen.contextMenu = context;
     }
 
     public static ContextMenu getContext() {
-        if (Minecraft.getInstance().screen instanceof AbstractPanelScreen panelScreen)
+        if (Minecraft.getInstance().gui.screen() instanceof AbstractPanelScreen panelScreen)
             return panelScreen.contextMenu;
         return null;
     }
 
     public static void setTooltip(Component text) {
-        if (Minecraft.getInstance().screen instanceof AbstractPanelScreen panelScreen)
+        if (Minecraft.getInstance().gui.screen() instanceof AbstractPanelScreen panelScreen)
             panelScreen.tooltip = text;
     }
 
@@ -667,10 +660,16 @@ public final class UIHelper {
         public OutlinedGuiTextRenderState(Font font, FormattedCharSequence formattedCharSequence, Matrix3x2f matrix3x2f, int x, int y, int color, int outlineColor, @Nullable ScreenRectangle screenRectangle) {
             super(font, formattedCharSequence, matrix3x2f, x, y, color, 0, false, false, screenRectangle);
             this.formattedCharSequence = formattedCharSequence;
+            this.outlineFont = font;
+            this.outlineX = x;
+            this.outlineY = y;
             this.outlineColor = outlineColor;
         }
 
         private final int outlineColor;
+        private final Font outlineFont;
+        private final int outlineX;
+        private final int outlineY;
         private final FormattedCharSequence formattedCharSequence;
         private Font.PreparedText preparedText;
         private ScreenRectangle bounds;
@@ -678,28 +677,7 @@ public final class UIHelper {
         @Override
         public Font.PreparedText ensurePrepared() {
             if (this.preparedText == null) {
-                Font.PreparedTextBuilder preparedTextBuilder = font.new PreparedTextBuilder(0, 0, outlineColor, false, false);
-
-                for (int l = -1; l <= 1; l++) {
-                    for (int m = -1; m <= 1; m++) {
-                        if (l != 0 || m != 0) {
-                            float[] fs = new float[]{x};
-                            int n = l;
-                            int o = m;
-                            formattedCharSequence.accept((lx, style, mx) -> {
-                                boolean bl = style.isBold();
-                                GlyphSource fontSet = ((FontAccessor) font).figura$getFontSet(style.getFont());
-                                GlyphInfo glyphInfo = fontSet.getGlyph(mx).info();
-                                preparedTextBuilder.x = fs[0] + n * glyphInfo.getShadowOffset();
-                                preparedTextBuilder.y = y + o * glyphInfo.getShadowOffset();
-                                fs[0] += glyphInfo.getAdvance(bl);
-                                return preparedTextBuilder.accept(lx, style.withColor(outlineColor), mx);
-                            });
-                        }
-                    }
-                }
-
-                this.preparedText = preparedTextBuilder;
+                this.preparedText = outlineFont.prepare8xTextOutline(formattedCharSequence, outlineX, outlineY, outlineColor);
                 ScreenRectangle screenRectangle = this.preparedText.bounds();
                 if (screenRectangle != null) {
                     screenRectangle = screenRectangle.transformMaxBounds(this.pose);

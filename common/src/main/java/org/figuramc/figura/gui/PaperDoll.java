@@ -23,7 +23,7 @@ public class PaperDoll {
 
         if ((!Configs.HAS_PAPERDOLL.value && !force) ||
                 entity == null ||
-                !Minecraft.renderNames() ||
+                Minecraft.getInstance().gui.hud.isHidden() ||
                 minecraft.debugEntries.isOverlayVisible() ||
                 (Configs.FIRST_PERSON_PAPERDOLL.value && !minecraft.options.getCameraType().isFirstPerson() && !force) ||
                 entity.isSleeping())

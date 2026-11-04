@@ -1,5 +1,8 @@
 package top.aihmc.omnimorph.lua.api.particle;
 
+import com.mojang.blaze3d.PrimitiveTopology;
+import net.minecraft.client.renderer.feature.QuadParticleFeatureRenderer;
+import net.minecraft.client.renderer.feature.submit.SubmitNode;
 import com.google.gson.Gson;
 import com.mojang.blaze3d.platform.NativeImage;
 import com.mojang.blaze3d.vertex.BufferBuilder;
@@ -10,6 +13,7 @@ import com.mojang.blaze3d.vertex.VertexFormatElement;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.particle.Particle;
+import net.minecraft.client.particle.SingleQuadParticle;
 import net.minecraft.client.particle.SpriteSet;
 import net.minecraft.client.renderer.SubmitNodeStorage;
 import net.minecraft.client.renderer.culling.Frustum;
@@ -38,6 +42,7 @@ import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;
 import org.figuramc.figura.permissions.Permissions;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -115,15 +120,15 @@ final class RibbonNativeSmokeTest {
             require(ordinary.isEmpty(), "Ribbon does not also emit a Billboard square");
             var nodes = new SubmitNodeStorage();
             state.submit(nodes, new CameraRenderState());
-            require(nodes.getSubmitsPerOrder().get(0).getParticleGroupRenderers().getFirst() == ribbon,
-                    "extracted Ribbon reaches the native particle feature queue");
-            require(ribbon.prepare(null, false) == null, "translucent Ribbon does not allocate in the solid pass");
+            requireSubmitted(nodes, ribbon);
+            require(ribbon.layers().stream().allMatch(SingleQuadParticle.Layer::translucent),
+                    "Ribbon materials are prepared only in the native translucent particle pass");
             byte[] frozen = vertices(ribbon, 8);
             ByteBuffer data = ByteBuffer.wrap(frozen).order(java.nio.ByteOrder.nativeOrder());
             var format = DefaultVertexFormat.PARTICLE;
             int stride = format.getVertexSize();
-            int uv = format.getOffset(VertexFormatElement.UV0);
-            int light = format.getOffset(VertexFormatElement.UV2);
+            int uv = format.getElement("UV0").offset();
+            int light = format.getElement("UV2").offset();
             near(data.getFloat(0), 0);
             near(data.getFloat(4), -.2);
             near(data.getFloat(8), -10);
@@ -167,6 +172,15 @@ final class RibbonNativeSmokeTest {
             overlay.close();
             drain.run();
         }
+    }
+
+    static void requireSubmitted(SubmitNodeStorage nodes, RibbonRenderState ribbon) {
+        var submitted = new ArrayList<SubmitNode>();
+        nodes.getSubmitsPerOrder().get(0).afterTerrain.sortInto((submit, strictlyOrdered) -> submitted.add(submit));
+        require(submitted.size() == 1
+                        && submitted.getFirst() instanceof QuadParticleFeatureRenderer.Submit particle
+                        && particle.particles() == ribbon && particle.translucent(),
+                "extracted Ribbon reaches the native translucent quad particle feature queue");
     }
 
     private static void sharedVerticesAndTrailSlots(Avatar first, Avatar second, Runnable drain) throws Exception {
@@ -266,8 +280,10 @@ final class RibbonNativeSmokeTest {
 
     private static byte[] vertices(RibbonRenderState ribbon, int count) {
         try (var storage = ByteBufferBuilder.exactlySized(count * DefaultVertexFormat.PARTICLE.getVertexSize())) {
-            var builder = new BufferBuilder(storage, VertexFormat.Mode.QUADS, DefaultVertexFormat.PARTICLE);
-            ribbon.writeVertices(builder);
+            var builder = new BufferBuilder(storage, PrimitiveTopology.QUADS, DefaultVertexFormat.PARTICLE);
+            for (SingleQuadParticle.Layer layer : ribbon.layers()) {
+                ribbon.buildLayer(layer, builder);
+            }
             try (var mesh = builder.build()) {
                 require(mesh != null && mesh.drawState().vertexCount() == count, "native quad buffer has expected vertices");
                 ByteBuffer buffer = mesh.vertexBuffer();

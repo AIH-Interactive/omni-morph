@@ -1,14 +1,12 @@
 package org.figuramc.figura.mixin.gui;
 
-import net.minecraft.client.gui.Gui;
-import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.Hud;
 import net.minecraft.network.chat.Component;
 import org.spongepowered.asm.mixin.Intrinsic;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(Gui.class)
+@Mixin(Hud.class)
 public interface GuiAccessor {
     @Intrinsic
     @Accessor("title")

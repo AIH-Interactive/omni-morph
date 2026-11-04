@@ -1,0 +1,17 @@
+gradle.projectsEvaluated {
+    def common = rootProject.project(':common')
+    def output = rootProject.layout.buildDirectory.dir('26.2-preparation-scope-slice')
+    def compile = rootProject.tasks.register('compile26_2PreparationScope', JavaCompile) {
+        source common.files('src/main/java/top/aihmc/omnimorph/model/rendering/nodeRenderer/FeaturePreparationScope.java',
+            'src/test/java/top/aihmc/omnimorph/model/rendering/nodeRenderer/FeaturePreparationScopeSmokeTest.java')
+        classpath = common.configurations.compileClasspath
+        destinationDirectory = output
+        options.release = 25
+        options.encoding = 'UTF-8'
+    }
+    rootProject.tasks.register('native26_2PreparationScopeSmokeTest', JavaExec) {
+        dependsOn compile
+        classpath = rootProject.files(output) + common.configurations.compileClasspath + common.configurations.runtimeClasspath
+        mainClass = 'top.aihmc.omnimorph.model.rendering.nodeRenderer.FeaturePreparationScopeSmokeTest'
+    }
+}

@@ -3,7 +3,8 @@ package top.aihmc.omnimorph.lua.api.particle;
 import com.google.gson.Gson;
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.extract.LevelExtractor;
+import net.minecraft.util.LightCoordsUtil;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.BlockAndLightGetter;
@@ -38,7 +39,7 @@ import org.figuramc.figura.lua.api.particle.LuaParticle;
 final class ParticleLightNativeSmokeTest {
     static void run(Unsafe unsafe, Avatar first, Avatar second, Runnable drain) throws Exception {
         var client = Minecraft.getInstance();
-        var rendererField = Minecraft.class.getDeclaredField("levelRenderer");
+        var rendererField = Minecraft.class.getDeclaredField("levelExtractor");
         rendererField.setAccessible(true);
         Object previousRenderer = rendererField.get(client);
         var renderer = (RecordingRenderer) unsafe.allocateInstance(RecordingRenderer.class);
@@ -254,7 +255,7 @@ final class ParticleLightNativeSmokeTest {
 
     private static int worldHook(BlockAndLightGetter world, BlockPos position, int original) throws Exception {
         var hook = ParticleWorldLightMixin.class.getDeclaredMethod("figura$particleWorldLight", int.class,
-                LevelRenderer.BrightnessGetter.class, BlockAndLightGetter.class, BlockState.class, BlockPos.class);
+                LightCoordsUtil.BrightnessGetter.class, BlockAndLightGetter.class, BlockState.class, BlockPos.class);
         hook.setAccessible(true);
         return (int) hook.invoke(null, original, null, world, null, position);
     }
@@ -307,11 +308,11 @@ final class ParticleLightNativeSmokeTest {
         }
     }
 
-    private static final class RecordingRenderer extends LevelRenderer {
+    private static final class RecordingRenderer extends LevelExtractor {
         private Set<ParticleLightField.Section> dirty;
 
         private RecordingRenderer() {
-            super(null, null, null, null, null, null);
+            super(null, null, null);
         }
 
         @Override

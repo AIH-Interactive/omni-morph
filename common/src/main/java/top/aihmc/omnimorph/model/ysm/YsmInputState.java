@@ -25,7 +25,7 @@ public final class YsmInputState {
 
     public void updateReadiness(Minecraft client) {
         setReady(client != null && client.player != null && client.level != null
-                && client.getOverlay() == null && client.screen == null
+                && client.gui.overlay() == null && client.gui.screen() == null
                 && client.mouseHandler.isMouseGrabbed() && client.isWindowActive());
         hands.prepare(client == null ? null : client.player, ready);
     }

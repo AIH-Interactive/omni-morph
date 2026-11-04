@@ -1,7 +1,7 @@
 package top.aihmc.omnimorph.model.outfit;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.renderer.MultiBufferSource;
+import top.aihmc.omnimorph.model.rendering.FiguraVertexSource;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.model.player.PlayerModel;
@@ -25,21 +25,21 @@ public final class OutfitNativeRenderer {
 
     public static void drawVanilla(OutfitComposition.Frame frame, PlayerModel model, LivingEntityRenderState state,
                                    float delta, Matrix4fc entityToDraw, Matrix4fc modelToDraw,
-                                   MultiBufferSource buffers, EntityRenderMode mode) {
+                                   FiguraVertexSource buffers, EntityRenderMode mode) {
         var basePose = frame.captureVanillaBase(model, new Matrix4f(entityToDraw).invert().mul(modelToDraw));
         draw(frame, basePose, state, delta, entityToDraw, buffers, mode);
     }
 
     public static void drawVanillaArm(OutfitComposition.Frame frame, PlayerModel model,
                                       LivingEntityRenderState state, float delta, Matrix4fc armToDraw,
-                                      MultiBufferSource buffers, boolean left) {
+                                      FiguraVertexSource buffers, boolean left) {
         var basePose = frame.captureVanillaArm(model, new Matrix4f(), left);
         draw(frame, basePose, state, delta, armToDraw, buffers, EntityRenderMode.FIRST_PERSON);
     }
 
     public static void draw(OutfitComposition.Frame frame, SkeletonPose basePose,
                             LivingEntityRenderState state, float delta, Matrix4fc entityToDraw,
-                            MultiBufferSource buffers, EntityRenderMode mode) {
+                            FiguraVertexSource buffers, EntityRenderMode mode) {
         if (shadowPass()) {
             return;
         }
@@ -54,12 +54,12 @@ public final class OutfitNativeRenderer {
     }
 
     public static void drawInstance(OutfitComposition.Draw command, float delta, Matrix4fc entityToDraw,
-                                    MultiBufferSource buffers, int light, EntityRenderMode mode) {
+                                    FiguraVertexSource buffers, int light, EntityRenderMode mode) {
         drawInstance(null, command, delta, entityToDraw, buffers, light, mode);
     }
 
     private static void drawInstance(OutfitComposition.Frame frame, OutfitComposition.Draw command, float delta,
-                                     Matrix4fc entityToDraw, MultiBufferSource buffers, int light, EntityRenderMode mode) {
+                                     Matrix4fc entityToDraw, FiguraVertexSource buffers, int light, EntityRenderMode mode) {
         if (shadowPass()) {
             return;
         }

@@ -6,7 +6,7 @@ import org.joml.Matrix4f;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.MultiBufferSource;
+import top.aihmc.omnimorph.model.rendering.FiguraVertexSource;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
@@ -834,11 +834,11 @@ public class YsmModelRuntime implements AutoCloseable {
         }
     }
 
-    public boolean renderSubEntity(PoseStack stack, MultiBufferSource bufferSource, int light, String kind, String entityId) {
+    public boolean renderSubEntity(PoseStack stack, FiguraVertexSource bufferSource, int light, String kind, String entityId) {
         return renderer.renderSubEntity(stack, bufferSource, light, getSubEntity(kind, entityId));
     }
 
-    public boolean renderSubEntity(PoseStack stack, MultiBufferSource bufferSource, int light,
+    public boolean renderSubEntity(PoseStack stack, FiguraVertexSource bufferSource, int light,
                                    String kind, String typeId, Entity entity, float partialTick) {
         if (closed || entity == null || entity.isRemoved()) {
             return false;
@@ -1646,11 +1646,11 @@ public class YsmModelRuntime implements AutoCloseable {
         }
     }
 
-    public boolean renderFirstPersonArm(PoseStack stack, MultiBufferSource bufferSource, int light, boolean left) {
+    public boolean renderFirstPersonArm(PoseStack stack, FiguraVertexSource bufferSource, int light, boolean left) {
         return renderer.renderFirstPersonArm(stack, bufferSource, light, left);
     }
 
-    public boolean renderFirstPersonArm(PoseStack stack, MultiBufferSource bufferSource, int light,
+    public boolean renderFirstPersonArm(PoseStack stack, FiguraVertexSource bufferSource, int light,
                                         boolean left, YsmRenderPose pose) {
         return renderer.renderFirstPersonArm(stack, bufferSource, light, left, pose);
     }

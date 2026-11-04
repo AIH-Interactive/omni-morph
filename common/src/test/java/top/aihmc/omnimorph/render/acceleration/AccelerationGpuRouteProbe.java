@@ -1,6 +1,10 @@
 package top.aihmc.omnimorph.render.acceleration;
 
 import com.mojang.blaze3d.buffers.GpuBuffer;
+import com.mojang.blaze3d.GpuFormat;
+import com.mojang.blaze3d.IndexType;
+import com.mojang.blaze3d.PrimitiveTopology;
+import com.mojang.blaze3d.pipeline.BindGroupLayout;
 import com.mojang.blaze3d.opengl.GlBackend;
 import com.mojang.blaze3d.pipeline.ColorTargetState;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
@@ -8,9 +12,9 @@ import com.mojang.blaze3d.shaders.GpuDebugOptions;
 import com.mojang.blaze3d.shaders.ShaderType;
 import com.mojang.blaze3d.shaders.UniformType;
 import com.mojang.blaze3d.systems.GpuDevice;
+import com.mojang.blaze3d.systems.GpuSurface;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuTexture;
-import com.mojang.blaze3d.textures.TextureFormat;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.resources.Identifier;
@@ -23,7 +27,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
-import java.util.OptionalInt;
+import org.joml.Vector4f;
 
 /** H0 experiment only. Draws through Minecraft's device in a visible desktop window. */
 public final class AccelerationGpuRouteProbe {
@@ -64,10 +68,12 @@ public final class AccelerationGpuRouteProbe {
                 GLFW.glfwShowWindow(window);
                 GpuDevice device = backend.createDevice(window,
                         (id, type) -> type == ShaderType.VERTEX ? VERTEX_SHADER : FRAGMENT_SHADER,
-                        new GpuDebugOptions(1, true, true));
-                try {
+                        new GpuDebugOptions(1, true, true, true), () -> {});
+                try (var surface = device.createSurface(window)) {
+                    surface.configure(new GpuSurface.Configuration(SIZE, SIZE,
+                            GpuSurface.PresentMode.getSupportedVsyncMode(surface.supportedPresentModes(), true)));
                     RenderSystem.initRenderer(device);
-                    run(device, window, report);
+                    run(device, surface, window, report);
                 } finally {
                     device.close();
                 }
@@ -79,16 +85,17 @@ public final class AccelerationGpuRouteProbe {
         }
     }
 
-    private static void run(GpuDevice device, long window, Path report) throws Exception {
+    private static void run(GpuDevice device, GpuSurface surface, long window, Path report) throws Exception {
         RenderPipeline pipeline = RenderPipeline.builder()
                 .withLocation(Identifier.parse("omni-morph:h0_probe"))
                 .withVertexShader(Identifier.parse("omni-morph:h0_probe"))
                 .withFragmentShader(Identifier.parse("omni-morph:h0_probe"))
-                .withUniform("Pose", UniformType.UNIFORM_BUFFER)
+                .withBindGroupLayout(BindGroupLayout.builder().withUniform("Pose", UniformType.UNIFORM_BUFFER).build())
                 .withColorTargetState(ColorTargetState.DEFAULT)
                 .withDepthStencilState(Optional.empty())
                 .withCull(false)
-                .withVertexFormat(DefaultVertexFormat.POSITION, VertexFormat.Mode.TRIANGLES)
+                .withVertexBinding(0, DefaultVertexFormat.POSITION)
+                .withPrimitiveTopology(PrimitiveTopology.TRIANGLES)
                 .build();
         if (!device.precompilePipeline(pipeline).isValid()) {
             throw new AssertionError("Minecraft rejected H0 matrix pipeline");
@@ -105,23 +112,25 @@ public final class AccelerationGpuRouteProbe {
                  var poseBuffer = device.createBuffer(() -> "H0 pose", GpuBuffer.USAGE_UNIFORM, pose);
                  var target = device.createTexture("H0 target",
                          GpuTexture.USAGE_RENDER_ATTACHMENT | GpuTexture.USAGE_COPY_SRC,
-                         TextureFormat.RGBA8, SIZE, SIZE, 1, 1);
+                         GpuFormat.RGBA8_UNORM, SIZE, SIZE, 1, 1);
                  var view = device.createTextureView(target)) {
                 // Keep the actual window visible long enough for stable rendering and inspection.
                 long deadline = System.nanoTime() + 5_000_000_000L;
                 int draws = 0;
                 while (System.nanoTime() < deadline && !GLFW.glfwWindowShouldClose(window)) {
+                    surface.acquireNextTexture();
                     var encoder = device.createCommandEncoder();
                     try (var pass = encoder.createRenderPass(() -> "H0 transformed triangle", view,
-                            OptionalInt.of(0xff101020))) {
+                            Optional.of(new Vector4f(16 / 255f, 16 / 255f, 32 / 255f, 1)))) {
                         pass.setPipeline(pipeline);
                         pass.setUniform("Pose", poseBuffer);
-                        pass.setVertexBuffer(0, vertexBuffer);
-                        pass.setIndexBuffer(indexBuffer, VertexFormat.IndexType.INT);
-                        pass.drawIndexed(0, 0, 3, 1);
+                        pass.setVertexBuffer(0, vertexBuffer.slice());
+                        pass.setIndexBuffer(indexBuffer, IndexType.INT);
+                        pass.drawIndexed(3, 1, 0, 0, 0);
                     }
-                    encoder.presentTexture(view);
-                    device.presentFrame();
+                    surface.blitFromTexture(encoder, view);
+                    encoder.submit();
+                    surface.present();
                     GLFW.glfwPollEvents();
                     draws++;
                 }
@@ -130,10 +139,10 @@ public final class AccelerationGpuRouteProbe {
                 }
                 verifyTransformedPixels(device, target);
                 Files.createDirectories(report.toAbsolutePath().getParent());
-                Files.writeString(report, "backend=" + device.getBackendName()
-                        + "\nrenderer=" + device.getRenderer()
-                        + "\nversion=" + device.getVersion()
-                        + "\nuniformAlignment=" + device.getUniformOffsetAlignment()
+                Files.writeString(report, "backend=" + device.getDeviceInfo().backendName()
+                        + "\nrenderer=" + device.getDeviceInfo().name()
+                        + "\nversion=" + device.getDeviceInfo().driverInfo()
+                        + "\nuniformAlignment=" + device.getDeviceInfo().limits().minUniformOffsetAlignment()
                         + "\nindexedDraws=" + draws
                         + "\ntranslatedPixels=PASS (diagnostic readback only)"
                         + "\nroute=GpuDevice -> matrix UBO -> vertex shader -> RenderPass.drawIndexed -> presentTexture"
@@ -153,12 +162,13 @@ public final class AccelerationGpuRouteProbe {
                 GpuBuffer.USAGE_COPY_DST | GpuBuffer.USAGE_MAP_READ, SIZE * SIZE * 4L)) {
             encoder.copyTextureToBuffer(target, pixels, 0, () -> { }, 0);
             try (var fence = encoder.createFence()) {
+                encoder.submit();
                 if (!fence.awaitCompletion(5_000_000_000L)) {
                     throw new AssertionError("GPU readback fence timed out");
                 }
             }
             RenderSystem.executePendingTasks();
-            try (var mapped = encoder.mapBuffer(pixels, true, false)) {
+            try (var mapped = pixels.map(true, false)) {
                 ByteBuffer data = mapped.data();
                 // At y=0, the translated triangle spans x=[0, 0.5]. The original
                 // untransformed geometry spans x=[-0.25, 0.25]. Check both regions.

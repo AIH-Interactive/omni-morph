@@ -1,6 +1,9 @@
 package top.aihmc.omnimorph.render.acceleration;
 
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.PrimitiveTopology;
+import com.mojang.blaze3d.IndexType;
+import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.CompactVectorArray;
@@ -9,11 +12,12 @@ import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import com.mojang.blaze3d.vertex.VertexSorting;
-import net.minecraft.client.renderer.MultiBufferSource;
+import top.aihmc.omnimorph.model.rendering.FiguraVertexSource;
+import top.aihmc.omnimorph.ducks.DeferredMaterialDrawExtension;
+import net.minecraft.client.renderer.rendertype.PreparedRenderType;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import org.joml.Vector3f;
 import org.joml.Vector3fc;
-import org.joml.Vector4f;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -57,7 +61,8 @@ public final class GpuSubmission {
     private final AccelerationService service;
     private final Function<RenderType, Scope> context;
     private final Function<RenderType, Consumer<MeshData>> javaDraw;
-    private final Map<MultiBufferSource.BufferSource, Map<RenderType, Boundary>> sources = new WeakHashMap<>();
+    private final Map<FiguraVertexSource.NativePreparation, Map<RenderType, Boundary>> sources = new WeakHashMap<>();
+    private static PreparedRenderType executingMaterial;
     private long frame;
 
     GpuSubmission(AccelerationService service, Function<RenderType, Scope> context, BiConsumer<RenderType, MeshData> javaDraw) {
@@ -72,7 +77,7 @@ public final class GpuSubmission {
         this.javaDraw = service::javaDrawCallback;
     }
 
-    public static boolean enqueue(MultiBufferSource source, DrawBatch batch, JavaEmitter fallback) {
+    public static boolean enqueue(FiguraVertexSource source, DrawBatch batch, JavaEmitter fallback) {
         return GLOBAL.offer(source, batch, fallback);
     }
 
@@ -95,12 +100,12 @@ public final class GpuSubmission {
         }
     }
 
-    boolean offer(MultiBufferSource source, DrawBatch batch, JavaEmitter fallback) {
+    boolean offer(FiguraVertexSource source, DrawBatch batch, JavaEmitter fallback) {
         RenderType material = batch.semantics().material();
-        if (!service.gpuDrawEnabled() || !(source instanceof MultiBufferSource.BufferSource nativeSource)
+        if (!service.gpuDrawEnabled() || !(source instanceof FiguraVertexSource.NativePreparation nativeSource)
                 || material == null || material.isOutline() || batch.mesh().verticesPerFace() != 4
-                || material.mode() != VertexFormat.Mode.QUADS || material.format() != DefaultVertexFormat.ENTITY
-                || !GpuShaderProgram.supports(material.pipeline()) || nativeSource.fixedBuffers.containsKey(material)
+                || material.primitiveTopology() != PrimitiveTopology.QUADS || material.format() != DefaultVertexFormat.ENTITY
+                || !GpuShaderProgram.supports(material.pipeline())
                 || batch.semantics().texture() == null || batch.semantics().texture().getNamespace().equals("minecraft")) {
             AccelerationFrameDiagnostics.fallback("OFFER_INELIGIBLE");
             return false;
@@ -147,8 +152,26 @@ public final class GpuSubmission {
         }
 
         @Override
-        public void draw(MeshData placeholder) {
-            placeholder.close();
+        public boolean canConsolidateConsecutiveGeometry() {
+            return false;
+        }
+
+        @Override
+        public PreparedRenderType prepare() {
+            PreparedRenderType prepared = original.prepare();
+            ((DeferredMaterialDrawExtension) (Object) prepared).figura$setDeferredDraw(() -> {
+                PreparedRenderType previousMaterial = executingMaterial;
+                executingMaterial = prepared;
+                try {
+                    draw();
+                } finally {
+                    executingMaterial = previousMaterial;
+                }
+            });
+            return prepared;
+        }
+
+        private void draw() {
             List<Queued> batches = queued.stream().filter(value -> service.isCurrent(value.batch().lease())).toList();
             queued.clear();
             if (batches.isEmpty()) {
@@ -372,7 +395,7 @@ public final class GpuSubmission {
         int vertices = sorted == null ? batches.stream().mapToInt(value -> value.batch().mesh().vertexCount()).sum()
                 : (sorted.size() - firstFace) * 4;
         try (ByteBufferBuilder memory = new ByteBufferBuilder(Math.max(256, Math.multiplyExact(vertices, material.format().getVertexSize())))) {
-            BufferBuilder output = new BufferBuilder(memory, material.mode(), material.format());
+            BufferBuilder output = new BufferBuilder(memory, material.primitiveTopology(), material.format());
             if (sorted == null) {
                 for (Queued batch : batches) {
                     if (service.isCurrent(batch.batch().lease())) {
@@ -409,34 +432,43 @@ public final class GpuSubmission {
 
     static Scope openMinecraftScope(RenderType material) {
         RenderSystem.assertOnRenderThread();
-        var stack = RenderSystem.getModelViewStack();
-        var modifier = material.state.layeringTransform.getModifier();
-        if (modifier != null) {
-            stack.pushMatrix();
-        }
-        try {
-            if (modifier != null) {
-                modifier.accept(stack);
+        PreparedRenderType prepared = executingMaterial == null ? material.prepare() : executingMaterial;
+        var target = prepared.outputTarget().getRenderTarget();
+        var color = RenderSystem.outputColorTextureOverride != null
+                ? RenderSystem.outputColorTextureOverride : target.getColorTextureView();
+        var depth = target.useDepth ? (RenderSystem.outputDepthTextureOverride != null
+                ? RenderSystem.outputDepthTextureOverride : target.getDepthTextureView()) : null;
+        var scissor = prepared.scissorState();
+        GpuDrawContext context = new GpuDrawContext(color, depth, prepared.textures(), prepared.dynamicTransforms(),
+                scissor.enabled(), scissor.x(), scissor.y(), scissor.width(), scissor.height());
+        return new Scope(context, () -> {});
+    }
+
+    /** Rare Java replay after an acceleration failure, using the original native prepared material. */
+    static void drawMinecraftJava(RenderType material, MeshData geometry) {
+        PreparedRenderType prepared = executingMaterial == null ? material.prepare() : executingMaterial;
+        var device = RenderSystem.getDevice();
+        GpuBuffer uploadedIndices = null;
+        try (geometry;
+             GpuBuffer vertices = device.createBuffer(() -> "OmniMorph Java replay vertices", 40, geometry.vertexBuffer())) {
+            var state = geometry.drawState();
+            GpuBuffer indices;
+            IndexType indexType;
+            if (geometry.indexBuffer() != null) {
+                uploadedIndices = device.createBuffer(() -> "OmniMorph Java replay indices", 72, geometry.indexBuffer());
+                indices = uploadedIndices;
+                indexType = state.indexType();
+            } else {
+                var sequential = RenderSystem.getSequentialBuffer(state.primitiveTopology());
+                indices = sequential.getBuffer(state.indexCount());
+                indexType = sequential.type();
             }
-            var transform = RenderSystem.getDynamicUniforms().writeTransform(RenderSystem.getModelViewMatrix(),
-                    new Vector4f(1, 1, 1, 1), new Vector3f(), material.state.textureTransform.getMatrix());
-            var target = material.outputTarget().getRenderTarget();
-            var color = RenderSystem.outputColorTextureOverride != null ? RenderSystem.outputColorTextureOverride : target.getColorTextureView();
-            var depth = target.useDepth ? (RenderSystem.outputDepthTextureOverride != null
-                    ? RenderSystem.outputDepthTextureOverride : target.getDepthTextureView()) : null;
-            var scissor = RenderSystem.getScissorStateForRenderTypeDraws();
-            GpuDrawContext context = new GpuDrawContext(color, depth, material.state.getTextures(), transform,
-                    scissor.enabled(), scissor.x(), scissor.y(), scissor.width(), scissor.height());
-            return new Scope(context, () -> {
-                if (modifier != null) {
-                    stack.popMatrix();
-                }
-            });
-        } catch (RuntimeException | Error failure) {
-            if (modifier != null) {
-                stack.popMatrix();
+            // The six-argument native draw is the ordinary pipeline path, bypassing only our placeholder hook.
+            prepared.drawFromBuffer(vertices, indices, indexType, 0, 0, state.indexCount());
+        } finally {
+            if (uploadedIndices != null) {
+                uploadedIndices.close();
             }
-            throw failure;
         }
     }
 }

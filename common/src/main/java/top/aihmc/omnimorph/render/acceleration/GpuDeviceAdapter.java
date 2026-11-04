@@ -133,7 +133,7 @@ interface GpuDeviceAdapter {
     GpuSubmission.Scope openScope(RenderType material);
 
     default void drawJava(RenderType material, MeshData geometry) {
-        material.draw(geometry);
+        GpuSubmission.drawMinecraftJava(material, geometry);
     }
 
     /** Marks the draw immediately before issuing it: an uncertain/partially submitted draw must not be replayed. */

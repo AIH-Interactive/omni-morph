@@ -4,7 +4,7 @@ import com.mojang.blaze3d.pipeline.DepthStencilState;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.platform.CompareOp;
 import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.renderer.MultiBufferSource;
+import top.aihmc.omnimorph.model.rendering.FiguraVertexSource;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.rendertype.RenderSetup;
 import net.minecraft.client.renderer.rendertype.RenderType;
@@ -167,7 +167,7 @@ public final class PreviewBoneHighlight {
         }
     }
 
-    public static void drawSkeleton(List<Segment> segments, Matrix4fc entityToDraw, MultiBufferSource source) {
+    public static void drawSkeleton(List<Segment> segments, Matrix4fc entityToDraw, FiguraVertexSource source) {
         if (!UIHelper.paperdoll || segments.isEmpty()) {
             return;
         }
@@ -193,7 +193,7 @@ public final class PreviewBoneHighlight {
                 ? RenderTypes.entityTranslucentCullItemTarget(texture) : RenderTypes.entityTranslucent(texture);
     }
 
-    public static void figura(FiguraModelPart part, PartCustomization transform, MultiBufferSource source) {
+    public static void figura(FiguraModelPart part, PartCustomization transform, FiguraVertexSource source) {
         var bounds = new Bounds();
         for (var vertices : part.vertices.values()) {
             for (var vertex : vertices) {
@@ -208,7 +208,7 @@ public final class PreviewBoneHighlight {
         bounds.draw(transform.copyIntoGlobalPoseStack().last(), source);
     }
 
-    public static void ysm(YsmGeometry.Bone bone, PoseStack stack, MultiBufferSource source) {
+    public static void ysm(YsmGeometry.Bone bone, PoseStack stack, FiguraVertexSource source) {
         var bounds = new Bounds();
         for (var cube : bone.cubes) {
             for (var quad : cube.quads) {
@@ -252,7 +252,7 @@ public final class PreviewBoneHighlight {
             return x0 == Double.POSITIVE_INFINITY;
         }
 
-        void draw(PoseStack.Pose pose, MultiBufferSource source) {
+        void draw(PoseStack.Pose pose, FiguraVertexSource source) {
             ImmediateFiguraRenderer.renderLineBox(pose, source.getBuffer(Lines.TYPE),
                     x0, y0, z0, x1, y1, z1, 1f, 0.75f, 0.1f, 1f);
         }
@@ -265,10 +265,10 @@ public final class PreviewBoneHighlight {
             var source = RenderPipelines.LINES;
             var snippet = new RenderPipeline.Snippet(Optional.of(source.getVertexShader()),
                     Optional.of(source.getFragmentShader()), Optional.of(source.getShaderDefines()),
-                    Optional.of(source.getSamplers()), Optional.of(source.getUniforms()),
-                    Optional.of(source.getColorTargetState()), Optional.ofNullable(source.getDepthStencilState()),
+                    Optional.of(source.getBindGroupLayouts()), source.getColorTargetStates(),
+                    source.getColorTargetStates().length, Optional.ofNullable(source.getDepthStencilState()),
                     Optional.of(source.getPolygonMode()), Optional.of(source.isCull()),
-                    Optional.of(source.getVertexFormat()), Optional.of(source.getVertexFormatMode()));
+                    source.getVertexFormatBindings(), Optional.of(source.getPrimitiveTopology()));
             var pipeline = RenderPipelines.register(RenderPipeline.builder(snippet)
                     .withLocation(new FiguraIdentifier("pipeline/wardrobe_bone_selection"))
                     .withDepthStencilState(new DepthStencilState(CompareOp.ALWAYS_PASS, false))

@@ -100,13 +100,13 @@ public class EntityPreview extends AbstractContainerElement {
                         if (libraryPreview != null) {
                             libraryPreview.setExpanded(true);
                         }
-                        Minecraft.getInstance().setScreen(new AvatarScreen(scale, pitch, yaw,
+                        Minecraft.getInstance().gui.setScreen(new AvatarScreen(scale, pitch, yaw,
                                 localPreview == null ? this.entity : sourceEntity, parentScreen, libraryPreview, selectedBone));
                     } else {
-                        if (libraryPreview != null && Minecraft.getInstance().screen instanceof AvatarScreen avatarScreen) {
+                        if (libraryPreview != null && Minecraft.getInstance().gui.screen() instanceof AvatarScreen avatarScreen) {
                             avatarScreen.onClose();
                         } else {
-                            Minecraft.getInstance().setScreen(parentScreen);
+                            Minecraft.getInstance().gui.setScreen(parentScreen);
                         }
                     }
                 }));
@@ -218,7 +218,6 @@ public class EntityPreview extends AbstractContainerElement {
         } else if (shownIssues.isEmpty()) {
             // draw
             int s = Math.min(width, height) * 2 / 3;
-            UIHelper.enableBlend();
             gui.blit(RenderPipelines.GUI_TEXTURED, UNKNOWN, x + (width - s) / 2, y + (height - s) / 2, 0f, 64 * ((int) (FiguraMod.ticks / 3f) % 8), s, s,64, 64, 64, 512);
         }
 

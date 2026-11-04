@@ -8,7 +8,7 @@ import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.blaze3d.PrimitiveTopology;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.RenderPipelines;
 
@@ -88,7 +88,7 @@ public enum FiguraRenderTypes {
 
         public static final RenderType SOLID = new RenderType(
                 "figura_solid",
-                RenderSetup.builder(FiguraRenderPipelines.FIGURA_SOLID).bufferSize(256)
+                RenderSetup.builder(FiguraRenderPipelines.FIGURA_SOLID)
                         .setLayeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING)
                         .setOutputTarget(OutputTarget.ITEM_ENTITY_TARGET)
                         .setOutline(RenderSetup.OutlineProperty.NONE)
@@ -99,7 +99,6 @@ public enum FiguraRenderTypes {
                 (texture, affectsOutline) ->
                         new RenderType("figura_cutout_emissive_solid",
                                 RenderSetup.builder(RenderPipelines.BEACON_BEAM_TRANSLUCENT)
-                                        .bufferSize(256)
                                         .withTexture("Sampler0", texture)
                                         .affectsCrumbling()
                                         .sortOnUpload()
@@ -114,7 +113,6 @@ public enum FiguraRenderTypes {
                 texture -> new RenderType(
                         "figura_textured_portal",
                         RenderSetup.builder(RenderPipelines.END_GATEWAY)
-                                .bufferSize(256)
                                 .withTexture("Sampler0", texture)
                                 .withTexture("Sampler1", texture)
                                 .setOutline(RenderSetup.OutlineProperty.NONE)
@@ -126,7 +124,6 @@ public enum FiguraRenderTypes {
                 texture -> new RenderType(
                         "figura_blurry",
                         RenderSetup.builder(RenderPipelines.ENTITY_TRANSLUCENT)
-                                .bufferSize(256)
                                 .affectsCrumbling()
                                 .sortOnUpload()
                                 .useLightmap()
@@ -147,7 +144,6 @@ public enum FiguraRenderTypes {
                 texture -> new RenderType(
                         "figura_textured_glint_direct",
                         RenderSetup.builder(RenderPipelines.GLINT)
-                                .bufferSize(256)
                                 .withTexture("Sampler0", texture)
                                 .setTextureTransform(TextureTransform.ENTITY_GLINT_TEXTURING)
                                 .createRenderSetup()
@@ -156,7 +152,15 @@ public enum FiguraRenderTypes {
     }
 
     public static class FiguraRenderPipelines extends RenderPipelines {
-        protected static RenderPipeline.Snippet FIGURA_SOLID_SNIPPET = RenderPipeline.builder(MATRICES_FOG_SNIPPET, GLOBALS_SNIPPET).withVertexShader("core/rendertype_lines").withFragmentShader("core/rendertype_lines").withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT)).withDepthStencilState(DepthStencilState.DEFAULT).withCull(false).withVertexFormat(DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.QUADS).buildSnippet();
+        protected static RenderPipeline.Snippet FIGURA_SOLID_SNIPPET = RenderPipeline.builder(MATRICES_FOG_SNIPPET, GLOBALS_SNIPPET)
+                .withVertexShader("core/rendertype_lines")
+                .withFragmentShader("core/rendertype_lines")
+                .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
+                .withDepthStencilState(DepthStencilState.DEFAULT)
+                .withCull(false)
+                .withVertexBinding(0, DefaultVertexFormat.POSITION_COLOR_NORMAL)
+                .withPrimitiveTopology(PrimitiveTopology.QUADS)
+                .buildSnippet();
 
         public static RenderPipeline FIGURA_SOLID = register(RenderPipeline.builder(FIGURA_SOLID_SNIPPET).withLocation(new FiguraIdentifier("pipeline/solid")).build());
     }

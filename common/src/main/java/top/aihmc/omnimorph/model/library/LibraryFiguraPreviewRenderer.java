@@ -6,7 +6,9 @@ import net.minecraft.client.gui.render.pip.PictureInPictureRenderer;
 import net.minecraft.client.model.geom.builders.CubeDeformation;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraft.client.model.player.PlayerModel;
-import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import top.aihmc.omnimorph.ducks.NodeCollectorExtension;
+import top.aihmc.omnimorph.model.rendering.FiguraVertexSource;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.world.entity.player.PlayerModelType;
 import org.figuramc.figura.avatar.Avatar;
@@ -23,10 +25,6 @@ import org.figuramc.figura.utils.ui.UIHelper;
 public final class LibraryFiguraPreviewRenderer extends PictureInPictureRenderer<LibraryFiguraPreviewState> {
     private final PlayerModel wide = createModel(false);
     private final PlayerModel slim = createModel(true);
-
-    public LibraryFiguraPreviewRenderer(MultiBufferSource.BufferSource source) {
-        super(source);
-    }
 
     static PlayerModel createModel(boolean slim) {
         return new PlayerModel(LayerDefinition.create(PlayerModel.createMesh(CubeDeformation.NONE, slim),
@@ -49,13 +47,16 @@ public final class LibraryFiguraPreviewRenderer extends PictureInPictureRenderer
     }
 
     @Override
-    protected void renderToTexture(LibraryFiguraPreviewState state, PoseStack stack) {
+    protected void renderToTexture(LibraryFiguraPreviewState state, PoseStack stack, SubmitNodeCollector collector) {
         UIHelper.useFiguraLighting();
         PlayerModel model = state.playerPose().skin.model() == PlayerModelType.SLIM ? slim : wide;
-        draw(state, stack, bufferSource, model);
+        ((NodeCollectorExtension) collector).submitFiguraModel(state.avatar(), state.playerPose(), (avatar, pose, source) -> {
+            draw(state, stack, source, model);
+            return null;
+        });
     }
 
-    static void draw(LibraryFiguraPreviewState state, PoseStack stack, MultiBufferSource source, PlayerModel model) {
+    static void draw(LibraryFiguraPreviewState state, PoseStack stack, FiguraVertexSource source, PlayerModel model) {
         Avatar avatar = state.avatar();
         if (!avatar.loaded || !avatar.accelerationOwner().isCurrent()) {
             return;
@@ -106,7 +107,7 @@ public final class LibraryFiguraPreviewRenderer extends PictureInPictureRenderer
                         vanilla.posTransform(model);
                     }
                     model.renderToBuffer(stack, source.getBuffer(model.renderType(state.playerPose().skin.body().texturePath())),
-                            0x00f000f0, OverlayTexture.NO_OVERLAY);
+                            0x00f000f0, OverlayTexture.NO_OVERLAY, -1);
                     avatar.postRenderEvent(state.delta(), FiguraMat4.of());
                 } finally {
                     if (vanilla != null) {

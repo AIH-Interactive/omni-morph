@@ -1,0 +1,2347 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/eryth/.gradle/wrapper/dists/gradle-9.4.1-bin/arn2x92ynaizyzdaamcbpbhtj/gradle-9.4.1/lib/native-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Architect Plugin: 3.5.168
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+
+> Task :common:compileJava
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:702: 错误: 找不到符号
+            if (mc.gameRenderer != null && mc.gameRenderer.getMainCamera() != null) {
+                                                          ^
+  符号:   方法 getMainCamera()
+  位置: 类型为GameRenderer的变量 gameRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:703: 错误: 找不到符号
+                var camera = mc.gameRenderer.getMainCamera();
+                                            ^
+  符号:   方法 getMainCamera()
+  位置: 类型为GameRenderer的变量 gameRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:718: 错误: 找不到符号
+                rendering_in_paperdoll = mc.screen != null ? 1f : 0f;
+                                           ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 mc
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:829: 错误: 找不到符号
+        this.isHost = cosmeticContext == null && type == EntityType.PLAYER && FiguraMod.isLocal(owner);
+                                                                   ^
+  符号:   变量 PLAYER
+  位置: 类 EntityType
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:832: 错误: 找不到符号
+                : type == EntityType.PLAYER ? PermissionManager.get(owner) : PermissionManager.getMobPermissions(owner);
+                                    ^
+  符号:   变量 PLAYER
+  位置: 类 EntityType
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:874: 错误: 找不到符号
+        return new Avatar(owner, EntityType.PLAYER, name, permissions);
+                                           ^
+  符号:   变量 PLAYER
+  位置: 类 EntityType
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:915: 错误: 找不到符号
+        return new Avatar(context.executionId(), EntityType.PLAYER, name, permissions, context);
+                                                           ^
+  符号:   变量 PLAYER
+  位置: 类 EntityType
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:920: 错误: 找不到符号
+        Avatar preview = new Avatar(owner, entityType == null ? EntityType.PLAYER : entityType, entityName,
+                                                                          ^
+  符号:   变量 PLAYER
+  位置: 类 EntityType
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:948: 错误: 找不到符号
+        this(owner, EntityType.PLAYER, EntityUtils.getNameForUUID(owner));
+                              ^
+  符号:   变量 PLAYER
+  位置: 类 EntityType
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\FiguraRenderer.java:207: 错误: 找不到符号
+        Camera camera = client.gameRenderer.getMainCamera();
+                                           ^
+  符号:   方法 getMainCamera()
+  位置: 类型为GameRenderer的变量 gameRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\FiguraRenderer.java:226: 错误: 找不到符号
+        Camera camera = client.gameRenderer.getMainCamera();
+                                           ^
+  符号:   方法 getMainCamera()
+  位置: 类型为GameRenderer的变量 gameRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\TextureCustomization.java:63: 错误: 找不到符号
+            GpuBuffer gpuBuffer = RenderSystem.getDevice().createBuffer(() -> "Atlas Read Buffer", 9, width * height * atlasGpuTexture.getFormat().pixelSize());
+                                                                                                                                                  ^
+  符号:   方法 pixelSize()
+  位置: 类 GpuFormat
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\TextureCustomization.java:65: 错误: 找不到符号
+                try (GpuBuffer.MappedView readView = encoder.mapBuffer(gpuBuffer, true, false)) {
+                              ^
+  符号:   类 MappedView
+  位置: 类 GpuBuffer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\TextureCustomization.java:65: 错误: 找不到符号
+                try (GpuBuffer.MappedView readView = encoder.mapBuffer(gpuBuffer, true, false)) {
+                                                            ^
+  符号:   方法 mapBuffer(GpuBuffer,boolean,boolean)
+  位置: 类型为CommandEncoder的变量 encoder
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\TextureCustomization.java:68: 错误: 找不到符号
+                            int m = readView.data().getInt((l + k * width) * atlasGpuTexture.getFormat().pixelSize());
+                                                                                                        ^
+  符号:   方法 pixelSize()
+  位置: 类 GpuFormat
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\TextTask.java:89: 错误: 找不到符号
+                font.drawInBatch8xOutline(text.getVisualOrderText(), x, j, -1, out, matrix, buffer, l);
+                    ^
+  符号:   方法 drawInBatch8xOutline(FormattedCharSequence,int,int,int,int,Matrix4f,FiguraVertexSource,int)
+  位置: 类型为Font的变量 font
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\TextTask.java:91: 错误: 找不到符号
+                    font.drawInBatch(text, x, j, op, shadow, matrix, buffer, displayMode, 0, l);
+                        ^
+  符号:   方法 drawInBatch(Component,int,int,int,boolean,Matrix4f,FiguraVertexSource,DisplayMode,int,int)
+  位置: 类型为Font的变量 font
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\TextTask.java:93: 错误: 找不到符号
+                font.drawInBatch(text, x, j, op, shadow, matrix, buffer, displayMode, 0, l);
+                    ^
+  符号:   方法 drawInBatch(Component,int,int,int,boolean,Matrix4f,FiguraVertexSource,DisplayMode,int,int)
+  位置: 类型为Font的变量 font
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\EntityTask.java:65: 错误: 找不到符号
+                cameraRenderState.initialized = minecraft.gameRenderer.getMainCamera().isInitialized();
+                                                                      ^
+  符号:   方法 getMainCamera()
+  位置: 类型为GameRenderer的变量 gameRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\EntityTask.java:66: 错误: 找不到符号
+                cameraRenderState.pos = minecraft.gameRenderer.getMainCamera().position();
+                                                              ^
+  符号:   方法 getMainCamera()
+  位置: 类型为GameRenderer的变量 gameRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\EntityTask.java:67: 错误: 找不到符号
+                cameraRenderState.blockPos = minecraft.gameRenderer.getMainCamera().blockPosition();
+                                                                   ^
+  符号:   方法 getMainCamera()
+  位置: 类型为GameRenderer的变量 gameRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\EntityTask.java:68: 错误: 找不到符号
+                cameraRenderState.orientation = new Quaternionf(minecraft.gameRenderer.getMainCamera().rotation());
+                                                                                      ^
+  符号:   方法 getMainCamera()
+  位置: 类型为GameRenderer的变量 gameRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\EntityTask.java:72: 错误: 找不到符号
+                dispatcher.submit(state, cameraRenderState, 0, 0, 0, stack, minecraft.gameRenderer.getSubmitNodeStorage());
+                                                                                                  ^
+  符号:   方法 getSubmitNodeStorage()
+  位置: 类型为GameRenderer的变量 gameRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\EntityTask.java:130: 错误: 对于loadEntityRecursive(CompoundTag,ClientLevel,EntitySpawnReason,EntityProcessor), 找不到合适的方法
+            entity = EntityType.loadEntityRecursive(finalNbt, Minecraft.getInstance().level, EntitySpawnReason.SPAWN_ITEM_USE, EntityProcessor.NOP);
+                               ^
+    方法 EntityType.loadEntityRecursive(CompoundTag,Level,EntitySpawnRequest,EntityProcessor)不适用
+      (参数不匹配; EntitySpawnReason无法转换为EntitySpawnRequest)
+    方法 EntityType.loadEntityRecursive(ValueInput,Level,EntitySpawnReason,EntityProcessor)不适用
+      (参数不匹配; CompoundTag无法转换为ValueInput)
+    方法 EntityType.loadEntityRecursive(ValueInput,Level,EntitySpawnRequest,EntityProcessor)不适用
+      (参数不匹配; CompoundTag无法转换为ValueInput)
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\world\BlockStateAPI.java:162: 错误: 无法将类 BlockStateBase中的方法 emissiveRendering应用到给定类型;
+        return blockState.emissiveRendering(WorldAPI.getCurrentWorld(), getBlockPos());
+                         ^
+  需要: 没有参数
+  找到:    Level,BlockPos
+  原因: 实际参数列表和形式参数列表长度不同
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\texture\FiguraRenderTypes.java:91: 错误: 找不到符号
+                RenderSetup.builder(FiguraRenderPipelines.FIGURA_SOLID).bufferSize(256)
+                                                                       ^
+  符号:   方法 bufferSize(int)
+  位置: 类 RenderSetupBuilder
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\texture\FiguraRenderTypes.java:102: 错误: 找不到符号
+                                        .bufferSize(256)
+                                        ^
+  符号:   方法 bufferSize(int)
+  位置: 类 RenderSetupBuilder
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\texture\FiguraRenderTypes.java:117: 错误: 找不到符号
+                                .bufferSize(256)
+                                ^
+  符号:   方法 bufferSize(int)
+  位置: 类 RenderSetupBuilder
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\texture\FiguraRenderTypes.java:129: 错误: 找不到符号
+                                .bufferSize(256)
+                                ^
+  符号:   方法 bufferSize(int)
+  位置: 类 RenderSetupBuilder
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\texture\FiguraRenderTypes.java:150: 错误: 找不到符号
+                                .bufferSize(256)
+                                ^
+  符号:   方法 bufferSize(int)
+  位置: 类 RenderSetupBuilder
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\texture\FiguraRenderTypes.java:159: 错误: 找不到符号
+        protected static RenderPipeline.Snippet FIGURA_SOLID_SNIPPET = RenderPipeline.builder(MATRICES_FOG_SNIPPET, GLOBALS_SNIPPET).withVertexShader("core/rendertype_lines").withFragmentShader("core/rendertype_lines").withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT)).withDepthStencilState(DepthStencilState.DEFAULT).withCull(false).withVertexFormat(DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.QUADS).buildSnippet();
+                                                                                                                                                                                                                                                                                                                                                                                                                                          ^
+  符号:   变量 Mode
+  位置: 类 VertexFormat
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\permissions\Permissions.java:139: 错误: 找不到符号
+            this(index, formatting.getColor(), Style.EMPTY.applyFormat(formatting));
+                                  ^
+  符号:   方法 getColor()
+  位置: 类型为ChatFormatting的变量 formatting
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ColorUtils.java:113: 错误: 找不到符号
+            Integer i = formatting.getColor();
+                                  ^
+  符号:   方法 getColor()
+  位置: 类型为ChatFormatting的变量 formatting
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\lua\api\particle\CustomParticle.java:732: 错误: 找不到符号
+            return position == null ? 0 : net.minecraft.client.renderer.LevelRenderer.getLightCoords(level,
+                                                                                     ^
+  符号:   方法 getLightCoords(ClientLevel,BlockPos)
+  位置: 类 LevelRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:119: 错误: 找不到符号
+        this.minecraft.gui.setTimes((int) times.x, (int) times.y, (int) times.z);
+                          ^
+  符号:   方法 setTimes(int,int,int)
+  位置: 类型为Gui的变量 gui
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:132: 错误: 找不到符号
+            this.minecraft.gui.clearTitles();
+                              ^
+  符号:   方法 clearTitles()
+  位置: 类型为Gui的变量 gui
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:147: 错误: 找不到符号
+            this.minecraft.gui.setTitle(TextUtils.tryParseJson(text));
+                              ^
+  符号:   方法 setTitle(Component)
+  位置: 类型为Gui的变量 gui
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:167: 错误: 找不到符号
+            this.minecraft.gui.setSubtitle(TextUtils.tryParseJson(text));
+                              ^
+  符号:   方法 setSubtitle(Component)
+  位置: 类型为Gui的变量 gui
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:193: 错误: 找不到符号
+            this.minecraft.gui.setOverlayMessage(TextUtils.tryParseJson(text), animated);
+                              ^
+  符号:   方法 setOverlayMessage(Component,boolean)
+  位置: 类型为Gui的变量 gui
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:242: 错误: 找不到符号
+            this.minecraft.gui.getChat().addRecentChat(message);
+                              ^
+  符号:   方法 getChat()
+  位置: 类型为Gui的变量 gui
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:259: 错误: 找不到符号
+        List<GuiMessage> messages = ((ChatComponentAccessor) this.minecraft.gui.getChat()).getAllMessages();
+                                                                               ^
+  符号:   方法 getChat()
+  位置: 类型为Gui的变量 gui
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:297: 错误: 找不到符号
+        List<GuiMessage> messages = ((ChatComponentAccessor) this.minecraft.gui.getChat()).getAllMessages();
+                                                                               ^
+  符号:   方法 getChat()
+  位置: 类型为Gui的变量 gui
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:305: 错误: 找不到符号
+            GuiMessage neww = new GuiMessage(this.minecraft.gui.getGuiTicks(), TextUtils.tryParseJson(newMessage), null, GuiMessageSource.SYSTEM_CLIENT, GuiMessageTag.chatModified(old.content().getString()));
+                                                               ^
+  符号:   方法 getGuiTicks()
+  位置: 类型为Gui的变量 gui
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:310: 错误: 找不到符号
+        this.minecraft.gui.getChat().rescaleChat();
+                          ^
+  符号:   方法 getChat()
+  位置: 类型为Gui的变量 gui
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:433: 错误: 找不到符号
+        if (isHost() && this.minecraft.screen instanceof ChatScreen chat)
+                                      ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:449: 错误: 找不到符号
+        if (isHost() && Configs.CHAT_MESSAGES.value && this.minecraft.screen instanceof ChatScreen chat)
+                                                                     ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:462: 错误: 找不到符号
+        if (!isHost() || this.minecraft.screen == null)
+                                       ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:464: 错误: 找不到符号
+        return this.minecraft.screen.getClass().getName();
+                             ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:470: 错误: 找不到符号
+        if (isHost() && this.minecraft.screen instanceof AbstractContainerScreen<?> screen)
+                                      ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:481: 错误: 找不到符号
+        if (!isHost() || !(this.minecraft.screen instanceof AbstractContainerScreen<?> screen))
+                                         ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:494: 错误: 找不到符号
+        return isHost() && this.minecraft.screen instanceof ChatScreen;
+                                         ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:500: 错误: 找不到符号
+        return isHost() && this.minecraft.screen instanceof AbstractContainerScreen;
+                                         ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:515: 错误: 找不到符号
+        RenderTarget renderTarget = this.minecraft.getMainRenderTarget();
+                                                  ^
+  符号:   方法 getMainRenderTarget()
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:521: 错误: 找不到符号
+                .createBuffer(() -> "Figura Screenshot buffer", 9, width * height * gpuTexture.getFormat().pixelSize());
+                                                                                                          ^
+  符号:   方法 pixelSize()
+  位置: 类 GpuFormat
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:524: 错误: 找不到符号
+            try (GpuBuffer.MappedView readView = commandEncoder.mapBuffer(gpuBuffer, true, false)) {
+                          ^
+  符号:   类 MappedView
+  位置: 类 GpuBuffer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:524: 错误: 找不到符号
+            try (GpuBuffer.MappedView readView = commandEncoder.mapBuffer(gpuBuffer, true, false)) {
+                                                               ^
+  符号:   方法 mapBuffer(GpuBuffer,boolean,boolean)
+  位置: 类型为CommandEncoder的变量 commandEncoder
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:527: 错误: 找不到符号
+                        int m = readView.data().getInt((l + k * width) * gpuTexture.getFormat().pixelSize());
+                                                                                               ^
+  符号:   方法 pixelSize()
+  位置: 类 GpuFormat
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\TextureAPI.java:169: 错误: 找不到符号
+            GpuBuffer gpuBuffer = RenderSystem.getDevice().createBuffer(() -> "Atlas Read Buffer", 9, width * height * atlasGpuTexture.getFormat().pixelSize());
+                                                                                                                                                  ^
+  符号:   方法 pixelSize()
+  位置: 类 GpuFormat
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\TextureAPI.java:171: 错误: 找不到符号
+                try (GpuBuffer.MappedView readView = encoder.mapBuffer(gpuBuffer, true, false)) {
+                              ^
+  符号:   类 MappedView
+  位置: 类 GpuBuffer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\TextureAPI.java:171: 错误: 找不到符号
+                try (GpuBuffer.MappedView readView = encoder.mapBuffer(gpuBuffer, true, false)) {
+                                                            ^
+  符号:   方法 mapBuffer(GpuBuffer,boolean,boolean)
+  位置: 类型为CommandEncoder的变量 encoder
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\TextureAPI.java:174: 错误: 找不到符号
+                            int m = readView.data().getInt((l + k * width) * atlasGpuTexture.getFormat().pixelSize());
+                                                                                                        ^
+  符号:   方法 pixelSize()
+  位置: 类 GpuFormat
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\keybind\FiguraKeybind.java:94: 错误: 找不到符号
+            if (keybind.key == key && keybind.enabled && (keybind.gui || Minecraft.getInstance().screen == null))
+                                                                                                ^
+  符号:   变量 screen
+  位置: 类 Minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\keybind\FiguraKeybind.java:214: 错误: 找不到符号
+        return (this.gui || Minecraft.getInstance().screen == null) && this.isDown;
+                                                   ^
+  符号:   变量 screen
+  位置: 类 Minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmPreviewRenderTypes.java:74: 错误: 找不到符号
+                Optional.of(source.getVertexFormatMode()));
+                                  ^
+  符号:   方法 getVertexFormatMode()
+  位置: 类型为RenderPipeline的变量 source
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmPreviewRenderTypes.java:73: 错误: 找不到符号
+                Optional.of(source.getVertexFormat()),
+                                  ^
+  符号:   方法 getVertexFormat()
+  位置: 类型为RenderPipeline的变量 source
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmPreviewRenderTypes.java:68: 错误: 找不到符号
+                Optional.of(source.getUniforms()),
+                                  ^
+  符号:   方法 getUniforms()
+  位置: 类型为RenderPipeline的变量 source
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmPreviewRenderTypes.java:67: 错误: 找不到符号
+                Optional.of(source.getSamplers()),
+                                  ^
+  符号:   方法 getSamplers()
+  位置: 类型为RenderPipeline的变量 source
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\outfit\OutfitComposition.java:702: 错误: 找不到符号
+                        net.minecraft.client.Minecraft.getInstance().gameRenderer.getMainCamera().rotation(), partialTick)
+                                                                                 ^
+  符号:   方法 getMainCamera()
+  位置: 类型为GameRenderer的变量 gameRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\library\PreviewBoneHighlight.java:271: 错误: 找不到符号
+                    Optional.of(source.getVertexFormat()), Optional.of(source.getVertexFormatMode()));
+                                                                             ^
+  符号:   方法 getVertexFormatMode()
+  位置: 类型为RenderPipeline的变量 source
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\library\PreviewBoneHighlight.java:271: 错误: 找不到符号
+                    Optional.of(source.getVertexFormat()), Optional.of(source.getVertexFormatMode()));
+                                      ^
+  符号:   方法 getVertexFormat()
+  位置: 类型为RenderPipeline的变量 source
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\library\PreviewBoneHighlight.java:268: 错误: 找不到符号
+                    Optional.of(source.getSamplers()), Optional.of(source.getUniforms()),
+                                                                         ^
+  符号:   方法 getUniforms()
+  位置: 类型为RenderPipeline的变量 source
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\library\PreviewBoneHighlight.java:268: 错误: 找不到符号
+                    Optional.of(source.getSamplers()), Optional.of(source.getUniforms()),
+                                      ^
+  符号:   方法 getSamplers()
+  位置: 类型为RenderPipeline的变量 source
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\local\LocalAvatarLoader.java:423: 警告: ExtendedWatchEventModifier是内部专用 API, 可能会在未来发行版中删除
+            WatchKey key = IS_WINDOWS ? path.register(watcher, events, com.sun.nio.file.ExtendedWatchEventModifier.FILE_TREE) : path.register(watcher, events);
+                                                                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\FiguraMod.java:190: 错误: 找不到符号
+            Minecraft.getInstance().gui.getChat().addClientSystemMessage(TextUtils.replaceTabs(message));
+                                       ^
+  符号:   方法 getChat()
+  位置: 类型为Gui的变量 gui
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\config\ConfigType.java:365: 错误: 找不到符号
+                mc.setScreen(new NetworkFilterScreen(mc.screen));
+                                                       ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 mc
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\config\ConfigType.java:365: 错误: 找不到符号
+                mc.setScreen(new NetworkFilterScreen(mc.screen));
+                  ^
+  符号:   方法 setScreen(NetworkFilterScreen)
+  位置: 类型为Minecraft的变量 mc
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\TextField.java:24: 错误: 找不到符号
+    public static final int ENABLED_COLOR = ChatFormatting.WHITE.getColor();
+                                                                ^
+  符号:   方法 getColor()
+  位置: 类型为ChatFormatting的变量 WHITE
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\TextField.java:25: 错误: 找不到符号
+    public static final int DISABLED_COLOR = ChatFormatting.DARK_GRAY.getColor();
+                                                                     ^
+  符号:   方法 getColor()
+  位置: 类型为ChatFormatting的变量 DARK_GRAY
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\PanelSelectorWidget.java:94: 错误: 找不到符号
+        PanelButton button = new PanelButton(x, getY(), width, getHeight() - 4, panel.getTitle(), icon, this, bx -> Minecraft.getInstance().setScreen(panel));
+                                                                                                                                           ^
+  符号:   方法 setScreen(Screen)
+  位置: 类 Minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\Button.java:130: 错误: 找不到符号
+        return (!this.isActive() ? ChatFormatting.DARK_GRAY : ChatFormatting.WHITE).getColor();
+                                                                                   ^
+  符号:   方法 getColor()
+  位置: 类 ChatFormatting
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\FiguraToast.java:146: 错误: 找不到符号
+        ToastManager toasts = Minecraft.getInstance().getToastManager();
+                                                     ^
+  符号:   方法 getToastManager()
+  位置: 类 Minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\PaperDoll.java:26: 错误: 找不到符号
+                !Minecraft.renderNames() ||
+                          ^
+  符号:   方法 renderNames()
+  位置: 类 Minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\AbstractPanelScreen.java:157: 错误: 找不到符号
+        this.minecraft.setScreen(parentScreen);
+                      ^
+  符号:   方法 setScreen(Screen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\AbstractPanelScreen.java:246: 错误: 找不到符号
+            Minecraft.getInstance().setScreen(new GameScreen(this));
+                                   ^
+  符号:   方法 setScreen(GameScreen)
+  位置: 类 Minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\ContextMenu.java:230: 错误: 找不到符号
+            gui.fill(this.getX() + 4, getY() + 4, this.getX() + this.getWidth() - 4, getY() + 5, 0xFF000000 + ChatFormatting.DARK_GRAY.getColor());
+                                                                                                                                      ^
+  符号:   方法 getColor()
+  位置: 类型为ChatFormatting的变量 DARK_GRAY
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\AvatarWizardScreen.java:86: 错误: 找不到符号
+            if (minecraft.screen == this) {
+                         ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\AvatarWizardScreen.java:95: 错误: 找不到符号
+            this.minecraft.setScreen(sourcePanel);
+                          ^
+  符号:   方法 setScreen(Screen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\config\AbstractConfigElement.java:62: 错误: 找不到符号
+        gui.text(font, config.name, getX() + 16, y, UIHelper.adjustColor((config.disabled ? ChatFormatting.DARK_GRAY : ChatFormatting.WHITE).getColor()));
+                                                                                                                                            ^
+  符号:   方法 getColor()
+  位置: 类 ChatFormatting
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\ContainerButton.java:56: 错误: 找不到符号
+        return !this.isToggled() ? ChatFormatting.DARK_GRAY.getColor() : super.getTextColor();
+                                                           ^
+  符号:   方法 getColor()
+  位置: 类型为ChatFormatting的变量 DARK_GRAY
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\Label.java:151: 错误: 找不到符号
+        if (hovered != null && Minecraft.getInstance().screen != null && hovered.getClickEvent() != null) {
+                                                      ^
+  符号:   变量 screen
+  位置: 类 Minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\Label.java:152: 错误: 找不到符号
+            Screen.defaultHandleGameClickEvent(hovered.getClickEvent(), Minecraft.getInstance(), Minecraft.getInstance().screen);
+                                                                                                                        ^
+  符号:   变量 screen
+  位置: 类 Minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\KeybindScreen.java:62: 错误: 找不到符号
+        this.minecraft.setScreen(sourcePanel);
+                      ^
+  符号:   方法 setScreen(Screen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\KeybindWidgetHelper.java:25: 错误: 找不到符号
+                gui.fill(x, y, x + width, y + height, ChatFormatting.YELLOW.getColor() | 0xFF000000);
+                                                                           ^
+  符号:   方法 getColor()
+  位置: 类型为ChatFormatting的变量 YELLOW
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\KeybindWidgetHelper.java:29: 错误: 找不到符号
+                gui.fill(x, y, x + width, y + height, ChatFormatting.RED.getColor() | 0xFF000000);
+                                                                        ^
+  符号:   方法 getColor()
+  位置: 类型为ChatFormatting的变量 RED
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\EntityPreview.java:103: 错误: 找不到符号
+                        Minecraft.getInstance().setScreen(new AvatarScreen(scale, pitch, yaw,
+                                               ^
+  符号:   方法 setScreen(AvatarScreen)
+  位置: 类 Minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\EntityPreview.java:106: 错误: 找不到符号
+                        if (libraryPreview != null && Minecraft.getInstance().screen instanceof AvatarScreen avatarScreen) {
+                                                                             ^
+  符号:   变量 screen
+  位置: 类 Minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\EntityPreview.java:109: 错误: 找不到符号
+                            Minecraft.getInstance().setScreen(parentScreen);
+                                                   ^
+  符号:   方法 setScreen(Screen)
+  位置: 类 Minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\permissions\PlayerPermPackElement.java:170: 错误: 无法将类 GlStateManager中的方法 _enableBlend应用到给定类型;
+                    GlStateManager._enableBlend();
+                                  ^
+  需要: int
+  找到:    没有参数
+  原因: 实际参数列表和形式参数列表长度不同
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\permissions\PlayerPermPackElement.java:172: 错误: 无法将类 GlStateManager中的方法 _disableBlend应用到给定类型;
+                    GlStateManager._disableBlend();
+                                  ^
+  需要: int
+  找到:    没有参数
+  原因: 实际参数列表和形式参数列表长度不同
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\SoundScreen.java:49: 错误: 找不到符号
+        this.minecraft.setScreen(sourcePanel);
+                      ^
+  符号:   方法 setScreen(Screen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:703: 错误: 找不到符号
+                    button -> minecraft.setScreen(new SoundScreen(this)))));
+                                       ^
+  符号:   方法 setScreen(SoundScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:705: 错误: 找不到符号
+                    button -> minecraft.setScreen(new KeybindScreen(this)))));
+                                       ^
+  符号:   方法 setScreen(KeybindScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:759: 错误: 找不到符号
+            minecraft.setScreen(new OutfitPresetsScreen(this, draft, FiguraMod.getLocalPlayerUUID(),
+                     ^
+  符号:   方法 setScreen(OutfitPresetsScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:836: 错误: 找不到符号
+        minecraft.setScreen(new CosmeticControlsScreen(this, preview, composition, outfitDraft,
+                 ^
+  符号:   方法 setScreen(CosmeticControlsScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:872: 错误: 找不到符号
+        minecraft.setScreen(new CosmeticAnimationScreen(this, preview, composition, outfitDraft,
+                 ^
+  符号:   方法 setScreen(CosmeticAnimationScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:968: 错误: 找不到符号
+                        minecraft.setScreen(new ModelLibraryEditScreen(this, client, capabilities, model.modelId()));
+                                 ^
+  符号:   方法 setScreen(ModelLibraryEditScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:978: 错误: 找不到符号
+                minecraft.setScreen(new ModelLibraryAuthorizationScreen(this, client, model.modelId(), () -> ""));
+                         ^
+  符号:   方法 setScreen(ModelLibraryAuthorizationScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:1920: 错误: 找不到符号
+            minecraft.setScreen(new ModelLibraryAppealsScreen(this, client, null));
+                     ^
+  符号:   方法 setScreen(ModelLibraryAppealsScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:2836: 错误: 找不到符号
+                button -> minecraft.setScreen(new AvatarWizardScreen(this)));
+                                   ^
+  符号:   方法 setScreen(AvatarWizardScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:2837: 错误: 找不到符号
+        menu.addAction(text("create_ysm"), null, button -> minecraft.setScreen(new AvatarWizardScreen(this,
+                                                                    ^
+  符号:   方法 setScreen(AvatarWizardScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:2840: 错误: 找不到符号
+                button -> minecraft.setScreen(new CosmeticWizardScreen(this)));
+                                   ^
+  符号:   方法 setScreen(CosmeticWizardScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:2939: 错误: 找不到符号
+            minecraft.setScreen(this);
+                     ^
+  符号:   方法 setScreen(WardrobeScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:2934: 错误: 找不到符号
+        minecraft.setScreen(new FiguraConfirmScreen(confirmed -> {
+                 ^
+  符号:   方法 setScreen(FiguraConfirmScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:3210: 错误: 找不到符号
+                minecraft.setScreen(this);
+                         ^
+  符号:   方法 setScreen(WardrobeScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:3208: 错误: 找不到符号
+            minecraft.setScreen(new FiguraConfirmScreen(confirmed -> {
+                     ^
+  符号:   方法 setScreen(FiguraConfirmScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:4097: 错误: 找不到符号
+            minecraft.setScreen(this);
+                     ^
+  符号:   方法 setScreen(WardrobeScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:4087: 错误: 找不到符号
+        minecraft.setScreen(new FiguraConfirmScreen(confirmed -> {
+                 ^
+  符号:   方法 setScreen(FiguraConfirmScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\lists\AvatarList.java:92: 错误: 找不到符号
+                button -> Minecraft.getInstance().setScreen(new AvatarWizardScreen(parentScreen)))
+                                                 ^
+  符号:   方法 setScreen(AvatarWizardScreen)
+  位置: 类 Minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\avatar\AvatarWidget.java:69: 错误: 找不到符号
+                gui.text(font, parsedDescription, x + 22, y + font.lineHeight + 1, UIHelper.adjustColor(ChatFormatting.GRAY.getColor()));
+                                                                                                                           ^
+  符号:   方法 getColor()
+  位置: 类型为ChatFormatting的变量 GRAY
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\ClientAPI.java:170: 错误: 找不到符号
+        return Minecraft.getInstance().levelRenderer.getSectionStatistics();
+                                                    ^
+  符号:   方法 getSectionStatistics()
+  位置: 类型为LevelRenderer的变量 levelRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\ClientAPI.java:176: 错误: 找不到符号
+        return Minecraft.getInstance().levelRenderer.getEntityStatistics();
+                                                    ^
+  符号:   方法 getEntityStatistics()
+  位置: 类型为LevelRenderer的变量 levelRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\ClientAPI.java:242: 错误: 找不到符号
+        return Minecraft.renderNames();
+                        ^
+  符号:   方法 renderNames()
+  位置: 类 Minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\ClientAPI.java:293: 错误: 找不到符号
+        Vec3 pos = Minecraft.getInstance().gameRenderer.getMainCamera().position();
+                                                       ^
+  符号:   方法 getMainCamera()
+  位置: 类型为GameRenderer的变量 gameRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\ClientAPI.java:300: 错误: 找不到符号
+        var quaternion = Minecraft.getInstance().gameRenderer.getMainCamera().rotation();
+                                                             ^
+  符号:   方法 getMainCamera()
+  位置: 类型为GameRenderer的变量 gameRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\ClientAPI.java:319: 错误: 找不到符号
+        return FiguraVec3.fromVec3f(Minecraft.getInstance().gameRenderer.getMainCamera().forwardVector());
+                                                                        ^
+  符号:   方法 getMainCamera()
+  位置: 类型为GameRenderer的变量 gameRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\ClientAPI.java:635: 错误: 找不到符号
+            int id = playerTeam.getColor().getId();
+                                          ^
+  符号:   方法 getId()
+  位置: 类 Optional<TeamColor>
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\ClientAPI.java:637: 错误: 找不到符号
+                objectives.put("sidebar_team_" + playerTeam.getColor().getName(), scoreboard.getDisplayObjective(DisplaySlot.BY_ID.apply(3 + id)));
+                                                                      ^
+  符号:   方法 getName()
+  位置: 类 Optional<TeamColor>
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\ClientAPI.java:701: 错误: 找不到符号
+        PlayerTabOverlayAccessor accessor = (PlayerTabOverlayAccessor) Minecraft.getInstance().gui.getTabList();
+                                                                                                  ^
+  符号:   方法 getTabList()
+  位置: 类型为Gui的变量 gui
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\entity\PlayerAPI.java:192: 错误: 找不到符号
+        map.put("color", team.getColor().getName());
+                                        ^
+  符号:   方法 getName()
+  位置: 类 Optional<TeamColor>
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\RaycastAPI.java:104: 错误: 找不到符号
+        BlockHitResult result = WorldAPI.getCurrentWorld().clip(new ClipContext(start.asVec3(), end.asVec3(), blockContext, fluidContext, new Marker(EntityType.MARKER, WorldAPI.getCurrentWorld())));
+                                                                                                                                                               ^
+  符号:   变量 MARKER
+  位置: 类 EntityType
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\RaycastAPI.java:152: 错误: 找不到符号
+        EntityHitResult result = ProjectileUtil.getEntityHitResult(new Marker(EntityType.MARKER, WorldAPI.getCurrentWorld()), start.asVec3(), end.asVec3(), new AABB(start.asVec3(), end.asVec3()), entityPredicate, Double.MAX_VALUE);
+                                                                                        ^
+  符号:   变量 MARKER
+  位置: 类 EntityType
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\FiguraLuaPrinter.java:121: 错误: 找不到符号
+        if ((owner.entityType == EntityType.PLAYER && !Configs.LOG_OTHERS.value && !FiguraMod.isLocal(owner.owner)) || owner.permissions.getCategory() == Permissions.Category.BLOCKED)
+                                           ^
+  符号:   变量 PLAYER
+  位置: 类 EntityType
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\ClientCommandSourceMixin.java:22: 错误: 找不到符号
+        this.minecraft.gui.getChat().addClientSystemMessage(message);
+                          ^
+  符号:   方法 getChat()
+  位置: 类型为Gui的变量 gui
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\gui\PauseScreenMixin.java:75: 错误: 找不到符号
+            addRenderableWidget(new Button(x, y, 64, 20, FiguraText.of(), null, btn -> this.minecraft.setScreen(new WardrobeScreen(this))) {
+                                                                                                     ^
+  符号:   方法 setScreen(WardrobeScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\gui\PauseScreenMixin.java:96: 错误: 找不到符号
+            addRenderableWidget(new Button(x, y, 20, 20, 0, 0, 20, FIGURA_ICON, 60, 20, null, btn -> this.minecraft.setScreen(new WardrobeScreen(this))) {
+                                                                                                                   ^
+  符号:   方法 setScreen(WardrobeScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\input\KeyboardHandlerMixin.java:44: 错误: 找不到符号
+        if (avatar.keyPressEvent(event.key(), action, event.modifiers()) && (this.minecraft.mouseHandler.isMouseGrabbed() || this.minecraft.screen == null)) {
+                                                                                                                                           ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\input\MouseHandlerMixin.java:46: 错误: 找不到符号
+        if (avatar.mousePressEvent(mouseButtonInfo.button(), action, mouseButtonInfo.modifiers()) && (this.mouseGrabbed || this.minecraft.screen == null)) {
+                                                                                                                                         ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\input\MouseHandlerMixin.java:56: 错误: 找不到符号
+        if (avatar.luaRuntime != null && pressed && avatar.luaRuntime.host.unlockCursor && this.minecraft.screen == null)
+                                                                                                         ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\input\MouseHandlerMixin.java:68: 错误: 找不到符号
+        if (avatar != null && avatar.mouseScrollEvent(scrollDeltaY) && (this.mouseGrabbed || this.minecraft.screen == null)) {
+                                                                                                           ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\input\MouseHandlerMixin.java:85: 错误: 找不到符号
+        if (avatar != null && avatar.mouseMoveEvent(x - this.xpos, y - this.ypos) && (this.mouseGrabbed || this.minecraft.screen == null)) {
+                                                                                                                         ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\GameRendererMixin.java:166: 错误: 找不到符号
+                    postchain.process(this.minecraft.getMainRenderTarget(), this.resourcePool);
+                                                    ^
+  符号:   方法 getMainRenderTarget()
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\LevelRendererMixin.java:75: 错误: 找不到符号
+            if (multiBufferSource instanceof OutlineBufferSource outline && RenderUtils.vanillaModelAndScript(avatar) && avatar.luaRuntime.renderer.outlineColor != null) {
+                                             ^
+  符号:   类 OutlineBufferSource
+  位置: 类 LevelRendererMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\LivingEntityRendererMixin.java:379: 错误: 找不到符号
+        else if (!Minecraft.renderNames() || livingEntity.getUUID().equals(PopupMenu.getEntityId()))
+                           ^
+  符号:   方法 renderNames()
+  位置: 类 Minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\EntityUtils.java:89: 错误: 找不到符号
+        return ((PlayerTabOverlayAccessor) Minecraft.getInstance().gui.getTabList()).getThePlayerInfos();
+                                                                      ^
+  符号:   方法 getTabList()
+  位置: 类型为Gui的变量 gui
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\MathUtils.java:75: 错误: 找不到符号
+        Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+                                                            ^
+  符号:   方法 getMainCamera()
+  位置: 类型为GameRenderer的变量 gameRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\MathUtils.java:91: 错误: 找不到符号
+        Camera camera = minecraft.gameRenderer.getMainCamera();
+                                              ^
+  符号:   方法 getMainCamera()
+  位置: 类型为GameRenderer的变量 gameRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\RenderUtils.java:165: 错误: 找不到符号
+        FeatureRenderDispatcher featureRenderDispatcher = client.gameRenderer.getFeatureRenderDispatcher();
+                                                                             ^
+  符号:   方法 getFeatureRenderDispatcher()
+  位置: 类型为GameRenderer的变量 gameRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\RenderUtils.java:166: 错误: 找不到符号
+        SubmitNodeStorage submitNodeStorage = featureRenderDispatcher.getSubmitNodeStorage();
+                                                                     ^
+  符号:   方法 getSubmitNodeStorage()
+  位置: 类型为FeatureRenderDispatcher的变量 featureRenderDispatcher
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:154: 错误: 找不到符号
+        int paddedSize = Mth.roundToward(Lighting.UBO_SIZE, gpuDevice.getUniformOffsetAlignment());
+                                                                     ^
+  符号:   方法 getUniformOffsetAlignment()
+  位置: 类型为GpuDevice的变量 gpuDevice
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:200: 错误: 找不到符号
+                Minecraft.getInstance().gameRenderer.getLighting().setupFor(Lighting.Entry.ENTITY_IN_UI);
+                                                    ^
+  符号:   方法 getLighting()
+  位置: 类型为GameRenderer的变量 gameRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:235: 错误: 找不到符号
+                Minecraft.getInstance().gameRenderer.getLighting().setupFor(Lighting.Entry.ENTITY_IN_UI);
+                                                    ^
+  符号:   方法 getLighting()
+  位置: 类型为GameRenderer的变量 gameRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:295: 错误: 找不到符号
+        Minecraft.getInstance().gameRenderer.getLighting().setupFor(Lighting.Entry.ITEMS_3D);
+                                            ^
+  符号:   方法 getLighting()
+  位置: 类型为GameRenderer的变量 gameRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:305: 错误: 无法将类 GlStateManager中的方法 _enableBlend应用到给定类型;
+        GlStateManager._enableBlend();
+                      ^
+  需要: int
+  找到:    没有参数
+  原因: 实际参数列表和形式参数列表长度不同
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:439: 错误: 找不到符号
+        if (Minecraft.getInstance().screen instanceof AbstractPanelScreen panel) {
+                                   ^
+  符号:   变量 screen
+  位置: 类 Minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:625: 错误: 找不到符号
+        }, url, minecraft.screen));
+                         ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:623: 错误: 找不到符号
+        return () -> minecraft.setScreen(new FiguraConfirmScreen.FiguraConfirmLinkScreen((bl) -> {
+                              ^
+  符号:   方法 setScreen(FiguraConfirmLinkScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:635: 错误: 找不到符号
+        if (Minecraft.getInstance().screen instanceof AbstractPanelScreen panelScreen)
+                                   ^
+  符号:   变量 screen
+  位置: 类 Minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:640: 错误: 找不到符号
+        if (Minecraft.getInstance().screen instanceof AbstractPanelScreen panelScreen)
+                                   ^
+  符号:   变量 screen
+  位置: 类 Minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:646: 错误: 找不到符号
+        if (Minecraft.getInstance().screen instanceof AbstractPanelScreen panelScreen)
+                                   ^
+  符号:   变量 screen
+  位置: 类 Minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:680: 错误: font 在 GuiTextRenderState 中是 private 访问控制
+                Font.PreparedTextBuilder preparedTextBuilder = font.new PreparedTextBuilder(0, 0, outlineColor, false, false);
+                                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:685: 错误: x 在 GuiTextRenderState 中是 private 访问控制
+                            float[] fs = new float[]{x};
+                                                     ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:690: 错误: font 在 GuiTextRenderState 中是 private 访问控制
+                                GlyphSource fontSet = ((FontAccessor) font).figura$getFontSet(style.getFont());
+                                                                      ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:693: 错误: y 在 GuiTextRenderState 中是 private 访问控制
+                                preparedTextBuilder.y = y + o * glyphInfo.getShadowOffset();
+                                                        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\AvatarLoadingRenderer.java:61: 错误: 无法将接口 OrderedSubmitNodeCollector中的方法 submitNameTag应用到给定类型;
+        collector.submitNameTag(poses, attachment, 0, label(progress,
+                 ^
+  需要: PoseStack,Vec3,int,Component,boolean,int,CameraRenderState
+  找到:    PoseStack,Vec3,int,Component,boolean,int,double,CameraRenderState
+  原因: 实际参数列表和形式参数列表长度不同
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\AvatarControlsScreen.java:104: 错误: 找不到符号
+        if (minecraft.screen instanceof CosmeticAnimationScreen preview && preview.openControls(avatar, page)) {
+                     ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\AvatarControlsScreen.java:107: 错误: 找不到符号
+        var formal = OutfitControlsScreen.create(minecraft.screen, avatar, page);
+                                                          ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\AvatarControlsScreen.java:116: 错误: 找不到符号
+        minecraft.setScreen(new AvatarControlsScreen(minecraft.screen, avatar, page));
+                                                              ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\AvatarControlsScreen.java:116: 错误: 找不到符号
+        minecraft.setScreen(new AvatarControlsScreen(minecraft.screen, avatar, page));
+                 ^
+  符号:   方法 setScreen(AvatarControlsScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\AvatarControlsScreen.java:365: 错误: 找不到符号
+        minecraft.setScreen(parentScreen);
+                 ^
+  符号:   方法 setScreen(Screen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\CosmeticAnimationScreen.java:115: 错误: 找不到符号
+        if (minecraft.screen != this) {
+                     ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\CosmeticAnimationScreen.java:196: 错误: 找不到符号
+        minecraft.setScreen(new CosmeticControlsScreen(wardrobe, session, composition, draft, account,
+                 ^
+  符号:   方法 setScreen(CosmeticControlsScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\CosmeticAnimationScreen.java:231: 错误: 找不到符号
+        minecraft.setScreen(wardrobe);
+                 ^
+  符号:   方法 setScreen(WardrobeScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelFilePickerScreen.java:156: 错误: 找不到符号
+                        minecraft.setScreen(parentScreen);
+                                 ^
+  符号:   方法 setScreen(Screen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryAdminLoginScreen.java:116: 错误: 找不到符号
+                minecraft.setScreen(parentScreen);
+                         ^
+  符号:   方法 setScreen(Screen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryAdminScreen.java:108: 错误: 找不到符号
+                minecraft.setScreen(catalog);
+                         ^
+  符号:   方法 setScreen(ModelLibraryScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryAdminScreen.java:150: 错误: 找不到符号
+                        minecraft.setScreen(new ModelLibraryAuthorizationScreen(this, client, selected.modelId(), admin));
+                                 ^
+  符号:   方法 setScreen(ModelLibraryAuthorizationScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryAdminScreen.java:172: 错误: 找不到符号
+                        minecraft.setScreen(new ModelLibraryReportsScreen(this, client, admin, this::inspectReported));
+                                 ^
+  符号:   方法 setScreen(ModelLibraryReportsScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryAdminScreen.java:179: 错误: 找不到符号
+                        minecraft.setScreen(new ModelLibraryAppealsScreen(this, client, admin));
+                                 ^
+  符号:   方法 setScreen(ModelLibraryAppealsScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryAdminScreen.java:186: 错误: 找不到符号
+                        minecraft.setScreen(new ModelLibraryWardrobeScreen(this, client, admin));
+                                 ^
+  符号:   方法 setScreen(ModelLibraryWardrobeScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryAdminScreen.java:197: 错误: 找不到符号
+                        minecraft.setScreen(new ModelLibraryRecycleScreen(this, client, admin));
+                                 ^
+  符号:   方法 setScreen(ModelLibraryRecycleScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryAdminScreen.java:286: 错误: 找不到符号
+                            minecraft.setScreen(new ModelLibraryEditScreen(this, client, capabilities,
+                                     ^
+  符号:   方法 setScreen(ModelLibraryEditScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryAdminScreen.java:295: 错误: 找不到符号
+                    minecraft.setScreen(new ModelLibraryAuthorizationScreen(this, client, model.modelId(), admin));
+                             ^
+  符号:   方法 setScreen(ModelLibraryAuthorizationScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryReportsScreen.java:101: 错误: 找不到符号
+                        minecraft.setScreen(parentScreen);
+                                 ^
+  符号:   方法 setScreen(Screen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryWardrobeScreen.java:122: 错误: 找不到符号
+                        minecraft.setScreen(new ModelLibraryRecycleScreen(this, client, admin));
+                                 ^
+  符号:   方法 setScreen(ModelLibraryRecycleScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelUploadScreen.java:145: 错误: 找不到符号
+                        minecraft.setScreen(catalog);
+                                 ^
+  符号:   方法 setScreen(ModelLibraryScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelUploadScreen.java:391: 错误: 找不到符号
+        minecraft.setScreen(new ModelFilePickerScreen(this, client, directory, kind,
+                 ^
+  符号:   方法 setScreen(ModelFilePickerScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelUploadScreen.java:794: 错误: 找不到符号
+                    minecraft.setScreen(this);
+                             ^
+  符号:   方法 setScreen(ModelUploadScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelUploadScreen.java:793: 错误: 找不到符号
+                minecraft.setScreen(new net.minecraft.client.gui.screens.ConfirmScreen(confirmed -> {
+                         ^
+  符号:   方法 setScreen(ConfirmScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\ModelLibraryScreen.java:174: 错误: 找不到符号
+                        minecraft.setScreen(new ModelReportScreen(this, client, model.modelId()));
+                                 ^
+  符号:   方法 setScreen(ModelReportScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\ModelLibraryScreen.java:190: 错误: 找不到符号
+                            minecraft.setScreen(new ModelLibraryAppealsScreen(this, client, null));
+                                     ^
+  符号:   方法 setScreen(ModelLibraryAppealsScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\ModelLibraryScreen.java:205: 错误: 找不到符号
+                        minecraft.setScreen(new ModelLibraryEditScreen(this, client, capabilities, selected.modelId()));
+                                 ^
+  符号:   方法 setScreen(ModelLibraryEditScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\ModelLibraryScreen.java:213: 错误: 找不到符号
+                        minecraft.setScreen(new ModelLibraryAuthorizationScreen(this, client, selected.modelId(), () -> ""));
+                                 ^
+  符号:   方法 setScreen(ModelLibraryAuthorizationScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\ModelLibraryScreen.java:303: 错误: 找不到符号
+                minecraft.setScreen(new ModelUploadScreen(this, client, capabilities, () -> {
+                         ^
+  符号:   方法 setScreen(ModelUploadScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\ModelLibraryScreen.java:617: 错误: 找不到符号
+            minecraft.setScreen(new ModelLibraryAdminScreen(this, client, admin, capabilities));
+                     ^
+  符号:   方法 setScreen(ModelLibraryAdminScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\ModelLibraryScreen.java:624: 错误: 找不到符号
+                if (!closed && client.current() && minecraft.screen == this) {
+                                                            ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\ModelLibraryScreen.java:630: 错误: 找不到符号
+                        minecraft.setScreen(new ModelLibraryAdminLoginScreen(this, client, admin, this::openAdmin));
+                                 ^
+  符号:   方法 setScreen(ModelLibraryAdminLoginScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\OutfitPresetsScreen.java:547: 错误: 找不到符号
+        minecraft.setScreen(wardrobe);
+                 ^
+  符号:   方法 setScreen(WardrobeScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\lua\api\particle\ParticleDynamicLights.java:234: 错误: 找不到符号
+                    client.levelRenderer.setSectionDirty(section.x(), section.y(), section.z());
+                                        ^
+  符号:   方法 setSectionDirty(int,int,int)
+  位置: 类型为LevelRenderer的变量 levelRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\gui\GuiEntityRendererMixin.java:55: 错误: 不兼容的类型: Quaternionfc无法转换为Quaternionf
+                    LibraryPreviewBinding.particles(entityRenderState, guiEntityRenderState.rotation(), 1)
+                                                                                                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\library\LibraryFiguraPreviewRenderer.java:109: 错误: 无法将类 Model<S>中的方法 renderToBuffer应用到给定类型;
+                    model.renderToBuffer(stack, source.getBuffer(model.renderType(state.playerPose().skin.body().texturePath())),
+                         ^
+  需要: PoseStack,VertexConsumer,int,int,int
+  找到:    PoseStack,VertexConsumer,int,int
+  原因: 实际参数列表和形式参数列表长度不同
+  其中, S是类型变量:
+    S扩展已在类 Model中声明的Object
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\outfit\OutfitFirstPersonScripts.java:68: 错误: 找不到符号
+        Vec3 camera = minecraft.gameRenderer.getMainCamera().position();
+                                            ^
+  符号:   方法 getMainCamera()
+  位置: 类型为GameRenderer的变量 gameRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmInputState.java:28: 错误: 找不到符号
+                && client.getOverlay() == null && client.screen == null
+                         ^
+  符号:   方法 getOverlay()
+  位置: 类型为Minecraft的变量 client
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmInputState.java:28: 错误: 找不到符号
+                && client.getOverlay() == null && client.screen == null
+                                                        ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 client
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\molang\runtime\binding\QueryVariables.java:213: 错误: 找不到符号
+        return client == null || client.gameRenderer == null ? null : client.gameRenderer.getMainCamera();
+                                                                                         ^
+  符号:   方法 getMainCamera()
+  位置: 类型为GameRenderer的变量 gameRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuShaderProgram.java:295: 错误: 找不到符号
+                .withVertexFormat(Format.VALUE, VertexFormat.Mode.TRIANGLES);
+                                                            ^
+  符号:   变量 Mode
+  位置: 类 VertexFormat
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuShaderProgram.java:304: 错误: 找不到符号
+        original.getSamplers().forEach(builder::withSampler);
+                ^
+  符号:   方法 getSamplers()
+  位置: 类型为RenderPipeline的变量 original
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuShaderProgram.java:305: 错误: 找不到符号
+        original.getUniforms().forEach(uniform -> builder.withUniform(uniform.name(), uniform.type()));
+                ^
+  符号:   方法 getUniforms()
+  位置: 类型为RenderPipeline的变量 original
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuShaderProgram.java:324: 错误: 找不到符号
+                for (int id = 0; id < VertexFormatElement.MAX_COUNT && found < free.length; id++) {
+                                                         ^
+  符号:   变量 MAX_COUNT
+  位置: 类 VertexFormatElement
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuShaderProgram.java:325: 错误: 找不到符号
+                    if (VertexFormatElement.byId(id) == null) {
+                                           ^
+  符号:   方法 byId(int)
+  位置: 类 VertexFormatElement
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuShaderProgram.java:332: 错误: 找不到符号
+                VertexFormatElement normal = VertexFormatElement.register(free[0], 0, VertexFormatElement.Type.FLOAT, false, 3);
+                                                                                                         ^
+  符号:   变量 Type
+  位置: 类 VertexFormatElement
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuShaderProgram.java:333: 错误: 找不到符号
+                VertexFormatElement weights = VertexFormatElement.register(free[1], 0, VertexFormatElement.Type.FLOAT, false, 4);
+                                                                                                          ^
+  符号:   变量 Type
+  位置: 类 VertexFormatElement
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuShaderProgram.java:334: 错误: 找不到符号
+                VertexFormatElement joints = VertexFormatElement.register(free[2], 0, VertexFormatElement.Type.INT, false, 4);
+                                                                                                         ^
+  符号:   变量 Type
+  位置: 类 VertexFormatElement
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuShaderProgram.java:336: 错误: 找不到符号
+                        .add("OmniNormal", normal).add("OmniUV", VertexFormatElement.UV0)
+                                                                                    ^
+  符号:   变量 UV0
+  位置: 类 VertexFormatElement
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuShaderProgram.java:335: 错误: 找不到符号
+                return VertexFormat.builder().add("OmniPosition", VertexFormatElement.POSITION)
+                                                                                     ^
+  符号:   变量 POSITION
+  位置: 类 VertexFormatElement
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuShaderProgram.java:335: 错误: 无法将类 VertexFormat中的方法 builder应用到给定类型;
+                return VertexFormat.builder().add("OmniPosition", VertexFormatElement.POSITION)
+                                   ^
+  需要: int
+  找到:    没有参数
+  原因: 实际参数列表和形式参数列表长度不同
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:318: 错误: 不兼容的类型: OptionalInt无法转换为Optional<Vector4fc>
+                    Objects.requireNonNull(context.color()), OptionalInt.empty(), context.depth(), OptionalDouble.empty());
+                                                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:326: 错误: 找不到符号
+                for (var binding : context.textures().entrySet()) {
+                                                     ^
+  符号:   方法 entrySet()
+  位置: 接口 List<Texture>
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:348: 错误: 不兼容的类型: GpuBuffer无法转换为GpuBufferSlice
+            pass.setVertexBuffer(0, geometry.vertices());
+                                                     ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:349: 错误: 找不到符号
+            pass.setIndexBuffer(indices == null ? geometry.indices() : ((BufferIndices) indices).buffer(), VertexFormat.IndexType.INT);
+                                                                                                                       ^
+  符号:   变量 IndexType
+  位置: 类 VertexFormat
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:352: 错误: 无法将类 RenderPass中的方法 drawIndexed应用到给定类型;
+                pass.drawIndexed(0, firstIndex, indexCount, 1);
+                    ^
+  需要: int,int,int,int,int
+  找到:    int,int,int,int
+  原因: 实际参数列表和形式参数列表长度不同
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:365: 错误: 无法将类 RenderPass中的方法 drawIndexed应用到给定类型;
+                pass.drawIndexed(0, firstIndex, indexCount, 1);
+                    ^
+  需要: int,int,int,int,int
+  找到:    int,int,int,int
+  原因: 实际参数列表和形式参数列表长度不同
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:432: 错误: 找不到符号
+                .withVertexFormat(GpuShaderProgram.format(), VertexFormat.Mode.TRIANGLES).build();
+                                                                         ^
+  符号:   变量 Mode
+  位置: 类 VertexFormat
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:482: 错误: 不兼容的类型: OptionalInt无法转换为Optional<Vector4fc>
+            try (var pass = encoder.createRenderPass(() -> "OmniMorph storage self-test", view, OptionalInt.of(0xff000000))) {
+                                                                                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:485: 错误: 找不到符号
+                pass.setIndexBuffer(geometry.indices(), VertexFormat.IndexType.INT);
+                                                                    ^
+  符号:   变量 IndexType
+  位置: 类 VertexFormat
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:506: 错误: 找不到符号
+            try (var mapped = encoder.mapBuffer(readback, true, false)) {
+                                     ^
+  符号:   方法 mapBuffer(GpuBuffer,boolean,boolean)
+  位置: 类型为CommandEncoder的变量 encoder
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:527: 错误: 找不到符号
+                .withVertexFormat(GpuShaderProgram.format(), VertexFormat.Mode.TRIANGLES).build();
+                                                                         ^
+  符号:   变量 Mode
+  位置: 类 VertexFormat
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:525: 错误: 找不到符号
+                .withUniform(GpuShaderProgram.UNIFORM, com.mojang.blaze3d.shaders.UniformType.UNIFORM_BUFFER)
+                ^
+  符号:   方法 withUniform(String,UniformType)
+  位置: 类 Builder
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:551: 错误: 不兼容的类型: OptionalInt无法转换为Optional<Vector4fc>
+            try (var pass = encoder.createRenderPass(() -> "OmniMorph activation self-test", view, OptionalInt.of(0xff000000))) {
+                                                                                                                 ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:555: 错误: 找不到符号
+                pass.setIndexBuffer(geometry.indices(), VertexFormat.IndexType.INT);
+                                                                    ^
+  符号:   变量 IndexType
+  位置: 类 VertexFormat
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:565: 错误: 找不到符号
+            try (var mapped = encoder.mapBuffer(readback, true, false)) {
+                                     ^
+  符号:   方法 mapBuffer(GpuBuffer,boolean,boolean)
+  位置: 类型为CommandEncoder的变量 encoder
+注: 某些输入文件使用或覆盖了已过时的 API。
+注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+注: 某些输入文件使用了未经检查或不安全的操作。
+注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+注: 某些消息已经过简化; 请使用 -Xdiags:verbose 重新编译以获得完整输出
+229 个错误
+1 个警告
+
+> Task :common:compileJava FAILED
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_26.2/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:compileJava'.
+> Compilation failed; see the compiler output below.
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\local\LocalAvatarLoader.java:423: 警告: ExtendedWatchEventModifier是内部专用 API, 可能会在未来发行版中删除
+              WatchKey key = IS_WINDOWS ? path.register(watcher, events, com.sun.nio.file.ExtendedWatchEventModifier.FILE_TREE) : path.register(watcher, events);
+                                                                                         ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\world\BlockStateAPI.java:162: 错误: 无法将类 BlockStateBase中的方法 emissiveRendering应用到给定类型;
+          return blockState.emissiveRendering(WorldAPI.getCurrentWorld(), getBlockPos());
+                           ^
+    需要: 没有参数
+    找到:    Level,BlockPos
+    原因: 实际参数列表和形式参数列表长度不同
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\permissions\PlayerPermPackElement.java:170: 错误: 无法将类 GlStateManager中的方法 _enableBlend应用到给定类型;
+                      GlStateManager._enableBlend();
+                                    ^
+    需要: int
+    找到:    没有参数
+    原因: 实际参数列表和形式参数列表长度不同
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\permissions\PlayerPermPackElement.java:172: 错误: 无法将类 GlStateManager中的方法 _disableBlend应用到给定类型;
+                      GlStateManager._disableBlend();
+                                    ^
+    需要: int
+    找到:    没有参数
+    原因: 实际参数列表和形式参数列表长度不同
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:305: 错误: 无法将类 GlStateManager中的方法 _enableBlend应用到给定类型;
+          GlStateManager._enableBlend();
+                        ^
+    需要: int
+    找到:    没有参数
+    原因: 实际参数列表和形式参数列表长度不同
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\AvatarLoadingRenderer.java:61: 错误: 无法将接口 OrderedSubmitNodeCollector中的方法 submitNameTag应用到给定类型;
+          collector.submitNameTag(poses, attachment, 0, label(progress,
+                   ^
+    需要: PoseStack,Vec3,int,Component,boolean,int,CameraRenderState
+    找到:    PoseStack,Vec3,int,Component,boolean,int,double,CameraRenderState
+    原因: 实际参数列表和形式参数列表长度不同
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\library\LibraryFiguraPreviewRenderer.java:109: 错误: 无法将类 Model<S>中的方法 renderToBuffer应用到给定类型;
+                      model.renderToBuffer(stack, source.getBuffer(model.renderType(state.playerPose().skin.body().texturePath())),
+                           ^
+    需要: PoseStack,VertexConsumer,int,int,int
+    找到:    PoseStack,VertexConsumer,int,int
+    原因: 实际参数列表和形式参数列表长度不同
+    其中, S是类型变量:
+      S扩展已在类 Model中声明的Object
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuShaderProgram.java:335: 错误: 无法将类 VertexFormat中的方法 builder应用到给定类型;
+                  return VertexFormat.builder().add("OmniPosition", VertexFormatElement.POSITION)
+                                     ^
+    需要: int
+    找到:    没有参数
+    原因: 实际参数列表和形式参数列表长度不同
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:352: 错误: 无法将类 RenderPass中的方法 drawIndexed应用到给定类型;
+                  pass.drawIndexed(0, firstIndex, indexCount, 1);
+                      ^
+    需要: int,int,int,int,int
+    找到:    int,int,int,int
+    原因: 实际参数列表和形式参数列表长度不同
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:365: 错误: 无法将类 RenderPass中的方法 drawIndexed应用到给定类型;
+                  pass.drawIndexed(0, firstIndex, indexCount, 1);
+                      ^
+    需要: int,int,int,int,int
+    找到:    int,int,int,int
+    原因: 实际参数列表和形式参数列表长度不同
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\EntityTask.java:130: 错误: 对于loadEntityRecursive(CompoundTag,ClientLevel,EntitySpawnReason,EntityProcessor), 找不到合适的方法
+              entity = EntityType.loadEntityRecursive(finalNbt, Minecraft.getInstance().level, EntitySpawnReason.SPAWN_ITEM_USE, EntityProcessor.NOP);
+                                 ^
+      方法 EntityType.loadEntityRecursive(CompoundTag,Level,EntitySpawnRequest,EntityProcessor)不适用
+        (参数不匹配; EntitySpawnReason无法转换为EntitySpawnRequest)
+      方法 EntityType.loadEntityRecursive(ValueInput,Level,EntitySpawnReason,EntityProcessor)不适用
+        (参数不匹配; CompoundTag无法转换为ValueInput)
+      方法 EntityType.loadEntityRecursive(ValueInput,Level,EntitySpawnRequest,EntityProcessor)不适用
+        (参数不匹配; CompoundTag无法转换为ValueInput)
+  注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\mixin\gui\GuiEntityRendererMixin.java:55: 错误: 不兼容的类型: Quaternionfc无法转换为Quaternionf
+                      LibraryPreviewBinding.particles(entityRenderState, guiEntityRenderState.rotation(), 1)
+                                                                                                      ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:318: 错误: 不兼容的类型: OptionalInt无法转换为Optional<Vector4fc>
+                      Objects.requireNonNull(context.color()), OptionalInt.empty(), context.depth(), OptionalDouble.empty());
+                                                                                ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:348: 错误: 不兼容的类型: GpuBuffer无法转换为GpuBufferSlice
+              pass.setVertexBuffer(0, geometry.vertices());
+                                                       ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:482: 错误: 不兼容的类型: OptionalInt无法转换为Optional<Vector4fc>
+              try (var pass = encoder.createRenderPass(() -> "OmniMorph storage self-test", view, OptionalInt.of(0xff000000))) {
+                                                                                                                ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:551: 错误: 不兼容的类型: OptionalInt无法转换为Optional<Vector4fc>
+              try (var pass = encoder.createRenderPass(() -> "OmniMorph activation self-test", view, OptionalInt.of(0xff000000))) {
+                                                                                                                   ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:718: 错误: 找不到符号
+                  rendering_in_paperdoll = mc.screen != null ? 1f : 0f;
+                                             ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 mc
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:829: 错误: 找不到符号
+          this.isHost = cosmeticContext == null && type == EntityType.PLAYER && FiguraMod.isLocal(owner);
+                                                                     ^
+    符号:   变量 PLAYER
+    位置: 类 EntityType
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:832: 错误: 找不到符号
+                  : type == EntityType.PLAYER ? PermissionManager.get(owner) : PermissionManager.getMobPermissions(owner);
+                                      ^
+    符号:   变量 PLAYER
+    位置: 类 EntityType
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:874: 错误: 找不到符号
+          return new Avatar(owner, EntityType.PLAYER, name, permissions);
+                                             ^
+    符号:   变量 PLAYER
+    位置: 类 EntityType
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:915: 错误: 找不到符号
+          return new Avatar(context.executionId(), EntityType.PLAYER, name, permissions, context);
+                                                             ^
+    符号:   变量 PLAYER
+    位置: 类 EntityType
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:920: 错误: 找不到符号
+          Avatar preview = new Avatar(owner, entityType == null ? EntityType.PLAYER : entityType, entityName,
+                                                                            ^
+    符号:   变量 PLAYER
+    位置: 类 EntityType
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:948: 错误: 找不到符号
+          this(owner, EntityType.PLAYER, EntityUtils.getNameForUUID(owner));
+                                ^
+    符号:   变量 PLAYER
+    位置: 类 EntityType
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\TextureCustomization.java:65: 错误: 找不到符号
+                  try (GpuBuffer.MappedView readView = encoder.mapBuffer(gpuBuffer, true, false)) {
+                                ^
+    符号:   类 MappedView
+    位置: 类 GpuBuffer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\texture\FiguraRenderTypes.java:159: 错误: 找不到符号
+          protected static RenderPipeline.Snippet FIGURA_SOLID_SNIPPET = RenderPipeline.builder(MATRICES_FOG_SNIPPET, GLOBALS_SNIPPET).withVertexShader("core/rendertype_lines").withFragmentShader("core/rendertype_lines").withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT)).withDepthStencilState(DepthStencilState.DEFAULT).withCull(false).withVertexFormat(DefaultVertexFormat.POSITION_COLOR_NORMAL, VertexFormat.Mode.QUADS).buildSnippet();
+                                                                                                                                                                                                                                                                                                                                                                                                                                            ^
+    符号:   变量 Mode
+    位置: 类 VertexFormat
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:433: 错误: 找不到符号
+          if (isHost() && this.minecraft.screen instanceof ChatScreen chat)
+                                        ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:449: 错误: 找不到符号
+          if (isHost() && Configs.CHAT_MESSAGES.value && this.minecraft.screen instanceof ChatScreen chat)
+                                                                       ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:462: 错误: 找不到符号
+          if (!isHost() || this.minecraft.screen == null)
+                                         ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:464: 错误: 找不到符号
+          return this.minecraft.screen.getClass().getName();
+                               ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:470: 错误: 找不到符号
+          if (isHost() && this.minecraft.screen instanceof AbstractContainerScreen<?> screen)
+                                        ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:481: 错误: 找不到符号
+          if (!isHost() || !(this.minecraft.screen instanceof AbstractContainerScreen<?> screen))
+                                           ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:494: 错误: 找不到符号
+          return isHost() && this.minecraft.screen instanceof ChatScreen;
+                                           ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:500: 错误: 找不到符号
+          return isHost() && this.minecraft.screen instanceof AbstractContainerScreen;
+                                           ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:524: 错误: 找不到符号
+              try (GpuBuffer.MappedView readView = commandEncoder.mapBuffer(gpuBuffer, true, false)) {
+                            ^
+    符号:   类 MappedView
+    位置: 类 GpuBuffer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\TextureAPI.java:171: 错误: 找不到符号
+                  try (GpuBuffer.MappedView readView = encoder.mapBuffer(gpuBuffer, true, false)) {
+                                ^
+    符号:   类 MappedView
+    位置: 类 GpuBuffer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\keybind\FiguraKeybind.java:94: 错误: 找不到符号
+              if (keybind.key == key && keybind.enabled && (keybind.gui || Minecraft.getInstance().screen == null))
+                                                                                                  ^
+    符号:   变量 screen
+    位置: 类 Minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\keybind\FiguraKeybind.java:214: 错误: 找不到符号
+          return (this.gui || Minecraft.getInstance().screen == null) && this.isDown;
+                                                     ^
+    符号:   变量 screen
+    位置: 类 Minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\config\ConfigType.java:365: 错误: 找不到符号
+                  mc.setScreen(new NetworkFilterScreen(mc.screen));
+                                                         ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 mc
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\AvatarWizardScreen.java:86: 错误: 找不到符号
+              if (minecraft.screen == this) {
+                           ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\Label.java:151: 错误: 找不到符号
+          if (hovered != null && Minecraft.getInstance().screen != null && hovered.getClickEvent() != null) {
+                                                        ^
+    符号:   变量 screen
+    位置: 类 Minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\Label.java:152: 错误: 找不到符号
+              Screen.defaultHandleGameClickEvent(hovered.getClickEvent(), Minecraft.getInstance(), Minecraft.getInstance().screen);
+                                                                                                                          ^
+    符号:   变量 screen
+    位置: 类 Minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\EntityPreview.java:106: 错误: 找不到符号
+                          if (libraryPreview != null && Minecraft.getInstance().screen instanceof AvatarScreen avatarScreen) {
+                                                                               ^
+    符号:   变量 screen
+    位置: 类 Minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\RaycastAPI.java:104: 错误: 找不到符号
+          BlockHitResult result = WorldAPI.getCurrentWorld().clip(new ClipContext(start.asVec3(), end.asVec3(), blockContext, fluidContext, new Marker(EntityType.MARKER, WorldAPI.getCurrentWorld())));
+                                                                                                                                                                 ^
+    符号:   变量 MARKER
+    位置: 类 EntityType
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\RaycastAPI.java:152: 错误: 找不到符号
+          EntityHitResult result = ProjectileUtil.getEntityHitResult(new Marker(EntityType.MARKER, WorldAPI.getCurrentWorld()), start.asVec3(), end.asVec3(), new AABB(start.asVec3(), end.asVec3()), entityPredicate, Double.MAX_VALUE);
+                                                                                          ^
+    符号:   变量 MARKER
+    位置: 类 EntityType
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\FiguraLuaPrinter.java:121: 错误: 找不到符号
+          if ((owner.entityType == EntityType.PLAYER && !Configs.LOG_OTHERS.value && !FiguraMod.isLocal(owner.owner)) || owner.permissions.getCategory() == Permissions.Category.BLOCKED)
+                                             ^
+    符号:   变量 PLAYER
+    位置: 类 EntityType
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\input\KeyboardHandlerMixin.java:44: 错误: 找不到符号
+          if (avatar.keyPressEvent(event.key(), action, event.modifiers()) && (this.minecraft.mouseHandler.isMouseGrabbed() || this.minecraft.screen == null)) {
+                                                                                                                                             ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\input\MouseHandlerMixin.java:46: 错误: 找不到符号
+          if (avatar.mousePressEvent(mouseButtonInfo.button(), action, mouseButtonInfo.modifiers()) && (this.mouseGrabbed || this.minecraft.screen == null)) {
+                                                                                                                                           ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\input\MouseHandlerMixin.java:56: 错误: 找不到符号
+          if (avatar.luaRuntime != null && pressed && avatar.luaRuntime.host.unlockCursor && this.minecraft.screen == null)
+                                                                                                           ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\input\MouseHandlerMixin.java:68: 错误: 找不到符号
+          if (avatar != null && avatar.mouseScrollEvent(scrollDeltaY) && (this.mouseGrabbed || this.minecraft.screen == null)) {
+                                                                                                             ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\input\MouseHandlerMixin.java:85: 错误: 找不到符号
+          if (avatar != null && avatar.mouseMoveEvent(x - this.xpos, y - this.ypos) && (this.mouseGrabbed || this.minecraft.screen == null)) {
+                                                                                                                           ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\LevelRendererMixin.java:75: 错误: 找不到符号
+              if (multiBufferSource instanceof OutlineBufferSource outline && RenderUtils.vanillaModelAndScript(avatar) && avatar.luaRuntime.renderer.outlineColor != null) {
+                                               ^
+    符号:   类 OutlineBufferSource
+    位置: 类 LevelRendererMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:439: 错误: 找不到符号
+          if (Minecraft.getInstance().screen instanceof AbstractPanelScreen panel) {
+                                     ^
+    符号:   变量 screen
+    位置: 类 Minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:625: 错误: 找不到符号
+          }, url, minecraft.screen));
+                           ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:635: 错误: 找不到符号
+          if (Minecraft.getInstance().screen instanceof AbstractPanelScreen panelScreen)
+                                     ^
+    符号:   变量 screen
+    位置: 类 Minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:640: 错误: 找不到符号
+          if (Minecraft.getInstance().screen instanceof AbstractPanelScreen panelScreen)
+                                     ^
+    符号:   变量 screen
+    位置: 类 Minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:646: 错误: 找不到符号
+          if (Minecraft.getInstance().screen instanceof AbstractPanelScreen panelScreen)
+                                     ^
+    符号:   变量 screen
+    位置: 类 Minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\AvatarControlsScreen.java:104: 错误: 找不到符号
+          if (minecraft.screen instanceof CosmeticAnimationScreen preview && preview.openControls(avatar, page)) {
+                       ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\AvatarControlsScreen.java:107: 错误: 找不到符号
+          var formal = OutfitControlsScreen.create(minecraft.screen, avatar, page);
+                                                            ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\AvatarControlsScreen.java:116: 错误: 找不到符号
+          minecraft.setScreen(new AvatarControlsScreen(minecraft.screen, avatar, page));
+                                                                ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\CosmeticAnimationScreen.java:115: 错误: 找不到符号
+          if (minecraft.screen != this) {
+                       ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\ModelLibraryScreen.java:624: 错误: 找不到符号
+                  if (!closed && client.current() && minecraft.screen == this) {
+                                                              ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmInputState.java:28: 错误: 找不到符号
+                  && client.getOverlay() == null && client.screen == null
+                                                          ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 client
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuShaderProgram.java:295: 错误: 找不到符号
+                  .withVertexFormat(Format.VALUE, VertexFormat.Mode.TRIANGLES);
+                                                              ^
+    符号:   变量 Mode
+    位置: 类 VertexFormat
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuShaderProgram.java:324: 错误: 找不到符号
+                  for (int id = 0; id < VertexFormatElement.MAX_COUNT && found < free.length; id++) {
+                                                           ^
+    符号:   变量 MAX_COUNT
+    位置: 类 VertexFormatElement
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuShaderProgram.java:332: 错误: 找不到符号
+                  VertexFormatElement normal = VertexFormatElement.register(free[0], 0, VertexFormatElement.Type.FLOAT, false, 3);
+                                                                                                           ^
+    符号:   变量 Type
+    位置: 类 VertexFormatElement
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuShaderProgram.java:333: 错误: 找不到符号
+                  VertexFormatElement weights = VertexFormatElement.register(free[1], 0, VertexFormatElement.Type.FLOAT, false, 4);
+                                                                                                            ^
+    符号:   变量 Type
+    位置: 类 VertexFormatElement
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuShaderProgram.java:334: 错误: 找不到符号
+                  VertexFormatElement joints = VertexFormatElement.register(free[2], 0, VertexFormatElement.Type.INT, false, 4);
+                                                                                                           ^
+    符号:   变量 Type
+    位置: 类 VertexFormatElement
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuShaderProgram.java:336: 错误: 找不到符号
+                          .add("OmniNormal", normal).add("OmniUV", VertexFormatElement.UV0)
+                                                                                      ^
+    符号:   变量 UV0
+    位置: 类 VertexFormatElement
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuShaderProgram.java:335: 错误: 找不到符号
+                  return VertexFormat.builder().add("OmniPosition", VertexFormatElement.POSITION)
+                                                                                       ^
+    符号:   变量 POSITION
+    位置: 类 VertexFormatElement
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:349: 错误: 找不到符号
+              pass.setIndexBuffer(indices == null ? geometry.indices() : ((BufferIndices) indices).buffer(), VertexFormat.IndexType.INT);
+                                                                                                                         ^
+    符号:   变量 IndexType
+    位置: 类 VertexFormat
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:432: 错误: 找不到符号
+                  .withVertexFormat(GpuShaderProgram.format(), VertexFormat.Mode.TRIANGLES).build();
+                                                                           ^
+    符号:   变量 Mode
+    位置: 类 VertexFormat
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:485: 错误: 找不到符号
+                  pass.setIndexBuffer(geometry.indices(), VertexFormat.IndexType.INT);
+                                                                      ^
+    符号:   变量 IndexType
+    位置: 类 VertexFormat
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:527: 错误: 找不到符号
+                  .withVertexFormat(GpuShaderProgram.format(), VertexFormat.Mode.TRIANGLES).build();
+                                                                           ^
+    符号:   变量 Mode
+    位置: 类 VertexFormat
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:555: 错误: 找不到符号
+                  pass.setIndexBuffer(geometry.indices(), VertexFormat.IndexType.INT);
+                                                                      ^
+    符号:   变量 IndexType
+    位置: 类 VertexFormat
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:680: 错误: font 在 GuiTextRenderState 中是 private 访问控制
+                  Font.PreparedTextBuilder preparedTextBuilder = font.new PreparedTextBuilder(0, 0, outlineColor, false, false);
+                                                                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:685: 错误: x 在 GuiTextRenderState 中是 private 访问控制
+                              float[] fs = new float[]{x};
+                                                       ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:690: 错误: font 在 GuiTextRenderState 中是 private 访问控制
+                                  GlyphSource fontSet = ((FontAccessor) font).figura$getFontSet(style.getFont());
+                                                                        ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:693: 错误: y 在 GuiTextRenderState 中是 private 访问控制
+                                  preparedTextBuilder.y = y + o * glyphInfo.getShadowOffset();
+                                                          ^
+  注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+  注: 某些输入文件使用或覆盖了已过时的 API。
+  注: 某些消息已经过简化; 请使用 -Xdiags:verbose 重新编译以获得完整输出
+  注: 某些输入文件使用了未经检查或不安全的操作。
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:702: 错误: 找不到符号
+              if (mc.gameRenderer != null && mc.gameRenderer.getMainCamera() != null) {
+                                                            ^
+    符号:   方法 getMainCamera()
+    位置: 类型为GameRenderer的变量 gameRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\Avatar.java:703: 错误: 找不到符号
+                  var camera = mc.gameRenderer.getMainCamera();
+                                              ^
+    符号:   方法 getMainCamera()
+    位置: 类型为GameRenderer的变量 gameRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\FiguraRenderer.java:207: 错误: 找不到符号
+          Camera camera = client.gameRenderer.getMainCamera();
+                                             ^
+    符号:   方法 getMainCamera()
+    位置: 类型为GameRenderer的变量 gameRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\FiguraRenderer.java:226: 错误: 找不到符号
+          Camera camera = client.gameRenderer.getMainCamera();
+                                             ^
+    符号:   方法 getMainCamera()
+    位置: 类型为GameRenderer的变量 gameRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\TextureCustomization.java:63: 错误: 找不到符号
+              GpuBuffer gpuBuffer = RenderSystem.getDevice().createBuffer(() -> "Atlas Read Buffer", 9, width * height * atlasGpuTexture.getFormat().pixelSize());
+                                                                                                                                                    ^
+    符号:   方法 pixelSize()
+    位置: 类 GpuFormat
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\TextureCustomization.java:65: 错误: 找不到符号
+                  try (GpuBuffer.MappedView readView = encoder.mapBuffer(gpuBuffer, true, false)) {
+                                                              ^
+    符号:   方法 mapBuffer(GpuBuffer,boolean,boolean)
+    位置: 类型为CommandEncoder的变量 encoder
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\TextureCustomization.java:68: 错误: 找不到符号
+                              int m = readView.data().getInt((l + k * width) * atlasGpuTexture.getFormat().pixelSize());
+                                                                                                          ^
+    符号:   方法 pixelSize()
+    位置: 类 GpuFormat
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\TextTask.java:89: 错误: 找不到符号
+                  font.drawInBatch8xOutline(text.getVisualOrderText(), x, j, -1, out, matrix, buffer, l);
+                      ^
+    符号:   方法 drawInBatch8xOutline(FormattedCharSequence,int,int,int,int,Matrix4f,FiguraVertexSource,int)
+    位置: 类型为Font的变量 font
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\TextTask.java:91: 错误: 找不到符号
+                      font.drawInBatch(text, x, j, op, shadow, matrix, buffer, displayMode, 0, l);
+                          ^
+    符号:   方法 drawInBatch(Component,int,int,int,boolean,Matrix4f,FiguraVertexSource,DisplayMode,int,int)
+    位置: 类型为Font的变量 font
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\TextTask.java:93: 错误: 找不到符号
+                  font.drawInBatch(text, x, j, op, shadow, matrix, buffer, displayMode, 0, l);
+                      ^
+    符号:   方法 drawInBatch(Component,int,int,int,boolean,Matrix4f,FiguraVertexSource,DisplayMode,int,int)
+    位置: 类型为Font的变量 font
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\EntityTask.java:65: 错误: 找不到符号
+                  cameraRenderState.initialized = minecraft.gameRenderer.getMainCamera().isInitialized();
+                                                                        ^
+    符号:   方法 getMainCamera()
+    位置: 类型为GameRenderer的变量 gameRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\EntityTask.java:66: 错误: 找不到符号
+                  cameraRenderState.pos = minecraft.gameRenderer.getMainCamera().position();
+                                                                ^
+    符号:   方法 getMainCamera()
+    位置: 类型为GameRenderer的变量 gameRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\EntityTask.java:67: 错误: 找不到符号
+                  cameraRenderState.blockPos = minecraft.gameRenderer.getMainCamera().blockPosition();
+                                                                     ^
+    符号:   方法 getMainCamera()
+    位置: 类型为GameRenderer的变量 gameRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\EntityTask.java:68: 错误: 找不到符号
+                  cameraRenderState.orientation = new Quaternionf(minecraft.gameRenderer.getMainCamera().rotation());
+                                                                                        ^
+    符号:   方法 getMainCamera()
+    位置: 类型为GameRenderer的变量 gameRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendertasks\EntityTask.java:72: 错误: 找不到符号
+                  dispatcher.submit(state, cameraRenderState, 0, 0, 0, stack, minecraft.gameRenderer.getSubmitNodeStorage());
+                                                                                                    ^
+    符号:   方法 getSubmitNodeStorage()
+    位置: 类型为GameRenderer的变量 gameRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\texture\FiguraRenderTypes.java:91: 错误: 找不到符号
+                  RenderSetup.builder(FiguraRenderPipelines.FIGURA_SOLID).bufferSize(256)
+                                                                         ^
+    符号:   方法 bufferSize(int)
+    位置: 类 RenderSetupBuilder
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\texture\FiguraRenderTypes.java:102: 错误: 找不到符号
+                                          .bufferSize(256)
+                                          ^
+    符号:   方法 bufferSize(int)
+    位置: 类 RenderSetupBuilder
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\texture\FiguraRenderTypes.java:117: 错误: 找不到符号
+                                  .bufferSize(256)
+                                  ^
+    符号:   方法 bufferSize(int)
+    位置: 类 RenderSetupBuilder
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\texture\FiguraRenderTypes.java:129: 错误: 找不到符号
+                                  .bufferSize(256)
+                                  ^
+    符号:   方法 bufferSize(int)
+    位置: 类 RenderSetupBuilder
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\texture\FiguraRenderTypes.java:150: 错误: 找不到符号
+                                  .bufferSize(256)
+                                  ^
+    符号:   方法 bufferSize(int)
+    位置: 类 RenderSetupBuilder
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\permissions\Permissions.java:139: 错误: 找不到符号
+              this(index, formatting.getColor(), Style.EMPTY.applyFormat(formatting));
+                                    ^
+    符号:   方法 getColor()
+    位置: 类型为ChatFormatting的变量 formatting
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ColorUtils.java:113: 错误: 找不到符号
+              Integer i = formatting.getColor();
+                                    ^
+    符号:   方法 getColor()
+    位置: 类型为ChatFormatting的变量 formatting
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\lua\api\particle\CustomParticle.java:732: 错误: 找不到符号
+              return position == null ? 0 : net.minecraft.client.renderer.LevelRenderer.getLightCoords(level,
+                                                                                       ^
+    符号:   方法 getLightCoords(ClientLevel,BlockPos)
+    位置: 类 LevelRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:119: 错误: 找不到符号
+          this.minecraft.gui.setTimes((int) times.x, (int) times.y, (int) times.z);
+                            ^
+    符号:   方法 setTimes(int,int,int)
+    位置: 类型为Gui的变量 gui
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:132: 错误: 找不到符号
+              this.minecraft.gui.clearTitles();
+                                ^
+    符号:   方法 clearTitles()
+    位置: 类型为Gui的变量 gui
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:147: 错误: 找不到符号
+              this.minecraft.gui.setTitle(TextUtils.tryParseJson(text));
+                                ^
+    符号:   方法 setTitle(Component)
+    位置: 类型为Gui的变量 gui
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:167: 错误: 找不到符号
+              this.minecraft.gui.setSubtitle(TextUtils.tryParseJson(text));
+                                ^
+    符号:   方法 setSubtitle(Component)
+    位置: 类型为Gui的变量 gui
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:193: 错误: 找不到符号
+              this.minecraft.gui.setOverlayMessage(TextUtils.tryParseJson(text), animated);
+                                ^
+    符号:   方法 setOverlayMessage(Component,boolean)
+    位置: 类型为Gui的变量 gui
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:242: 错误: 找不到符号
+              this.minecraft.gui.getChat().addRecentChat(message);
+                                ^
+    符号:   方法 getChat()
+    位置: 类型为Gui的变量 gui
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:259: 错误: 找不到符号
+          List<GuiMessage> messages = ((ChatComponentAccessor) this.minecraft.gui.getChat()).getAllMessages();
+                                                                                 ^
+    符号:   方法 getChat()
+    位置: 类型为Gui的变量 gui
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:297: 错误: 找不到符号
+          List<GuiMessage> messages = ((ChatComponentAccessor) this.minecraft.gui.getChat()).getAllMessages();
+                                                                                 ^
+    符号:   方法 getChat()
+    位置: 类型为Gui的变量 gui
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:305: 错误: 找不到符号
+              GuiMessage neww = new GuiMessage(this.minecraft.gui.getGuiTicks(), TextUtils.tryParseJson(newMessage), null, GuiMessageSource.SYSTEM_CLIENT, GuiMessageTag.chatModified(old.content().getString()));
+                                                                 ^
+    符号:   方法 getGuiTicks()
+    位置: 类型为Gui的变量 gui
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:310: 错误: 找不到符号
+          this.minecraft.gui.getChat().rescaleChat();
+                            ^
+    符号:   方法 getChat()
+    位置: 类型为Gui的变量 gui
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:515: 错误: 找不到符号
+          RenderTarget renderTarget = this.minecraft.getMainRenderTarget();
+                                                    ^
+    符号:   方法 getMainRenderTarget()
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:521: 错误: 找不到符号
+                  .createBuffer(() -> "Figura Screenshot buffer", 9, width * height * gpuTexture.getFormat().pixelSize());
+                                                                                                            ^
+    符号:   方法 pixelSize()
+    位置: 类 GpuFormat
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:524: 错误: 找不到符号
+              try (GpuBuffer.MappedView readView = commandEncoder.mapBuffer(gpuBuffer, true, false)) {
+                                                                 ^
+    符号:   方法 mapBuffer(GpuBuffer,boolean,boolean)
+    位置: 类型为CommandEncoder的变量 commandEncoder
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\HostAPI.java:527: 错误: 找不到符号
+                          int m = readView.data().getInt((l + k * width) * gpuTexture.getFormat().pixelSize());
+                                                                                                 ^
+    符号:   方法 pixelSize()
+    位置: 类 GpuFormat
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\TextureAPI.java:169: 错误: 找不到符号
+              GpuBuffer gpuBuffer = RenderSystem.getDevice().createBuffer(() -> "Atlas Read Buffer", 9, width * height * atlasGpuTexture.getFormat().pixelSize());
+                                                                                                                                                    ^
+    符号:   方法 pixelSize()
+    位置: 类 GpuFormat
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\TextureAPI.java:171: 错误: 找不到符号
+                  try (GpuBuffer.MappedView readView = encoder.mapBuffer(gpuBuffer, true, false)) {
+                                                              ^
+    符号:   方法 mapBuffer(GpuBuffer,boolean,boolean)
+    位置: 类型为CommandEncoder的变量 encoder
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\TextureAPI.java:174: 错误: 找不到符号
+                              int m = readView.data().getInt((l + k * width) * atlasGpuTexture.getFormat().pixelSize());
+                                                                                                          ^
+    符号:   方法 pixelSize()
+    位置: 类 GpuFormat
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmPreviewRenderTypes.java:74: 错误: 找不到符号
+                  Optional.of(source.getVertexFormatMode()));
+                                    ^
+    符号:   方法 getVertexFormatMode()
+    位置: 类型为RenderPipeline的变量 source
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmPreviewRenderTypes.java:73: 错误: 找不到符号
+                  Optional.of(source.getVertexFormat()),
+                                    ^
+    符号:   方法 getVertexFormat()
+    位置: 类型为RenderPipeline的变量 source
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmPreviewRenderTypes.java:68: 错误: 找不到符号
+                  Optional.of(source.getUniforms()),
+                                    ^
+    符号:   方法 getUniforms()
+    位置: 类型为RenderPipeline的变量 source
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmPreviewRenderTypes.java:67: 错误: 找不到符号
+                  Optional.of(source.getSamplers()),
+                                    ^
+    符号:   方法 getSamplers()
+    位置: 类型为RenderPipeline的变量 source
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\outfit\OutfitComposition.java:702: 错误: 找不到符号
+                          net.minecraft.client.Minecraft.getInstance().gameRenderer.getMainCamera().rotation(), partialTick)
+                                                                                   ^
+    符号:   方法 getMainCamera()
+    位置: 类型为GameRenderer的变量 gameRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\library\PreviewBoneHighlight.java:271: 错误: 找不到符号
+                      Optional.of(source.getVertexFormat()), Optional.of(source.getVertexFormatMode()));
+                                                                               ^
+    符号:   方法 getVertexFormatMode()
+    位置: 类型为RenderPipeline的变量 source
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\library\PreviewBoneHighlight.java:271: 错误: 找不到符号
+                      Optional.of(source.getVertexFormat()), Optional.of(source.getVertexFormatMode()));
+                                        ^
+    符号:   方法 getVertexFormat()
+    位置: 类型为RenderPipeline的变量 source
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\library\PreviewBoneHighlight.java:268: 错误: 找不到符号
+                      Optional.of(source.getSamplers()), Optional.of(source.getUniforms()),
+                                                                           ^
+    符号:   方法 getUniforms()
+    位置: 类型为RenderPipeline的变量 source
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\library\PreviewBoneHighlight.java:268: 错误: 找不到符号
+                      Optional.of(source.getSamplers()), Optional.of(source.getUniforms()),
+                                        ^
+    符号:   方法 getSamplers()
+    位置: 类型为RenderPipeline的变量 source
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\FiguraMod.java:190: 错误: 找不到符号
+              Minecraft.getInstance().gui.getChat().addClientSystemMessage(TextUtils.replaceTabs(message));
+                                         ^
+    符号:   方法 getChat()
+    位置: 类型为Gui的变量 gui
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\config\ConfigType.java:365: 错误: 找不到符号
+                  mc.setScreen(new NetworkFilterScreen(mc.screen));
+                    ^
+    符号:   方法 setScreen(NetworkFilterScreen)
+    位置: 类型为Minecraft的变量 mc
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\TextField.java:24: 错误: 找不到符号
+      public static final int ENABLED_COLOR = ChatFormatting.WHITE.getColor();
+                                                                  ^
+    符号:   方法 getColor()
+    位置: 类型为ChatFormatting的变量 WHITE
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\TextField.java:25: 错误: 找不到符号
+      public static final int DISABLED_COLOR = ChatFormatting.DARK_GRAY.getColor();
+                                                                       ^
+    符号:   方法 getColor()
+    位置: 类型为ChatFormatting的变量 DARK_GRAY
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\PanelSelectorWidget.java:94: 错误: 找不到符号
+          PanelButton button = new PanelButton(x, getY(), width, getHeight() - 4, panel.getTitle(), icon, this, bx -> Minecraft.getInstance().setScreen(panel));
+                                                                                                                                             ^
+    符号:   方法 setScreen(Screen)
+    位置: 类 Minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\Button.java:130: 错误: 找不到符号
+          return (!this.isActive() ? ChatFormatting.DARK_GRAY : ChatFormatting.WHITE).getColor();
+                                                                                     ^
+    符号:   方法 getColor()
+    位置: 类 ChatFormatting
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\FiguraToast.java:146: 错误: 找不到符号
+          ToastManager toasts = Minecraft.getInstance().getToastManager();
+                                                       ^
+    符号:   方法 getToastManager()
+    位置: 类 Minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\PaperDoll.java:26: 错误: 找不到符号
+                  !Minecraft.renderNames() ||
+                            ^
+    符号:   方法 renderNames()
+    位置: 类 Minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\AbstractPanelScreen.java:157: 错误: 找不到符号
+          this.minecraft.setScreen(parentScreen);
+                        ^
+    符号:   方法 setScreen(Screen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\AbstractPanelScreen.java:246: 错误: 找不到符号
+              Minecraft.getInstance().setScreen(new GameScreen(this));
+                                     ^
+    符号:   方法 setScreen(GameScreen)
+    位置: 类 Minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\ContextMenu.java:230: 错误: 找不到符号
+              gui.fill(this.getX() + 4, getY() + 4, this.getX() + this.getWidth() - 4, getY() + 5, 0xFF000000 + ChatFormatting.DARK_GRAY.getColor());
+                                                                                                                                        ^
+    符号:   方法 getColor()
+    位置: 类型为ChatFormatting的变量 DARK_GRAY
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\AvatarWizardScreen.java:95: 错误: 找不到符号
+              this.minecraft.setScreen(sourcePanel);
+                            ^
+    符号:   方法 setScreen(Screen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\config\AbstractConfigElement.java:62: 错误: 找不到符号
+          gui.text(font, config.name, getX() + 16, y, UIHelper.adjustColor((config.disabled ? ChatFormatting.DARK_GRAY : ChatFormatting.WHITE).getColor()));
+                                                                                                                                              ^
+    符号:   方法 getColor()
+    位置: 类 ChatFormatting
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\ContainerButton.java:56: 错误: 找不到符号
+          return !this.isToggled() ? ChatFormatting.DARK_GRAY.getColor() : super.getTextColor();
+                                                             ^
+    符号:   方法 getColor()
+    位置: 类型为ChatFormatting的变量 DARK_GRAY
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\KeybindScreen.java:62: 错误: 找不到符号
+          this.minecraft.setScreen(sourcePanel);
+                        ^
+    符号:   方法 setScreen(Screen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\KeybindWidgetHelper.java:25: 错误: 找不到符号
+                  gui.fill(x, y, x + width, y + height, ChatFormatting.YELLOW.getColor() | 0xFF000000);
+                                                                             ^
+    符号:   方法 getColor()
+    位置: 类型为ChatFormatting的变量 YELLOW
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\KeybindWidgetHelper.java:29: 错误: 找不到符号
+                  gui.fill(x, y, x + width, y + height, ChatFormatting.RED.getColor() | 0xFF000000);
+                                                                          ^
+    符号:   方法 getColor()
+    位置: 类型为ChatFormatting的变量 RED
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\EntityPreview.java:103: 错误: 找不到符号
+                          Minecraft.getInstance().setScreen(new AvatarScreen(scale, pitch, yaw,
+                                                 ^
+    符号:   方法 setScreen(AvatarScreen)
+    位置: 类 Minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\EntityPreview.java:109: 错误: 找不到符号
+                              Minecraft.getInstance().setScreen(parentScreen);
+                                                     ^
+    符号:   方法 setScreen(Screen)
+    位置: 类 Minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\SoundScreen.java:49: 错误: 找不到符号
+          this.minecraft.setScreen(sourcePanel);
+                        ^
+    符号:   方法 setScreen(Screen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:703: 错误: 找不到符号
+                      button -> minecraft.setScreen(new SoundScreen(this)))));
+                                         ^
+    符号:   方法 setScreen(SoundScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:705: 错误: 找不到符号
+                      button -> minecraft.setScreen(new KeybindScreen(this)))));
+                                         ^
+    符号:   方法 setScreen(KeybindScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:759: 错误: 找不到符号
+              minecraft.setScreen(new OutfitPresetsScreen(this, draft, FiguraMod.getLocalPlayerUUID(),
+                       ^
+    符号:   方法 setScreen(OutfitPresetsScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:836: 错误: 找不到符号
+          minecraft.setScreen(new CosmeticControlsScreen(this, preview, composition, outfitDraft,
+                   ^
+    符号:   方法 setScreen(CosmeticControlsScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:872: 错误: 找不到符号
+          minecraft.setScreen(new CosmeticAnimationScreen(this, preview, composition, outfitDraft,
+                   ^
+    符号:   方法 setScreen(CosmeticAnimationScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:968: 错误: 找不到符号
+                          minecraft.setScreen(new ModelLibraryEditScreen(this, client, capabilities, model.modelId()));
+                                   ^
+    符号:   方法 setScreen(ModelLibraryEditScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:978: 错误: 找不到符号
+                  minecraft.setScreen(new ModelLibraryAuthorizationScreen(this, client, model.modelId(), () -> ""));
+                           ^
+    符号:   方法 setScreen(ModelLibraryAuthorizationScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:1920: 错误: 找不到符号
+              minecraft.setScreen(new ModelLibraryAppealsScreen(this, client, null));
+                       ^
+    符号:   方法 setScreen(ModelLibraryAppealsScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:2836: 错误: 找不到符号
+                  button -> minecraft.setScreen(new AvatarWizardScreen(this)));
+                                     ^
+    符号:   方法 setScreen(AvatarWizardScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:2837: 错误: 找不到符号
+          menu.addAction(text("create_ysm"), null, button -> minecraft.setScreen(new AvatarWizardScreen(this,
+                                                                      ^
+    符号:   方法 setScreen(AvatarWizardScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:2840: 错误: 找不到符号
+                  button -> minecraft.setScreen(new CosmeticWizardScreen(this)));
+                                     ^
+    符号:   方法 setScreen(CosmeticWizardScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:2939: 错误: 找不到符号
+              minecraft.setScreen(this);
+                       ^
+    符号:   方法 setScreen(WardrobeScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:2934: 错误: 找不到符号
+          minecraft.setScreen(new FiguraConfirmScreen(confirmed -> {
+                   ^
+    符号:   方法 setScreen(FiguraConfirmScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:3210: 错误: 找不到符号
+                  minecraft.setScreen(this);
+                           ^
+    符号:   方法 setScreen(WardrobeScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:3208: 错误: 找不到符号
+              minecraft.setScreen(new FiguraConfirmScreen(confirmed -> {
+                       ^
+    符号:   方法 setScreen(FiguraConfirmScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:4097: 错误: 找不到符号
+              minecraft.setScreen(this);
+                       ^
+    符号:   方法 setScreen(WardrobeScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:4087: 错误: 找不到符号
+          minecraft.setScreen(new FiguraConfirmScreen(confirmed -> {
+                   ^
+    符号:   方法 setScreen(FiguraConfirmScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\lists\AvatarList.java:92: 错误: 找不到符号
+                  button -> Minecraft.getInstance().setScreen(new AvatarWizardScreen(parentScreen)))
+                                                   ^
+    符号:   方法 setScreen(AvatarWizardScreen)
+    位置: 类 Minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\widgets\avatar\AvatarWidget.java:69: 错误: 找不到符号
+                  gui.text(font, parsedDescription, x + 22, y + font.lineHeight + 1, UIHelper.adjustColor(ChatFormatting.GRAY.getColor()));
+                                                                                                                             ^
+    符号:   方法 getColor()
+    位置: 类型为ChatFormatting的变量 GRAY
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\ClientAPI.java:170: 错误: 找不到符号
+          return Minecraft.getInstance().levelRenderer.getSectionStatistics();
+                                                      ^
+    符号:   方法 getSectionStatistics()
+    位置: 类型为LevelRenderer的变量 levelRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\ClientAPI.java:176: 错误: 找不到符号
+          return Minecraft.getInstance().levelRenderer.getEntityStatistics();
+                                                      ^
+    符号:   方法 getEntityStatistics()
+    位置: 类型为LevelRenderer的变量 levelRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\ClientAPI.java:242: 错误: 找不到符号
+          return Minecraft.renderNames();
+                          ^
+    符号:   方法 renderNames()
+    位置: 类 Minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\ClientAPI.java:293: 错误: 找不到符号
+          Vec3 pos = Minecraft.getInstance().gameRenderer.getMainCamera().position();
+                                                         ^
+    符号:   方法 getMainCamera()
+    位置: 类型为GameRenderer的变量 gameRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\ClientAPI.java:300: 错误: 找不到符号
+          var quaternion = Minecraft.getInstance().gameRenderer.getMainCamera().rotation();
+                                                               ^
+    符号:   方法 getMainCamera()
+    位置: 类型为GameRenderer的变量 gameRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\ClientAPI.java:319: 错误: 找不到符号
+          return FiguraVec3.fromVec3f(Minecraft.getInstance().gameRenderer.getMainCamera().forwardVector());
+                                                                          ^
+    符号:   方法 getMainCamera()
+    位置: 类型为GameRenderer的变量 gameRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\ClientAPI.java:635: 错误: 找不到符号
+              int id = playerTeam.getColor().getId();
+                                            ^
+    符号:   方法 getId()
+    位置: 类 Optional<TeamColor>
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\ClientAPI.java:637: 错误: 找不到符号
+                  objectives.put("sidebar_team_" + playerTeam.getColor().getName(), scoreboard.getDisplayObjective(DisplaySlot.BY_ID.apply(3 + id)));
+                                                                        ^
+    符号:   方法 getName()
+    位置: 类 Optional<TeamColor>
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\ClientAPI.java:701: 错误: 找不到符号
+          PlayerTabOverlayAccessor accessor = (PlayerTabOverlayAccessor) Minecraft.getInstance().gui.getTabList();
+                                                                                                    ^
+    符号:   方法 getTabList()
+    位置: 类型为Gui的变量 gui
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\lua\api\entity\PlayerAPI.java:192: 错误: 找不到符号
+          map.put("color", team.getColor().getName());
+                                          ^
+    符号:   方法 getName()
+    位置: 类 Optional<TeamColor>
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\ClientCommandSourceMixin.java:22: 错误: 找不到符号
+          this.minecraft.gui.getChat().addClientSystemMessage(message);
+                            ^
+    符号:   方法 getChat()
+    位置: 类型为Gui的变量 gui
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\gui\PauseScreenMixin.java:75: 错误: 找不到符号
+              addRenderableWidget(new Button(x, y, 64, 20, FiguraText.of(), null, btn -> this.minecraft.setScreen(new WardrobeScreen(this))) {
+                                                                                                       ^
+    符号:   方法 setScreen(WardrobeScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\gui\PauseScreenMixin.java:96: 错误: 找不到符号
+              addRenderableWidget(new Button(x, y, 20, 20, 0, 0, 20, FIGURA_ICON, 60, 20, null, btn -> this.minecraft.setScreen(new WardrobeScreen(this))) {
+                                                                                                                     ^
+    符号:   方法 setScreen(WardrobeScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\GameRendererMixin.java:166: 错误: 找不到符号
+                      postchain.process(this.minecraft.getMainRenderTarget(), this.resourcePool);
+                                                      ^
+    符号:   方法 getMainRenderTarget()
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\LivingEntityRendererMixin.java:379: 错误: 找不到符号
+          else if (!Minecraft.renderNames() || livingEntity.getUUID().equals(PopupMenu.getEntityId()))
+                             ^
+    符号:   方法 renderNames()
+    位置: 类 Minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\EntityUtils.java:89: 错误: 找不到符号
+          return ((PlayerTabOverlayAccessor) Minecraft.getInstance().gui.getTabList()).getThePlayerInfos();
+                                                                        ^
+    符号:   方法 getTabList()
+    位置: 类型为Gui的变量 gui
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\MathUtils.java:75: 错误: 找不到符号
+          Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+                                                              ^
+    符号:   方法 getMainCamera()
+    位置: 类型为GameRenderer的变量 gameRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\MathUtils.java:91: 错误: 找不到符号
+          Camera camera = minecraft.gameRenderer.getMainCamera();
+                                                ^
+    符号:   方法 getMainCamera()
+    位置: 类型为GameRenderer的变量 gameRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\RenderUtils.java:165: 错误: 找不到符号
+          FeatureRenderDispatcher featureRenderDispatcher = client.gameRenderer.getFeatureRenderDispatcher();
+                                                                               ^
+    符号:   方法 getFeatureRenderDispatcher()
+    位置: 类型为GameRenderer的变量 gameRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\RenderUtils.java:166: 错误: 找不到符号
+          SubmitNodeStorage submitNodeStorage = featureRenderDispatcher.getSubmitNodeStorage();
+                                                                       ^
+    符号:   方法 getSubmitNodeStorage()
+    位置: 类型为FeatureRenderDispatcher的变量 featureRenderDispatcher
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:154: 错误: 找不到符号
+          int paddedSize = Mth.roundToward(Lighting.UBO_SIZE, gpuDevice.getUniformOffsetAlignment());
+                                                                       ^
+    符号:   方法 getUniformOffsetAlignment()
+    位置: 类型为GpuDevice的变量 gpuDevice
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:200: 错误: 找不到符号
+                  Minecraft.getInstance().gameRenderer.getLighting().setupFor(Lighting.Entry.ENTITY_IN_UI);
+                                                      ^
+    符号:   方法 getLighting()
+    位置: 类型为GameRenderer的变量 gameRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:235: 错误: 找不到符号
+                  Minecraft.getInstance().gameRenderer.getLighting().setupFor(Lighting.Entry.ENTITY_IN_UI);
+                                                      ^
+    符号:   方法 getLighting()
+    位置: 类型为GameRenderer的变量 gameRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:295: 错误: 找不到符号
+          Minecraft.getInstance().gameRenderer.getLighting().setupFor(Lighting.Entry.ITEMS_3D);
+                                              ^
+    符号:   方法 getLighting()
+    位置: 类型为GameRenderer的变量 gameRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\utils\ui\UIHelper.java:623: 错误: 找不到符号
+          return () -> minecraft.setScreen(new FiguraConfirmScreen.FiguraConfirmLinkScreen((bl) -> {
+                                ^
+    符号:   方法 setScreen(FiguraConfirmLinkScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\AvatarControlsScreen.java:116: 错误: 找不到符号
+          minecraft.setScreen(new AvatarControlsScreen(minecraft.screen, avatar, page));
+                   ^
+    符号:   方法 setScreen(AvatarControlsScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\AvatarControlsScreen.java:365: 错误: 找不到符号
+          minecraft.setScreen(parentScreen);
+                   ^
+    符号:   方法 setScreen(Screen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\CosmeticAnimationScreen.java:196: 错误: 找不到符号
+          minecraft.setScreen(new CosmeticControlsScreen(wardrobe, session, composition, draft, account,
+                   ^
+    符号:   方法 setScreen(CosmeticControlsScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\CosmeticAnimationScreen.java:231: 错误: 找不到符号
+          minecraft.setScreen(wardrobe);
+                   ^
+    符号:   方法 setScreen(WardrobeScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelFilePickerScreen.java:156: 错误: 找不到符号
+                          minecraft.setScreen(parentScreen);
+                                   ^
+    符号:   方法 setScreen(Screen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryAdminLoginScreen.java:116: 错误: 找不到符号
+                  minecraft.setScreen(parentScreen);
+                           ^
+    符号:   方法 setScreen(Screen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryAdminScreen.java:108: 错误: 找不到符号
+                  minecraft.setScreen(catalog);
+                           ^
+    符号:   方法 setScreen(ModelLibraryScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryAdminScreen.java:150: 错误: 找不到符号
+                          minecraft.setScreen(new ModelLibraryAuthorizationScreen(this, client, selected.modelId(), admin));
+                                   ^
+    符号:   方法 setScreen(ModelLibraryAuthorizationScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryAdminScreen.java:172: 错误: 找不到符号
+                          minecraft.setScreen(new ModelLibraryReportsScreen(this, client, admin, this::inspectReported));
+                                   ^
+    符号:   方法 setScreen(ModelLibraryReportsScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryAdminScreen.java:179: 错误: 找不到符号
+                          minecraft.setScreen(new ModelLibraryAppealsScreen(this, client, admin));
+                                   ^
+    符号:   方法 setScreen(ModelLibraryAppealsScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryAdminScreen.java:186: 错误: 找不到符号
+                          minecraft.setScreen(new ModelLibraryWardrobeScreen(this, client, admin));
+                                   ^
+    符号:   方法 setScreen(ModelLibraryWardrobeScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryAdminScreen.java:197: 错误: 找不到符号
+                          minecraft.setScreen(new ModelLibraryRecycleScreen(this, client, admin));
+                                   ^
+    符号:   方法 setScreen(ModelLibraryRecycleScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryAdminScreen.java:286: 错误: 找不到符号
+                              minecraft.setScreen(new ModelLibraryEditScreen(this, client, capabilities,
+                                       ^
+    符号:   方法 setScreen(ModelLibraryEditScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryAdminScreen.java:295: 错误: 找不到符号
+                      minecraft.setScreen(new ModelLibraryAuthorizationScreen(this, client, model.modelId(), admin));
+                               ^
+    符号:   方法 setScreen(ModelLibraryAuthorizationScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryReportsScreen.java:101: 错误: 找不到符号
+                          minecraft.setScreen(parentScreen);
+                                   ^
+    符号:   方法 setScreen(Screen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryWardrobeScreen.java:122: 错误: 找不到符号
+                          minecraft.setScreen(new ModelLibraryRecycleScreen(this, client, admin));
+                                   ^
+    符号:   方法 setScreen(ModelLibraryRecycleScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelUploadScreen.java:145: 错误: 找不到符号
+                          minecraft.setScreen(catalog);
+                                   ^
+    符号:   方法 setScreen(ModelLibraryScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelUploadScreen.java:391: 错误: 找不到符号
+          minecraft.setScreen(new ModelFilePickerScreen(this, client, directory, kind,
+                   ^
+    符号:   方法 setScreen(ModelFilePickerScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelUploadScreen.java:794: 错误: 找不到符号
+                      minecraft.setScreen(this);
+                               ^
+    符号:   方法 setScreen(ModelUploadScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelUploadScreen.java:793: 错误: 找不到符号
+                  minecraft.setScreen(new net.minecraft.client.gui.screens.ConfirmScreen(confirmed -> {
+                           ^
+    符号:   方法 setScreen(ConfirmScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\ModelLibraryScreen.java:174: 错误: 找不到符号
+                          minecraft.setScreen(new ModelReportScreen(this, client, model.modelId()));
+                                   ^
+    符号:   方法 setScreen(ModelReportScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\ModelLibraryScreen.java:190: 错误: 找不到符号
+                              minecraft.setScreen(new ModelLibraryAppealsScreen(this, client, null));
+                                       ^
+    符号:   方法 setScreen(ModelLibraryAppealsScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\ModelLibraryScreen.java:205: 错误: 找不到符号
+                          minecraft.setScreen(new ModelLibraryEditScreen(this, client, capabilities, selected.modelId()));
+                                   ^
+    符号:   方法 setScreen(ModelLibraryEditScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\ModelLibraryScreen.java:213: 错误: 找不到符号
+                          minecraft.setScreen(new ModelLibraryAuthorizationScreen(this, client, selected.modelId(), () -> ""));
+                                   ^
+    符号:   方法 setScreen(ModelLibraryAuthorizationScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\ModelLibraryScreen.java:303: 错误: 找不到符号
+                  minecraft.setScreen(new ModelUploadScreen(this, client, capabilities, () -> {
+                           ^
+    符号:   方法 setScreen(ModelUploadScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\ModelLibraryScreen.java:617: 错误: 找不到符号
+              minecraft.setScreen(new ModelLibraryAdminScreen(this, client, admin, capabilities));
+                       ^
+    符号:   方法 setScreen(ModelLibraryAdminScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\ModelLibraryScreen.java:630: 错误: 找不到符号
+                          minecraft.setScreen(new ModelLibraryAdminLoginScreen(this, client, admin, this::openAdmin));
+                                   ^
+    符号:   方法 setScreen(ModelLibraryAdminLoginScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\OutfitPresetsScreen.java:547: 错误: 找不到符号
+          minecraft.setScreen(wardrobe);
+                   ^
+    符号:   方法 setScreen(WardrobeScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\lua\api\particle\ParticleDynamicLights.java:234: 错误: 找不到符号
+                      client.levelRenderer.setSectionDirty(section.x(), section.y(), section.z());
+                                          ^
+    符号:   方法 setSectionDirty(int,int,int)
+    位置: 类型为LevelRenderer的变量 levelRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\outfit\OutfitFirstPersonScripts.java:68: 错误: 找不到符号
+          Vec3 camera = minecraft.gameRenderer.getMainCamera().position();
+                                              ^
+    符号:   方法 getMainCamera()
+    位置: 类型为GameRenderer的变量 gameRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\YsmInputState.java:28: 错误: 找不到符号
+                  && client.getOverlay() == null && client.screen == null
+                           ^
+    符号:   方法 getOverlay()
+    位置: 类型为Minecraft的变量 client
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\molang\runtime\binding\QueryVariables.java:213: 错误: 找不到符号
+          return client == null || client.gameRenderer == null ? null : client.gameRenderer.getMainCamera();
+                                                                                           ^
+    符号:   方法 getMainCamera()
+    位置: 类型为GameRenderer的变量 gameRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuShaderProgram.java:304: 错误: 找不到符号
+          original.getSamplers().forEach(builder::withSampler);
+                  ^
+    符号:   方法 getSamplers()
+    位置: 类型为RenderPipeline的变量 original
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuShaderProgram.java:305: 错误: 找不到符号
+          original.getUniforms().forEach(uniform -> builder.withUniform(uniform.name(), uniform.type()));
+                  ^
+    符号:   方法 getUniforms()
+    位置: 类型为RenderPipeline的变量 original
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\GpuShaderProgram.java:325: 错误: 找不到符号
+                      if (VertexFormatElement.byId(id) == null) {
+                                             ^
+    符号:   方法 byId(int)
+    位置: 类 VertexFormatElement
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:326: 错误: 找不到符号
+                  for (var binding : context.textures().entrySet()) {
+                                                       ^
+    符号:   方法 entrySet()
+    位置: 接口 List<Texture>
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:506: 错误: 找不到符号
+              try (var mapped = encoder.mapBuffer(readback, true, false)) {
+                                       ^
+    符号:   方法 mapBuffer(GpuBuffer,boolean,boolean)
+    位置: 类型为CommandEncoder的变量 encoder
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:525: 错误: 找不到符号
+                  .withUniform(GpuShaderProgram.UNIFORM, com.mojang.blaze3d.shaders.UniformType.UNIFORM_BUFFER)
+                  ^
+    符号:   方法 withUniform(String,UniformType)
+    位置: 类 Builder
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\render\acceleration\MinecraftGpuDeviceAdapter.java:565: 错误: 找不到符号
+              try (var mapped = encoder.mapBuffer(readback, true, false)) {
+                                       ^
+    符号:   方法 mapBuffer(GpuBuffer,boolean,boolean)
+    位置: 类型为CommandEncoder的变量 encoder
+  229 个错误
+  1 个警告
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 25s
+4 actionable tasks: 1 executed, 3 up-to-date

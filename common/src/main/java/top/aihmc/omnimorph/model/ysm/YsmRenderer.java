@@ -5,7 +5,7 @@ import top.aihmc.omnimorph.model.library.PreviewBoneHighlight;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
-import net.minecraft.client.renderer.MultiBufferSource;
+import top.aihmc.omnimorph.model.rendering.FiguraVertexSource;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.world.entity.Pose;
@@ -32,9 +32,9 @@ public class YsmRenderer {
     private RenderType culledTranslucentType;
     private YsmPreviewRenderTypes previewTypes;
 
-    private record DrawTarget(MultiBufferSource source, RenderType material, Identifier texture,
+    private record DrawTarget(FiguraVertexSource source, RenderType material, Identifier texture,
                               String channel, int order, float alpha) {
-        DrawTarget(MultiBufferSource source, RenderType material, Identifier texture, String channel, int order) {
+        DrawTarget(FiguraVertexSource source, RenderType material, Identifier texture, String channel, int order) {
             this(source, material, texture, channel, order, 1f);
         }
 
@@ -75,15 +75,15 @@ public class YsmRenderer {
         accelerationMeshes.clear();
     }
 
-    public boolean render(PoseStack stack, MultiBufferSource bufferSource, int light) {
+    public boolean render(PoseStack stack, FiguraVertexSource bufferSource, int light) {
         return render(stack, bufferSource, light, YsmPartMask.forPass(YsmRenderPass.PLAYER_BODY));
     }
 
-    public boolean render(PoseStack stack, MultiBufferSource bufferSource, int light, YsmPartMask mask) {
+    public boolean render(PoseStack stack, FiguraVertexSource bufferSource, int light, YsmPartMask mask) {
         return render(stack, bufferSource, light, mask, null);
     }
 
-    public boolean render(PoseStack stack, MultiBufferSource bufferSource, int light, YsmPartMask mask, YsmRenderPose pose) {
+    public boolean render(PoseStack stack, FiguraVertexSource bufferSource, int light, YsmPartMask mask, YsmRenderPose pose) {
         if ((pose != null && !pose.isCurrent()) || !runtime.owner().accelerationOwner().isCurrent()) {
             return false;
         }
@@ -112,7 +112,7 @@ public class YsmRenderer {
         return runtime.isRenderLayersFirst() ? 1 : -1;
     }
 
-    public boolean renderWithAttachments(PoseStack stack, MultiBufferSource bufferSource, int light,
+    public boolean renderWithAttachments(PoseStack stack, FiguraVertexSource bufferSource, int light,
                                          YsmRenderPose pose) {
         boolean rendered = false;
         if (runtime.isRenderLayersFirst()) {
@@ -125,7 +125,7 @@ public class YsmRenderer {
         return rendered;
     }
 
-    public boolean renderSubEntity(PoseStack stack, MultiBufferSource bufferSource, int light, YsmSubEntity entity) {
+    public boolean renderSubEntity(PoseStack stack, FiguraVertexSource bufferSource, int light, YsmSubEntity entity) {
         runtime.recordComplexity(0);
         if (entity == null || entity.geometry().roots.isEmpty())
             return false;
@@ -145,21 +145,21 @@ public class YsmRenderer {
         return true;
     }
 
-    public boolean renderAttachments(PoseStack stack, MultiBufferSource bufferSource, int light) {
+    public boolean renderAttachments(PoseStack stack, FiguraVertexSource bufferSource, int light) {
         return renderAttachments(stack, bufferSource, light, null);
     }
 
-    public boolean renderAttachments(PoseStack stack, MultiBufferSource bufferSource, int light, YsmRenderPose pose) {
+    public boolean renderAttachments(PoseStack stack, FiguraVertexSource bufferSource, int light, YsmRenderPose pose) {
         // Attachment points describe item anchors, not an exhaustive list of geometry roots.
         // Traverse the authored hierarchy so every branch keeps its ancestors and draws once.
         return render(stack, bufferSource, light, YsmPartMask.WORLD_ATTACHMENTS, pose);
     }
 
-    public boolean renderAttachmentType(PoseStack stack, MultiBufferSource bufferSource, int light, YsmAttachmentType type) {
+    public boolean renderAttachmentType(PoseStack stack, FiguraVertexSource bufferSource, int light, YsmAttachmentType type) {
         return renderAttachmentType(stack, bufferSource, light, type, null);
     }
 
-    private boolean renderAttachmentType(PoseStack stack, MultiBufferSource bufferSource, int light,
+    private boolean renderAttachmentType(PoseStack stack, FiguraVertexSource bufferSource, int light,
                                           YsmAttachmentType type, YsmRenderPose pose) {
         YsmBoneRole role = switch (type) {
             case BACKPACK -> YsmBoneRole.BACKPACK;
@@ -180,15 +180,15 @@ public class YsmRenderer {
         return rendered;
     }
 
-    public boolean renderAttachment(PoseStack stack, MultiBufferSource bufferSource, int light, String name) {
+    public boolean renderAttachment(PoseStack stack, FiguraVertexSource bufferSource, int light, String name) {
         return renderAttachment(stack, bufferSource, light, runtime.getAttachmentPoint(name));
     }
 
-    public boolean renderAttachment(PoseStack stack, MultiBufferSource bufferSource, int light, YsmAttachmentPoint point) {
+    public boolean renderAttachment(PoseStack stack, FiguraVertexSource bufferSource, int light, YsmAttachmentPoint point) {
         return renderAttachment(stack, bufferSource, light, point, null);
     }
 
-    private boolean renderAttachment(PoseStack stack, MultiBufferSource bufferSource, int light,
+    private boolean renderAttachment(PoseStack stack, FiguraVertexSource bufferSource, int light,
                                       YsmAttachmentPoint point, YsmRenderPose pose) {
         if ((pose != null && !pose.isCurrent()) || !runtime.owner().accelerationOwner().isCurrent()) {
             return false;
@@ -237,11 +237,11 @@ public class YsmRenderer {
         return null;
     }
 
-    public boolean renderFirstPersonArm(PoseStack stack, MultiBufferSource bufferSource, int light, boolean left) {
+    public boolean renderFirstPersonArm(PoseStack stack, FiguraVertexSource bufferSource, int light, boolean left) {
         return renderFirstPersonArm(stack, bufferSource, light, left, null);
     }
 
-    public boolean renderFirstPersonArm(PoseStack stack, MultiBufferSource bufferSource, int light,
+    public boolean renderFirstPersonArm(PoseStack stack, FiguraVertexSource bufferSource, int light,
                                          boolean left, YsmRenderPose pose) {
         if ((pose != null && !pose.isCurrent()) || !runtime.owner().accelerationOwner().isCurrent()) {
             return false;

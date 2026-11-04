@@ -1,0 +1,1641 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/eryth/.gradle/wrapper/dists/gradle-9.4.1-bin/arn2x92ynaizyzdaamcbpbhtj/gradle-9.4.1/lib/native-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Architect Plugin: 3.5.168
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+> Task :common:compileJava
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes
+> Task :common:extractIncludeTestProto
+> Task :common:extractTestProto
+> Task :common:generateTestProto NO-SOURCE
+
+> Task :common:compileTestJava
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\AnchorTrailNativeSmokeTest.java:29: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\CustomParticleNativeSmokeTest.java:29: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleLightNativeSmokeTest.java:18: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleMotionNativeSmokeTest.java:22: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:32: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5610: 错误: 找不到符号
+                        net.minecraft.client.renderer.MultiBufferSource, Void> renderer) {
+                                                     ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitHandRenderingSmokeTest.java:17: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitFormalPreparationSmokeTest.java:6: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitParticleCallbackSmokeTest.java:13: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitParticleFaceBudgetSmokeTest.java:21: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitTrailRuntimeSmokeTest.java:13: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\AvatarAsyncLoadSmokeTest.java:16: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:33: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmBoneQuerySmokeTest.java:16: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmControlRuntimeSmokeTest.java:20: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFilterSmokeTest.java:6: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:35: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmHandAnimationSmokeTest.java:16: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmLanguageSmokeTest.java:22: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:22: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1035: 错误: 找不到符号
+                com.mojang.blaze3d.textures.TextureFormat format, int width, int height, int layers, int levels) {
+                                           ^
+  符号:   类 TextureFormat
+  位置: 程序包 com.mojang.blaze3d.textures
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1068: 错误: 找不到符号
+        private PublicationGpuTexture(int usage, String label, com.mojang.blaze3d.textures.TextureFormat format,
+                                                                                          ^
+  符号:   类 TextureFormat
+  位置: 程序包 com.mojang.blaze3d.textures
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmNativeStateSmokeTest.java:13: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmParticleNativeSmokeTest.java:30: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmPerlinSmokeTest.java:6: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmSoundNativeSmokeTest.java:29: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmStabilitySmokeTest.java:30: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmSubEntitySmokeTest.java:15: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmVanillaStateSmokeTest.java:43: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\AccelerationGpuRouteProbe.java:13: 错误: 找不到符号
+import com.mojang.blaze3d.textures.TextureFormat;
+                                  ^
+  符号:   类 TextureFormat
+  位置: 程序包 com.mojang.blaze3d.textures
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\AccelerationPreparationBenchmark.java:7: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\AccelerationPreparationBenchmark.java:109: 错误: 找不到符号
+    private static void renderYsm(YsmModelRuntime runtime, MultiBufferSource source) {
+                                                           ^
+  符号:   类 MultiBufferSource
+  位置: 类 AccelerationPreparationBenchmark
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\AccelerationPreparationBenchmark.java:113: 错误: 找不到符号
+    private static void renderFigura(Avatar avatar, MultiBufferSource source) {
+                                                    ^
+  符号:   类 MultiBufferSource
+  位置: 类 AccelerationPreparationBenchmark
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\AccelerationPreparationBenchmark.java:126: 错误: 找不到符号
+    private static void measure(Consumer<MultiBufferSource> render, String sample) {
+                                         ^
+  符号:   类 MultiBufferSource
+  位置: 类 AccelerationPreparationBenchmark
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\AccelerationPreparationBenchmark.java:198: 错误: 找不到符号
+    private static void frame(Consumer<MultiBufferSource> render, MultiBufferSource source,
+                                       ^
+  符号:   类 MultiBufferSource
+  位置: 类 AccelerationPreparationBenchmark
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\AccelerationPreparationBenchmark.java:198: 错误: 找不到符号
+    private static void frame(Consumer<MultiBufferSource> render, MultiBufferSource source,
+                                                                  ^
+  符号:   类 MultiBufferSource
+  位置: 类 AccelerationPreparationBenchmark
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\AccelerationPreparationBenchmark.java:199: 错误: 程序包MultiBufferSource不存在
+                              MultiBufferSource.BufferSource nativeSource) {
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\DualEngineGpuReplay.java:8: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\FiguraAccelerationReplay.java:5: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\FiguraAccelerationReplay.java:9: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\FiguraAccelerationReplay.java:33: 错误: 找不到符号
+    public static void replay(Function<VertexConsumer, MultiBufferSource> sourceFactory) throws Exception {
+                                                       ^
+  符号:   类 MultiBufferSource
+  位置: 类 FiguraAccelerationReplay
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\FiguraAccelerationReplay.java:196: 错误: 找不到符号
+    private static void flush(MultiBufferSource destination) {
+                              ^
+  符号:   类 MultiBufferSource
+  位置: 类 FiguraAccelerationReplay
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\GpuSubmissionSmokeTest.java:8: 错误: 找不到符号
+import net.minecraft.client.renderer.MultiBufferSource;
+                                    ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\GpuSubmissionSmokeTest.java:459: 错误: 找不到符号
+        void offer(MultiBufferSource source, DrawBatch batch) {
+                   ^
+  符号:   类 MultiBufferSource
+  位置: 类 Fixture
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\AnchorTrailNativeSmokeTest.java:55: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    static void run(Unsafe unsafe, Runnable drain) throws Exception {
+                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\CustomParticleNativeSmokeTest.java:41: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    public static void run(Unsafe unsafe, Avatar first, Avatar second, Runnable drain) throws Exception {
+                           ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleLightNativeSmokeTest.java:39: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    static void run(Unsafe unsafe, Avatar first, Avatar second, Runnable drain) throws Exception {
+                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleLightNativeSmokeTest.java:65: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void luaWorldAndMovement(Unsafe unsafe, Avatar owner, FiguraTexture texture,
+                                            ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleLightNativeSmokeTest.java:257: 错误: 找不到符号
+                LevelRenderer.BrightnessGetter.class, BlockAndLightGetter.class, BlockState.class, BlockPos.class);
+                             ^
+  符号:   类 BrightnessGetter
+  位置: 类 LevelRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleLightNativeSmokeTest.java:314: 错误: 无法将类 LevelRenderer中的构造器 LevelRenderer应用到给定类型;
+            super(null, null, null, null, null, null);
+            ^
+  需要: EntityRenderDispatcher,BlockEntityRenderDispatcher,ModelManager,TextureManager,AtlasManager,ShaderManager,GameRenderer,int,int
+  找到:    <空值>,<空值>,<空值>,<空值>,<空值>,<空值>
+  原因: 实际参数列表和形式参数列表长度不同
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleLightNativeSmokeTest.java:317: 错误: 方法不会覆盖或实现超类型的方法
+        @Override
+        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleMotionNativeSmokeTest.java:36: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    static void run(Unsafe unsafe, Avatar owner, Runnable drain) throws Exception {
+                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleMotionNativeSmokeTest.java:130: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void liveTargets(Unsafe unsafe, Avatar owner, MotionLevel world, FiguraTexture texture,
+                                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleMotionNativeSmokeTest.java:175: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static TrackedEntity entity(Unsafe unsafe, MotionLevel world, UUID uuid) throws Exception {
+                                        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\PreviewParticleNativeSmokeTest.java:285: 错误: 找不到符号
+            var builder = new BufferBuilder(storage, VertexFormat.Mode.QUADS, DefaultVertexFormat.PARTICLE);
+                                                                 ^
+  符号:   变量 Mode
+  位置: 类 VertexFormat
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\RibbonNativeSmokeTest.java:123: 错误: 程序包SingleQuadParticle不存在
+            require(ribbon.layers().stream().allMatch(SingleQuadParticle.Layer::translucent),
+                                                                        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\RibbonNativeSmokeTest.java:129: 错误: 找不到符号
+            int uv = format.getOffset(VertexFormatElement.UV0);
+                                                         ^
+  符号:   变量 UV0
+  位置: 类 VertexFormatElement
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\RibbonNativeSmokeTest.java:130: 错误: 找不到符号
+            int light = format.getOffset(VertexFormatElement.UV2);
+                                                            ^
+  符号:   变量 UV2
+  位置: 类 VertexFormatElement
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\RibbonNativeSmokeTest.java:283: 错误: 程序包SingleQuadParticle不存在
+            for (SingleQuadParticle.Layer layer : ribbon.layers()) {
+                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:46: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    public static void run(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                           ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:297: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testOtherPlayerRouting(Unsafe unsafe, LibraryClient library) throws Exception {
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:365: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testOtherPlayerDraft(Unsafe unsafe, Runnable drain) throws Exception {
+                                             ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:405: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testCatalogOutfitPreview(Unsafe unsafe, Runnable drain) throws Exception {
+                                                 ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:687: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testCollectionOutfitImport(Unsafe unsafe, Runnable drain, LibraryClient client,
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:815: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testProvidedCosmetics(Unsafe unsafe, Runnable drain) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:898: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testPackagedYsmDraftBases(Unsafe unsafe, Runnable drain) throws Exception {
+                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:964: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testPackagedFiguraDraftAccessory(Unsafe unsafe, Runnable drain) throws Exception {
+                                                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1058: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testReportedAccessoryOnLocalBase(Unsafe unsafe, Runnable drain) throws Exception {
+                                                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1271: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testVanillaSelection(Unsafe unsafe, Runnable drain) throws Exception {
+                                             ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1408: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testOutfitTabShowsLoadedOutfit(Unsafe unsafe, Runnable drain) throws Exception {
+                                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1560: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testWardrobeDraftActions(Unsafe unsafe, Runnable drain) throws Exception {
+                                                 ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1832: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testLocalDraftPreview(Unsafe unsafe, Runnable drain, Object editor,
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1914: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testWardrobeCloudCosmetic(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2108: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testLocalPresetScreen(Unsafe unsafe, Runnable drain, LibraryClient client) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2189: 错误: 找不到符号
+                minecraft.screen = wardrobe;
+                         ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2191: 错误: 找不到符号
+                awaitCondition(() -> minecraft.screen instanceof top.aihmc.omnimorph.gui.screens.OutfitPresetsScreen, drain);
+                                              ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2192: 错误: 找不到符号
+                var screen = (top.aihmc.omnimorph.gui.screens.OutfitPresetsScreen) minecraft.screen;
+                                                                                            ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2257: 错误: 找不到符号
+                require(minecraft.screen == wardrobe && draft.configuration().base() == null
+                                 ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2277: 错误: 找不到符号
+                var blocked = (top.aihmc.omnimorph.gui.screens.OutfitPresetsScreen) minecraft.screen;
+                                                                                             ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2321: 错误: 找不到符号
+                    require(minecraft.screen == wardrobe && field(screenType, "closed").getBoolean(blocked),
+                                     ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2381: 错误: 找不到符号
+            minecraft.setScreen(screen);
+                     ^
+  符号:   方法 setScreen(OutfitPresetsScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2439: 错误: 找不到符号
+            require(minecraft.screen == wardrobe && draft.configuration().base() == null && draft.dirty()
+                             ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2448: 错误: 找不到符号
+            minecraft.setScreen(retired);
+                     ^
+  符号:   方法 setScreen(OutfitPresetsScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2532: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testInstanceTransformFields(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2612: 错误: 找不到符号
+            var previousScreen = minecraft.screen;
+                                          ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2619: 错误: 找不到符号
+            minecraft.screen = screen;
+                     ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2634: 错误: 找不到符号
+                minecraft.screen = previousScreen;
+                         ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2697: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testTreeAttachmentActions(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2755: 错误: 找不到符号
+        var previousScreen = minecraft.screen;
+                                      ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2762: 错误: 找不到符号
+        minecraft.screen = screen;
+                 ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2832: 错误: 找不到符号
+            minecraft.screen = previousScreen;
+                     ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3202: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                          ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3204: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var viewport = (com.mojang.blaze3d.platform.Window) ((Unsafe) unsafeField.get(null))
+                                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3217: 错误: 找不到符号
+            minecraft.screen = wardrobe;
+                     ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3229: 错误: 找不到符号
+            require(minecraft.screen instanceof top.aihmc.omnimorph.gui.screens.CosmeticAnimationScreen
+                             ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3232: 错误: 找不到符号
+            var preview = (top.aihmc.omnimorph.gui.screens.CosmeticAnimationScreen) minecraft.screen;
+                                                                                             ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3291: 错误: 找不到符号
+            require(minecraft.screen instanceof top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen
+                             ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3294: 错误: 找不到符号
+            var controls = (top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen) minecraft.screen;
+                                                                                             ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3304: 错误: 找不到符号
+            require(minecraft.screen == preview && session.outfitComposition() == composition,
+                             ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3310: 错误: 找不到符号
+            require(minecraft.screen instanceof top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen,
+                             ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3312: 错误: 找不到符号
+            var baseControls = (top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen) minecraft.screen;
+                                                                                                 ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3320: 错误: 找不到符号
+            require(minecraft.screen == preview && session.outfitComposition() == composition,
+                             ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3323: 错误: 找不到符号
+            require(minecraft.screen == wardrobe && session.outfitComposition() == composition
+                             ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3407: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testBoneOverrideEditor(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3524: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testBoneHelperControls(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3544: 错误: 找不到符号
+        var previousScreen = minecraft.screen;
+                                      ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3551: 错误: 找不到符号
+        minecraft.screen = screen;
+                 ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3587: 错误: 找不到符号
+            minecraft.screen = previousScreen;
+                     ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3772: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testCurrentPlayerFigura(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                                                ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3897: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testIndependentFigura(Unsafe unsafe, Runnable drain) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4177: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testPreviewAppearance(Unsafe unsafe) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4221: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testWardrobeDefaultPreview(Unsafe unsafe) throws Exception {
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4379: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testWardrobeVisibilityTicks(Unsafe unsafe) throws Exception {
+                                                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4954: 错误: 找不到符号
+        var previousScreen = minecraft.screen;
+                                      ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4959: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4959: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4959: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4964: 错误: 找不到符号
+        minecraft.screen = screen;
+                 ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5051: 错误: 找不到符号
+            minecraft.screen = previousScreen;
+                     ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5155: 错误: 找不到符号
+        minecraft.screen = screen;
+                 ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5160: 错误: 找不到符号
+            require(calls.get() == 1 && !build.isActive() && !cancel.isActive() && minecraft.screen == screen,
+                                                                                            ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5164: 错误: 找不到符号
+            require(minecraft.screen == screen && build.isActive() && cancel.isActive()
+                             ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5168: 错误: 找不到符号
+            minecraft.screen = parent;
+                     ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5189: 错误: 找不到符号
+        var parent = minecraft.screen;
+                              ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5193: 错误: 找不到符号
+            minecraft.screen = screen;
+                     ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5235: 错误: 找不到符号
+            minecraft.screen = parent;
+                     ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5260: 错误: 找不到符号
+        var parent = minecraft.screen;
+                              ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5268: 错误: 找不到符号
+            minecraft.screen = screen;
+                     ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5312: 错误: 找不到符号
+            minecraft.screen = parent;
+                     ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5465: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testHiddenFormalParticleEmitter(Unsafe unsafe, LibraryPreviewSession preview,
+                                                        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5589: 错误: 找不到符号
+                new top.aihmc.omnimorph.model.rendering.nodeRenderer.FiguraFeatureRenderer().render(queue, null);
+                                                                                            ^
+  符号:   方法 render(DeferredFiguraQueue,<空值>)
+  位置: 类 FiguraFeatureRenderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5603: 错误: 无法将类 SubmitNodeCollection中的构造器 SubmitNodeCollection应用到给定类型;
+            super(null);
+            ^
+  需要: 没有参数
+  找到:    <空值>
+  原因: 实际参数列表和形式参数列表长度不同
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5615: 错误: 方法不会覆盖或实现超类型的方法
+        @Override
+        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitApplyServiceSmokeTest.java:275: 错误: 找不到符号
+            super(net.minecraft.world.entity.EntityType.ARMOR_STAND, null);
+                                                       ^
+  符号:   变量 ARMOR_STAND
+  位置: 类 EntityType
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitApplyServiceSmokeTest.java:297: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var unsafeField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitApplyServiceSmokeTest.java:299: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var unsafe = (sun.misc.Unsafe) unsafeField.get(null);
+                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitApplyServiceSmokeTest.java:804: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var unsafeField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitApplyServiceSmokeTest.java:806: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var unsafe = (sun.misc.Unsafe) unsafeField.get(null);
+                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitHandRenderingSmokeTest.java:27: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    static void run(Unsafe unsafe, LibraryPreviewSession preview) throws Exception {
+                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitCompositionSmokeTest.java:257: 错误: 找不到符号
+            super(net.minecraft.world.entity.EntityType.ARMOR_STAND, null);
+                                                       ^
+  符号:   变量 ARMOR_STAND
+  位置: 类 EntityType
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitFormalPreparationSmokeTest.java:22: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var field = Unsafe.class.getDeclaredField("theUnsafe");
+                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitFormalPreparationSmokeTest.java:24: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var unsafe = (Unsafe) field.get(null);
+                      ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitFormalPreparationSmokeTest.java:363: 错误: 找不到符号
+            super(net.minecraft.world.entity.EntityType.ARMOR_STAND, null);
+                                                       ^
+  符号:   变量 ARMOR_STAND
+  位置: 类 EntityType
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitParticleCallbackSmokeTest.java:33: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    public static void run(Unsafe unsafe) throws Exception {
+                           ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitParticleFaceBudgetSmokeTest.java:31: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    public static void run(Unsafe unsafe, Avatar owner, IntSupplier drawModel, Runnable drain) throws Exception {
+                           ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitTrailRuntimeSmokeTest.java:66: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var field = Unsafe.class.getDeclaredField("theUnsafe");
+                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitTrailRuntimeSmokeTest.java:68: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var unsafe = (Unsafe) field.get(null);
+                      ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\AvatarAsyncLoadSmokeTest.java:26: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    static void run(Unsafe unsafe, Minecraft client, Runnable drain) throws Exception {
+                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\AvatarAsyncLoadSmokeTest.java:30: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    static void run(Unsafe unsafe, Minecraft client, Runnable drain, java.nio.file.Path encrypted) throws Exception {
+                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\AvatarBroadcastSmokeTest.java:132: 错误: 找不到符号
+            var toasts = net.minecraft.client.Minecraft.getInstance().getToastManager();
+                                                                     ^
+  符号:   方法 getToastManager()
+  位置: 类 Minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:304: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                            ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:306: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) unsafeField.get(null);
+        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:306: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) unsafeField.get(null);
+                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:436: 错误: 找不到符号
+        require(!api.trigger("extra_animation.settings") && client.screen == null,
+                                                                  ^
+  符号:   变量 screen
+  位置: 类型为ScreenClient的变量 client
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:440: 错误: 找不到符号
+        require(client.screen instanceof AvatarControlsScreen, "existing controls screen receives the request");
+                      ^
+  符号:   变量 screen
+  位置: 类型为ScreenClient的变量 client
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:443: 错误: 找不到符号
+        require("style".equals(page.get(client.screen)), "form action routes to its declared page");
+                                              ^
+  符号:   变量 screen
+  位置: 类型为ScreenClient的变量 client
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:458: 错误: 方法不会覆盖或实现超类型的方法
+        @Override
+        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:460: 错误: 找不到符号
+            this.screen = screen;
+                ^
+  符号: 变量 screen
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:496: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            Field field = Unsafe.class.getDeclaredField("theUnsafe");
+                          ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:498: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            Unsafe unsafe = (Unsafe) field.get(null);
+            ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:498: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            Unsafe unsafe = (Unsafe) field.get(null);
+                             ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmBoneQuerySmokeTest.java:238: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                                ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmBoneQuerySmokeTest.java:240: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            Avatar owner = (Avatar) ((Unsafe) unsafeField.get(null)).allocateInstance(Avatar.class);
+                                      ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmControlRuntimeSmokeTest.java:252: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            Field field = Unsafe.class.getDeclaredField("theUnsafe");
+                          ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmControlRuntimeSmokeTest.java:254: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            owner = (Avatar) ((Unsafe) field.get(null)).allocateInstance(Avatar.class);
+                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmDisplayStateSmokeTest.java:64: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var unsafeField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmDisplayStateSmokeTest.java:66: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var unsafe = (sun.misc.Unsafe) unsafeField.get(null);
+                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFilterSmokeTest.java:280: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                                ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFilterSmokeTest.java:282: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            context.entity = (ArmorStand) ((Unsafe) unsafeField.get(null)).allocateInstance(ArmorStand.class);
+                                            ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:239: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                            ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:241: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        RemotePlayer player = (RemotePlayer) ((Unsafe) unsafeField.get(null)).allocateInstance(RemotePlayer.class);
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:260: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                            ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:262: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) unsafeField.get(null);
+        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:262: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) unsafeField.get(null);
+                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:312: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                            ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:314: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) unsafeField.get(null);
+        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:314: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) unsafeField.get(null);
+                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:336: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                            ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmHandAnimationSmokeTest.java:852: 错误: 找不到符号
+            super(EntityType.ARMOR_STAND, null);
+                            ^
+  符号:   变量 ARMOR_STAND
+  位置: 类 EntityType
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:824: 错误: 找不到符号
+            require(!setup.getTextures().get("Sampler0").textureView().isClosed(),
+                          ^
+  符号:   方法 getTextures()
+  位置: 类型为RenderSetup的变量 setup
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:831: 错误: 找不到符号
+            require(setup.getTextures().get("Sampler0").textureView() == fallback.getTextureView(),
+                         ^
+  符号:   方法 getTextures()
+  位置: 类型为RenderSetup的变量 setup
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:835: 错误: 找不到符号
+            require(setup.getTextures().get("Sampler0").textureView() == fallback.getTextureView(),
+                         ^
+  符号:   方法 getTextures()
+  位置: 类型为RenderSetup的变量 setup
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:988: 错误: 无法将类 GpuDevice中的构造器 GpuDevice应用到给定类型;
+            super(null);
+            ^
+  需要: GpuDeviceBackend,Runnable
+  找到:    <空值>
+  原因: 实际参数列表和形式参数列表长度不同
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1053: 错误: 无法将类 CommandEncoder中的构造器 CommandEncoder应用到给定类型;
+            return new com.mojang.blaze3d.systems.CommandEncoder(null, null) {
+                   ^
+  需要: TracyGpuProfiler,GpuDeviceBackend,CommandEncoderBackend
+  找到:    <空值>,<空值>
+  原因: 实际参数列表和形式参数列表长度不同
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1195: 错误: 找不到符号
+            var previousScreen = client.screen;
+                                       ^
+  符号:   变量 screen
+  位置: 类型为RecordingClient的变量 client
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1199: 错误: 找不到符号
+                client.screen = settings;
+                      ^
+  符号:   变量 screen
+  位置: 类型为RecordingClient的变量 client
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1212: 错误: 找不到符号
+                client.screen = new org.figuramc.figura.gui.screens.AvatarScreen(1f, 0f, 0f, null, settings);
+                      ^
+  符号:   变量 screen
+  位置: 类型为RecordingClient的变量 client
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1216: 错误: 找不到符号
+                client.screen = previousScreen;
+                      ^
+  符号:   变量 screen
+  位置: 类型为RecordingClient的变量 client
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1260: 错误: 找不到符号
+                            && opaque.pipeline().getUniforms().equals(source.getUniforms()),
+                                                ^
+  符号:   方法 getUniforms()
+  位置: 类 RenderPipeline
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1260: 错误: 找不到符号
+                            && opaque.pipeline().getUniforms().equals(source.getUniforms()),
+                                                                            ^
+  符号:   方法 getUniforms()
+  位置: 类型为RenderPipeline的变量 source
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1350: 错误: 找不到符号
+                                  net.minecraft.client.renderer.MultiBufferSource buffers, int light,
+                                                               ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1358: 错误: 找不到符号
+                                             net.minecraft.client.renderer.MultiBufferSource buffers,
+                                                                          ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1392: 错误: 找不到符号
+        storage.clear();
+               ^
+  符号:   方法 clear()
+  位置: 类型为SubmitNodeStorage的变量 storage
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1556: 错误: 找不到符号
+                net.minecraft.client.renderer.MultiBufferSource source = material -> {
+                                             ^
+  符号:   类 MultiBufferSource
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1557: 错误: 找不到符号
+                    if (material.mode() == com.mojang.blaze3d.vertex.VertexFormat.Mode.LINES) {
+                                                                                 ^
+  符号:   变量 Mode
+  位置: 类 VertexFormat
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:2102: 错误: 找不到符号
+        var previousScreen = client.screen;
+                                   ^
+  符号:   变量 screen
+  位置: 类型为RecordingClient的变量 client
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:2104: 错误: 找不到符号
+            if (client.screen != null) {
+                      ^
+  符号:   变量 screen
+  位置: 类型为RecordingClient的变量 client
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:2105: 错误: 找不到符号
+                client.screen.removed();
+                      ^
+  符号:   变量 screen
+  位置: 类型为RecordingClient的变量 client
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:2107: 错误: 找不到符号
+            client.screen = next;
+                  ^
+  符号:   变量 screen
+  位置: 类型为RecordingClient的变量 client
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:2111: 错误: 找不到符号
+            client.screen = previousScreen;
+                  ^
+  符号:   变量 screen
+  位置: 类型为RecordingClient的变量 client
+注: 某些输入文件使用或覆盖了已过时的 API。
+注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+注: 某些消息已经过简化; 请使用 -Xdiags:verbose 重新编译以获得完整输出
+100 个错误
+100 个警告
+
+> Task :common:compileTestJava FAILED
+
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_26.2/build/reports/problems/problems-report.html
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:compileTestJava'.
+> Compilation failed; see the compiler output below.
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\AnchorTrailNativeSmokeTest.java:29: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\CustomParticleNativeSmokeTest.java:29: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleLightNativeSmokeTest.java:18: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleMotionNativeSmokeTest.java:22: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:32: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitHandRenderingSmokeTest.java:17: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitFormalPreparationSmokeTest.java:6: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitParticleCallbackSmokeTest.java:13: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitParticleFaceBudgetSmokeTest.java:21: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitTrailRuntimeSmokeTest.java:13: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\AvatarAsyncLoadSmokeTest.java:16: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:33: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmBoneQuerySmokeTest.java:16: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmControlRuntimeSmokeTest.java:20: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFilterSmokeTest.java:6: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:35: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmHandAnimationSmokeTest.java:16: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmLanguageSmokeTest.java:22: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:22: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmNativeStateSmokeTest.java:13: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmParticleNativeSmokeTest.java:30: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmPerlinSmokeTest.java:6: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmSoundNativeSmokeTest.java:29: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmStabilitySmokeTest.java:30: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmSubEntitySmokeTest.java:15: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmVanillaStateSmokeTest.java:43: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\FiguraAccelerationReplay.java:9: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+  import sun.misc.Unsafe;
+                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\AnchorTrailNativeSmokeTest.java:55: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      static void run(Unsafe unsafe, Runnable drain) throws Exception {
+                      ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\CustomParticleNativeSmokeTest.java:41: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      public static void run(Unsafe unsafe, Avatar first, Avatar second, Runnable drain) throws Exception {
+                             ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleLightNativeSmokeTest.java:39: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      static void run(Unsafe unsafe, Avatar first, Avatar second, Runnable drain) throws Exception {
+                      ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleLightNativeSmokeTest.java:65: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void luaWorldAndMovement(Unsafe unsafe, Avatar owner, FiguraTexture texture,
+                                              ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleMotionNativeSmokeTest.java:36: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      static void run(Unsafe unsafe, Avatar owner, Runnable drain) throws Exception {
+                      ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleMotionNativeSmokeTest.java:130: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void liveTargets(Unsafe unsafe, Avatar owner, MotionLevel world, FiguraTexture texture,
+                                      ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleMotionNativeSmokeTest.java:175: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static TrackedEntity entity(Unsafe unsafe, MotionLevel world, UUID uuid) throws Exception {
+                                          ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:46: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      public static void run(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                             ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:297: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testOtherPlayerRouting(Unsafe unsafe, LibraryClient library) throws Exception {
+                                                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:365: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testOtherPlayerDraft(Unsafe unsafe, Runnable drain) throws Exception {
+                                               ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:405: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testCatalogOutfitPreview(Unsafe unsafe, Runnable drain) throws Exception {
+                                                   ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:687: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testCollectionOutfitImport(Unsafe unsafe, Runnable drain, LibraryClient client,
+                                                     ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:815: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testProvidedCosmetics(Unsafe unsafe, Runnable drain) throws Exception {
+                                                ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:898: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testPackagedYsmDraftBases(Unsafe unsafe, Runnable drain) throws Exception {
+                                                    ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:964: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testPackagedFiguraDraftAccessory(Unsafe unsafe, Runnable drain) throws Exception {
+                                                           ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1058: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testReportedAccessoryOnLocalBase(Unsafe unsafe, Runnable drain) throws Exception {
+                                                           ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1271: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testVanillaSelection(Unsafe unsafe, Runnable drain) throws Exception {
+                                               ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1408: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testOutfitTabShowsLoadedOutfit(Unsafe unsafe, Runnable drain) throws Exception {
+                                                         ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1560: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testWardrobeDraftActions(Unsafe unsafe, Runnable drain) throws Exception {
+                                                   ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1832: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testLocalDraftPreview(Unsafe unsafe, Runnable drain, Object editor,
+                                                ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1914: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testWardrobeCloudCosmetic(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                                                    ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2108: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testLocalPresetScreen(Unsafe unsafe, Runnable drain, LibraryClient client) throws Exception {
+                                                ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2532: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testInstanceTransformFields(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                                      ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2697: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testTreeAttachmentActions(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                                    ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3202: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          var unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                            ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3204: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          var viewport = (com.mojang.blaze3d.platform.Window) ((Unsafe) unsafeField.get(null))
+                                                                ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3407: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testBoneOverrideEditor(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3524: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testBoneHelperControls(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3772: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testCurrentPlayerFigura(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                                                  ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3897: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testIndependentFigura(Unsafe unsafe, Runnable drain) throws Exception {
+                                                ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4177: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testPreviewAppearance(Unsafe unsafe) throws Exception {
+                                                ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4221: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testWardrobeDefaultPreview(Unsafe unsafe) throws Exception {
+                                                     ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4379: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testWardrobeVisibilityTicks(Unsafe unsafe) throws Exception {
+                                                      ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4959: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+          ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4959: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+                           ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4959: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+                                         ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5465: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      private static void testHiddenFormalParticleEmitter(Unsafe unsafe, LibraryPreviewSession preview,
+                                                          ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitApplyServiceSmokeTest.java:297: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          var unsafeField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+                                    ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitApplyServiceSmokeTest.java:299: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          var unsafe = (sun.misc.Unsafe) unsafeField.get(null);
+                                ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitApplyServiceSmokeTest.java:804: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          var unsafeField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+                                    ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitApplyServiceSmokeTest.java:806: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          var unsafe = (sun.misc.Unsafe) unsafeField.get(null);
+                                ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitHandRenderingSmokeTest.java:27: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      static void run(Unsafe unsafe, LibraryPreviewSession preview) throws Exception {
+                      ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitFormalPreparationSmokeTest.java:22: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          var field = Unsafe.class.getDeclaredField("theUnsafe");
+                      ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitFormalPreparationSmokeTest.java:24: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          var unsafe = (Unsafe) field.get(null);
+                        ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitParticleCallbackSmokeTest.java:33: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      public static void run(Unsafe unsafe) throws Exception {
+                             ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitParticleFaceBudgetSmokeTest.java:31: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      public static void run(Unsafe unsafe, Avatar owner, IntSupplier drawModel, Runnable drain) throws Exception {
+                             ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitTrailRuntimeSmokeTest.java:66: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          var field = Unsafe.class.getDeclaredField("theUnsafe");
+                      ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitTrailRuntimeSmokeTest.java:68: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          var unsafe = (Unsafe) field.get(null);
+                        ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\AvatarAsyncLoadSmokeTest.java:26: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      static void run(Unsafe unsafe, Minecraft client, Runnable drain) throws Exception {
+                      ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\AvatarAsyncLoadSmokeTest.java:30: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+      static void run(Unsafe unsafe, Minecraft client, Runnable drain, java.nio.file.Path encrypted) throws Exception {
+                      ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:304: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                              ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:306: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Unsafe unsafe = (Unsafe) unsafeField.get(null);
+          ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:306: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Unsafe unsafe = (Unsafe) unsafeField.get(null);
+                           ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:496: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+              Field field = Unsafe.class.getDeclaredField("theUnsafe");
+                            ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:498: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+              Unsafe unsafe = (Unsafe) field.get(null);
+              ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:498: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+              Unsafe unsafe = (Unsafe) field.get(null);
+                               ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmBoneQuerySmokeTest.java:238: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+              Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                                  ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmBoneQuerySmokeTest.java:240: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+              Avatar owner = (Avatar) ((Unsafe) unsafeField.get(null)).allocateInstance(Avatar.class);
+                                        ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmControlRuntimeSmokeTest.java:252: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+              Field field = Unsafe.class.getDeclaredField("theUnsafe");
+                            ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmControlRuntimeSmokeTest.java:254: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+              owner = (Avatar) ((Unsafe) field.get(null)).allocateInstance(Avatar.class);
+                                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmDisplayStateSmokeTest.java:64: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          var unsafeField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+                                    ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmDisplayStateSmokeTest.java:66: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          var unsafe = (sun.misc.Unsafe) unsafeField.get(null);
+                                ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFilterSmokeTest.java:280: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+              Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                                  ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFilterSmokeTest.java:282: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+              context.entity = (ArmorStand) ((Unsafe) unsafeField.get(null)).allocateInstance(ArmorStand.class);
+                                              ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:239: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                              ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:241: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          RemotePlayer player = (RemotePlayer) ((Unsafe) unsafeField.get(null)).allocateInstance(RemotePlayer.class);
+                                                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:260: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                              ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:262: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Unsafe unsafe = (Unsafe) unsafeField.get(null);
+          ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:262: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Unsafe unsafe = (Unsafe) unsafeField.get(null);
+                           ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:312: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                              ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:314: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Unsafe unsafe = (Unsafe) unsafeField.get(null);
+          ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:314: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Unsafe unsafe = (Unsafe) unsafeField.get(null);
+                           ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFunctionContractSmokeTest.java:336: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+          Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                              ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleLightNativeSmokeTest.java:314: 错误: 无法将类 LevelRenderer中的构造器 LevelRenderer应用到给定类型;
+              super(null, null, null, null, null, null);
+              ^
+    需要: EntityRenderDispatcher,BlockEntityRenderDispatcher,ModelManager,TextureManager,AtlasManager,ShaderManager,GameRenderer,int,int
+    找到:    <空值>,<空值>,<空值>,<空值>,<空值>,<空值>
+    原因: 实际参数列表和形式参数列表长度不同
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5603: 错误: 无法将类 SubmitNodeCollection中的构造器 SubmitNodeCollection应用到给定类型;
+              super(null);
+              ^
+    需要: 没有参数
+    找到:    <空值>
+    原因: 实际参数列表和形式参数列表长度不同
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:988: 错误: 无法将类 GpuDevice中的构造器 GpuDevice应用到给定类型;
+              super(null);
+              ^
+    需要: GpuDeviceBackend,Runnable
+    找到:    <空值>
+    原因: 实际参数列表和形式参数列表长度不同
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1053: 错误: 无法将类 CommandEncoder中的构造器 CommandEncoder应用到给定类型;
+              return new com.mojang.blaze3d.systems.CommandEncoder(null, null) {
+                     ^
+    需要: TracyGpuProfiler,GpuDeviceBackend,CommandEncoderBackend
+    找到:    <空值>,<空值>
+    原因: 实际参数列表和形式参数列表长度不同
+  注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5610: 错误: 找不到符号
+                          net.minecraft.client.renderer.MultiBufferSource, Void> renderer) {
+                                                       ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1035: 错误: 找不到符号
+                  com.mojang.blaze3d.textures.TextureFormat format, int width, int height, int layers, int levels) {
+                                             ^
+    符号:   类 TextureFormat
+    位置: 程序包 com.mojang.blaze3d.textures
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1068: 错误: 找不到符号
+          private PublicationGpuTexture(int usage, String label, com.mojang.blaze3d.textures.TextureFormat format,
+                                                                                            ^
+    符号:   类 TextureFormat
+    位置: 程序包 com.mojang.blaze3d.textures
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\AccelerationGpuRouteProbe.java:13: 错误: 找不到符号
+  import com.mojang.blaze3d.textures.TextureFormat;
+                                    ^
+    符号:   类 TextureFormat
+    位置: 程序包 com.mojang.blaze3d.textures
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\AccelerationPreparationBenchmark.java:7: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\AccelerationPreparationBenchmark.java:109: 错误: 找不到符号
+      private static void renderYsm(YsmModelRuntime runtime, MultiBufferSource source) {
+                                                             ^
+    符号:   类 MultiBufferSource
+    位置: 类 AccelerationPreparationBenchmark
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\AccelerationPreparationBenchmark.java:113: 错误: 找不到符号
+      private static void renderFigura(Avatar avatar, MultiBufferSource source) {
+                                                      ^
+    符号:   类 MultiBufferSource
+    位置: 类 AccelerationPreparationBenchmark
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\AccelerationPreparationBenchmark.java:126: 错误: 找不到符号
+      private static void measure(Consumer<MultiBufferSource> render, String sample) {
+                                           ^
+    符号:   类 MultiBufferSource
+    位置: 类 AccelerationPreparationBenchmark
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\AccelerationPreparationBenchmark.java:198: 错误: 找不到符号
+      private static void frame(Consumer<MultiBufferSource> render, MultiBufferSource source,
+                                         ^
+    符号:   类 MultiBufferSource
+    位置: 类 AccelerationPreparationBenchmark
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\AccelerationPreparationBenchmark.java:198: 错误: 找不到符号
+      private static void frame(Consumer<MultiBufferSource> render, MultiBufferSource source,
+                                                                    ^
+    符号:   类 MultiBufferSource
+    位置: 类 AccelerationPreparationBenchmark
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\DualEngineGpuReplay.java:8: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\FiguraAccelerationReplay.java:5: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\FiguraAccelerationReplay.java:33: 错误: 找不到符号
+      public static void replay(Function<VertexConsumer, MultiBufferSource> sourceFactory) throws Exception {
+                                                         ^
+    符号:   类 MultiBufferSource
+    位置: 类 FiguraAccelerationReplay
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\FiguraAccelerationReplay.java:196: 错误: 找不到符号
+      private static void flush(MultiBufferSource destination) {
+                                ^
+    符号:   类 MultiBufferSource
+    位置: 类 FiguraAccelerationReplay
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\GpuSubmissionSmokeTest.java:8: 错误: 找不到符号
+  import net.minecraft.client.renderer.MultiBufferSource;
+                                      ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\GpuSubmissionSmokeTest.java:459: 错误: 找不到符号
+          void offer(MultiBufferSource source, DrawBatch batch) {
+                     ^
+    符号:   类 MultiBufferSource
+    位置: 类 Fixture
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleLightNativeSmokeTest.java:257: 错误: 找不到符号
+                  LevelRenderer.BrightnessGetter.class, BlockAndLightGetter.class, BlockState.class, BlockPos.class);
+                               ^
+    符号:   类 BrightnessGetter
+    位置: 类 LevelRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\PreviewParticleNativeSmokeTest.java:285: 错误: 找不到符号
+              var builder = new BufferBuilder(storage, VertexFormat.Mode.QUADS, DefaultVertexFormat.PARTICLE);
+                                                                   ^
+    符号:   变量 Mode
+    位置: 类 VertexFormat
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\RibbonNativeSmokeTest.java:129: 错误: 找不到符号
+              int uv = format.getOffset(VertexFormatElement.UV0);
+                                                           ^
+    符号:   变量 UV0
+    位置: 类 VertexFormatElement
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\RibbonNativeSmokeTest.java:130: 错误: 找不到符号
+              int light = format.getOffset(VertexFormatElement.UV2);
+                                                              ^
+    符号:   变量 UV2
+    位置: 类 VertexFormatElement
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2189: 错误: 找不到符号
+                  minecraft.screen = wardrobe;
+                           ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2191: 错误: 找不到符号
+                  awaitCondition(() -> minecraft.screen instanceof top.aihmc.omnimorph.gui.screens.OutfitPresetsScreen, drain);
+                                                ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2192: 错误: 找不到符号
+                  var screen = (top.aihmc.omnimorph.gui.screens.OutfitPresetsScreen) minecraft.screen;
+                                                                                              ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2257: 错误: 找不到符号
+                  require(minecraft.screen == wardrobe && draft.configuration().base() == null
+                                   ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2277: 错误: 找不到符号
+                  var blocked = (top.aihmc.omnimorph.gui.screens.OutfitPresetsScreen) minecraft.screen;
+                                                                                               ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2321: 错误: 找不到符号
+                      require(minecraft.screen == wardrobe && field(screenType, "closed").getBoolean(blocked),
+                                       ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2439: 错误: 找不到符号
+              require(minecraft.screen == wardrobe && draft.configuration().base() == null && draft.dirty()
+                               ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2612: 错误: 找不到符号
+              var previousScreen = minecraft.screen;
+                                            ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2619: 错误: 找不到符号
+              minecraft.screen = screen;
+                       ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2634: 错误: 找不到符号
+                  minecraft.screen = previousScreen;
+                           ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2755: 错误: 找不到符号
+          var previousScreen = minecraft.screen;
+                                        ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2762: 错误: 找不到符号
+          minecraft.screen = screen;
+                   ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2832: 错误: 找不到符号
+              minecraft.screen = previousScreen;
+                       ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3217: 错误: 找不到符号
+              minecraft.screen = wardrobe;
+                       ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3229: 错误: 找不到符号
+              require(minecraft.screen instanceof top.aihmc.omnimorph.gui.screens.CosmeticAnimationScreen
+                               ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3232: 错误: 找不到符号
+              var preview = (top.aihmc.omnimorph.gui.screens.CosmeticAnimationScreen) minecraft.screen;
+                                                                                               ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3291: 错误: 找不到符号
+              require(minecraft.screen instanceof top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen
+                               ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3294: 错误: 找不到符号
+              var controls = (top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen) minecraft.screen;
+                                                                                               ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3304: 错误: 找不到符号
+              require(minecraft.screen == preview && session.outfitComposition() == composition,
+                               ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3310: 错误: 找不到符号
+              require(minecraft.screen instanceof top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen,
+                               ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3312: 错误: 找不到符号
+              var baseControls = (top.aihmc.omnimorph.gui.screens.CosmeticControlsScreen) minecraft.screen;
+                                                                                                   ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3320: 错误: 找不到符号
+              require(minecraft.screen == preview && session.outfitComposition() == composition,
+                               ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3323: 错误: 找不到符号
+              require(minecraft.screen == wardrobe && session.outfitComposition() == composition
+                               ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3544: 错误: 找不到符号
+          var previousScreen = minecraft.screen;
+                                        ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3551: 错误: 找不到符号
+          minecraft.screen = screen;
+                   ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3587: 错误: 找不到符号
+              minecraft.screen = previousScreen;
+                       ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4954: 错误: 找不到符号
+          var previousScreen = minecraft.screen;
+                                        ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4964: 错误: 找不到符号
+          minecraft.screen = screen;
+                   ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5051: 错误: 找不到符号
+              minecraft.screen = previousScreen;
+                       ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5155: 错误: 找不到符号
+          minecraft.screen = screen;
+                   ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5160: 错误: 找不到符号
+              require(calls.get() == 1 && !build.isActive() && !cancel.isActive() && minecraft.screen == screen,
+                                                                                              ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5164: 错误: 找不到符号
+              require(minecraft.screen == screen && build.isActive() && cancel.isActive()
+                               ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5168: 错误: 找不到符号
+              minecraft.screen = parent;
+                       ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5189: 错误: 找不到符号
+          var parent = minecraft.screen;
+                                ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5193: 错误: 找不到符号
+              minecraft.screen = screen;
+                       ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5235: 错误: 找不到符号
+              minecraft.screen = parent;
+                       ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5260: 错误: 找不到符号
+          var parent = minecraft.screen;
+                                ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5268: 错误: 找不到符号
+              minecraft.screen = screen;
+                       ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5312: 错误: 找不到符号
+              minecraft.screen = parent;
+                       ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitApplyServiceSmokeTest.java:275: 错误: 找不到符号
+              super(net.minecraft.world.entity.EntityType.ARMOR_STAND, null);
+                                                         ^
+    符号:   变量 ARMOR_STAND
+    位置: 类 EntityType
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitCompositionSmokeTest.java:257: 错误: 找不到符号
+              super(net.minecraft.world.entity.EntityType.ARMOR_STAND, null);
+                                                         ^
+    符号:   变量 ARMOR_STAND
+    位置: 类 EntityType
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\outfit\OutfitFormalPreparationSmokeTest.java:363: 错误: 找不到符号
+              super(net.minecraft.world.entity.EntityType.ARMOR_STAND, null);
+                                                         ^
+    符号:   变量 ARMOR_STAND
+    位置: 类 EntityType
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:436: 错误: 找不到符号
+          require(!api.trigger("extra_animation.settings") && client.screen == null,
+                                                                    ^
+    符号:   变量 screen
+    位置: 类型为ScreenClient的变量 client
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:440: 错误: 找不到符号
+          require(client.screen instanceof AvatarControlsScreen, "existing controls screen receives the request");
+                        ^
+    符号:   变量 screen
+    位置: 类型为ScreenClient的变量 client
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:443: 错误: 找不到符号
+          require("style".equals(page.get(client.screen)), "form action routes to its declared page");
+                                                ^
+    符号:   变量 screen
+    位置: 类型为ScreenClient的变量 client
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmHandAnimationSmokeTest.java:852: 错误: 找不到符号
+              super(EntityType.ARMOR_STAND, null);
+                              ^
+    符号:   变量 ARMOR_STAND
+    位置: 类 EntityType
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1195: 错误: 找不到符号
+              var previousScreen = client.screen;
+                                         ^
+    符号:   变量 screen
+    位置: 类型为RecordingClient的变量 client
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1199: 错误: 找不到符号
+                  client.screen = settings;
+                        ^
+    符号:   变量 screen
+    位置: 类型为RecordingClient的变量 client
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1212: 错误: 找不到符号
+                  client.screen = new org.figuramc.figura.gui.screens.AvatarScreen(1f, 0f, 0f, null, settings);
+                        ^
+    符号:   变量 screen
+    位置: 类型为RecordingClient的变量 client
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1216: 错误: 找不到符号
+                  client.screen = previousScreen;
+                        ^
+    符号:   变量 screen
+    位置: 类型为RecordingClient的变量 client
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1350: 错误: 找不到符号
+                                    net.minecraft.client.renderer.MultiBufferSource buffers, int light,
+                                                                 ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1358: 错误: 找不到符号
+                                               net.minecraft.client.renderer.MultiBufferSource buffers,
+                                                                            ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1556: 错误: 找不到符号
+                  net.minecraft.client.renderer.MultiBufferSource source = material -> {
+                                               ^
+    符号:   类 MultiBufferSource
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1557: 错误: 找不到符号
+                      if (material.mode() == com.mojang.blaze3d.vertex.VertexFormat.Mode.LINES) {
+                                                                                   ^
+    符号:   变量 Mode
+    位置: 类 VertexFormat
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:2102: 错误: 找不到符号
+          var previousScreen = client.screen;
+                                     ^
+    符号:   变量 screen
+    位置: 类型为RecordingClient的变量 client
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:2104: 错误: 找不到符号
+              if (client.screen != null) {
+                        ^
+    符号:   变量 screen
+    位置: 类型为RecordingClient的变量 client
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:2105: 错误: 找不到符号
+                  client.screen.removed();
+                        ^
+    符号:   变量 screen
+    位置: 类型为RecordingClient的变量 client
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:2107: 错误: 找不到符号
+              client.screen = next;
+                    ^
+    符号:   变量 screen
+    位置: 类型为RecordingClient的变量 client
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:2111: 错误: 找不到符号
+              client.screen = previousScreen;
+                    ^
+    符号:   变量 screen
+    位置: 类型为RecordingClient的变量 client
+  注: 某些输入文件使用或覆盖了已过时的 API。
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\ParticleLightNativeSmokeTest.java:317: 错误: 方法不会覆盖或实现超类型的方法
+          @Override
+          ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5615: 错误: 方法不会覆盖或实现超类型的方法
+          @Override
+          ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:458: 错误: 方法不会覆盖或实现超类型的方法
+          @Override
+          ^
+  注: 某些消息已经过简化; 请使用 -Xdiags:verbose 重新编译以获得完整输出
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest.java:460: 错误: 找不到符号
+              this.screen = screen;
+                  ^
+    符号: 变量 screen
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2381: 错误: 找不到符号
+              minecraft.setScreen(screen);
+                       ^
+    符号:   方法 setScreen(OutfitPresetsScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2448: 错误: 找不到符号
+              minecraft.setScreen(retired);
+                       ^
+    符号:   方法 setScreen(OutfitPresetsScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5589: 错误: 找不到符号
+                  new top.aihmc.omnimorph.model.rendering.nodeRenderer.FiguraFeatureRenderer().render(queue, null);
+                                                                                              ^
+    符号:   方法 render(DeferredFiguraQueue,<空值>)
+    位置: 类 FiguraFeatureRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\AvatarBroadcastSmokeTest.java:132: 错误: 找不到符号
+              var toasts = net.minecraft.client.Minecraft.getInstance().getToastManager();
+                                                                       ^
+    符号:   方法 getToastManager()
+    位置: 类 Minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:824: 错误: 找不到符号
+              require(!setup.getTextures().get("Sampler0").textureView().isClosed(),
+                            ^
+    符号:   方法 getTextures()
+    位置: 类型为RenderSetup的变量 setup
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:831: 错误: 找不到符号
+              require(setup.getTextures().get("Sampler0").textureView() == fallback.getTextureView(),
+                           ^
+    符号:   方法 getTextures()
+    位置: 类型为RenderSetup的变量 setup
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:835: 错误: 找不到符号
+              require(setup.getTextures().get("Sampler0").textureView() == fallback.getTextureView(),
+                           ^
+    符号:   方法 getTextures()
+    位置: 类型为RenderSetup的变量 setup
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1260: 错误: 找不到符号
+                              && opaque.pipeline().getUniforms().equals(source.getUniforms()),
+                                                  ^
+    符号:   方法 getUniforms()
+    位置: 类 RenderPipeline
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1260: 错误: 找不到符号
+                              && opaque.pipeline().getUniforms().equals(source.getUniforms()),
+                                                                              ^
+    符号:   方法 getUniforms()
+    位置: 类型为RenderPipeline的变量 source
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1392: 错误: 找不到符号
+          storage.clear();
+                 ^
+    符号:   方法 clear()
+    位置: 类型为SubmitNodeStorage的变量 storage
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\AccelerationPreparationBenchmark.java:199: 错误: 程序包MultiBufferSource不存在
+                                MultiBufferSource.BufferSource nativeSource) {
+                                                 ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\RibbonNativeSmokeTest.java:123: 错误: 程序包SingleQuadParticle不存在
+              require(ribbon.layers().stream().allMatch(SingleQuadParticle.Layer::translucent),
+                                                                          ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\RibbonNativeSmokeTest.java:283: 错误: 程序包SingleQuadParticle不存在
+              for (SingleQuadParticle.Layer layer : ribbon.layers()) {
+                                     ^
+  100 个错误
+  100 个警告
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+8 actionable tasks: 4 executed, 4 up-to-date
+
+BUILD FAILED in 40s

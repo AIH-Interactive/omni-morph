@@ -1,0 +1,85 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/eryth/.gradle/wrapper/dists/gradle-9.4.1-bin/arn2x92ynaizyzdaamcbpbhtj/gradle-9.4.1/lib/native-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Architect Plugin: 3.5.168
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+
+> Task :common:compileJava
+注: D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\GameRendererMixin.java使用或覆盖了已过时的 API。
+注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes
+> Task :common:jar
+> Task :fabric:compileJava
+> Task :fabric:processResources UP-TO-DATE
+> Task :fabric:classes
+> Task :fabric:jar
+> Task :fabric:processIncludeJars UP-TO-DATE
+> Task :fabric:shadowJar
+> Task :common:sourcesJar
+> Task :fabric:sourcesJar
+Cannot remap renderFire because it does not exists in any of the targets [net/minecraft/client/renderer/ScreenEffectRenderer]
+Cannot remap renderFire because it does not exists in any of the targets [net/minecraft/client/renderer/ScreenEffectRenderer]
+Cannot remap renderHandsWithItems because it does not exists in any of the targets [net/minecraft/client/renderer/ItemInHandRenderer]
+Cannot remap renderHandsWithItems because it does not exists in any of the targets [net/minecraft/client/renderer/ItemInHandRenderer]
+Cannot remap renderArmWithItem because it does not exists in any of the targets [net/minecraft/client/renderer/ItemInHandRenderer]
+Cannot remap preparePictureInPictureState because it does not exists in any of the targets [net/minecraft/client/gui/render/GuiRenderer]
+Cannot remap entityRenderTranslations because it does not exists in any of the targets [] or their parents.
+Cannot remap modelRenderTranslations because it does not exists in any of the targets [] or their parents.
+Cannot remap scaleWidth because it does not exists in any of the targets [] or their parents.
+Cannot remap scaleHeight because it does not exists in any of the targets [] or their parents.
+Cannot remap headBone because it does not exists in any of the targets [] or their parents.
+Cannot remap leftLegBone because it does not exists in any of the targets [] or their parents.
+Cannot remap rightLegBone because it does not exists in any of the targets [] or their parents.
+Cannot remap leftArmBone because it does not exists in any of the targets [] or their parents.
+Cannot remap rightArmBone because it does not exists in any of the targets [] or their parents.
+Cannot remap bodyBone because it does not exists in any of the targets [] or their parents.
+Cannot remap leftBootBone because it does not exists in any of the targets [] or their parents.
+Cannot remap rightBootBone because it does not exists in any of the targets [] or their parents.
+
+> Task :neoforge:compileJava
+注: D:\UserData\Desktop\Project\OMP\OMP_26.2\neoforge\src\main\java\top\aihmc\omnimorph\mixin\neoforge\LevelRendererMixinNeoForge.java使用了未经检查或不安全的操作。
+注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+
+> Task :fabric:remapJar
+> Task :neoforge:generateAccessTransformer
+> Task :neoforge:processResources
+> Task :neoforge:classes
+> Task :neoforge:processIncludeJars
+
+> Task :common:transformProductionNeoForge
+[Architectury Transformer] Read classpath in 2.185 s
+[Architectury Transformer] Transformed jar with 6 transformer(s) in 5.872 s
+
+> Task :neoforge:sourcesJar
+> Task :neoforge:jar
+> Task :neoforge:shadowJar
+> Task :fabric:remapSourcesJar
+> Task :neoforge:remapJar
+> Task :fabric:assemble
+> Task :neoforge:assemble
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_26.2/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 41s
+24 actionable tasks: 18 executed, 6 up-to-date

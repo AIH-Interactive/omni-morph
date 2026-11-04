@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.model.ysm;
 
+import net.minecraft.world.entity.EntityTypes;
+
 import net.minecraft.SharedConstants;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.server.Bootstrap;
@@ -237,7 +239,7 @@ public final class YsmNativeStateSmokeTest {
         private boolean alive;
 
         private NativeEntity() {
-            super(EntityType.ARMOR_STAND, null);
+            super(EntityTypes.ARMOR_STAND, null);
         }
 
         @Override

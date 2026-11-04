@@ -5,7 +5,7 @@ import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.renderer.MultiBufferSource;
+import top.aihmc.omnimorph.testing.NativeFeatureVertices;
 import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.resources.Identifier;
 import org.figuramc.figura.math.matrix.FiguraMat3;
@@ -33,10 +33,11 @@ public final class DualEngineGpuReplay {
         }
         service.useBackend(gpu);
         try (ByteBufferBuilder memory = new ByteBufferBuilder(4096)) {
+            var figuraSource = new NativeFeatureVertices(memory);
             FiguraAccelerationReplay.replay(sink -> {
                 device.sink = sink;
-                return MultiBufferSource.immediate(memory);
-            });
+                return figuraSource.source();
+            }, figuraSource::execute);
             require(device.vertices == 16, "Figura rigid, edited, restored and weighted draws actually reach the GPU boundary");
             for (String argument : args) {
                 YsmMaterialNativeSmokeTest.replayAcceleration(Path.of(argument), runtime -> {
@@ -60,10 +61,10 @@ public final class DualEngineGpuReplay {
                     device.sink = recorder(actual);
                     long before = device.vertices;
                     long beforeGroups = device.groupedDraws;
-                    var source = MultiBufferSource.immediate(memory);
-                    runtime.renderer().renderWithAttachments(new PoseStack(), source, 0x00f000a0,
+                    var source = new NativeFeatureVertices(memory);
+                    runtime.renderer().renderWithAttachments(new PoseStack(), source.source(), 0x00f000a0,
                             runtime.captureRenderPose(false));
-                    source.endBatch();
+                    source.execute();
                     require(device.vertices > before, "YSM model must actually use GPU submission");
                     require(device.groupedDraws > beforeGroups, "real YSM replay must decode the grouped palette path");
                     compare(expected, actual);

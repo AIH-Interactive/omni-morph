@@ -154,7 +154,7 @@ public abstract class AbstractPanelScreen extends Screen {
 
     @Override
     public void onClose() {
-        this.minecraft.setScreen(parentScreen);
+        this.minecraft.gui.setScreen(parentScreen);
     }
 
     @Override
@@ -243,7 +243,7 @@ public abstract class AbstractPanelScreen extends Screen {
         egg += (char) keyEvent.key();
         egg = egg.substring(1);
         if (EGG.equals(egg)) {
-            Minecraft.getInstance().setScreen(new GameScreen(this));
+            Minecraft.getInstance().gui.setScreen(new GameScreen(this));
             return true;
         }
 

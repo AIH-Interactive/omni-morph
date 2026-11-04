@@ -1,0 +1,24 @@
+gradle.projectsEvaluated {
+    rootProject.tasks.register('compile26_2NativeCallbacks', JavaCompile) {
+        def common = rootProject.project(':common')
+        source common.files(
+            'src/main/java/top/aihmc/omnimorph/model/rendering/FiguraVertexSource.java',
+            'src/main/java/top/aihmc/omnimorph/ducks/DeferredMaterialDrawExtension.java',
+            'src/main/java/top/aihmc/omnimorph/mixin/render/feature/PreparedRenderTypeMixin.java',
+            'src/main/java/top/aihmc/omnimorph/render/acceleration/GpuDrawContext.java',
+            'src/main/java/top/aihmc/omnimorph/ducks/FiguraSubmitCallBackExtension.java',
+            'src/main/java/top/aihmc/omnimorph/ducks/PartPoseExtension.java',
+            'src/main/java/top/aihmc/omnimorph/mixin/render/model/ModelMixin.java',
+            'src/main/java/top/aihmc/omnimorph/mixin/render/model/ModelPartMixin.java',
+            'src/main/java/top/aihmc/omnimorph/mixin/render/nodeRenderer/ItemDisplayContextMixin.java',
+            'src/main/java/top/aihmc/omnimorph/mixin/render/nodeRenderer/SubmitNodeStorage$ModelSubmitMixin.java',
+            'src/main/java/top/aihmc/omnimorph/mixin/render/nodeRenderer/SubmitNodeStorage$ItemSubmitMixin.java',
+            'src/main/java/top/aihmc/omnimorph/mixin/render/feature/ModelFeatureRendererMixin.java',
+            'src/main/java/top/aihmc/omnimorph/mixin/render/feature/ItemFeatureRendererMixin.java'
+        )
+        classpath = common.configurations.compileClasspath
+        destinationDirectory = rootProject.layout.buildDirectory.dir('26.2-native-callback-slice')
+        options.release = 25
+        options.encoding = 'UTF-8'
+    }
+}

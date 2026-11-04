@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.model.ysm;
 
+import net.minecraft.world.entity.EntityTypes;
+
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.nbt.CompoundTag;
@@ -164,7 +166,7 @@ final class YsmSubEntitySmokeTest {
         add.setAccessible(true);
         add.invoke(parent, definition);
         TestArrow entity = arrow(unsafe, world, 75, 0);
-        entity.type = EntityType.SPECTRAL_ARROW;
+        entity.type = EntityTypes.SPECTRAL_ARROW;
         entity.controller = owner;
         YsmRenderFrameClock.beginFrame();
         YsmModelRuntime instance = parent.prepareSubEntity(entity, "projectile", "minecraft:spectral_arrow", 0f);
@@ -208,7 +210,7 @@ final class YsmSubEntitySmokeTest {
         trident.controller = owner;
         trident.setId(76);
         trident.setUUID(new java.util.UUID(0, 76));
-        field(Entity.class, trident, "type", EntityType.TRIDENT);
+        field(Entity.class, trident, "type", EntityTypes.TRIDENT);
         field(Entity.class, trident, "level", world);
         field(Entity.class, trident, "position", new Vec3(1, 2, 3));
         field(Entity.class, trident, "deltaMovement", Vec3.ZERO);
@@ -248,14 +250,14 @@ final class YsmSubEntitySmokeTest {
         add.setAccessible(true);
         add.invoke(parent, definition);
         TestBoat boat = (TestBoat) unsafe.allocateInstance(TestBoat.class);
-        field(Entity.class, boat, "type", EntityType.OAK_BOAT);
+        field(Entity.class, boat, "type", EntityTypes.OAK_BOAT);
         field(Entity.class, boat, "level", world);
         field(Entity.class, boat, "position", Vec3.ZERO);
         field(Entity.class, boat, "deltaMovement", Vec3.ZERO);
         field(Entity.class, boat, "passengers", com.google.common.collect.ImmutableList.of(passenger));
         boat.setId(81);
         boat.setUUID(new java.util.UUID(0, 81));
-        var holder = EntityType.OAK_BOAT.builtInRegistryHolder();
+        var holder = EntityTypes.OAK_BOAT.builtInRegistryHolder();
         var originalTags = holder.tags().toList();
         var bind = net.minecraft.core.Holder.Reference.class.getDeclaredMethod("bindTags", java.util.Collection.class);
         bind.setAccessible(true);
@@ -372,7 +374,7 @@ final class YsmSubEntitySmokeTest {
         private boolean embedded;
 
         private TestTrident() {
-            super(EntityType.TRIDENT, null);
+            super(EntityTypes.TRIDENT, null);
         }
 
         @Override
@@ -413,7 +415,7 @@ final class YsmSubEntitySmokeTest {
 
     private static final class TestBoat extends net.minecraft.world.entity.vehicle.boat.Boat {
         private TestBoat() {
-            super(EntityType.OAK_BOAT, null, () -> net.minecraft.world.item.Items.OAK_BOAT);
+            super(EntityTypes.OAK_BOAT, null, () -> net.minecraft.world.item.Items.OAK_BOAT);
         }
 
         @Override
@@ -446,7 +448,7 @@ final class YsmSubEntitySmokeTest {
         private boolean water;
 
         private TestArrow() {
-            super(EntityType.ARROW, null);
+            super(EntityTypes.ARROW, null);
         }
 
         @Override
@@ -456,7 +458,7 @@ final class YsmSubEntitySmokeTest {
 
         @Override
         public EntityType<?> getType() {
-            return type == null ? EntityType.ARROW : type;
+            return type == null ? EntityTypes.ARROW : type;
         }
 
         @Override

@@ -254,7 +254,7 @@ public final class OutfitCompositionSmokeTest {
     private static final class EventWearer extends net.minecraft.world.entity.decoration.ArmorStand
             implements org.figuramc.figura.mixin.EntityAccessor {
         private EventWearer() {
-            super(net.minecraft.world.entity.EntityType.ARMOR_STAND, null);
+            super(net.minecraft.world.entity.EntityTypes.ARMOR_STAND, null);
         }
 
         @Override

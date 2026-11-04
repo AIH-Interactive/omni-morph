@@ -91,7 +91,7 @@ public class PanelSelectorWidget extends AbstractContainerElement {
 
     private void createPanelButton(Screen panel, PanelIcon icon, boolean toggled, int x, int width) {
         // create button
-        PanelButton button = new PanelButton(x, getY(), width, getHeight() - 4, panel.getTitle(), icon, this, bx -> Minecraft.getInstance().setScreen(panel));
+        PanelButton button = new PanelButton(x, getY(), width, getHeight() - 4, panel.getTitle(), icon, this, bx -> Minecraft.getInstance().gui.setScreen(panel));
         button.shouldHaveBackground(false);
         if (toggled) this.selected = button;
 
@@ -180,8 +180,6 @@ public class PanelSelectorWidget extends AbstractContainerElement {
         @Override
         protected void renderTexture(GuiGraphicsExtractor gui, float delta) {
             UIHelper.blitSliced(gui, getX(), getY(), getWidth(), getHeight(), isSelected() ? 24f : 0f, this.isHoveredOrFocused() ? 24f : 0f, 24, 24, 48, 48, TEXTURE);
-
-            UIHelper.enableBlend();
             int size = getTextureSize();
             gui.blit(RenderPipelines.GUI_TEXTURED, texture, getX() + (iconsOnly() ? (getWidth() - size) / 2 : 2), getY() + (getHeight() - size) / 2 + (!isSelected() ? 2 : 0),  u, v, size, size, regionSize, regionSize, textureWidth, textureHeight);
         }
