@@ -9,6 +9,10 @@ import com.mojang.renderpearl.api.pipeline.ShaderSource;
 import com.mojang.renderpearl.api.commands.CommandEncoder;
 import com.mojang.renderpearl.api.device.DeviceInfo;
 import com.mojang.renderpearl.api.device.DeviceLimits;
+import com.mojang.renderpearl.api.device.HintsAndWorkarounds;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import com.mojang.renderpearl.frontend.shaders.GlslCompiler;
+import com.mojang.renderpearl.util.ShaderCompileException;
 import com.mojang.renderpearl.api.device.GpuDevice;
 import com.mojang.renderpearl.api.commands.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -34,6 +38,7 @@ public final class NativeGpuFenceSmokeTest {
         Bootstrap.bootStrap();
         RenderSystem.initRenderThread();
         var device = new RecordingDevice();
+        device.validateShaders = true;
         Field activeDevice = RenderSystem.class.getDeclaredField("DEVICE");
         activeDevice.setAccessible(true);
         Object previousDevice = activeDevice.get(null);
@@ -43,6 +48,8 @@ public final class NativeGpuFenceSmokeTest {
             AccelerationOptions.setStorageBlocks(true);
             var adapter = new MinecraftGpuDeviceAdapter(device.api, emptySources());
             adapter.selfTest();
+            require(device.validatedProbeConfigurations == 10,
+                    "all five actual diagnostic shaders compile in both frontend configurations");
             require(adapter.storageLimits() != null, "all three optional storage diagnostics completed");
             require(device.submits == 5 && device.mapped == 5,
                     "two uniform and three storage probes submit before waiting and mapping");
@@ -139,6 +146,8 @@ public final class NativeGpuFenceSmokeTest {
         final GpuDevice api;
         boolean failBind;
         boolean failDraw;
+        boolean validateShaders;
+        int validatedProbeConfigurations;
         RecordedPass lastPass;
         final List<java.util.concurrent.atomic.AtomicInteger> programCloses = new ArrayList<>();
         private int submits;
@@ -149,14 +158,34 @@ public final class NativeGpuFenceSmokeTest {
             api = proxy(GpuDevice.class, (instance, method, args) -> switch (method.getName()) {
                 case "getDeviceInfo" -> new DeviceInfo("recording", "fixture", "recording", false,
                         "recording", 0, new DeviceLimits(16, 256, 16384, 64L * 1024 * 1024, 1, 8, 1),
-                        null, Set.of(), null, null);
-                case "compilePipeline" -> java.util.concurrent.CompletableFuture.completedFuture(recordProgram());
+                        null, Set.of(), new HintsAndWorkarounds(false, false, false, false), null);
+                case "compilePipeline" -> {
+                    if (validateShaders) {
+                        validateProbeShaders((RenderPipeline) args[0], (ShaderSource) args[1]);
+                    }
+                    yield java.util.concurrent.CompletableFuture.completedFuture(recordProgram());
+                }
                 case "createBuffer" -> createBuffer((int) args[1], args[2]);
                 case "createTexture" -> createTexture(args);
                 case "createTextureView" -> createView((GpuTexture) args[0]);
                 case "createCommandEncoder" -> encoder();
                 default -> throw new UnsupportedOperationException(method.toString());
             });
+        }
+
+        private void validateProbeShaders(RenderPipeline pipeline, ShaderSource sources) throws ShaderCompileException {
+            for (boolean zeroToOne : new boolean[]{false, true}) {
+                try (var compiler = new GlslCompiler(zeroToOne, zeroToOne)) {
+                    for (var shader : pipeline.getShaders().entrySet()) {
+                        try (var module = compiler.compileToSpv(shader.getValue().toString(),
+                                sources.getShader(shader.getValue(), shader.getKey()), shader.getKey(),
+                                pipeline.getShaderDefines(), sources)) {
+                            module.reflect();
+                        }
+                    }
+                }
+                validatedProbeConfigurations++;
+            }
         }
 
         private CompiledRenderPipeline.Pending recordProgram() {

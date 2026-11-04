@@ -637,7 +637,7 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
             """;
     private static final String PROBE_FRAGMENT = """
             #version 330
-            out vec4 fragColor;
+            layout(location = 0) out vec4 fragColor;
             void main() { fragColor = vec4(0.125, 0.875, 0.25, 1.0); }
             """;
 

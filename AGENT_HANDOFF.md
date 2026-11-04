@@ -83,3 +83,15 @@ docs/solid-pipeline-GREEN.log：两前端各30注册管线+110加速变体，共
 最新交付日志：docs/solid-fabric-package.log、solid-neoforge-package.log（双loader assemble及实际JNI通过），docs/solid-package-integrity.log（新shader资源、全部原有完整性及SHA通过）。native未修改，solid-native-package-preparation.log为复用DLL刷新清单，未重跑CTest。上方成品与哈希已替换为修复版；旧cfc0a985成品失效，不应再使用。
 
 当前任务实施/自动验证/重新打包全部完成，无剩余实施或自动验证事项；最终交付记录随本次提交交付，推送后核对远端及工作区。真实客户端修复后重载及画面仍MANUAL/PENDING，不记PASS，不要求用户操作。
+## activation_probe GLSL 编译故障修复（最新任务）
+
+用户截图显示GPU启用诊断shader第2行缺少location，随后SHADER_FAILURE/FALLBACK_JAVA。根因是MinecraftGpuDeviceAdapter.PROBE_FRAGMENT仍有裸out vec4 fragColor，五种动态探针共用。只增加layout(location=0)，不改变像素颜色、诊断门槛、GPU/SIMD路由或Java回退。
+
+NativeGpuFenceSmokeTest现于实际adapter传入的compilePipeline边界，使用原版GlslCompiler对五探针各两套前端配置的实际顶点/片元源码编译及反射，然后才返回记录设备程序。断言10套配置与五次提交/读回完成；图形命令/读回仍为fixture，不冒充GPU像素。旧RecordingDevice无真实编译曾漏测；280全注册/加速管线回归也不覆盖未注册动态探针，现补上。
+
+- docs/activation-probe-RED.log：真实ShaderCompileException，activation_probe:2 location错误，与截图一致。
+- docs/activation-probe-test-compile.log：首次新增测试漏声明受检异常的编译失败，已修；不作为行为RED。
+- docs/activation-probe-GREEN.log：nativeGpuFence（含五探针两配置编译）/nativeStorageBinding/gpuShaderCompilation（280完整管线）与Fabric/NeoForge assemble全部通过，退出0。
+
+当前准备提交推送该修复；随后从修复提交重新打包并刷新交付物/哈希。上方45dc385d成品尚不含此修复，待新包覆盖。未启动游戏，真实GPU启用/像素仍MANUAL/PENDING。YSM controller-parse警告未在本次修复范围内，不宣称解决。
+可靠额度最近used5%/remaining95%，未触发Luna；当前无运行中构建或子智能体。
