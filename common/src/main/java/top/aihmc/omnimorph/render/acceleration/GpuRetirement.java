@@ -3,7 +3,10 @@ package top.aihmc.omnimorph.render.acceleration;
 import com.mojang.blaze3d.buffers.GpuFence;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Set;
 
 /** Render-thread retirement outlives a disabled/replaced backend and never blocks the normal frame. */
 final class GpuRetirement {
@@ -77,13 +80,21 @@ final class GpuRetirement {
     /** Only client shutdown may wait; normal frames exclusively use poll(). */
     boolean awaitRemaining(long budgetNanos) {
         long deadline = System.nanoTime() + budgetNanos;
-        var iterator = pending.iterator();
-        while (iterator.hasNext()) {
-            Pending entry = iterator.next();
+        Set<GpuDeviceAdapter> devices = Collections.newSetFromMap(new IdentityHashMap<>());
+        // Capture every fence before submitting: a later-created fence would refer to the next batch.
+        for (Pending entry : pending) {
             entry.device.assertThread();
             if (entry.fence == null) {
                 entry.fence = entry.device.fence();
             }
+            devices.add(entry.device);
+        }
+        for (GpuDeviceAdapter device : devices) {
+            device.submit();
+        }
+        var iterator = pending.iterator();
+        while (iterator.hasNext()) {
+            Pending entry = iterator.next();
             long remaining = Math.max(0, deadline - System.nanoTime());
             if (!entry.fence.awaitCompletion(remaining)) {
                 return false;

@@ -689,6 +689,15 @@ tasks.register('gpuShaderCompilationSmokeTest', JavaExec) {
     mainClass = 'top.aihmc.omnimorph.render.acceleration.GpuShaderCompilationSmokeTest'
 }
 
+tasks.register('nativeGpuFenceSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks production diagnostic and retirement submission with the actual native GlFence contract; no GPU/window.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.render.acceleration.NativeGpuFenceSmokeTest'
+    systemProperty 'figura.test.directory', layout.buildDirectory.dir('gpu-fence-fixture').get().asFile.absolutePath
+}
+
 tasks.register('nativeStorageBindingSmokeTest', JavaExec) {
     group = 'verification'
     description = 'Checks the production native storage adapter with recorded buffers and render-pass commands.'

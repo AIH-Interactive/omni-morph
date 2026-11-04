@@ -1,0 +1,77 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/eryth/.gradle/wrapper/dists/gradle-9.4.1-bin/arn2x92ynaizyzdaamcbpbhtj/gradle-9.4.1/lib/native-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Architect Plugin: 3.5.168
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+> Task :common:compileJava UP-TO-DATE
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes UP-TO-DATE
+> Task :common:extractIncludeTestProto UP-TO-DATE
+> Task :common:extractTestProto UP-TO-DATE
+> Task :common:generateTestProto NO-SOURCE
+
+> Task :common:compileTestJava
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\NativeGpuFenceSmokeTest.java:24: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\NativeGpuFenceSmokeTest.java:75: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                                ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\render\acceleration\NativeGpuFenceSmokeTest.java:77: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            var unsafe = (Unsafe) unsafeField.get(null);
+                          ^
+3 个警告
+
+> Task :common:processTestResources UP-TO-DATE
+> Task :common:testClasses
+
+> Task :common:nativeGpuFenceSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.joml.MemUtil$MemUtilUnsafe (file:/C:/Users/eryth/.gradle/caches/modules-2/files-2.1/org.joml/joml/1.10.8/fc0a71dad90a2cf41d82a76156a0e700af8e4f8d/joml-1.10.8.jar)
+WARNING: Please consider reporting this to the maintainers of class org.joml.MemUtil$MemUtilUnsafe
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[21:02:54] [main/INFO]: [STDERR]: java.lang.IllegalStateException: Cannot wait on a fence for the current submit
+[21:02:54] [main/INFO]: [STDERR]: 	at com.mojang.blaze3d.opengl.GlCommandEncoder.awaitSubmit(GlCommandEncoder.java:108)
+[21:02:54] [main/INFO]: [STDERR]: 	at com.mojang.blaze3d.opengl.GlFence.awaitCompletion(GlFence.java:28)
+[21:02:54] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.render.acceleration.MinecraftGpuDeviceAdapter.selfTest(MinecraftGpuDeviceAdapter.java:546)
+[21:02:54] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.render.acceleration.MinecraftGpuDeviceAdapter.selfTest(MinecraftGpuDeviceAdapter.java:373)
+[21:02:54] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.render.acceleration.NativeGpuFenceSmokeTest.main(NativeGpuFenceSmokeTest.java:53)
+
+> Task :common:nativeGpuFenceSmokeTest FAILED
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_26.2/build/reports/problems/problems-report.html
+Exception in thread "main" 
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:nativeGpuFenceSmokeTest'.
+> Process 'command 'D:\Program Files\Java\25\bin\java.exe'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 21s
+10 actionable tasks: 2 executed, 8 up-to-date

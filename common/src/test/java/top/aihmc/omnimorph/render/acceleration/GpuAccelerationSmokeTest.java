@@ -936,6 +936,11 @@ public final class GpuAccelerationSmokeTest {
         public void selfTest() {
             selfTests++;
         }
+
+        @Override
+        public void submit() {
+            assertThread();
+        }
     }
 
     private static void require(boolean condition, String message) {

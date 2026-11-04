@@ -193,6 +193,9 @@ interface GpuDeviceAdapter {
 
     GpuFence fence();
 
+    /** Submits the batch captured by earlier fences before an explicit blocking shutdown wait. */
+    void submit();
+
     /** Bounded activation-only diagnostic draw/readback. Never called in the per-model frame path. */
     void selfTest();
 }

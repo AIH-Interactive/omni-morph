@@ -369,6 +369,12 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
     }
 
     @Override
+    public void submit() {
+        assertThread();
+        device.createCommandEncoder().submit();
+    }
+
+    @Override
     public void selfTest() {
         selfTest(false);
         selfTest(true);
@@ -488,6 +494,8 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
             }
             encoder.copyTextureToBuffer(target, readback, 0, () -> {}, 0);
             try (GpuFence completed = encoder.createFence()) {
+                // Fences track submit batches in 26.2; submit the captured batch before blocking.
+                encoder.submit();
                 if (!completed.awaitCompletion(1_000_000_000L)) {
                     throw new IllegalStateException("Acceleration storage self-test timed out");
                 }
@@ -543,6 +551,8 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
             }
             encoder.copyTextureToBuffer(target, readback, 0, () -> {}, 0);
             try (GpuFence completed = encoder.createFence()) {
+                // Create the fence before submitting so it refers to the diagnostic commands.
+                encoder.submit();
                 if (!completed.awaitCompletion(1_000_000_000L)) {
                     throw new IllegalStateException("Acceleration activation self-test timed out");
                 }
