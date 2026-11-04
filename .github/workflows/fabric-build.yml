@@ -1,4 +1,4 @@
-name: Minecraft 26.2 Compat
+name: Minecraft 26.3 Compat
 
 on:
   workflow_dispatch:
