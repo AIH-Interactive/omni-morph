@@ -1,0 +1,73 @@
+import groovy.json.JsonSlurper
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.security.MessageDigest
+import java.util.zip.ZipFile
+
+gradle.projectsEvaluated {
+    def root = gradle.rootProject
+    def loader = root.providers.gradleProperty('nativeLoader').orElse('fabric').get()
+    root.tasks.register('verifyLocalNativeLoader') {
+        group = 'verification'
+        description = 'Checks the real local Windows package against its selected loader base; never runs in Actions.'
+        dependsOn ':packageLocalNative'
+        doLast {
+            File base = root.project(":$loader").tasks.named('remapJar').get().archiveFile.get().asFile
+            File artifact = root.file("build/local-native/${base.name.replace('.jar', '-windows-local.jar')}")
+            if (!artifact.isFile()) {
+                throw new GradleException("Missing selected $loader Windows native package: $artifact")
+            }
+            new ZipFile(base).withCloseable { original ->
+                new ZipFile(artifact).withCloseable { result ->
+                    def names = new HashSet<String>()
+                    result.entries().each { entry ->
+                        if (!names.add(entry.name)) {
+                            throw new GradleException("Duplicate local JAR entry: ${entry.name}")
+                        }
+                    }
+                    original.entries().each { entry ->
+                        if (!entry.directory) {
+                            def before = original.getInputStream(entry).withCloseable { it.readAllBytes() }
+                            def target = result.getEntry(entry.name)
+                            if (target == null) {
+                                throw new GradleException("Lost base entry: ${entry.name}")
+                            }
+                            def after = result.getInputStream(target).withCloseable { it.readAllBytes() }
+                            if (!Arrays.equals(before, after)) {
+                                throw new GradleException("Changed base entry: ${entry.name}")
+                            }
+                        }
+                    }
+                    def manifest = new JsonSlurper().parse(result.getInputStream(result.getEntry('natives/manifest.json')))
+                    def library = manifest.libraries[0]
+                    def expectedCommit = ['git', 'rev-parse', 'HEAD'].execute(null, root.projectDir).text.trim()
+                    if (manifest.abi != 2 || manifest.buildKind != 'local' || manifest.libraries.size() != 1
+                            || library.platform != 'windows-x86_64' || library.architecture != 'x86_64'
+                            || library.abi != 2 || library.sourceCommit != expectedCommit
+                            || library.path != 'natives/windows-x86_64/omnimorph_accel.dll') {
+                        throw new GradleException('Local native ABI/platform/source identity mismatch')
+                    }
+                    byte[] dll = result.getInputStream(result.getEntry(library.path)).withCloseable { it.readAllBytes() }
+                    String hash = HexFormat.of().formatHex(MessageDigest.getInstance('SHA-256').digest(dll))
+                    def pe = ByteBuffer.wrap(dll).order(ByteOrder.LITTLE_ENDIAN)
+                    int header = pe.getInt(0x3c)
+                    if (hash != library.sha256 || pe.getShort(0) != 0x5a4d || pe.getInt(header) != 0x4550
+                            || Short.toUnsignedInt(pe.getShort(header + 4)) != 0x8664) {
+                        throw new GradleException('Local native hash or PE x86_64 identity mismatch')
+                    }
+                    byte[] notice = result.getInputStream(result.getEntry('natives/NOTICE.txt')).withCloseable { it.readAllBytes() }
+                    if (!Arrays.equals(notice, root.file('native/NOTICE.txt').bytes)
+                            || names.any { it.startsWith('top/aihmc/omnimorph/testing/') }) {
+                        throw new GradleException('Local native notice mismatch or test fixture leaked into production package')
+                    }
+                    String metadata = loader == 'fabric' ? 'fabric.mod.json' : 'META-INF/neoforge.mods.toml'
+                    if (!names.contains(metadata)) {
+                        throw new GradleException("Missing selected loader metadata: $metadata")
+                    }
+                    logger.lifecycle("PASS $loader Windows native local package: exact base entries, loader metadata, ABI 2, DLL SHA-256/PE x86_64, notice and no test fixtures")
+                    logger.lifecycle("Artifact: $artifact")
+                }
+            }
+        }
+    }
+}

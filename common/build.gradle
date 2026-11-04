@@ -251,6 +251,8 @@ tasks.named('compileJava', JavaCompile) {
     options.headerOutputDirectory = layout.buildDirectory.dir('generated/jni')
 }
 
+def localNativeLoader = providers.gradleProperty('nativeLoader').orElse('fabric').get()
+
 tasks.register('nativeSmokeTest', JavaExec) {
     group = 'verification'
     description = 'Runs actual JNI numerical, memory boundary and renderer replay tests from the local JAR.'
@@ -258,7 +260,7 @@ tasks.register('nativeSmokeTest', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = 'top.aihmc.omnimorph.render.acceleration.NativeAccelerationSmokeTest'
     jvmArgs '--enable-native-access=ALL-UNNAMED', '-Xcheck:jni'
-    args rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-fabric-mc-windows-local.jar").path,
+    args rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-${localNativeLoader}-mc-windows-local.jar").path,
             rootProject.file('build/reports/acceleration/h2-jni-timing.csv').path,
             rootProject.file('refs/avatars/末影龙娘.ysm').path
 }
@@ -270,7 +272,7 @@ tasks.register('nativeTimingTest', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = 'top.aihmc.omnimorph.render.acceleration.NativeAccelerationSmokeTest'
     jvmArgs '--enable-native-access=ALL-UNNAMED'
-    args rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-fabric-mc-windows-local.jar").path,
+    args rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-${localNativeLoader}-mc-windows-local.jar").path,
             rootProject.file('build/reports/acceleration/h2-jni-timing-runtime.csv').path, '--timing-only'
 }
 
@@ -426,7 +428,7 @@ tasks.register('nativePlatformSmokeTest', JavaExec) {
     dependsOn compileNativeInterface, ':packageLocalNative'
     classpath = files(rootProject.layout.buildDirectory.dir('native-interface/classes')) +
             fileTree(rootProject.layout.buildDirectory.dir('native-interface/lib')) +
-            files(rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-fabric-mc-windows-local.jar"))
+            files(rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-${localNativeLoader}-mc-windows-local.jar"))
     mainClass = 'top.aihmc.omnimorph.render.acceleration.NativePlatformSmokeTest'
     jvmArgs '--enable-native-access=ALL-UNNAMED', '-Xcheck:jni'
 }
@@ -443,7 +445,7 @@ tasks.register('accelerationPreparationBenchmark', JavaExec) {
     if (providers.gradleProperty('preparationJfr').isPresent()) {
         jvmArgs "-XX:StartFlightRecording=filename=${rootProject.file('build/reports/acceleration/h7-preparation.jfr').path},settings=profile,dumponexit=true"
     }
-    args rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-fabric-mc-windows-local.jar").path,
+    args rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-${localNativeLoader}-mc-windows-local.jar").path,
             rootProject.file('refs/avatars').path,
             rootProject.file('build/reports/acceleration/h7-preparation.csv').path
     if (providers.gradleProperty('preparationSample').isPresent()) {
@@ -459,7 +461,7 @@ tasks.register('accelerationPreparationBenchmark', JavaExec) {
         group = 'verification'
         description = "Checks packaged native activation under actual JDK access policy: $policy"
         dependsOn testClasses, ':packageLocalNative'
-        def nativeJar = rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-fabric-mc-windows-local.jar")
+        def nativeJar = rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-${localNativeLoader}-mc-windows-local.jar")
         classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath + files(nativeJar)
         mainClass = 'top.aihmc.omnimorph.render.acceleration.NativeActivationSmokeTest'
         if (policy == 'allow') {

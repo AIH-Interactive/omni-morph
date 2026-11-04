@@ -206,7 +206,7 @@ jobs:
         id: artifact
         uses: actions/upload-artifact@v7
         with:
-          name: OmniMorph-${{ matrix.label }}-26.1.2
+          name: OmniMorph-${{ matrix.label }}-26.2
           path: build/final/*-${{ matrix.loader }}-mc.jar
           archive: false
           if-no-files-found: error
@@ -215,5 +215,5 @@ jobs:
         env:
           ARTIFACT_URL: ${{ steps.artifact.outputs.artifact-url }}
         run: |
-          "### Minecraft 26.1.2 / ${{ matrix.label }} — six production native builds; runtime tests are not run in Actions" | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
+          "### Minecraft 26.2 / ${{ matrix.label }} — six production native builds; runtime tests are not run in Actions" | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
           "[Download OmniMorph JAR]($env:ARTIFACT_URL)" | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY

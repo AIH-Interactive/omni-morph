@@ -5,7 +5,7 @@ Its loader matrix stages and assembles each base independently, while the six C+
 builds are shared. Actions only compile production code, package and publish; no test code
 is compiled or executed. CMake uses `BUILD_TESTING=OFF`, and JNI headers come from the
 production-only `compileNativeProductionInterface` task. Local tests remain available.
-Download artifacts are `OmniMorph-Fabric-26.1.2` and `OmniMorph-NeoForge-26.1.2`.
+Download artifacts are `OmniMorph-Fabric-26.2` and `OmniMorph-NeoForge-26.2`.
 
 `stageNativeBase` selects the base with `-PnativeLoader=fabric` (default) or
 `-PnativeLoader=neoforge`. Use a separate `-PnativeBaseDir=build/native-base/<loader>`
@@ -71,7 +71,8 @@ The native script imports an explicit MSVC x64 developer environment and execute
 in the foreground with separate step logs. Set `JAVA_HOME` with `usejdk 25`; if auto-discovery fails,
 pass `-VisualStudioPath` with the installed Visual Studio root.
 
-`packageLocalNative` copies the existing Fabric JAR using the ZIP API, preserving its entries and
+`packageLocalNative` selects Fabric by default or NeoForge with `-PnativeLoader=neoforge`.
+The local JNI verification tasks use the same selected loader package. The ZIP copy preserves all base entries and
 nested dependencies. It rejects duplicate/native entries and hash mismatches, then adds only Windows
 plus metadata/NOTICE under `natives/`. Output is `build/local-native/*-windows-local.jar` and never
 overwrites the ordinary client symlink target. Plain `:fabric:build` requires no C++ toolchain.

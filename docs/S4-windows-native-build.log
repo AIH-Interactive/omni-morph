@@ -1,0 +1,551 @@
+-- The CXX compiler identification is MSVC 19.51.36260.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: D:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/cl.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found JNI: D:/Program Files/Java/25/include  found components: AWT JVM
+-- Configuring done (4.7s)
+-- Generating done (0.1s)
+-- Build files have been written to: D:/UserData/Desktop/Project/OMP/OMP_26.2/build/native/windows-x64-release
+-- The CXX compiler identification is MSVC 19.51.36260.0
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: D:/Program Files/Microsoft Visual Studio/18/Community/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/cl.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found JNI: D:/Program Files/Java/25/include  found components: AWT JVM
+-- Configuring done (4.7s)
+-- Generating done (0.1s)
+-- Build files have been written to: D:/UserData/Desktop/Project/OMP/OMP_26.2/build/native/windows-x64-release
+[1/11] Building CXX object native\CMakeFiles\accel_core.dir\src\sse2.cpp.obj
+注意: 包含文件:  D:\UserData\Desktop\Project\OMP\OMP_26.2\native\include\acceleration.hpp
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstddef
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals_core.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\sal.h
+注意: 包含文件:       D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\concurrencysal.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vadefs.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xkeycheck.h
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\stddef.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xtr1common
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdint
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\stdint.h
+D:\UserData\Desktop\Project\OMP\OMP_26.2\native\include\acceleration.hpp(40): warning C4324: “omnimorph::Transform”: 由于对齐说明符，结构被填充
+注意: 包含文件:  D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\emmintrin.h
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xmmintrin.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\mmintrin.h
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\malloc.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_malloc.h
+注意: 包含文件:  D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstring
+注意: 包含文件:   D:\Windows Kits\10\include\10.0.26100.0\ucrt\string.h
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_memory.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_memcpy_s.h
+注意: 包含文件:      D:\Windows Kits\10\include\10.0.26100.0\ucrt\errno.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_string.h
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wstring.h
+[2/11] Building CXX object native\CMakeFiles\accel_core.dir\src\scalar.cpp.obj
+注意: 包含文件:  D:\UserData\Desktop\Project\OMP\OMP_26.2\native\include\acceleration.hpp
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstddef
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals_core.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\sal.h
+注意: 包含文件:       D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\concurrencysal.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vadefs.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xkeycheck.h
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\stddef.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xtr1common
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdint
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\stdint.h
+D:\UserData\Desktop\Project\OMP\OMP_26.2\native\include\acceleration.hpp(40): warning C4324: “omnimorph::Transform”: 由于对齐说明符，结构被填充
+注意: 包含文件:  D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cmath
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_doom_core.hpp
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\crtdbg.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new_debug.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\crtdefs.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\use_ansi.h
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdlib
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\math.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_math.h
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\stdlib.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_malloc.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_search.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wstdlib.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\limits.h
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin0.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin0.inl.h
+注意: 包含文件:  D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstring
+注意: 包含文件:   D:\Windows Kits\10\include\10.0.26100.0\ucrt\string.h
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_memory.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_memcpy_s.h
+注意: 包含文件:      D:\Windows Kits\10\include\10.0.26100.0\ucrt\errno.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_string.h
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wstring.h
+[3/11] Building CXX object native\CMakeFiles\omnimorph_accel.dir\src\jni.cpp.obj
+注意: 包含文件:  D:\UserData\Desktop\Project\OMP\OMP_26.2\native\include\acceleration.hpp
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstddef
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals_core.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\sal.h
+注意: 包含文件:       D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\concurrencysal.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vadefs.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xkeycheck.h
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\stddef.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xtr1common
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdint
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\stdint.h
+D:\UserData\Desktop\Project\OMP\OMP_26.2\native\include\acceleration.hpp(40): warning C4324: “omnimorph::Transform”: 由于对齐说明符，结构被填充
+注意: 包含文件:  D:\Program Files\Java\25\include\jni.h
+注意: 包含文件:   D:\Windows Kits\10\include\10.0.26100.0\ucrt\stdio.h
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wstdio.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_stdio_config.h
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\stdarg.h
+注意: 包含文件:   D:\Program Files\Java\25\include\win32\jni_md.h
+注意: 包含文件:  D:\UserData\Desktop\Project\OMP\OMP_26.2\build\native-production-interface\headers\top_aihmc_omnimorph_render_acceleration_NativeBindings.h
+[4/11] Building CXX object native\CMakeFiles\accel_core.dir\src\dispatch.cpp.obj
+注意: 包含文件:  D:\UserData\Desktop\Project\OMP\OMP_26.2\native\include\acceleration.hpp
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstddef
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals_core.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\sal.h
+注意: 包含文件:       D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\concurrencysal.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vadefs.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xkeycheck.h
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\stddef.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xtr1common
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdint
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\stdint.h
+D:\UserData\Desktop\Project\OMP\OMP_26.2\native\include\acceleration.hpp(40): warning C4324: “omnimorph::Transform”: 由于对齐说明符，结构被填充
+注意: 包含文件:  D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin.h
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin0.inl.h
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\setjmp.h
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\immintrin.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\wmmintrin.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\nmmintrin.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\smmintrin.h
+注意: 包含文件:       D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\tmmintrin.h
+注意: 包含文件:        D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\pmmintrin.h
+注意: 包含文件:         D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\emmintrin.h
+注意: 包含文件:          D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xmmintrin.h
+注意: 包含文件:           D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\mmintrin.h
+注意: 包含文件:           D:\Windows Kits\10\include\10.0.26100.0\ucrt\malloc.h
+注意: 包含文件:            D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_malloc.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\zmmintrin.h
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\ammintrin.h
+[5/11] Building CXX object native\CMakeFiles\accel_core.dir\src\avx2.cpp.obj
+注意: 包含文件:  D:\UserData\Desktop\Project\OMP\OMP_26.2\native\include\acceleration.hpp
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstddef
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals_core.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\sal.h
+注意: 包含文件:       D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\concurrencysal.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vadefs.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xkeycheck.h
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\stddef.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xtr1common
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdint
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\stdint.h
+D:\UserData\Desktop\Project\OMP\OMP_26.2\native\include\acceleration.hpp(40): warning C4324: “omnimorph::Transform”: 由于对齐说明符，结构被填充
+注意: 包含文件:  D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\immintrin.h
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\wmmintrin.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\nmmintrin.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\smmintrin.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\tmmintrin.h
+注意: 包含文件:       D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\pmmintrin.h
+注意: 包含文件:        D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\emmintrin.h
+注意: 包含文件:         D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xmmintrin.h
+注意: 包含文件:          D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\mmintrin.h
+注意: 包含文件:          D:\Windows Kits\10\include\10.0.26100.0\ucrt\malloc.h
+注意: 包含文件:           D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_malloc.h
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\zmmintrin.h
+注意: 包含文件:  D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstring
+注意: 包含文件:   D:\Windows Kits\10\include\10.0.26100.0\ucrt\string.h
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_memory.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_memcpy_s.h
+注意: 包含文件:      D:\Windows Kits\10\include\10.0.26100.0\ucrt\errno.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_string.h
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wstring.h
+[6/11] Building CXX object native\CMakeFiles\accel_core.dir\src\transform.cpp.obj
+注意: 包含文件:  D:\UserData\Desktop\Project\OMP\OMP_26.2\native\include\acceleration.hpp
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstddef
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals_core.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\sal.h
+注意: 包含文件:       D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\concurrencysal.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vadefs.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xkeycheck.h
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\stddef.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xtr1common
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdint
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\stdint.h
+D:\UserData\Desktop\Project\OMP\OMP_26.2\native\include\acceleration.hpp(40): warning C4324: “omnimorph::Transform”: 由于对齐说明符，结构被填充
+注意: 包含文件:  D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cmath
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_doom_core.hpp
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\crtdbg.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new_debug.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\crtdefs.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\use_ansi.h
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdlib
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\math.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_math.h
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\stdlib.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_malloc.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_search.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wstdlib.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\limits.h
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin0.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin0.inl.h
+注意: 包含文件:  D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstring
+注意: 包含文件:   D:\Windows Kits\10\include\10.0.26100.0\ucrt\string.h
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_memory.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_memcpy_s.h
+注意: 包含文件:      D:\Windows Kits\10\include\10.0.26100.0\ucrt\errno.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_string.h
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wstring.h
+注意: 包含文件:  D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\limits
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cfloat
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\float.h
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\climits
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cwchar
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdio
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\stdio.h
+注意: 包含文件:      D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wstdio.h
+注意: 包含文件:       D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_stdio_config.h
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\wchar.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wconio.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wctype.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wdirect.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wio.h
+注意: 包含文件:      D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_share.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wprocess.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wtime.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\sys/stat.h
+注意: 包含文件:      D:\Windows Kits\10\include\10.0.26100.0\ucrt\sys/types.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\setjmp.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\immintrin.h
+注意: 包含文件:       D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\wmmintrin.h
+注意: 包含文件:        D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\nmmintrin.h
+注意: 包含文件:         D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\smmintrin.h
+注意: 包含文件:          D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\tmmintrin.h
+注意: 包含文件:           D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\pmmintrin.h
+注意: 包含文件:            D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\emmintrin.h
+注意: 包含文件:             D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xmmintrin.h
+注意: 包含文件:              D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\mmintrin.h
+注意: 包含文件:              D:\Windows Kits\10\include\10.0.26100.0\ucrt\malloc.h
+注意: 包含文件:       D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\zmmintrin.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\ammintrin.h
+注意: 包含文件:  D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\new
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\exception
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\type_traits
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_exception.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\eh.h
+注意: 包含文件:      D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_terminate.h
+注意: 包含文件:  D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vector
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_bit_utils.hpp
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_sanitizer_annotate_container.hpp
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xmemory
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xatomic.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xutility
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_iter_core.hpp
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\utility
+注意: 包含文件:       D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\initializer_list
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xpolymorphic_allocator.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\tuple
+[7/11] Building CXX object native\CMakeFiles\accel_core.dir\src\pack.cpp.obj
+注意: 包含文件:  D:\UserData\Desktop\Project\OMP\OMP_26.2\native\include\acceleration.hpp
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstddef
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals_core.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\sal.h
+注意: 包含文件:       D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\concurrencysal.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vadefs.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xkeycheck.h
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\stddef.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xtr1common
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdint
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\stdint.h
+D:\UserData\Desktop\Project\OMP\OMP_26.2\native\include\acceleration.hpp(40): warning C4324: “omnimorph::Transform”: 由于对齐说明符，结构被填充
+注意: 包含文件:  D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cmath
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_doom_core.hpp
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\crtdbg.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new_debug.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\crtdefs.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\use_ansi.h
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdlib
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\math.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_math.h
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\stdlib.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_malloc.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_search.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wstdlib.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\limits.h
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin0.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin0.inl.h
+注意: 包含文件:  D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstring
+注意: 包含文件:   D:\Windows Kits\10\include\10.0.26100.0\ucrt\string.h
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_memory.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_memcpy_s.h
+注意: 包含文件:      D:\Windows Kits\10\include\10.0.26100.0\ucrt\errno.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_string.h
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wstring.h
+注意: 包含文件:  D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\new
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\exception
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\type_traits
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\malloc.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_exception.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\eh.h
+注意: 包含文件:      D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_terminate.h
+注意: 包含文件:  D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vector
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_bit_utils.hpp
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\climits
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_sanitizer_annotate_container.hpp
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xmemory
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\limits
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cfloat
+注意: 包含文件:      D:\Windows Kits\10\include\10.0.26100.0\ucrt\float.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cwchar
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdio
+注意: 包含文件:       D:\Windows Kits\10\include\10.0.26100.0\ucrt\stdio.h
+注意: 包含文件:        D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wstdio.h
+注意: 包含文件:         D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_stdio_config.h
+注意: 包含文件:      D:\Windows Kits\10\include\10.0.26100.0\ucrt\wchar.h
+注意: 包含文件:       D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wconio.h
+注意: 包含文件:       D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wctype.h
+注意: 包含文件:       D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wdirect.h
+注意: 包含文件:       D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wio.h
+注意: 包含文件:        D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_share.h
+注意: 包含文件:       D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wprocess.h
+注意: 包含文件:       D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wtime.h
+注意: 包含文件:       D:\Windows Kits\10\include\10.0.26100.0\ucrt\sys/stat.h
+注意: 包含文件:        D:\Windows Kits\10\include\10.0.26100.0\ucrt\sys/types.h
+注意: 包含文件:       D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin.h
+注意: 包含文件:        D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\setjmp.h
+注意: 包含文件:        D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\immintrin.h
+注意: 包含文件:         D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\wmmintrin.h
+注意: 包含文件:          D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\nmmintrin.h
+注意: 包含文件:           D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\smmintrin.h
+注意: 包含文件:            D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\tmmintrin.h
+注意: 包含文件:             D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\pmmintrin.h
+注意: 包含文件:              D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\emmintrin.h
+注意: 包含文件:               D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xmmintrin.h
+注意: 包含文件:                D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\mmintrin.h
+注意: 包含文件:         D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\zmmintrin.h
+注意: 包含文件:        D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\ammintrin.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xatomic.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xutility
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_iter_core.hpp
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\utility
+注意: 包含文件:       D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\initializer_list
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xpolymorphic_allocator.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\tuple
+[8/11] Linking CXX static library native\accel_core.lib
+[9/11] Linking CXX shared library bin\omnimorph_accel.dll
+[10/11] Building CXX object native\CMakeFiles\accel_tests.dir\tests\accel_tests.cpp.obj
+注意: 包含文件:  D:\UserData\Desktop\Project\OMP\OMP_26.2\native\include\acceleration.hpp
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstddef
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals_core.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\sal.h
+注意: 包含文件:       D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\concurrencysal.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vadefs.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xkeycheck.h
+注意: 包含文件:    D:\Windows Kits\10\include\10.0.26100.0\ucrt\stddef.h
+注意: 包含文件:     D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xtr1common
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdint
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\stdint.h
+D:\UserData\Desktop\Project\OMP\OMP_26.2\native\include\acceleration.hpp(40): warning C4324: “omnimorph::Transform”: 由于对齐说明符，结构被填充
+注意: 包含文件:  D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\algorithm
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_heap_algorithms.hpp
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xutility
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\yvals.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_doom_core.hpp
+注意: 包含文件:      D:\Windows Kits\10\include\10.0.26100.0\ucrt\crtdbg.h
+注意: 包含文件:       D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new_debug.h
+注意: 包含文件:        D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_new.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\crtdefs.h
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\use_ansi.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_iter_core.hpp
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\utility
+注意: 包含文件:       D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\initializer_list
+注意: 包含文件:       D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\type_traits
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\climits
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\limits.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdlib
+注意: 包含文件:      D:\Windows Kits\10\include\10.0.26100.0\ucrt\math.h
+注意: 包含文件:       D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_math.h
+注意: 包含文件:      D:\Windows Kits\10\include\10.0.26100.0\ucrt\stdlib.h
+注意: 包含文件:       D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_malloc.h
+注意: 包含文件:       D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_search.h
+注意: 包含文件:       D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wstdlib.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstring
+注意: 包含文件:      D:\Windows Kits\10\include\10.0.26100.0\ucrt\string.h
+注意: 包含文件:       D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_memory.h
+注意: 包含文件:        D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_memcpy_s.h
+注意: 包含文件:         D:\Windows Kits\10\include\10.0.26100.0\ucrt\errno.h
+注意: 包含文件:         D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_string.h
+注意: 包含文件:       D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wstring.h
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cwchar
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cstdio
+注意: 包含文件:       D:\Windows Kits\10\include\10.0.26100.0\ucrt\stdio.h
+注意: 包含文件:        D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wstdio.h
+注意: 包含文件:         D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_stdio_config.h
+注意: 包含文件:      D:\Windows Kits\10\include\10.0.26100.0\ucrt\wchar.h
+注意: 包含文件:       D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wconio.h
+注意: 包含文件:       D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wctype.h
+注意: 包含文件:       D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wdirect.h
+注意: 包含文件:       D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wio.h
+注意: 包含文件:        D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_share.h
+注意: 包含文件:       D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wprocess.h
+注意: 包含文件:       D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_wtime.h
+注意: 包含文件:       D:\Windows Kits\10\include\10.0.26100.0\ucrt\sys/stat.h
+注意: 包含文件:        D:\Windows Kits\10\include\10.0.26100.0\ucrt\sys/types.h
+注意: 包含文件:       D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin.h
+注意: 包含文件:        D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin0.inl.h
+注意: 包含文件:        D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\setjmp.h
+注意: 包含文件:        D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\immintrin.h
+注意: 包含文件:         D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\wmmintrin.h
+注意: 包含文件:          D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\nmmintrin.h
+注意: 包含文件:           D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\smmintrin.h
+注意: 包含文件:            D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\tmmintrin.h
+注意: 包含文件:             D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\pmmintrin.h
+注意: 包含文件:              D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\emmintrin.h
+注意: 包含文件:               D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xmmintrin.h
+注意: 包含文件:                D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\mmintrin.h
+注意: 包含文件:                D:\Windows Kits\10\include\10.0.26100.0\ucrt\malloc.h
+注意: 包含文件:         D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\zmmintrin.h
+注意: 包含文件:        D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\ammintrin.h
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_int128.hpp
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_bit_utils.hpp
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\intrin0.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\limits
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cfloat
+注意: 包含文件:      D:\Windows Kits\10\include\10.0.26100.0\ucrt\float.h
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_minmax.hpp
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xmemory
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\new
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\exception
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_exception.h
+注意: 包含文件:       D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\eh.h
+注意: 包含文件:        D:\Windows Kits\10\include\10.0.26100.0\ucrt\corecrt_terminate.h
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xatomic.h
+注意: 包含文件:  D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cmath
+注意: 包含文件:  D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\iostream
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\istream
+注意: 包含文件:    D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_ostream.hpp
+注意: 包含文件:     D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\ios
+注意: 包含文件:      D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xlocnum
+注意: 包含文件:       D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\iterator
+注意: 包含文件:        D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\iosfwd
+注意: 包含文件:       D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\streambuf
+注意: 包含文件:        D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xiosbase
+注意: 包含文件:         D:\Windows Kits\10\include\10.0.26100.0\ucrt\share.h
+注意: 包含文件:         D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\system_error
+注意: 包含文件:          D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_system_error_abi.hpp
+注意: 包含文件:          D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cerrno
+注意: 包含文件:          D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\stdexcept
+注意: 包含文件:           D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xstring
+注意: 包含文件:            D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_sanitizer_annotate_container.hpp
+注意: 包含文件:            D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_string_view.hpp
+注意: 包含文件:            D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xpolymorphic_allocator.h
+注意: 包含文件:             D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\tuple
+注意: 包含文件:          D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xcall_once.h
+注意: 包含文件:          D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xerrc.h
+注意: 包含文件:          D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\atomic
+注意: 包含文件:           D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xthreads.h
+注意: 包含文件:            D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_threads_core.hpp
+注意: 包含文件:            D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xtimec.h
+注意: 包含文件:             D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\ctime
+注意: 包含文件:              D:\Windows Kits\10\include\10.0.26100.0\ucrt\time.h
+注意: 包含文件:         D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xlocale
+注意: 包含文件:          D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\memory
+注意: 包含文件:           D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\typeinfo
+注意: 包含文件:            D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vcruntime_typeinfo.h
+注意: 包含文件:          D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xfacet
+注意: 包含文件:          D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xlocinfo
+注意: 包含文件:           D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_xlocinfo_types.hpp
+注意: 包含文件:           D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cctype
+注意: 包含文件:            D:\Windows Kits\10\include\10.0.26100.0\ucrt\ctype.h
+注意: 包含文件:           D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\clocale
+注意: 包含文件:            D:\Windows Kits\10\include\10.0.26100.0\ucrt\locale.h
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\ostream
+注意: 包含文件:  D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\random
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vector
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xbit_ops.h
+[11/11] Linking CXX executable native\accel_tests.exe
+注意: 包含文件:           D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\__msvc_xlocinfo_types.hpp
+注意: 包含文件:           D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\cctype
+注意: 包含文件:            D:\Windows Kits\10\include\10.0.26100.0\ucrt\ctype.h
+注意: 包含文件:           D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\clocale
+注意: 包含文件:            D:\Windows Kits\10\include\10.0.26100.0\ucrt\locale.h
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\ostream
+注意: 包含文件:  D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\random
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\vector
+注意: 包含文件:   D:\Program Files\Microsoft Visual Studio\18\Community\VC\Tools\MSVC\14.51.36231\include\xbit_ops.h
+[11/11] Linking CXX executable native\accel_tests.exe
+UpdateCTestConfiguration  from :D:/UserData/Desktop/Project/OMP/OMP_26.2/DartConfiguration.tcl
+Test project D:/UserData/Desktop/Project/OMP/OMP_26.2/build/native/windows-x64-release
+Constructing a list of tests
+Done constructing a list of tests
+Updating test list for fixtures
+Added 0 tests to meet fixture requirements
+Checking test dependency graph...
+Checking test dependency graph end
+test 1
+    Start 1: acceleration_native
+
+1: Test command: D:\UserData\Desktop\Project\OMP\OMP_26.2\build\native\windows-x64-release\native\accel_tests.exe
+1: Working Directory: D:/UserData/Desktop/Project/OMP/OMP_26.2/build/native/windows-x64-release/native
+1: Test timeout computed to be: 10000000
+1: PASS native dispatch, scalar/available SSE2/AVX2/NEON, unaligned/tails, bounds, alias, finite publication, pose pack; capabilities=63
+1/1 Test #1: acceleration_native ..............   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   0.02 sec
+
+1: Test command: D:\UserData\Desktop\Project\OMP\OMP_26.2\build\native\windows-x64-release\native\accel_tests.exe
+1: Working Directory: D:/UserData/Desktop/Project/OMP/OMP_26.2/build/native/windows-x64-release/native
+1: Test timeout computed to be: 10000000
+1: PASS native dispatch, scalar/available SSE2/AVX2/NEON, unaligned/tails, bounds, alias, finite publication, pose pack; capabilities=63
+1/1 Test #1: acceleration_native ..............   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   0.02 sec
+Microsoft (R) COFF/PE Dumper Version 14.51.36260.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file D:\UserData\Desktop\Project\OMP\OMP_26.2\build\native\windows-x64-release\bin\omnimorph_accel.dll
+
+File Type: DLL
+
+  Image has the following dependencies:
+
+    KERNEL32.dll
+
+  Summary
+
+        2000 .data
+        1000 .fptable
+        2000 .pdata
+        B000 .rdata
+        1000 .reloc
+        1000 .rsrc
+       13000 .text
+Native build completed: D:\UserData\Desktop\Project\OMP\OMP_26.2\build\native\windows-x64-release\bin\omnimorph_accel.dll

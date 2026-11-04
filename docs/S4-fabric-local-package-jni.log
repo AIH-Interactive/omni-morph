@@ -1,0 +1,221 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/eryth/.gradle/wrapper/dists/gradle-9.4.1-bin/arn2x92ynaizyzdaamcbpbhtj/gradle-9.4.1/lib/native-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Architect Plugin: 3.5.168
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+> Task :common:compileJava UP-TO-DATE
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes UP-TO-DATE
+> Task :common:jar UP-TO-DATE
+> Task :fabric:compileJava UP-TO-DATE
+> Task :fabric:processResources UP-TO-DATE
+> Task :fabric:classes UP-TO-DATE
+> Task :fabric:jar UP-TO-DATE
+> Task :fabric:processIncludeJars UP-TO-DATE
+> Task :fabric:shadowJar UP-TO-DATE
+> Task :fabric:remapJar UP-TO-DATE
+
+> Task :packageLocalNative
+Windows local native JAR: D:\UserData\Desktop\Project\OMP\OMP_26.2\build\local-native\omni-morph-1.0.0-alpha.7+26.2-fabric-mc-windows-local.jar
+
+> Task :verifyLocalNativeLoader
+PASS fabric Windows native local package: exact base entries, loader metadata, ABI 2, DLL SHA-256/PE x86_64, notice and no test fixtures
+Artifact: D:\UserData\Desktop\Project\OMP\OMP_26.2\build\local-native\omni-morph-1.0.0-alpha.7+26.2-fabric-mc-windows-local.jar
+
+> Task :common:compileNativeInterface UP-TO-DATE
+
+> Task :common:nativePlatformSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+PASS actual JAR extraction/hash/ABI/JNI Java differential: platform=windows-x86_64 capabilities=63 kernels=[0, -1, 1, 2]
+
+> Task :common:extractIncludeTestProto UP-TO-DATE
+> Task :common:extractTestProto UP-TO-DATE
+> Task :common:generateTestProto NO-SOURCE
+> Task :common:compileTestJava UP-TO-DATE
+> Task :common:processTestResources UP-TO-DATE
+> Task :common:testClasses UP-TO-DATE
+
+> Task :common:nativeSmokeTest
+Loaded actual packaged JNI; capability bits=63
+PASS Java differential: rigid, five weights, separate normal/UV, negative/zero scale; kernels=[0, 1, 2, -1]
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.joml.MemUtil$MemUtilUnsafe (file:/C:/Users/eryth/.gradle/caches/modules-2/files-2.1/org.joml/joml/1.10.8/fc0a71dad90a2cf41d82a76156a0e700af8e4f8d/joml-1.10.8.jar)
+WARNING: Please consider reporting this to the maintainers of class org.joml.MemUtil$MemUtilUnsafe
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+PASS native pose packing equals Java float casts; rigid group blocks identical; kernels=[0, -1, 1, 2]
+[19:57:42] [main/INFO]: [STDOUT]: Figura production emitter batch positions/normals/UV and retired deferred draw PASS.
+[19:57:42] [main/INFO]: [YSM Validation] main.json: 9 bones, 1 roots, 7 cubes, 42 quads, 1 locators - OK
+[19:57:42] [main/INFO]: [YSM Validation] models/main.json: 195 bones, 5 roots, 490 cubes, 2940 quads, 14 locators - OK
+[19:57:42] [main/INFO]: [YSM Validation] models/arm.json: 16 bones, 1 roots, 36 cubes, 216 quads, 5 locators - OK
+[19:57:43] [main/INFO]: [STDOUT]: World attachment corpus: index=0 vertices=8676 PASS
+[19:57:43] [main/INFO]: [YSM Validation] models/main.json: 138 bones, 5 roots, 342 cubes, 2052 quads, 14 locators - OK
+[19:57:43] [main/INFO]: [YSM Validation] models/arm.json: 11 bones, 5 roots, 14 cubes, 84 quads, 2 locators - OK
+[19:57:43] [main/INFO]: [STDOUT]: World attachment corpus: index=1 vertices=7340 PASS
+[19:57:43] [main/INFO]: [YSM Validation] models/main.json: 149 bones, 3 roots, 552 cubes, 3312 quads, 13 locators - OK
+[19:57:43] [main/INFO]: [YSM Validation] models/arm.json: 11 bones, 2 roots, 20 cubes, 120 quads, 5 locators - OK
+[19:57:44] [main/INFO]: [STDOUT]: World attachment corpus: index=2 vertices=10268 PASS
+[19:57:44] [main/INFO]: [YSM Validation] models/main.json: 154 bones, 5 roots, 456 cubes, 2736 quads, 14 locators - OK
+[19:57:44] [main/INFO]: [YSM Validation] models/arm.json: 13 bones, 2 roots, 19 cubes, 114 quads, 5 locators - OK
+[19:57:44] [main/INFO]: [STDOUT]: World attachment corpus: index=3 vertices=7856 PASS
+[19:57:44] [main/WARN]: [YSM Validation] models/main.json: 344 bones (high count may impact performance)
+[19:57:44] [main/INFO]: [YSM Validation] models/main.json: 344 bones, 8 roots, 1544 cubes, 9255 quads, 13 locators - OK
+[19:57:44] [main/INFO]: [YSM Validation] models/arm.json: 13 bones, 1 roots, 34 cubes, 204 quads, 6 locators - OK
+[19:57:44] [main/INFO]: [STDOUT]: World attachment corpus: index=4 vertices=19012 PASS
+[19:57:44] [main/INFO]: [YSM Validation] models/main.json: 117 bones, 1 roots, 471 cubes, 2826 quads, 11 locators - OK
+[19:57:44] [main/INFO]: [YSM Validation] models/arm.json: 15 bones, 2 roots, 22 cubes, 132 quads, 2 locators - OK
+[19:57:45] [main/INFO]: [STDOUT]: World attachment corpus: index=5 vertices=10476 PASS
+[19:57:45] [main/INFO]: [YSM Validation] models/main.json: 113 bones, 4 roots, 335 cubes, 2010 quads, 10 locators - OK
+[19:57:45] [main/INFO]: [YSM Validation] models/arm.json: 8 bones, 2 roots, 12 cubes, 72 quads, 2 locators - OK
+[19:57:45] [main/INFO]: [STDOUT]: World attachment corpus: index=6 vertices=7948 PASS
+[19:57:45] [main/WARN]: [YSM Validation] models/main.json: 526 bones (high count may impact performance)
+[19:57:45] [main/WARN]: [YSM Validation] models/main.json: 26564 quads (high poly count may impact performance)
+[19:57:45] [main/INFO]: [YSM Validation] models/main.json: 526 bones, 4 roots, 4533 cubes, 26564 quads, 5 locators - OK
+[19:57:45] [main/INFO]: [YSM Validation] models/arm.json: 8 bones, 2 roots, 26 cubes, 156 quads, 2 locators - OK
+[19:57:46] [main/INFO]: [STDOUT]: World attachment corpus: index=7 vertices=47900 PASS
+[19:57:46] [main/INFO]: [YSM Validation] models/main.json: 153 bones, 1 roots, 705 cubes, 4151 quads, 11 locators - OK
+[19:57:46] [main/INFO]: [YSM Validation] models/arm.json: 13 bones, 3 roots, 31 cubes, 181 quads, 2 locators - OK
+[19:57:46] [main/INFO]: [STDOUT]: World attachment corpus: index=8 vertices=15896 PASS
+[19:57:46] [main/INFO]: [YSM Validation] models/main.json: 227 bones, 3 roots, 976 cubes, 5794 quads, 6 locators - OK
+[19:57:46] [main/INFO]: [YSM Validation] models/arm.json: 19 bones, 2 roots, 32 cubes, 192 quads, 2 locators - OK
+[19:57:46] [main/INFO]: [STDOUT]: World attachment corpus: index=9 vertices=21368 PASS
+[19:57:46] [main/INFO]: [YSM Validation] models/main.json: 101 bones, 4 roots, 276 cubes, 1656 quads, 10 locators - OK
+[19:57:46] [main/INFO]: [YSM Validation] models/arm.json: 12 bones, 2 roots, 26 cubes, 156 quads, 4 locators - OK
+[19:57:46] [main/INFO]: [STDOUT]: World attachment corpus: index=10 vertices=6532 PASS
+[19:57:47] [main/INFO]: [YSM Validation] models/main.json: 153 bones, 5 roots, 407 cubes, 2442 quads, 15 locators - OK
+[19:57:47] [main/INFO]: [YSM Validation] models/arm.json: 15 bones, 1 roots, 34 cubes, 204 quads, 6 locators - OK
+[19:57:47] [main/INFO]: [STDOUT]: World attachment corpus: index=11 vertices=7604 PASS
+[19:57:47] [main/WARN]: [YSM Validation] models/main.json: 260 bones (high count may impact performance)
+[19:57:47] [main/INFO]: [YSM Validation] models/main.json: 260 bones, 5 roots, 634 cubes, 3776 quads, 17 locators - OK
+[19:57:47] [main/INFO]: [YSM Validation] models/arm.json: 12 bones, 2 roots, 34 cubes, 204 quads, 3 locators - OK
+[19:57:47] [main/INFO]: [STDOUT]: World attachment corpus: index=12 vertices=12876 PASS
+[19:57:47] [main/WARN]: [YSM Validation] models/main.json: 300 bones (high count may impact performance)
+[19:57:47] [main/INFO]: [YSM Validation] models/main.json: 300 bones, 7 roots, 523 cubes, 3138 quads, 16 locators - OK
+[19:57:47] [main/INFO]: [YSM Validation] models/arm.json: 13 bones, 1 roots, 34 cubes, 204 quads, 6 locators - OK
+[19:57:49] [main/INFO]: [STDOUT]: World attachment corpus: index=13 vertices=11268 PASS
+[19:57:49] [main/WARN]: [YSM Validation] models/main.json: 262 bones (high count may impact performance)
+[19:57:49] [main/INFO]: [YSM Validation] models/main.json: 262 bones, 1 roots, 1148 cubes, 5685 quads, 10 locators - OK
+[19:57:49] [main/INFO]: [YSM Validation] models/arm.json: 21 bones, 2 roots, 48 cubes, 195 quads, 5 locators - OK
+[19:57:50] [main/INFO]: [STDOUT]: World attachment corpus: index=14 vertices=18968 PASS
+[19:57:50] [main/INFO]: [YSM Validation] models/main.json: 101 bones, 5 roots, 648 cubes, 3772 quads, 13 locators - OK
+[19:57:50] [main/INFO]: [YSM Validation] models/arm.json: 12 bones, 1 roots, 16 cubes, 96 quads, 5 locators - OK
+[19:57:50] [main/INFO]: [STDOUT]: World attachment corpus: index=15 vertices=12312 PASS
+[19:57:50] [main/INFO]: [YSM Validation] models/main.json: 194 bones, 1 roots, 513 cubes, 3078 quads, 11 locators - OK
+[19:57:50] [main/INFO]: [YSM Validation] models/arm.json: 11 bones, 1 roots, 26 cubes, 156 quads, 4 locators - OK
+[19:57:51] [main/INFO]: [STDOUT]: World attachment corpus: index=16 vertices=11060 PASS
+[19:57:51] [main/WARN]: [YSM Validation] models/main.json: 317 bones (high count may impact performance)
+[19:57:51] [main/INFO]: [YSM Validation] models/main.json: 317 bones, 6 roots, 1554 cubes, 6817 quads, 12 locators - OK
+[19:57:51] [main/INFO]: [YSM Validation] models/arm.json: 42 bones, 1 roots, 326 cubes, 1226 quads, 5 locators - OK
+[19:57:51] [main/INFO]: [STDOUT]: World attachment corpus: index=17 vertices=18844 PASS
+[19:57:51] [main/WARN]: [YSM Validation] models/main.json: 347 bones (high count may impact performance)
+[19:57:51] [main/INFO]: [YSM Validation] models/main.json: 347 bones, 5 roots, 793 cubes, 4758 quads, 14 locators - OK
+[19:57:51] [main/INFO]: [YSM Validation] models/arm.json: 16 bones, 1 roots, 36 cubes, 216 quads, 5 locators - OK
+[19:57:52] [main/INFO]: [STDOUT]: World attachment corpus: index=18 vertices=15804 PASS
+[19:57:52] [main/INFO]: [YSM Validation] models/main.json: 204 bones, 5 roots, 1321 cubes, 7232 quads, 12 locators - OK
+[19:57:52] [main/INFO]: [YSM Validation] models/arm.json: 2 bones, 2 roots, 32 cubes, 192 quads, 0 locators - OK
+[19:57:52] [main/INFO]: [STDOUT]: World attachment corpus: index=19 vertices=11244 PASS
+[19:57:52] [main/INFO]: [YSM Validation] models/main.json: 185 bones, 5 roots, 750 cubes, 4035 quads, 11 locators - OK
+[19:57:52] [main/INFO]: [YSM Validation] models/arm.json: 12 bones, 1 roots, 34 cubes, 204 quads, 5 locators - OK
+[19:57:53] [main/INFO]: [STDOUT]: World attachment corpus: index=20 vertices=13328 PASS
+[19:57:53] [main/INFO]: [YSM Validation] models/main.json: 226 bones, 5 roots, 513 cubes, 3078 quads, 13 locators - OK
+[19:57:53] [main/INFO]: [YSM Validation] models/arm.json: 16 bones, 1 roots, 36 cubes, 216 quads, 5 locators - OK
+[19:57:53] [main/INFO]: [STDOUT]: World attachment corpus: index=21 vertices=9608 PASS
+[19:57:54] [main/INFO]: [YSM Validation] models/main.json: 64 bones, 1 roots, 172 cubes, 1032 quads, 12 locators - OK
+[19:57:54] [main/INFO]: [YSM Validation] models/arm.json: 6 bones, 2 roots, 10 cubes, 60 quads, 2 locators - OK
+[19:57:54] [main/INFO]: [STDOUT]: World attachment corpus: index=22 vertices=3704 PASS
+[19:57:55] [main/WARN]: Encrypted YSM operation failed: runtime/controller-parse
+[19:57:55] [main/INFO]: [STDOUT]: World attachment corpus: index=23 vertices=27480 PASS
+[19:57:55] [main/INFO]: [YSM Validation] models/main.json: 158 bones, 6 roots, 1024 cubes, 6144 quads, 4 locators - OK
+[19:57:55] [main/INFO]: [YSM Validation] models/arm.json: 8 bones, 2 roots, 54 cubes, 324 quads, 2 locators - OK
+[19:57:55] [main/INFO]: [STDOUT]: World attachment corpus: index=24 vertices=15336 PASS
+[19:57:55] [main/INFO]: [YSM Validation] models/main.json: 199 bones, 8 roots, 2242 cubes, 13427 quads, 2 locators - OK
+[19:57:55] [main/INFO]: [YSM Validation] models/arm.json: 12 bones, 2 roots, 38 cubes, 228 quads, 2 locators - OK
+[19:57:56] [main/INFO]: [STDOUT]: World attachment corpus: index=25 vertices=44664 PASS
+[19:57:56] [main/WARN]: [YSM Validation] models/main.json: 445 bones (high count may impact performance)
+[19:57:56] [main/WARN]: [YSM Validation] models/main.json: 17346 quads (high poly count may impact performance)
+[19:57:56] [main/INFO]: [YSM Validation] models/main.json: 445 bones, 9 roots, 2891 cubes, 17346 quads, 4 locators - OK
+[19:57:56] [main/INFO]: [YSM Validation] models/arm.json: 16 bones, 2 roots, 142 cubes, 852 quads, 2 locators - OK
+[19:57:56] [main/INFO]: [STDOUT]: World attachment corpus: index=26 vertices=37688 PASS
+[19:57:57] [main/INFO]: [STDOUT]: World attachment corpus: index=27 vertices=37688 PASS
+[19:57:57] [main/INFO]: [STDOUT]: World attachment corpus: index=28 vertices=15336 PASS
+[19:57:58] [main/INFO]: [STDOUT]: World attachment corpus: index=29 vertices=26768 PASS
+[19:57:58] [main/INFO]: [YSM Validation] models/main.json: 64 bones, 1 roots, 172 cubes, 1032 quads, 12 locators - OK
+[19:57:58] [main/INFO]: [YSM Validation] models/arm.json: 6 bones, 2 roots, 10 cubes, 60 quads, 2 locators - OK
+[19:57:58] [main/INFO]: [STDOUT]: World attachment corpus: index=30 vertices=3704 PASS
+[19:57:58] [main/INFO]: [YSM Validation] main.json: 118 bones, 1 roots, 1076 cubes, 6456 quads, 2 locators - OK
+[19:57:58] [main/INFO]: [YSM Validation] arm.json: 12 bones, 2 roots, 86 cubes, 516 quads, 2 locators - OK
+[19:57:59] [main/INFO]: [STDOUT]: World attachment corpus: index=31 vertices=22448 PASS
+[19:57:59] [main/INFO]: [YSM Validation] models/main.json: 134 bones, 1 roots, 2125 cubes, 12746 quads, 2 locators - OK
+[19:57:59] [main/INFO]: [YSM Validation] models/arm.json: 24 bones, 2 roots, 214 cubes, 1284 quads, 2 locators - OK
+[19:57:59] [main/INFO]: [STDOUT]: World attachment corpus: index=32 vertices=45168 PASS
+[19:58:00] [main/INFO]: [STDOUT]: World attachment corpus: index=33 vertices=45168 PASS
+[19:58:01] [main/INFO]: [STDOUT]: World attachment corpus: index=34 vertices=8640 PASS
+[19:58:01] [main/INFO]: [STDOUT]: World attachment corpus: index=35 vertices=52128 PASS
+[19:58:02] [main/INFO]: [STDOUT]: World attachment corpus: index=36 vertices=52704 PASS
+[19:58:03] [main/INFO]: [STDOUT]: World attachment corpus: index=37 vertices=61940 PASS
+[19:58:07] [main/INFO]: [STDOUT]: World attachment corpus: index=38 vertices=57836 PASS
+[19:58:07] [main/WARN]: [YSM Validation] models/main.json: 582 bones (high count may impact performance)
+[19:58:07] [main/WARN]: [YSM Validation] models/main.json: 16794 quads (high poly count may impact performance)
+[19:58:07] [main/INFO]: [YSM Validation] models/main.json: 582 bones, 9 roots, 2799 cubes, 16794 quads, 10 locators - OK
+[19:58:07] [main/INFO]: [YSM Validation] models/arm.json: 13 bones, 2 roots, 92 cubes, 552 quads, 5 locators - OK
+[19:58:07] [main/INFO]: [STDOUT]: World attachment corpus: index=39 vertices=23180 PASS
+[19:58:08] [main/INFO]: [STDOUT]: World attachment corpus: index=40 vertices=23180 PASS
+[19:58:10] [main/WARN]: Encrypted YSM operation failed: runtime/controller-parse
+[19:58:13] [main/INFO]: [STDOUT]: World attachment corpus: index=41 vertices=292672 PASS
+[19:58:20] [main/INFO]: [STDOUT]: World attachment corpus: index=42 vertices=17384 PASS
+[19:58:20] [main/INFO]: [YSM Validation] main.json: 93 bones, 1 roots, 903 cubes, 5418 quads, 3 locators - OK
+[19:58:20] [main/INFO]: [YSM Validation] arm.json: 9 bones, 2 roots, 144 cubes, 864 quads, 2 locators - OK
+[19:58:21] [main/INFO]: [STDOUT]: World attachment corpus: index=43 vertices=19720 PASS
+[19:58:29] [main/INFO]: [STDOUT]: World attachment corpus: index=44 vertices=62608 PASS
+[19:58:30] [main/INFO]: [STDOUT]: World attachment corpus: index=45 vertices=49012 PASS
+[19:58:30] [main/INFO]: [YSM Validation] models/main.json: 115 bones, 4 roots, 429 cubes, 2574 quads, 2 locators - OK
+[19:58:30] [main/INFO]: [YSM Validation] models/arm.json: 10 bones, 2 roots, 24 cubes, 144 quads, 2 locators - OK
+[19:58:30] [main/INFO]: [STDOUT]: World attachment corpus: index=46 vertices=9324 PASS
+[19:58:30] [main/INFO]: [YSM Validation] main.json: 206 bones, 1 roots, 2413 cubes, 14478 quads, 5 locators - OK
+[19:58:30] [main/INFO]: [YSM Validation] arm.json: 10 bones, 2 roots, 84 cubes, 504 quads, 2 locators - OK
+[19:58:31] [main/INFO]: [STDOUT]: World attachment corpus: index=47 vertices=26768 PASS
+[19:58:32] [main/INFO]: [STDOUT]: World attachment corpus: index=48 vertices=124928 PASS
+[19:58:39] [main/INFO]: [STDOUT]: World attachment corpus: index=49 vertices=33360 PASS
+[19:58:40] [main/INFO]: [STDOUT]: World attachment corpus: index=50 vertices=75872 PASS
+[19:58:40] [main/INFO]: [YSM Validation] models/main.json: 86 bones, 1 roots, 1166 cubes, 6996 quads, 6 locators - OK
+[19:58:40] [main/INFO]: [YSM Validation] models/arm.json: 10 bones, 2 roots, 64 cubes, 384 quads, 2 locators - OK
+[19:58:40] [main/INFO]: [STDOUT]: World attachment corpus: index=51 vertices=26032 PASS
+[19:58:40] [main/INFO]: [YSM Validation] models/main.json: 220 bones, 1 roots, 1617 cubes, 8905 quads, 10 locators - OK
+[19:58:40] [main/INFO]: [YSM Validation] models/arm.json: 11 bones, 2 roots, 52 cubes, 308 quads, 5 locators - OK
+[19:58:41] [main/INFO]: [STDOUT]: World attachment corpus: index=52 vertices=33700 PASS
+[19:58:41] [main/INFO]: [STDOUT]: World attachment corpus: models=53 encrypted=18 PASS
+[19:58:41] [main/INFO]: [STDOUT]: Both real renderer replays consumed JNI output; vertices=5047704
+round=0 vertices=16 Java p50/p95=1000/1700ns native total=13100/18500ns JNI=12600/17400ns
+round=1 vertices=16 Java p50/p95=1000/1800ns native total=13200/18800ns JNI=12600/18700ns
+round=2 vertices=16 Java p50/p95=1300/2300ns native total=14800/21800ns JNI=14100/20700ns
+round=0 vertices=256 Java p50/p95=13400/21300ns native total=32700/45600ns JNI=27600/38800ns
+round=1 vertices=256 Java p50/p95=2600/4800ns native total=32100/43500ns JNI=27300/36600ns
+round=2 vertices=256 Java p50/p95=2300/3800ns native total=29000/40300ns JNI=24500/33200ns
+round=0 vertices=4096 Java p50/p95=40500/74000ns native total=310900/432200ns JNI=230900/306600ns
+round=1 vertices=4096 Java p50/p95=39700/68500ns native total=306100/429400ns JNI=230500/316100ns
+round=2 vertices=4096 Java p50/p95=39700/80800ns native total=309900/423600ns JNI=229900/305000ns
+[19:58:42] [main/INFO]: [STDOUT]: PASS packaged JNI boundaries, Java differential, Figura/YSM renderer replays and timing
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_26.2/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 1m 26s
+21 actionable tasks: 4 executed, 17 up-to-date
