@@ -4,7 +4,7 @@
 
 ## 当前任务与状态
 
-用户要求修复solid管线的Duplicate bind name Globals错误。实施与自动验证已完成，下一最小操作为提交推送修复检查点，再刷新本地双加载器Windows native包。
+用户要求修复solid管线的Duplicate bind name Globals错误。生产修复、RED/GREEN与相关回归、双平台assemble、修复提交推送及双加载器Windows native包验证/汇总交付均已完成。当前无剩余实施、验证或打包任务。
 
 - 根因：26.2的MATRICES_FOG_SNIPPET已包含Globals，生产FIGURA_SOLID_SNIPPET又追加GLOBALS_SNIPPET，造成布局0/3重名。
 - 最小生产修复：移除重复参数，保留所需四个uniform与原shader/顶点格式/拓扑/材质状态。
@@ -13,9 +13,9 @@
 
 ## Git与文件
 
-仅26.2 -> origin/26.2，不新建/切换分支或worktree。本次起点708c496a已推送；原S0～S4、人工SKIPPED及ParticleGroup修复5f0d923d均已推送。
+仅26.2 -> origin/26.2，不新建/切换分支或worktree。修复提交47daa3b979ff64159cc2573007518049642854b8已推送并核对远端；原S0～S4、人工SKIPPED及ParticleGroup修复5f0d923d均已推送。其后的交付收尾只改文档/日志，不改变已验证运行代码。
 
-当前修改：common/build.gradle、新测试PipelineBindingLayoutSmokeTest.java、FiguraRenderTypes.java的重复参数及说明、修复报告/日志和本手册，准备提交。实际HEAD与状态以git log/status为准。保留原有未跟踪.codex/，不提交或清理。
+47daa3b9包含common/build.gradle、新测试PipelineBindingLayoutSmokeTest.java、FiguraRenderTypes.java最小生产修复及RED/GREEN报告/日志。本手册和最终交付说明随收尾记录提交推送，交付前核对origin/26.2；最终HEAD以git log为准。保留原有未跟踪.codex/，不提交或清理。
 
 ## 验证状态
 
@@ -25,14 +25,17 @@
 - 无活动构建。新增测试仅本地显式执行，不进入Actions/生产assemble。
 - 人工四组合客户端、实际驱动/GPU像素、中文UI与缩放/重载/退出：SKIPPED（用户决定，未执行），不作为受阻条件；未启动游戏。
 
-## 本地交付与下一步
+## 最终本地交付与剩余事项
 
-上一包build/test-packages/OMP-26.2-Windows-Native-5f0d923d.zip包含本次发现的重复Globals问题，只保留历史追溯，不作为本次修复交付。
+ZIP：D:/UserData/Desktop/Project/OMP/OMP_26.2/build/test-packages/OMP-26.2-Windows-Native-47daa3b9.zip
 
-1. 检查diff与格式，提交并推送修复，核对origin/26.2。
-2. 复用未改变JNI源码对应的现有生产headers及现有JDK25/MSVC，运行Windows native构建链/CTest，生成修复提交对应的native manifest。
-3. 两加载器packageLocalNative、verifyLocalNativeLoader、nativePlatformSmokeTest，并生成新提交号命名的ZIP。
-4. 检查ZIP内修复字节码、JAR/native哈希与身份，更新最终路径/报告/手册，提交推送交付记录。无新增开发阶段。
+ZIP SHA-256：57cd07e5bd4c957291d0cb5b34ce19ac6f865cf998344bb8760e8c2a7bc2e372。
+
+双JAR：build/local-native/omni-morph-1.0.0-alpha.7+26.2-{fabric,neoforge}-mc-windows-local.jar，精确SHA见docs/26.2-WINDOWS-TEST-PACKAGES.md。ZIP均含修正后的solid布局、前次ParticleGroup修复及实际Windows x86_64 DLL；ABI2，capabilities63，native sourceCommit=47daa3b9，sourceDirty=false。
+
+Windows native构建链和CTest通过（未修改原生/JNI源码，复用已有生产headers和编译输出，DLL仅KERNEL32依赖）。两加载器完整性/实际DLL提取、ABI/JNI differential通过，Fabric32秒、NeoForge20秒。ZIP最终验证双JAR哈希、修复布局字节码、前次粒子修复、native身份与哈希、README人工SKIPPED及无新测试class混入均PASS；日志见docs/26.2-pipeline-*.log。
+
+旧52e0a33及5f0d923d ZIP只保留历史追溯，不作为最新交付。本次无剩余开发或打包任务，不新增阶段；人工验收按用户决定SKIPPED，不要求启动游戏，不作为受阻条件。
 
 ## 约束与历史
 
