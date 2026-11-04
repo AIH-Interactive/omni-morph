@@ -88,6 +88,9 @@ def verify(loader):
         require(jar.read("licenses/OmniMorph-PolyForm-Noncommercial-1.0.0.txt"),
                 f"{loader}: project license")
         require(jar.read("credits/OmniMorph.txt"), f"{loader}: credits")
+        solid_shader = "assets/omni-morph/shaders/core/solid.vsh"
+        require(jar.read(solid_shader) == (ROOT / "common/src/main/resources" / solid_shader).read_bytes(),
+                f"{loader}: solid vertex shader resource")
         require(jar.read("natives/NOTICE.txt") == (ROOT / "native/NOTICE.txt").read_bytes(),
                 f"{loader}: native notice")
         manifest = json.loads(jar.read("natives/manifest.json"))

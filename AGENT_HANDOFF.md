@@ -47,14 +47,14 @@ Renderpearl接口/异步compile与finishCompile；原版ShaderSource/include及e
 
 ## 本地交付物
 
-目录：build/local-native/。版本1.0.0-alpha.7+26.3-cfc0a985（S3生产Java提交）。
+目录：build/local-native/。版本1.0.0-alpha.7+26.3-45dc385d（SOLID修复提交）。
 - omni-morph-1.0.0-alpha.7+26.3-fabric-mc-windows-local.jar
-  SHA256：2d804eb6d91fa5527f71293046ec5555a7fa71cb00c7856b5a3156d27c554267
+  SHA256：bb0153f1343a4d5028670046a0ea2f0ffd5a66d297593af4e1c47279f6dbaec1
 - omni-morph-1.0.0-alpha.7+26.3-neoforge-mc-windows-local.jar
-  SHA256：9692a23bc08a9a1894befb14d8f131f293b5fcc9689f0ce05f4350b3a4dcbda6
+  SHA256：674d0abc46cbdc1db10d7f6c0eb9dc7a7ae229e287d6e9158c345190a2ef1ee7
 - SHA256SUMS.txt、26.3-package-manifest.json（含内嵌依赖、native构建/源树/哈希信息）。
 
-native manifest如实记录sourceDirty=true：构建时本阶段native README/packaging校验有修改；实际数值源码/ABI未改，最终源树digest已刷新。本地两包只包含Windows x86_64 native；其余五平台真实编译未执行，保留现有CI矩阵。
+最新native manifest记录sourceCommit=45dc385dd6a9c299eee56a8b668fadf58253de40、sourceDirty=false；实际数值源码/ABI未改，复用同一DLL，仅更新构建清单。本地两包只包含Windows x86_64 native；其余五平台真实编译未执行，保留现有CI矩阵。
 
 ## 未验证与后续事项
 
@@ -78,4 +78,8 @@ Fabric/NeoForge × OpenGL/Vulkan真实客户端均MANUAL/PENDING；未启动游�
 
 docs/solid-pipeline-GREEN.log：两前端各30注册管线+110加速变体，共280完整编译通过。docs/solid-pipeline-regressions-assemble.log：pipelineBindingLayout/deferredMaterial/nativePipFailure及Fabric/NeoForge assemble全通过。未启动游戏，真实像素MANUAL/PENDING。
 
-当前准备提交推送修复；随后从修复提交重新打包并覆盖旧本地成品/哈希。旧成品和旧哈希不应再作为最终交付。tools/verify-26.3-packages.py已新增solid.vsh打包资源核验，待新包生成后运行并提交该交付检查。
+修复已提交推送45dc385dd6a9c299eee56a8b668fadf58253de40并核对远端。现已从该提交重新打包覆盖双loader本地成品/哈希。tools/verify-26.3-packages.py新增solid.vsh打包资源逐字节核验，两个新包完整性检查均通过。
+
+最新交付日志：docs/solid-fabric-package.log、solid-neoforge-package.log（双loader assemble及实际JNI通过），docs/solid-package-integrity.log（新shader资源、全部原有完整性及SHA通过）。native未修改，solid-native-package-preparation.log为复用DLL刷新清单，未重跑CTest。上方成品与哈希已替换为修复版；旧cfc0a985成品失效，不应再使用。
+
+当前任务实施/自动验证/重新打包全部完成，无剩余实施或自动验证事项；最终交付记录随本次提交交付，推送后核对远端及工作区。真实客户端修复后重载及画面仍MANUAL/PENDING，不记PASS，不要求用户操作。
