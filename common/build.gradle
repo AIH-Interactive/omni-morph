@@ -322,7 +322,14 @@ tasks.register('deferredMaterialSmokeTest', JavaExec) {
     mainClass = 'top.aihmc.omnimorph.testing.DeferredMaterialSmokeTest'
 }
 
-['deferredMaterialSmokeTest', 'gpuSubmissionSmokeTest', 'dualEngineGpuReplay', 'accelerationPreparationBenchmark', 'nativePipFailureSmokeTest'].each { taskName ->
+[
+        'deferredMaterialSmokeTest',
+        'gpuSubmissionSmokeTest',
+        'dualEngineGpuReplay',
+        'accelerationPreparationBenchmark',
+        'nativePipFailureSmokeTest',
+        'ysmMaterialNativeSmokeTest'
+].each { taskName ->
     tasks.matching { it.name == taskName }.configureEach {
         dependsOn offlineMixinAgent
         doFirst {

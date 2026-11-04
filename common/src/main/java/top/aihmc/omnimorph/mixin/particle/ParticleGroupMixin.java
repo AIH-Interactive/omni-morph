@@ -4,7 +4,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleGroup;
 import net.minecraft.client.particle.ParticleEngine;
-import com.google.common.collect.EvictingQueue;
 import top.aihmc.omnimorph.lua.api.particle.CustomParticle;
 import org.figuramc.figura.ducks.ParticleEngineAccessor;
 import org.spongepowered.asm.mixin.Mixin;
@@ -13,20 +12,18 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import java.util.Queue;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ParticleGroup.class)
 public class ParticleGroupMixin {
-    @Shadow @Final protected Queue<Particle> particles;
     @Shadow @Final protected ParticleEngine engine;
 
-    @Inject(method = "add", at = @At("HEAD"))
-    private void figura$releaseEvictedCustomParticle(Particle added, CallbackInfo ci) {
-        if (particles instanceof EvictingQueue<?> queue && queue.remainingCapacity() == 0
-                && particles.peek() instanceof CustomParticle evicted) {
-            evicted.remove();
-            ((ParticleEngineAccessor) engine).figura$removeParticle(evicted);
+    @Inject(method = "add", at = @At("RETURN"))
+    private void figura$releaseRejectedCustomParticle(Particle added, CallbackInfoReturnable<Boolean> cir) {
+        // Native admission can reject at capacity or by reservoir sampling; accepted particles stay alive.
+        if (!cir.getReturnValueZ() && added instanceof CustomParticle rejected) {
+            rejected.remove();
+            ((ParticleEngineAccessor) engine).figura$removeParticle(rejected);
         }
     }
 

@@ -1,0 +1,115 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/eryth/.gradle/wrapper/dists/gradle-9.4.1-bin/arn2x92ynaizyzdaamcbpbhtj/gradle-9.4.1/lib/native-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Architect Plugin: 3.5.168
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+> Task :common:compileJava
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes
+> Task :common:extractIncludeTestProto UP-TO-DATE
+> Task :common:extractTestProto UP-TO-DATE
+> Task :common:generateTestProto NO-SOURCE
+> Task :common:compileTestJava UP-TO-DATE
+> Task :common:processTestResources UP-TO-DATE
+> Task :common:testClasses UP-TO-DATE
+> Task :common:offlineMixinAgent UP-TO-DATE
+
+> Task :common:ysmMaterialNativeSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.joml.MemUtil$MemUtilUnsafe (file:/C:/Users/eryth/.gradle/caches/modules-2/files-2.1/org.joml/joml/1.10.8/fc0a71dad90a2cf41d82a76156a0e700af8e4f8d/joml-1.10.8.jar)
+WARNING: Please consider reporting this to the maintainers of class org.joml.MemUtil$MemUtilUnsafe
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[20:23:43] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.lwjgl.system.Library$$Lambda/0x0000000018c49180 in an unnamed module (file:/C:/Users/eryth/.gradle/caches/modules-2/files-2.1/org.lwjgl/lwjgl/3.4.1/129e06a04f93992cb2a45172435b21fc4b60dd7d/lwjgl-3.4.1-unsafe.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[20:23:44] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[20:23:44] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[20:23:44] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[20:23:44] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[20:23:44] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[20:23:44] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[20:23:44] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[20:23:44] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[20:23:44] [main/INFO]: [STDOUT]: PASS Layered particles: native UV/tint/light extraction, blend/order hook, atomic leases, layer bounds and frame cleanup; real GPU/game MANUAL/PENDING
+[20:23:44] [main/INFO]: [STDOUT]: PASS native Ribbon: Lua mode/settings, extraction hook, actual particle vertex bytes, native submit nodes, frozen replay, shared vertices/trail slots and cleanup; GPU/game MANUAL/PENDING
+[20:23:44] [main/INFO]: [STDOUT]: PASS native particle motion: Lua properties, real acceleration/gravity/tick, all built-ins, native roll interpolation, actual EntityAPI target movement/ID reuse/loss and overflow cleanup
+[20:23:44] [main/INFO]: [STDOUT]: PASS native particle lights: Lua settings, production world hook/region identity, section invalidation, interpolated entities, shared count/settings policy and cleanup; GPU/game MANUAL/PENDING
+[20:23:44] [main/INFO]: [STDOUT]: PASS attached controller Ribbon: actual Lua/frame sampling, native vertices/submission, one history slot, failed transition, target/teleport/retirement and head light; pixels MANUAL/PENDING
+[20:23:44] [main/ERROR]: 
+java.io.IOException: YSM main model is empty
+	at top.aihmc.omnimorph.model.ysm.YsmModelRuntime.fromNbt(YsmModelRuntime.java:169)
+	at org.figuramc.figura.avatar.Avatar.load(Avatar.java:1034)
+	at org.figuramc.figura.avatar.Avatar.load(Avatar.java:970)
+	at org.figuramc.figura.avatar.Avatar.load(Avatar.java:965)
+	at org.figuramc.figura.avatar.Avatar.load(Avatar.java:961)
+	at top.aihmc.omnimorph.lua.api.particle.PreviewParticleNativeSmokeTest.preparationFence(PreviewParticleNativeSmokeTest.java:233)
+	at top.aihmc.omnimorph.lua.api.particle.PreviewParticleNativeSmokeTest.run(PreviewParticleNativeSmokeTest.java:59)
+	at top.aihmc.omnimorph.lua.api.particle.CustomParticleNativeSmokeTest.run(CustomParticleNativeSmokeTest.java:65)
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:306)
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:73)
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.main(YsmMaterialNativeSmokeTest.java:42)
+[20:23:44] [main/INFO]: [STDOUT]: PASS isolated preview particle lifecycle: public construction, no world engine/light, private budgets, tick/frame callbacks, native expiry, reload/retirement/session cleanup, frozen native GUI geometry; pixels MANUAL/PENDING
+[20:23:44] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[20:23:44] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[20:23:44] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[20:23:44] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[20:23:44] [main/INFO]: [STDOUT]: PASS authored cosmetic particles: actual NBT/Lua init, owned PNG name, native animation marker, next-tick creation, duplicate isolation, preview/world routing, reload and retirement; pixels MANUAL/PENDING
+[20:23:45] [main/INFO]: [STDOUT]: PASS created Trail emission: generated package -> authored Lua -> native particles, static/sprite UV, full bright, frame-independent rate, duplicate controls, reload/teleport/expiry and isolated GUI scope; controlled matrices and test-only scale mixin bridge, actual mixin/mounted draw/pixels MANUAL/PENDING
+[20:23:45] [main/WARN]: Avatar 2c22fc07-797a-4dd8-9c29-0e341292999f bypassed resource limits with 49 instructions
+[20:23:45] [main/WARN]: Outfit accessory allowance exhausted: permission=RENDER_INST, accessoryMax=64, accessoryRemaining=64, basePermission=-1, baseCounter=-1/-1, sharedUsed=64, observedBase=0
+[20:23:45] [main/WARN]: Avatar bb2cf67f-6375-4877-8a45-2be5f3991fce bypassed resource limits with 128 instructions
+[20:23:45] [main/WARN]: Avatar 8508b328-01cc-4258-98a6-2aab24b159d7 bypassed resource limits with 64 instructions
+[20:23:45] [main/WARN]: Outfit accessory allowance exhausted: permission=TICK_INST, accessoryMax=64, accessoryRemaining=64, basePermission=-1, baseCounter=-1/-1, sharedUsed=64, observedBase=0
+[20:23:45] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[20:23:45] [main/INFO]: [STDOUT]: PASS cosmetic animation events: real Lua registration, native Figura/YSM sources, next-tick queue, generation/instance isolation, shared count/instructions, bounded reentry and reload; game timing MANUAL/PENDING
+[20:23:45] [main/INFO]: [STDOUT]: PASS particle callbacks: real Lua tick/frame hooks, shared count/instruction quotas, epoch/reentry guards, zero limits, removal and VM failure isolation; game MANUAL/PENDING
+[20:23:45] [main/INFO]: [STDERR]: java.lang.AssertionError: native admission rejection releases particle, owner tracking, live capacity and texture
+[20:23:45] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.lua.api.particle.CustomParticleNativeSmokeTest.require(CustomParticleNativeSmokeTest.java:539)
+[20:23:45] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.lua.api.particle.CustomParticleNativeSmokeTest.testRejectedGroupAdmission(CustomParticleNativeSmokeTest.java:380)
+[20:23:45] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.lua.api.particle.CustomParticleNativeSmokeTest.testLifecycleHooks(CustomParticleNativeSmokeTest.java:326)
+[20:23:45] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.lua.api.particle.CustomParticleNativeSmokeTest.run(CustomParticleNativeSmokeTest.java:74)
+[20:23:45] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:306)
+[20:23:45] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:73)
+[20:23:45] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.main(YsmMaterialNativeSmokeTest.java:42)
+
+> Task :common:ysmMaterialNativeSmokeTest FAILED
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_26.2/build/reports/problems/problems-report.html
+Exception in thread "main" 
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:ysmMaterialNativeSmokeTest'.
+> Process 'command 'D:\Program Files\Java\25\bin\java.exe'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 26s
+11 actionable tasks: 2 executed, 9 up-to-date

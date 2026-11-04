@@ -39,7 +39,8 @@ public final class VerifyMixinTargets {
             }
         }
         System.out.println("Checked mixins=" + audit.checked + ", failures=" + audit.failures);
-        System.out.println("Scope: static targets, shadows, selectors and INVOKE sites; not transformation, locals or runtime behavior.");
+        System.out.println("Scope: static targets, shadows, selectors, callback types/arguments and INVOKE sites; "
+                + "not transformation, locals or runtime behavior.");
         if (audit.checked == 0 || audit.failures != 0) {
             throw new IllegalStateException("Mixin target audit failed");
         }
@@ -223,6 +224,23 @@ public final class VerifyMixinTargets {
                             if (parameters.get(i).descriptorString().startsWith("Lorg/spongepowered/asm/mixin/injection/callback/CallbackInfo")) {
                                 callbackIndex = i;
                                 break;
+                            }
+                        }
+                        if (callbackIndex < 0) {
+                            fail(name, handler.methodName().stringValue() + " missing callback parameter");
+                        } else {
+                            String callbackType = parameters.get(callbackIndex).descriptorString();
+                            for (var selectedMethod : selected) {
+                                boolean returnsVoid = selectedMethod.methodTypeSymbol().returnType()
+                                        .descriptorString().equals("V");
+                                String expectedCallback = "Lorg/spongepowered/asm/mixin/injection/callback/"
+                                        + (returnsVoid ? "CallbackInfo;" : "CallbackInfoReturnable;");
+                                if (!callbackType.equals(expectedCallback)) {
+                                    fail(name, handler.methodName().stringValue() + " callback type " + callbackType
+                                            + " differs from " + selectedMethod.methodName().stringValue()
+                                            + selectedMethod.methodType().stringValue()
+                                            + "; required " + expectedCallback);
+                                }
                             }
                         }
                         if (callbackIndex > 0) {

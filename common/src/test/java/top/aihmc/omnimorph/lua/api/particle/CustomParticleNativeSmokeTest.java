@@ -6,10 +6,13 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleEngine;
+import net.minecraft.client.particle.ParticleGroup;
 import net.minecraft.client.particle.ParticleResources;
 import net.minecraft.client.particle.SingleQuadParticle;
 import net.minecraft.client.particle.SpriteSet;
 import net.minecraft.client.renderer.state.level.QuadParticleRenderState;
+import net.minecraft.client.renderer.state.level.ParticleGroupRenderState;
+import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.Vec3;
@@ -316,23 +319,14 @@ public final class CustomParticleNativeSmokeTest {
         try {
             require(a.activate() && b.activate(), "two wearer fixture particles activate");
             engine.particles.add(a);
-            var queue = com.google.common.collect.EvictingQueue.<Particle>create(1);
-            queue.add(a);
-            var hook = new top.aihmc.omnimorph.mixin.particle.ParticleGroupMixin();
-            var queueField = hook.getClass().getDeclaredField("particles");
-            queueField.setAccessible(true);
-            queueField.set(hook, queue);
-            var engineField = hook.getClass().getDeclaredField("engine");
-            engineField.setAccessible(true);
-            engineField.set(hook, engine);
-            var evict = hook.getClass().getDeclaredMethod("figura$releaseEvictedCustomParticle",
-                    Particle.class, org.spongepowered.asm.mixin.injection.callback.CallbackInfo.class);
-            evict.setAccessible(true);
-            evict.invoke(hook, b, new org.spongepowered.asm.mixin.injection.callback.CallbackInfo("add", false));
-            queue.add(b);
-            require(!a.isAlive() && b.isAlive() && !engine.particles.contains(a)
-                            && CustomParticleRuntime.liveCount(first.owner) == 0,
-                    "production eviction hook releases the displaced custom particle and owner tracking");
+            engine.particles.add(b);
+            var group = new NativeParticleGroup(engine);
+            require(group.add(a) && group.add(b) && a.isAlive() && b.isAlive(),
+                    "native group admission preserves accepted particles through the production Mixin");
+            testRejectedGroupAdmission(second, engine, a, 16384);
+            testRejectedGroupAdmission(second, engine, a, 16383);
+            require(a.isAlive() && b.isAlive() && engine.particles.contains(a) && engine.particles.contains(b),
+                    "rejecting new particles does not evict accepted particles");
             second.resourceReloadEvent();
             require(!b.isAlive() && CustomParticleRuntime.liveCount(second.owner) == 0,
                     "author resource reload clears only its execution's custom particles");
@@ -365,6 +359,49 @@ public final class CustomParticleNativeSmokeTest {
             a.remove();
             b.remove();
             firstTexture.close();
+        }
+    }
+
+    private static void testRejectedGroupAdmission(Avatar owner, RecordingEngine engine,
+                                                   Particle accepted, int occupied) {
+        var texture = new FiguraTexture(owner, "group-rejection-" + occupied, new NativeImage(1, 1, true));
+        var rejected = new CustomParticle(owner, Minecraft.getInstance().level, texture, Vec3.ZERO, Vec3.ZERO);
+        int liveBefore = CustomParticleRuntime.liveCount(owner.owner);
+        try {
+            require(rejected.activate(), "rejected-particle fixture acquires live capacity and texture");
+            engine.particles.add(rejected);
+            var group = new NativeParticleGroup(engine);
+            group.fill(accepted, occupied);
+            var gpu = texture.getTexture();
+            texture.close();
+            require(!gpu.isClosed(), "active particle retains its closed author's texture");
+            require(!group.add(rejected) && group.size() == occupied,
+                    "actual native group rejects at capacity or by reservoir sampling");
+            require(!rejected.isAlive() && !engine.particles.contains(rejected)
+                            && CustomParticleRuntime.liveCount(owner.owner) == liveBefore && gpu.isClosed(),
+                    "native admission rejection releases particle, owner tracking, live capacity and texture");
+        } finally {
+            rejected.remove();
+            engine.particles.remove(rejected);
+            texture.close();
+        }
+    }
+
+    private static final class NativeParticleGroup extends ParticleGroup<Particle> {
+        private NativeParticleGroup(ParticleEngine engine) {
+            super(engine);
+        }
+
+        private void fill(Particle particle, int count) {
+            // Populate the real native queue without invoking admission or random sampling during setup.
+            for (int index = 0; index < count; index++) {
+                particles.add(particle);
+            }
+        }
+
+        @Override
+        public ParticleGroupRenderState extractRenderState(Frustum frustum, Camera camera, float partialTick) {
+            throw new UnsupportedOperationException("Admission checks do not render particles");
         }
     }
 
@@ -435,6 +472,11 @@ public final class CustomParticleNativeSmokeTest {
 
         private RecordingEngine() {
             super(null, null);
+        }
+
+        @Override
+        public net.minecraft.util.RandomSource getRandom() {
+            return net.minecraft.util.RandomSource.create(0L);
         }
 
         @Override

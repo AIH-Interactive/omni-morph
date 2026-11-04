@@ -18,6 +18,7 @@ public final class OfflineMixinAgent {
         Mixins.addConfiguration(configuration);
         Mixins.addConfiguration("omnimorph-offline-platform.mixins.json");
         Mixins.addConfiguration("omnimorph-offline-pip.mixins.json");
+        Mixins.addConfiguration("omnimorph-offline-particle.mixins.json");
         var transformer = ((OfflineMixinService) MixinService.getService()).createTransformer();
         com.llamalad7.mixinextras.MixinExtrasBootstrap.init();
         instrumentation.addTransformer(new ClassFileTransformer() {
@@ -34,7 +35,7 @@ public final class OfflineMixinAgent {
                     // Instrumentation ignores transformer exceptions. Reject the class instead of
                     // silently running an untransformed target and producing misleading evidence.
                     failure.printStackTrace(System.err);
-                    return new byte[0];
+                    return new byte[]{0};
                 }
             }
         });

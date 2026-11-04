@@ -1,0 +1,288 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/eryth/.gradle/wrapper/dists/gradle-9.4.1-bin/arn2x92ynaizyzdaamcbpbhtj/gradle-9.4.1/lib/native-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Architect Plugin: 3.5.168
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+> Task :common:compileJava UP-TO-DATE
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes UP-TO-DATE
+> Task :common:extractIncludeTestProto UP-TO-DATE
+> Task :common:extractTestProto UP-TO-DATE
+> Task :common:generateTestProto NO-SOURCE
+
+> Task :common:compileTestJava
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\CustomParticleNativeSmokeTest.java:32: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:22: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\CustomParticleNativeSmokeTest.java:44: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    public static void run(Unsafe unsafe, Avatar first, Avatar second, Runnable drain) throws Exception {
+                           ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:65: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    public static AutoCloseable recordingSoundManager(Unsafe unsafe) throws Exception {
+                                                      ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:87: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                            ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:89: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) unsafeField.get(null);
+        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:89: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) unsafeField.get(null);
+                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:357: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testControlledBasePlayback(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:409: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testControllerChannelOwnership(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:462: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testRunningControllerPhase(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:512: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testWalkingUsesAvailableLocomotion(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                           ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:613: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testControlledBaseGeometry(Unsafe unsafe, RecordingClient client, Path path) throws Exception {
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:887: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testScreenshotReadback(Unsafe unsafe, RecordingClient client) throws Exception {
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:961: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testAtlasReadback(Unsafe unsafe, RecordingClient client) throws Exception {
+                                          ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1062: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testTexturePublication(Unsafe unsafe, RecordingClient client) throws Exception {
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1105: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testLateTextureBindings(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1166: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testTextureUploadLifetime(Unsafe unsafe, RecordingClient client, PublicationDevice device) throws Exception {
+                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1434: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testScaleAndDefaultTexture(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1461: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testPreviewDefaultPose(Unsafe unsafe, RecordingClient client) throws Exception {
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1596: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testPreviewLighting(Unsafe unsafe, RecordingClient client) throws Exception {
+                                            ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1649: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testGuiResources(Unsafe unsafe, RecordingClient client) throws Exception {
+                                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1693: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testLayerOrder(Unsafe unsafe, RecordingClient client) throws Exception {
+                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1745: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static boolean testCorpusHeldItems(Unsafe unsafe, RecordingClient client, Path path, int index) throws Exception {
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1778: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testAttachmentGeometry(Unsafe unsafe, RecordingClient client) throws Exception {
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1852: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testBakedPreviewGeometry(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                 ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1868: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testPreviewBoneFade(Unsafe unsafe, RecordingClient client) throws Exception {
+                                            ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1952: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testStandingPreviewVertices(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:2012: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testYsmComplexity(Unsafe unsafe, RecordingClient client) throws Exception {
+                                          ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:2049: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testHandLocators(Unsafe unsafe, RecordingClient client) throws Exception {
+                                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:2094: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testHandLocatorChains(Unsafe unsafe, RecordingClient client) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:2124: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testSubEntityInstances(Unsafe unsafe, RecordingClient client) throws Exception {
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:2134: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testSyncModel(Unsafe unsafe, RecordingClient client) throws Exception {
+                                      ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:2147: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testSyncConnection(Unsafe unsafe, RecordingClient client) throws Exception {
+                                           ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:2165: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testCullingProperty(Unsafe unsafe, RecordingClient client) throws Exception {
+                                            ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:2201: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testModelSelection(Unsafe unsafe, RecordingClient client) throws Exception {
+                                           ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:2252: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testOwnershipAndDeferredClose(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                      ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:2272: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testSelectionRestore(Unsafe unsafe, RecordingClient client, Path directory) throws Exception {
+                                             ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:2310: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        private Fixture(Unsafe unsafe, int id) throws Exception {
+                        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:2314: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        private Fixture(Unsafe unsafe, int id, Path selectionPath) throws Exception {
+                        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:2318: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        private Fixture(Unsafe unsafe, int id, Path selectionPath, String geometry) throws Exception {
+                        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:2322: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        private Fixture(Unsafe unsafe, int id, Path selectionPath, String geometry, boolean bakedOnly) throws Exception {
+                        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:2378: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static Avatar owner(Unsafe unsafe, int id) throws Exception {
+                                ^
+注: D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\CustomParticleNativeSmokeTest.java使用或覆盖了已过时的 API。
+注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+42 个警告
+
+> Task :common:processTestResources
+> Task :common:testClasses
+> Task :common:offlineMixinAgent
+
+> Task :common:ysmMaterialNativeSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.joml.MemUtil$MemUtilUnsafe (file:/C:/Users/eryth/.gradle/caches/modules-2/files-2.1/org.joml/joml/1.10.8/fc0a71dad90a2cf41d82a76156a0e700af8e4f8d/joml-1.10.8.jar)
+WARNING: Please consider reporting this to the maintainers of class org.joml.MemUtil$MemUtilUnsafe
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[20:21:43] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.lwjgl.system.Library$$Lambda/0x0000000033c49180 in an unnamed module (file:/C:/Users/eryth/.gradle/caches/modules-2/files-2.1/org.lwjgl/lwjgl/3.4.1/129e06a04f93992cb2a45172435b21fc4b60dd7d/lwjgl-3.4.1-unsafe.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[20:21:43] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[20:21:43] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[20:21:43] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[20:21:43] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[20:21:43] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[20:21:43] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[20:21:44] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[20:21:44] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[20:21:44] [main/INFO]: [STDERR]: org.spongepowered.asm.mixin.transformer.throwables.MixinTransformerError: An unexpected critical error was encountered
+[20:21:44] [main/INFO]: [STDERR]: 	at org.spongepowered.asm.mixin.transformer.MixinProcessor.applyMixins(MixinProcessor.java:380)
+[20:21:44] [main/INFO]: [STDERR]: 	at org.spongepowered.asm.mixin.transformer.MixinTransformer.transformClass(MixinTransformer.java:237)
+[20:21:44] [main/INFO]: [STDERR]: 	at org.spongepowered.asm.mixin.transformer.MixinTransformer.transformClassBytes(MixinTransformer.java:202)
+[20:21:44] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.testing.OfflineMixinAgent$1.transform(OfflineMixinAgent.java:33)
+[20:21:44] [main/INFO]: [STDERR]: 	at java.instrument/java.lang.instrument.ClassFileTransformer.transform(ClassFileTransformer.java:257)
+[20:21:44] [main/INFO]: [STDERR]: 	at java.instrument/sun.instrument.TransformerManager.transform(TransformerManager.java:188)
+[20:21:44] [main/INFO]: [STDERR]: 	at java.instrument/sun.instrument.InstrumentationImpl.transform(InstrumentationImpl.java:594)
+[20:21:44] [main/INFO]: [STDERR]: 	at java.base/java.lang.ClassLoader.defineClass1(Native Method)
+[20:21:44] [main/INFO]: [STDERR]: 	at java.base/java.lang.ClassLoader.defineClass(ClassLoader.java:962)
+[20:21:44] [main/INFO]: [STDERR]: 	at java.base/java.security.SecureClassLoader.defineClass(SecureClassLoader.java:144)
+[20:21:44] [main/INFO]: [STDERR]: 	at java.base/jdk.internal.loader.BuiltinClassLoader.defineClass(BuiltinClassLoader.java:776)
+[20:21:44] [main/INFO]: [STDERR]: 	at java.base/jdk.internal.loader.BuiltinClassLoader.findClassOnClassPathOrNull(BuiltinClassLoader.java:691)
+[20:21:44] [main/INFO]: [STDERR]: 	at java.base/jdk.internal.loader.BuiltinClassLoader.loadClassOrNull(BuiltinClassLoader.java:620)
+[20:21:44] [main/INFO]: [STDERR]: 	at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:578)
+[20:21:44] [main/INFO]: [STDERR]: 	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:490)
+[20:21:44] [main/INFO]: [STDERR]: 	at java.base/jdk.internal.misc.Unsafe.allocateInstance(Native Method)
+[20:21:44] [main/INFO]: [STDERR]: 	at jdk.unsupported/sun.misc.Unsafe.allocateInstance(Unsafe.java:1185)
+[20:21:44] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.lua.api.particle.CustomParticleNativeSmokeTest.run(CustomParticleNativeSmokeTest.java:50)
+[20:21:44] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:306)
+[20:21:44] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:73)
+[20:21:44] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.main(YsmMaterialNativeSmokeTest.java:42)
+[20:21:44] [main/INFO]: [STDERR]: Caused by: org.spongepowered.asm.mixin.throwables.MixinApplyError: Mixin [omnimorph-offline-particle.mixins.json:ParticleGroupMixin from mod (unknown)] from phase [DEFAULT] in config [omnimorph-offline-particle.mixins.json] FAILED during APPLY
+[20:21:44] [main/INFO]: [STDERR]: 	at org.spongepowered.asm.mixin.transformer.MixinProcessor.handleMixinError(MixinProcessor.java:685)
+[20:21:44] [main/INFO]: [STDERR]: 	at org.spongepowered.asm.mixin.transformer.MixinProcessor.handleMixinApplyError(MixinProcessor.java:636)
+[20:21:44] [main/INFO]: [STDERR]: 	at org.spongepowered.asm.mixin.transformer.MixinProcessor.applyMixins(MixinProcessor.java:367)
+[20:21:44] [main/INFO]: [STDERR]: 	... 20 more
+[20:21:44] [main/INFO]: [STDERR]: Caused by: org.spongepowered.asm.mixin.injection.throwables.InvalidInjectionException: Invalid descriptor on omnimorph-offline-particle.mixins.json:ParticleGroupMixin from mod (unknown)->@Inject::figura$releaseEvictedCustomParticle(Lnet/minecraft/client/particle/Particle;Lorg/spongepowered/asm/mixin/injection/callback/CallbackInfo;)V! CallbackInfoReturnable is required! [INJECT_APPLY Applicator Phase -> omnimorph-offline-particle.mixins.json:ParticleGroupMixin from mod (unknown) -> Apply Injections ->  -> Inject -> omnimorph-offline-particle.mixins.json:ParticleGroupMixin from mod (unknown)->@Inject::figura$releaseEvictedCustomParticle(Lnet/minecraft/client/particle/Particle;Lorg/spongepowered/asm/mixin/injection/callback/CallbackInfo;)V]
+[20:21:44] [main/INFO]: [STDERR]: 	at org.spongepowered.asm.mixin.injection.callback.CallbackInjector.inject(CallbackInjector.java:555)
+[20:21:44] [main/INFO]: [STDERR]: 	at org.spongepowered.asm.mixin.injection.callback.CallbackInjector.inject(CallbackInjector.java:493)
+[20:21:44] [main/INFO]: [STDERR]: 	at org.spongepowered.asm.mixin.injection.code.Injector.inject(Injector.java:284)
+[20:21:44] [main/INFO]: [STDERR]: 	at org.spongepowered.asm.mixin.injection.struct.InjectionInfo.inject(InjectionInfo.java:503)
+[20:21:44] [main/INFO]: [STDERR]: 	at org.spongepowered.asm.mixin.transformer.MixinTargetContext.applyInjections(MixinTargetContext.java:1475)
+[20:21:44] [main/INFO]: [STDERR]: 	at org.spongepowered.asm.mixin.transformer.MixinApplicatorStandard.applyInjections(MixinApplicatorStandard.java:832)
+[20:21:44] [main/INFO]: [STDERR]: 	at org.spongepowered.asm.mixin.transformer.MixinApplicatorStandard.lambda$runApplicatorPass$7(MixinApplicatorStandard.java:362)
+[20:21:44] [main/INFO]: [STDERR]: 	at org.spongepowered.asm.mixin.transformer.MixinApplicatorStandard.processMixins(MixinApplicatorStandard.java:381)
+[20:21:44] [main/INFO]: [STDERR]: 	at org.spongepowered.asm.mixin.transformer.MixinApplicatorStandard.runApplicatorPass(MixinApplicatorStandard.java:360)
+[20:21:44] [main/INFO]: [STDERR]: 	at org.spongepowered.asm.mixin.transformer.MixinApplicatorStandard.apply(MixinApplicatorStandard.java:240)
+[20:21:44] [main/INFO]: [STDERR]: 	at org.spongepowered.asm.mixin.transformer.TargetClassContext.apply(TargetClassContext.java:437)
+[20:21:44] [main/INFO]: [STDERR]: 	at org.spongepowered.asm.mixin.transformer.TargetClassContext.applyMixins(TargetClassContext.java:418)
+[20:21:44] [main/INFO]: [STDERR]: 	at org.spongepowered.asm.mixin.transformer.MixinProcessor.applyMixins(MixinProcessor.java:351)
+[20:21:44] [main/INFO]: [STDERR]: 	... 20 more
+[20:21:44] [main/INFO]: [STDOUT]: PASS Layered particles: native UV/tint/light extraction, blend/order hook, atomic leases, layer bounds and frame cleanup; real GPU/game MANUAL/PENDING
+[20:21:44] [main/INFO]: [STDOUT]: PASS native Ribbon: Lua mode/settings, extraction hook, actual particle vertex bytes, native submit nodes, frozen replay, shared vertices/trail slots and cleanup; GPU/game MANUAL/PENDING
+[20:21:44] [main/INFO]: [STDOUT]: PASS native particle motion: Lua properties, real acceleration/gravity/tick, all built-ins, native roll interpolation, actual EntityAPI target movement/ID reuse/loss and overflow cleanup
+[20:21:44] [main/INFO]: [STDOUT]: PASS native particle lights: Lua settings, production world hook/region identity, section invalidation, interpolated entities, shared count/settings policy and cleanup; GPU/game MANUAL/PENDING
+[20:21:44] [main/INFO]: [STDOUT]: PASS attached controller Ribbon: actual Lua/frame sampling, native vertices/submission, one history slot, failed transition, target/teleport/retirement and head light; pixels MANUAL/PENDING
+[20:21:44] [main/ERROR]: 
+java.io.IOException: YSM main model is empty
+	at top.aihmc.omnimorph.model.ysm.YsmModelRuntime.fromNbt(YsmModelRuntime.java:169)
+	at org.figuramc.figura.avatar.Avatar.load(Avatar.java:1034)
+	at org.figuramc.figura.avatar.Avatar.load(Avatar.java:970)
+	at org.figuramc.figura.avatar.Avatar.load(Avatar.java:965)
+	at org.figuramc.figura.avatar.Avatar.load(Avatar.java:961)
+	at top.aihmc.omnimorph.lua.api.particle.PreviewParticleNativeSmokeTest.preparationFence(PreviewParticleNativeSmokeTest.java:233)
+	at top.aihmc.omnimorph.lua.api.particle.PreviewParticleNativeSmokeTest.run(PreviewParticleNativeSmokeTest.java:59)
+	at top.aihmc.omnimorph.lua.api.particle.CustomParticleNativeSmokeTest.run(CustomParticleNativeSmokeTest.java:65)
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:306)
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:73)
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.main(YsmMaterialNativeSmokeTest.java:42)
+[20:21:44] [main/INFO]: [STDOUT]: PASS isolated preview particle lifecycle: public construction, no world engine/light, private budgets, tick/frame callbacks, native expiry, reload/retirement/session cleanup, frozen native GUI geometry; pixels MANUAL/PENDING
+[20:21:44] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[20:21:44] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[20:21:44] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[20:21:44] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[20:21:44] [main/INFO]: [STDOUT]: PASS authored cosmetic particles: actual NBT/Lua init, owned PNG name, native animation marker, next-tick creation, duplicate isolation, preview/world routing, reload and retirement; pixels MANUAL/PENDING
+[20:21:45] [main/INFO]: [STDOUT]: PASS created Trail emission: generated package -> authored Lua -> native particles, static/sprite UV, full bright, frame-independent rate, duplicate controls, reload/teleport/expiry and isolated GUI scope; controlled matrices and test-only scale mixin bridge, actual mixin/mounted draw/pixels MANUAL/PENDING
+[20:21:45] [main/WARN]: Avatar b9750ebe-f034-41f4-ada0-2a2db77ac16e bypassed resource limits with 49 instructions
+[20:21:45] [main/WARN]: Outfit accessory allowance exhausted: permission=RENDER_INST, accessoryMax=64, accessoryRemaining=64, basePermission=-1, baseCounter=-1/-1, sharedUsed=64, observedBase=0
+[20:21:45] [main/WARN]: Avatar 33dc5b3a-7a65-40d2-b0ed-673cc69b0a13 bypassed resource limits with 128 instructions
+[20:21:45] [main/WARN]: Avatar d78b1bff-419b-487f-a488-655833be134d bypassed resource limits with 64 instructions
+[20:21:45] [main/WARN]: Outfit accessory allowance exhausted: permission=TICK_INST, accessoryMax=64, accessoryRemaining=64, basePermission=-1, baseCounter=-1/-1, sharedUsed=64, observedBase=0
+[20:21:45] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[20:21:45] [main/INFO]: [STDOUT]: PASS cosmetic animation events: real Lua registration, native Figura/YSM sources, next-tick queue, generation/instance isolation, shared count/instructions, bounded reentry and reload; game timing MANUAL/PENDING
+[20:21:45] [main/INFO]: [STDOUT]: PASS particle callbacks: real Lua tick/frame hooks, shared count/instruction quotas, epoch/reentry guards, zero limits, removal and VM failure isolation; game MANUAL/PENDING
+[20:21:45] [main/INFO]: [STDERR]: java.lang.AssertionError: native admission rejection releases particle, owner tracking, live capacity and texture
+[20:21:45] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.lua.api.particle.CustomParticleNativeSmokeTest.require(CustomParticleNativeSmokeTest.java:539)
+[20:21:45] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.lua.api.particle.CustomParticleNativeSmokeTest.testRejectedGroupAdmission(CustomParticleNativeSmokeTest.java:380)
+[20:21:45] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.lua.api.particle.CustomParticleNativeSmokeTest.testLifecycleHooks(CustomParticleNativeSmokeTest.java:326)
+[20:21:45] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.lua.api.particle.CustomParticleNativeSmokeTest.run(CustomParticleNativeSmokeTest.java:74)
+[20:21:45] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:306)
+[20:21:45] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:73)
+[20:21:45] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.main(YsmMaterialNativeSmokeTest.java:42)
+
+> Task :common:ysmMaterialNativeSmokeTest FAILED
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_26.2/build/reports/problems/problems-report.html
+Exception in thread "main" 
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:ysmMaterialNativeSmokeTest'.
+> Process 'command 'D:\Program Files\Java\25\bin\java.exe'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 33s
+11 actionable tasks: 4 executed, 7 up-to-date
