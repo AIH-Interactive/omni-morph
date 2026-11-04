@@ -7,8 +7,8 @@
 
 - 分支 26.3，跟踪 origin/26.3；禁止切分支/worktree。
 - S1 已完成并推送：b5ba406c。
-- S2 自动验收完成，当前正在准备独立阶段提交/推送，尚未声明推送成功。
-- S3、S4 未开始；须确认 S2 推送成功才进入 S3。
+- S2 已完成并推送 b83f1ec0912786c3cfc19963ea9ec4685f1f04f4，远端 SHA 已核对。
+- S3 自动验收完成，当前准备独立提交/推送；S4 尚未开始，须确认 S3 推送成功才实施。
 - 工作区包含 S2 必要源码、测试、审计工具和本手册修改；保留原有未跟踪 .codex/，不提交它。
 - 计划、绝大多数 docs 日志依现有 .gitignore 本地保存；本手册已经受 Git 跟踪。
 
@@ -57,3 +57,12 @@ Architectury plugin 升至 3.5.170，以修复 transformer 读取 LWJGL Java27 m
 不得未经许可启动游戏或要求用户实机操作。Qt offscreen 禁止。Actions 仅生产编译/native/打包，CMake BUILD_TESTING=OFF，不编译执行测试。保留其他工作与 .codex/；无机会重构。每阶段提交推送成功后才继续下一阶段。
 
 可靠额度接口安全检查点查询；≤10%预警、≤2%停止新阶段并安全交接，仅阈值触发时委派 gpt-6-luna 整理手册；不能读取时不猜测。任务完成也须更新本手册。
+
+## S3 最新检查点
+
+- docs/S3-full-pipeline-initial.log：原版 PipelineBuilder 验证完整 vertex/fragment、接口、顶点格式及绑定布局，OpenGL/Vulkan 前端各110配置，合计220；四档1/8/32/64 palette × entity/rigid，及storage entity/rigid/model；solid/cutout/translucent/emissive与普通/发光OIT三阶段均通过。后端为只记录 CreateInfo 的边界，未执行驱动/GPU。
+- docs/S3-reuse-regressions.log：accelerationContract、gpuAcceleration、gpuSubmission、nativeFeaturePreparation、gpuRigidData、gpuStorageBackend、nativeGpuFence、nativeStorageBinding 全部通过，BUILD SUCCESSFUL。
+- 新增真实 adapter 生命周期断言：同一OIT阶段两次绘制只编译一次，三个阶段独立缓存，借用pass不关闭；所有诊断/材质/阶段程序恰好关闭一次，重复cleanup不重复释放。
+- 复用 native ABI、C++ 算法、pose/remap/model 编码、arena与分批策略、整arena绑定/16字节offset、fence→submit→await与普通poll。原版GlFence、PipelineBuilder、OitPipelineSet源码已经minecraft-dev-mcp核对。
+- 本阶段没有发现新的生产差异，未修改生产代码，不制造失败；相关新破坏点的真实RED在S2 shader及upload日志，S3扩大验证矩阵均GREEN。S2生产包不受仅测试变更影响，不重复构建；S4将从S3提交重新打包。
+- 下一步完成S3 diff/status/提交推送核对，然后S4 Windows x86_64双loader native包及完整性/许可证/哈希清单、最终计划/手册。

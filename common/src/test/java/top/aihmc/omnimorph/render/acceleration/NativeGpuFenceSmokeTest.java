@@ -140,6 +140,7 @@ public final class NativeGpuFenceSmokeTest {
         boolean failBind;
         boolean failDraw;
         RecordedPass lastPass;
+        final List<java.util.concurrent.atomic.AtomicInteger> programCloses = new ArrayList<>();
         private int submits;
         private int mapped;
         private boolean passActive;
@@ -149,19 +150,27 @@ public final class NativeGpuFenceSmokeTest {
                 case "getDeviceInfo" -> new DeviceInfo("recording", "fixture", "recording", false,
                         "recording", 0, new DeviceLimits(16, 256, 16384, 64L * 1024 * 1024, 1, 8, 1),
                         null, Set.of(), null, null);
-                case "compilePipeline" -> java.util.concurrent.CompletableFuture.completedFuture(
-                        (CompiledRenderPipeline.Pending) () -> proxy(CompiledRenderPipeline.class,
-                                (program, operation, values) -> switch (operation.getName()) {
-                                    case "isClosed" -> false;
-                                    case "close" -> null;
-                                    default -> throw new UnsupportedOperationException(operation.toString());
-                                }));
+                case "compilePipeline" -> java.util.concurrent.CompletableFuture.completedFuture(recordProgram());
                 case "createBuffer" -> createBuffer((int) args[1], args[2]);
                 case "createTexture" -> createTexture(args);
                 case "createTextureView" -> createView((GpuTexture) args[0]);
                 case "createCommandEncoder" -> encoder();
                 default -> throw new UnsupportedOperationException(method.toString());
             });
+        }
+
+        private CompiledRenderPipeline.Pending recordProgram() {
+            var closes = new java.util.concurrent.atomic.AtomicInteger();
+            programCloses.add(closes);
+            return () -> proxy(CompiledRenderPipeline.class,
+                    (program, operation, values) -> switch (operation.getName()) {
+                        case "isClosed" -> closes.get() != 0;
+                        case "close" -> {
+                            closes.incrementAndGet();
+                            yield null;
+                        }
+                        default -> throw new UnsupportedOperationException(operation.toString());
+                    });
         }
 
         private GpuBuffer createBuffer(int usage, Object contents) {

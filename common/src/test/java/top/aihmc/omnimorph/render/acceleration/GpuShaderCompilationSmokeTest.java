@@ -2,11 +2,16 @@ package top.aihmc.omnimorph.render.acceleration;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.renderpearl.api.device.DeviceInfo;
+import com.mojang.renderpearl.api.device.DeviceFeatures;
 import com.mojang.renderpearl.api.device.GpuDevice;
 import com.mojang.renderpearl.api.device.HintsAndWorkarounds;
 import com.mojang.renderpearl.api.pipeline.ShaderSource;
 import com.mojang.renderpearl.api.pipeline.ShaderType;
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import com.mojang.renderpearl.backend.api.BackendRenderPipeline;
+import com.mojang.renderpearl.backend.api.GpuDeviceBackend;
 import com.mojang.renderpearl.frontend.shaders.GlslCompiler;
+import com.mojang.renderpearl.frontend.shaders.PipelineBuilder;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
@@ -17,6 +22,9 @@ import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /** Real 26.3 shaderc/SPIR-V frontend and includes; creates no graphics device/window. */
 public final class GpuShaderCompilationSmokeTest {
@@ -58,6 +66,7 @@ public final class GpuShaderCompilationSmokeTest {
                         }
                     }
                 }
+                validatePipelines(sources, original, zeroToOne);
             }
         } finally {
             activeDevice.set(null, previousDevice);
@@ -65,10 +74,92 @@ public final class GpuShaderCompilationSmokeTest {
         System.out.println("PASS five production shader variants through actual 26.3 frontend, OpenGL/Vulkan feature configurations; no GPU execution");
     }
 
+    private record Variant(String name, String source, boolean uniformPose) {
+    }
+
+    private static void validatePipelines(Resources sources, String original, boolean zeroToOne) {
+        List<Variant> variants = new ArrayList<>();
+        for (int parts : GpuBatchData.PART_TIERS) {
+            variants.add(new Variant("entity_" + parts, GpuShaderProgram.wrapEntitySource(original, parts), true));
+            variants.add(new Variant("rigid_" + parts, GpuShaderProgram.wrapRigidEntitySource(original, parts), true));
+        }
+        variants.add(new Variant("storage", GpuShaderProgram.wrapStorageEntitySource(original), false));
+        variants.add(new Variant("storage_rigid", GpuShaderProgram.wrapStorageRigidEntitySource(original), false));
+        variants.add(new Variant("storage_model", GpuShaderProgram.wrapStorageModelEntitySource(original), false));
+        List<RenderPipeline> materials = List.of(RenderPipelines.ENTITY_SOLID,
+                RenderPipelines.ENTITY_CUTOUT_CULL, RenderPipelines.ENTITY_TRANSLUCENT,
+                RenderPipelines.ENTITY_TRANSLUCENT_EMISSIVE);
+        var accepted = new AtomicInteger();
+        var backend = (GpuDeviceBackend) Proxy.newProxyInstance(GpuDeviceBackend.class.getClassLoader(),
+                new Class<?>[]{GpuDeviceBackend.class}, (instance, method, arguments) -> {
+                    if (method.getName().equals("getDeviceInfo")) {
+                        return deviceInfo(zeroToOne);
+                    }
+                    if (method.getName().equals("compilePipeline")) {
+                        var info = (BackendRenderPipeline.CreateInfo) arguments[0];
+                        require(info.shaders().size() == 2, "both complete production stages reach backend creation");
+                        accepted.incrementAndGet();
+                        // Stop after real frontend validation; this fixture does not compile a driver pipeline.
+                        return BackendRenderPipeline.Pending.NULL;
+                    }
+                    throw new UnsupportedOperationException(method.toString());
+                });
+        try (var builder = new PipelineBuilder(backend)) {
+            for (Variant variant : variants) {
+                var location = Identifier.fromNamespaceAndPath("omni-morph", "test/" + variant.name());
+                var shaderSource = new ShaderSource() {
+                    @Override
+                    public String getShader(Identifier id, ShaderType type) {
+                        return id.equals(location) && type == ShaderType.VERTEX
+                                ? variant.source() : sources.getShader(id, type);
+                    }
+
+                    @Override
+                    public CachedIncludeSource getInclude(Identifier id) {
+                        return sources.getInclude(id);
+                    }
+
+                    @Override
+                    public void close() {
+                        // Shared sources are owned by the enclosing test scope.
+                    }
+                };
+                for (RenderPipeline material : materials) {
+                    var pipeline = GpuShaderProgram.pipeline(material, location, variant.uniformPose());
+                    validatePipeline(builder, pipeline, shaderSource, accepted);
+                    if (material == RenderPipelines.ENTITY_TRANSLUCENT
+                            || material == RenderPipelines.ENTITY_TRANSLUCENT_EMISSIVE) {
+                        var oit = material == RenderPipelines.ENTITY_TRANSLUCENT
+                                ? RenderPipelines.OIT_ENTITY : RenderPipelines.OIT_ENTITY_EMISSIVE;
+                        for (var stage : List.of(oit.depthBoundsPipeline(), oit.transmittancePipeline(),
+                                oit.accumulatePipeline())) {
+                            validatePipeline(builder, GpuShaderProgram.stage(pipeline, stage), shaderSource, accepted);
+                        }
+                    }
+                }
+            }
+        }
+        require(accepted.get() == variants.size() * 10, "every material, palette and OIT stage is validated");
+        System.out.println("PASS full pipeline frontend: " + accepted.get() + " "
+                + (zeroToOne ? "Vulkan" : "OpenGL") + " configurations, vertex/fragment/layout/format/OIT; no driver execution");
+    }
+
+    private static void validatePipeline(PipelineBuilder builder, RenderPipeline pipeline,
+                                         ShaderSource sources, AtomicInteger accepted) {
+        int before = accepted.get();
+        builder.compilePipeline(pipeline, sources, Runnable::run).join().finishCompile();
+        require(accepted.get() == before + 1, "frontend rejected " + pipeline.getLocation());
+    }
+
+    private static DeviceInfo deviceInfo(boolean zeroToOne) {
+        return new DeviceInfo("compiler fixture", "fixture", "fixture", zeroToOne,
+                zeroToOne ? "Vulkan" : "OpenGL", 0, null,
+                new DeviceFeatures(false, zeroToOne, false, false, false, false, false, false),
+                java.util.Set.of(), new HintsAndWorkarounds(false, false, false, false), null);
+    }
+
     private static GpuDevice metadataDevice(boolean zeroToOne) {
-        var info = new DeviceInfo("compiler fixture", "fixture", "fixture", zeroToOne,
-                zeroToOne ? "Vulkan" : "OpenGL", 0, null, null, java.util.Set.of(),
-                new HintsAndWorkarounds(false, false, false, false), null);
+        var info = deviceInfo(zeroToOne);
         return (GpuDevice) Proxy.newProxyInstance(GpuDevice.class.getClassLoader(), new Class<?>[]{GpuDevice.class},
                 (instance, method, arguments) -> {
                     if (method.getName().equals("getDeviceInfo")) {

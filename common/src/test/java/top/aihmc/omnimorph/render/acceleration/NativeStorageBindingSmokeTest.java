@@ -95,6 +95,19 @@ public final class NativeStorageBindingSmokeTest {
                                         && !pass.closed && !buffer.isClosed(),
                                 "issued failure propagates without closing caller-owned pass or arena");
                     }
+                    device.failDraw = false;
+                    int compiledBeforeStages = device.programCloses.size();
+                    var oit = RenderPipelines.OIT_ENTITY;
+                    for (var stage : List.of(oit.depthBoundsPipeline(), oit.transmittancePipeline(),
+                            oit.accumulatePipeline())) {
+                        var stageContext = new GpuDrawContext(callerOwnedPass, stage, List.of(),
+                                dynamic.slice(), false, 0, 0, 0, 0);
+                        for (int repeat = 0; repeat < 2; repeat++) {
+                            adapter.draw(material, mesh, storedPose, stageContext, 0, 6, () -> {});
+                        }
+                    }
+                    require(device.programCloses.size() == compiledBeforeStages + 3 && !pass.closed,
+                            "each native OIT stage compiles once and repeated draws reuse the caller's pass");
                 }
                 require(pass.closed, "the caller closes its pass after success and failures");
             }
@@ -102,9 +115,12 @@ public final class NativeStorageBindingSmokeTest {
                     "owning scopes close every diagnostic, mesh, arena and dynamic buffer");
         } finally {
             adapter.closePrograms();
+            adapter.closePrograms();
             AccelerationOptions.setStorageBlocks(previousStorage);
             activeDevice.set(null, previousDevice);
         }
+        require(device.programCloses.stream().allMatch(count -> count.get() == 1),
+                "all diagnostic, material and OIT programs close exactly once, including repeated cleanup");
         System.out.println("PASS storage adapter: whole arena, offset UBO, index range, issued failures, borrowed pass; no GPU execution");
     }
 
