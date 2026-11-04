@@ -4,7 +4,7 @@
 
 ## 当前任务与状态
 
-用户要求修复硬件加速探针Cannot wait on a fence for the current submit。两处探针与退出回收已修复，RED/GREEN及相关回归/双平台assemble通过。下一最小操作为提交推送修复检查点，再生成和验证新Windows native本地包。
+用户要求修复硬件加速探针Cannot wait on a fence for the current submit。两处探针与退出回收、RED/GREEN及相关回归、双平台assemble、修复提交推送、Windows native本地包验证和ZIP交付均已完成。当前无剩余实施、验证或打包任务。
 
 - 两处探针覆盖普通/rigid及storage entity/rigid/model，建立fence后先调用原版encoder.submit，再阻塞等待；原像素校验、1秒超时和资源作用域保留。
 - 退出回收先建立所有缺失fence，再按设备身份各提交一次，再在原预算内等待并释放；普通poll保持0超时且不提交。
@@ -13,9 +13,9 @@
 
 ## Git与文件
 
-仅26.2 -> origin/26.2；禁止创建/切换分支或worktree。起点c00772b1已推送；此前S0～S4、ParticleGroup修复5f0d923d、solid修复47daa3b9均已推送。
+仅26.2 -> origin/26.2；禁止创建/切换分支或worktree。修复提交5724ba54baafb3bbb7c4b2ca463d978eee44fa4f已推送并核对远端；此前S0～S4、ParticleGroup修复5f0d923d、solid修复47daa3b9均已推送。此后仅更新交付文档/日志，不改变已验证运行代码。
 
-当前修改：common/build.gradle、GpuDeviceAdapter.java、MinecraftGpuDeviceAdapter.java、GpuRetirement.java、GpuAccelerationSmokeTest.java、新测试NativeGpuFenceSmokeTest.java及报告/日志/本手册，准备作为通过验证的修复检查点提交。实际HEAD和状态以git log/status为准。
+5724ba54包含common/build.gradle、GpuDeviceAdapter.java、MinecraftGpuDeviceAdapter.java、GpuRetirement.java、GpuAccelerationSmokeTest.java、新测试NativeGpuFenceSmokeTest.java及RED/GREEN报告/日志。本手册与最终交付说明随收尾记录提交推送，交付前核对origin/26.2；最终HEAD以git log为准。
 
 原有.codex/未跟踪，保留，不提交或清理。无活动构建。
 
@@ -27,14 +27,17 @@
 - 测试只初始化实际GlFence所需的submit序号/空sync槽并记录命令；不创建GL上下文，像素为固定夹具，不证明真实GPU计算或驱动通过。
 - 人工四组合客户端/驱动/GPU像素/中文UI与重载缩放退出：SKIPPED（用户决定，未执行）。不启动游戏，不作为受阻条件。
 
-## 本地包与下一步
+## 最终本地交付与剩余事项
 
-上一包build/test-packages/OMP-26.2-Windows-Native-47daa3b9.zip含本次fence顺序错误，保留历史追溯，不作为新修复交付。
+ZIP：D:/UserData/Desktop/Project/OMP/OMP_26.2/build/test-packages/OMP-26.2-Windows-Native-5724ba54.zip
 
-1. 检查diff，提交推送并核对远端。
-2. JNI/native源码未变，复用已有生产headers和现有MSVC/JDK25运行Windows native构建链/CTest，生成修复提交对应的manifest。
-3. 两加载器packageLocalNative、verifyLocalNativeLoader、nativePlatformSmokeTest，生成新提交号ZIP并核对字节码/native身份/哈希。
-4. 更新最终报告、交付说明和本手册，提交推送收尾记录，交付新本地路径。没有新增开发阶段。
+ZIP SHA-256：4c6a4ebf4df5a9be82796006c425011ddb78060d851d667072fbd951ae01a6a2。
+
+双JAR：build/local-native/omni-morph-1.0.0-alpha.7+26.2-{fabric,neoforge}-mc-windows-local.jar；精确SHA见docs/26.2-WINDOWS-TEST-PACKAGES.md。两包包含当前fence及此前ParticleGroup/solid修复、Windows x86_64 DLL；ABI2，capabilities63，native sourceCommit=5724ba54，sourceDirty=false。
+
+补充交付验证：Windows native构建链/CTest通过（复用未变的JNI/native源码对应的生产headers和编译输出，DLL只依赖KERNEL32.dll）；双包完整性/实际DLL提取、ABI/JNI differential通过，Fabric28秒、NeoForge25秒。JDK25 ClassFile API解析两个实际成品，确认普通探针、storage探针及退出回收方法capture fence -> submit -> await顺序。ZIP双JAR与该字节码验证的本地JAR逐字节一致，哈希/native身份及DLL哈希、前次修复、无测试class混入、README人工SKIPPED均核对PASS。
+
+旧52e0a33、5f0d923d、47daa3b9 ZIP保留历史追溯，不作为最新交付。无剩余开发、自动验证或打包任务；人工实机按用户决定SKIPPED，不启动游戏，不作为受阻条件，不新增阶段。
 
 ## 约束与额度
 

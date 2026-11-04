@@ -1,0 +1,3 @@
+PASS ZIP JAR equals bytecode-verified local artifact, hash/native identity, previous fixes and no fence test class: omni-morph-1.0.0-alpha.7+26.2-fabric-mc-windows-local.jar
+PASS ZIP JAR equals bytecode-verified local artifact, hash/native identity, previous fixes and no fence test class: omni-morph-1.0.0-alpha.7+26.2-neoforge-mc-windows-local.jar
+ZIP SHA-256: 4c6a4ebf4df5a9be82796006c425011ddb78060d851d667072fbd951ae01a6a2

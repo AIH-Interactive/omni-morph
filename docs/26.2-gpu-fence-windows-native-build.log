@@ -1,0 +1,60 @@
+-- Configuring done (0.2s)
+-- Generating done (0.1s)
+-- Build files have been written to: D:/UserData/Desktop/Project/OMP/OMP_26.2/build/native/windows-x64-release
+-- Configuring done (0.2s)
+-- Generating done (0.1s)
+-- Build files have been written to: D:/UserData/Desktop/Project/OMP/OMP_26.2/build/native/windows-x64-release
+ninja: no work to do.
+ninja: no work to do.
+UpdateCTestConfiguration  from :D:/UserData/Desktop/Project/OMP/OMP_26.2/DartConfiguration.tcl
+Test project D:/UserData/Desktop/Project/OMP/OMP_26.2/build/native/windows-x64-release
+Constructing a list of tests
+Done constructing a list of tests
+Updating test list for fixtures
+Added 0 tests to meet fixture requirements
+Checking test dependency graph...
+Checking test dependency graph end
+test 1
+    Start 1: acceleration_native
+
+1: Test command: D:\UserData\Desktop\Project\OMP\OMP_26.2\build\native\windows-x64-release\native\accel_tests.exe
+1: Working Directory: D:/UserData/Desktop/Project/OMP/OMP_26.2/build/native/windows-x64-release/native
+1: Test timeout computed to be: 10000000
+1: PASS native dispatch, scalar/available SSE2/AVX2/NEON, unaligned/tails, bounds, alias, finite publication, pose pack; capabilities=63
+1/1 Test #1: acceleration_native ..............   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   0.02 sec
+
+1: Test command: D:\UserData\Desktop\Project\OMP\OMP_26.2\build\native\windows-x64-release\native\accel_tests.exe
+1: Working Directory: D:/UserData/Desktop/Project/OMP/OMP_26.2/build/native/windows-x64-release/native
+1: Test timeout computed to be: 10000000
+1: PASS native dispatch, scalar/available SSE2/AVX2/NEON, unaligned/tails, bounds, alias, finite publication, pose pack; capabilities=63
+1/1 Test #1: acceleration_native ..............   Passed    0.01 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total Test time (real) =   0.02 sec
+Microsoft (R) COFF/PE Dumper Version 14.51.36260.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file D:\UserData\Desktop\Project\OMP\OMP_26.2\build\native\windows-x64-release\bin\omnimorph_accel.dll
+
+File Type: DLL
+
+  Image has the following dependencies:
+
+    KERNEL32.dll
+
+  Summary
+
+        2000 .data
+        1000 .fptable
+        2000 .pdata
+        B000 .rdata
+        1000 .reloc
+        1000 .rsrc
+       13000 .text
+Native build completed: D:\UserData\Desktop\Project\OMP\OMP_26.2\build\native\windows-x64-release\bin\omnimorph_accel.dll

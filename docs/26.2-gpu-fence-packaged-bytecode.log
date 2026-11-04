@@ -1,0 +1,3 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+PASS packaged native API call order: uniform probe, storage probe and shutdown; omni-morph-1.0.0-alpha.7+26.2-fabric-mc-windows-local.jar
+PASS packaged native API call order: uniform probe, storage probe and shutdown; omni-morph-1.0.0-alpha.7+26.2-neoforge-mc-windows-local.jar
