@@ -19,4 +19,3 @@ WardrobeScreen交出私有LibraryPreviewSession后，LocalOutfitPreview.tick只�
 - 游戏/真实GUI画面/GPU像素验收：SKIPPED（用户禁止启动游戏，未执行）；离线Lua与生产入口回归不冒充实机画面。没有修改用户实例或模型、没有启动游戏、没有额外native包或六平台发布。Actions继续仅生产构建，测试仅本地执行。
 
 范围内适配和规定验证完成，无剩余实施阶段；提交推送状态以根AGENT_HANDOFF.md为准。
-
