@@ -1,3 +1,16 @@
+# 当前任务：Actions macOS ARM64 runner 修复与串行同步
+
+2026-11-06。26.2 根因已证实：run 42222244392 的 macos-aarch64 job 在分配 runner 时报告 `The configuration 'macos-14-arm64-us-default' is not supported`，未进入编译；其余基础包与五个平台 native 成功，合包/发布随后跳过。
+
+最小修复：仅将 .github/workflows/fabric-build.yml 的 macos-aarch64 runner 从 macos-14 改为 macos-15，Intel 保持 macos-15-intel。官方退役公告 https://github.com/actions/runner-images/issues/13518；支持标签 https://github.com/actions/runner-images 。
+
+本地验证：PyYAML 读取真实 workflow 的六平台精确矩阵断言，修改前 RED、修改后 GREEN；日志 build/ci-runner-{RED,GREEN}.log。git diff --check 通过。静态复核 workflow → stageNativeBase/compileNativeProductionInterface/assembleNativeJar 与 native 三脚本链，生产源 JNI、BUILD_TESTING=OFF、Windows SkipTests 保持；未在 Actions 引入测试。此次仅 runner 配置变更，不重复 Java/native 编译。
+
+当前检查点提交推送 26.2 后，严格依次发送 26.3 → 26.1.2 → 1.21.1 → 1.20.1；每版确认验证和提交推送完成后才发送下一版。已修复版本只核对，不重复修改或空提交。各版结果待后续汇总。保留原未跟踪 .codex/。
+
+未启动游戏，未手动触发 Actions。修复后远端真实 runner 调度/生产构建尚未执行，记录 MANUAL/PENDING，不宣称远端构建通过。下文为此前动画修复的已完成记录。
+
+---
 # 最终状态：预览修复已提交推送，全部 OMP 版本串行同步完成
 
 2026-11-06（Asia/Seoul）。用户授权的当前修复提交/推送、其它版本依次发送/修复/验证/提交推送已全部完成。无剩余实施、同步或等待中的版本，不再启动新工作。
