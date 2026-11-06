@@ -24,3 +24,9 @@
 实际Actions日志任务清单已核对，无test/check/smoke/verification/regression/benchmark任务，无CTest/JNI smoke/accel_tests构建执行记录。报告build/reports/production-ci-log-audit.json；状态build/tmp/production-only-ci-status.json。Actions未编译或执行项目测试，本轮只验证生产构建、静态打包完整性与发布。两个OmniMorph成品已由该run上传；没有覆盖用户mods或启停游戏。
 
 范围内工作完成，无剩余实施阶段。根AGENTS.md和AGENT_HANDOFF.md按既有约定保持ignored；规则与最终状态已写入本机文件。
+
+## macOS ARM runner 同步
+
+参考26.2已推送提交cd548e8439a83d9030007ad343e9f45faea35f31，仅将macos-aarch64的runner从macos-14改为macos-15，Intel仍为macos-15-intel。来源报告为runner分配阶段失败，未进入编译；本次不修改生产代码、JDK21、双加载器或macOS 13.0部署目标。
+
+离线解析实际YAML确认六平台矩阵、ARM/Intel标签；actionlint通过。核对调用链仍为生产打包、仅生产JNI源、CMake BUILD_TESTING=OFF、Windows ProductionOnly（本版关闭测试开关），保留静态打包完整性与许可证检查。日志build/tmp/macos-runner-audit.log、macos-runner-actionlint.log。git diff --check通过。runner-only未重复全编译，未手动触发Actions，远端新run未验证，未启动游戏。
