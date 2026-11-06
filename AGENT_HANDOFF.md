@@ -130,3 +130,22 @@ NativeGpuFenceSmokeTest现于实际adapter传入的compilePipeline边界，使�
 验证：docs/ci-macos-runner-RED.log记录原配置未通过受支持ARM64 runner检查；docs/ci-macos-runner-GREEN.log记录同一检查在修改后通过，含YAML解析、六平台数量及Intel标签检查。git diff --check通过。该检查仅验证配置，不冒充远端runner调度或macOS实际编译；远端新run尚未执行。没有启动游戏或新增CI测试。
 
 当前分支26.3，跟踪origin/26.3；本修复与本手册随本次提交推送并核对远端。实施完成，无剩余代码修改；如需远端构建验证，应从含本修复的新提交启动run，旧run重跑仍使用旧workflow。未触发Actions。原有未跟踪.codex/保留；日志按既有ignore策略本地保存。额度used12%/remaining88%，未触发交接阈值，无运行中构建或子智能体。
+
+## 2026-11-06 同步 26.2 衣柜动画与预览 ID 修复（最新任务）
+
+源提交：origin/26.2 的 222e150e9c89246773cdf0610b4ca2f0e978134b。只同步四个生产类和已有 LibraryPreviewRuntimeSmokeTest 的相关回归；没有整体cherry-pick交接文档，没有覆盖26.3渲染适配或native/CI修改。
+
+26.3两项均适用且已完成：
+- 私有本地预览不在AvatarManager正式集合，关闭衣柜后仅tick而缺少render/clearAnimations/applyAnimations。OutfitRenderBinding.capture取得本地state后、retain姿态前调用LocalOutfitPreview.beforeExtract；session只对当前LocalOutfitPreview按YsmRenderFrameClock去重，begin新代际重置；borrowedBase原跳过保持。26.3 GameRendererMixin在render HEAD递增时钟，适用于世界与GUI共享帧，不改为20Hz推进。
+- LibraryPreviewPlayer构造未分配ID，真实26.3 Entity.getId抛IllegalStateException。构造中分配稳定且各不相同的负数ID，不注册世界，不改通用renderer。
+
+验证（JDK25、前台Tee及立即退出码检查）：
+- docs/preview-sync-RED.log：先同步测试，真实构造后getId抛 Tried to access entity ID before ID assignment，退出1。
+- docs/preview-sync-animation-RED.log：只修ID后ID检查通过，world preparation ran:1 assertion failed，退出1，证明动画准备缺失。
+- docs/preview-sync-GREEN.log：完整 :common:libraryPreviewRuntimeSmokeTest、:fabric:assemble、:neoforge:assemble通过，退出0。含ID可读/不同/稳定，以及detach后世界capture准备、同帧GUI/world去重、下一帧再准备、borrowed base不重复准备。
+- docs/preview-sync-sickle.log：源模型只读复制到build/sickle-diagnostic/model/sickle；复用26.2宿主并移除其GPU专用记录探针，使用26.3实际加载器/生产CPU renderer。idle/sprint/fly实际顶点变化；关闭预览12帧animationVisits=0、changedFrames=11、scriptError=false，下一帧顶点继续变化，退出0。诊断宿主与init脚本只留隔离build目录，不进入生产/Actions；原模型未改。
+- git diff --check通过。双loader生产构建有既有remap告警，无构建失败；不宣称运行时Mixin/真实画面已验证。
+
+当前分支26.3，跟踪origin/26.3；本节与代码以 fix: keep local outfit preview animations updating 提交并推送，交付时核对HEAD与ls-remote一致。当前任务实施/规定离线回归完成，无剩余实施项；不启动下一版本，不联系其它聊天。仅原未跟踪.codex/保留，docs日志按既有ignore策略本地保存。无需额外native包，build/local-native仍是旧修复的本地包，不冒称包含本次修改。
+
+游戏、真实GUI、真实GPU像素验收：SKIPPED（用户禁止启动游戏，未执行）。本次真实模型证据仅为CPU生产顶点输出，没有执行26.2 GPU记录对照。Actions未改也未触发，仍生产构建/BUILD_TESTING=OFF。最新可靠额度used14%/remaining86%，未达交接阈值，当前无运行中构建或子智能体。

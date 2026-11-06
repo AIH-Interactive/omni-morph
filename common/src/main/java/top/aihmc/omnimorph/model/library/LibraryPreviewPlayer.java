@@ -9,14 +9,18 @@ import net.minecraft.world.entity.player.PlayerModelPart;
 import net.minecraft.world.entity.player.PlayerSkin;
 
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 /** Detached identity with the current player's native skin and skin-layer preferences. */
 final class LibraryPreviewPlayer extends RemotePlayer {
+    private static final AtomicInteger NEXT_PREVIEW_ID = new AtomicInteger(-1);
     private final Supplier<? extends AbstractClientPlayer> appearancePlayer;
 
     LibraryPreviewPlayer(ClientLevel level, UUID owner, Supplier<? extends AbstractClientPlayer> appearancePlayer) {
         super(level, new GameProfile(owner, "LibraryPreview"));
+        // Detached previews never receive a server spawn packet assigning their entity ID.
+        setId(NEXT_PREVIEW_ID.getAndDecrement());
         this.appearancePlayer = appearancePlayer;
         setOnGround(true);
     }
