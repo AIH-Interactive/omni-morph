@@ -100,6 +100,13 @@ public final class LocalOutfitPreview {
         return session.outfitState();
     }
 
+    /** Prepare the private base before a world render state retains its bone pose. */
+    public static void beforeExtract(float delta) {
+        if (session != null) {
+            session.beforeExtract(delta);
+        }
+    }
+
     public static void tick() {
         if (session == null) {
             return;

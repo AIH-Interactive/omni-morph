@@ -36,7 +36,9 @@ public final class OutfitRenderBinding {
             return;
         }
         UserData.OutfitState state = LocalOutfitPreview.state(entity);
-        if (state == null) {
+        if (state != null) {
+            LocalOutfitPreview.beforeExtract(partialTick);
+        } else {
             state = AvatarManager.getLoadedOutfit(entity.getUUID());
         }
         if (state == null) {
