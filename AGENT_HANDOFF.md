@@ -1,3 +1,40 @@
+# 最终状态：预览修复已提交推送，全部 OMP 版本串行同步完成
+
+2026-11-06（Asia/Seoul）。用户授权的当前修复提交/推送、其它版本依次发送/修复/验证/提交推送已全部完成。无剩余实施、同步或等待中的版本，不再启动新工作。
+
+## 顺序与远端确认
+
+严格按 26.2 → 26.3 → 26.1.2 → 1.21.1 → 1.20.1 执行。每个目标仅在前一版最终完成、远端SHA和验证记录经协调端只读核对后发送。未并行派发、未新建聊天、未切换分支、未运行游戏。
+
+| 项目 | 实际分支 | 修复提交 | 已核对远端 HEAD |
+| --- | --- | --- | --- |
+| OMP_26.2 | 26.2 | 222e150e9c89246773cdf0610b4ca2f0e978134b | 同修复提交；本汇总文档另作收尾提交推送 |
+| OMP_26.3 | 26.3 | 5369fd424e08f5ff7eb74920841ce19ce2a9b9aa | 同修复提交 |
+| OMP_26.1.2 | main | b7757b9f4f07078c11e063c7b1592b522f4c1cde | 同修复提交 |
+| OMP_1.21.1 | 1.21.1 | f4b46b3c | 9f3c4b83b299ea38c4bb8147f03297837933f01e（后续仅文档格式收尾） |
+| OMP_1.20.1 | 1.20.1 | 15159812ae2311d3110a2155d788476e1c403fc1 | 同修复提交 |
+
+26.2 及26.3同步动画调度与独立预览实体ID修复。26.1.2、1.21.1、1.20.1均核对原版构造器已自动分配ID，因此只增加ID契约回归，不擅自修改其正常生产ID逻辑；动画调度按各版抽取/立即渲染入口适配。全部保留同帧GUI/world去重、下一帧继续准备与borrowed resident所有权。
+
+## 已确认验证
+
+- 26.2：本手册下文完整证据；源修复已推origin/26.2，ls-remote核对一致。工作区原.codex/保留。
+- 26.3：ID与动画两项RED；完整预览回归、Fabric/NeoForge assemble GREEN（合并57s）；真实sickle离线12帧变化11次、无脚本错误（18s）。记录 docs/preview-sync-{RED,animation-RED,GREEN,sickle}.log。协调端读GREEN/sickle尾部均BUILD SUCCESSFUL；远端5369fd42与本地一致。
+- 26.1.2：动画RED world preparation ran失败；完整预览GREEN37s；真实sickle回放21s、12帧11次变化/无脚本错误；Fabric/NeoForge assemble35s。记录 .gradle/preview-animation-{red,green}.log、preview-sickle-offline.log、preview-sync-assemble.log。原ID正数契约已核对，不把最初负数测试断言或跨版本夹具编译失败当作产品RED。main远端b7757b9f核对一致。
+- 1.21.1：动画RED；完整预览GREEN19s、Fabric/NeoForge assemble53s；真实构造ID可读/不同/稳定。build/tmp/local-preview-animation-{red,green,loaders}.log。协调端读GREEN/loader尾部均BUILD SUCCESSFUL；远端最终9f3c4b83核对一致。未单独执行真实sickle/GPU回放，不宣称执行。
+- 1.20.1：动画RED；完整预览GREEN21s；Forge47.1.3 assemble33s；历史NeoForge47.1.106完整预览+assemble30s；ID实际构造契约通过。build/tmp/local-preview-animation-{red,green,forge-build,neoforge-green-build}.log。远端15159812核对一致。未单独执行真实sickle/GPU回放，不宣称执行。
+- 所有版本 diff --check 通过；手册/进度记录更新，无Actions策略/运行时代码以外的额外范围。1.20.1手册按其既有ignored策略保留本地，正式port进度文档已提交；其余以各项目实际记录为准。
+- 全程未启动游戏、未要求用户实机配合、未主动触发Actions；真实游戏/GUI/GPU像素验收 SKIPPED（用户决定）。记录器不冒充真实GPU像素结果。
+
+## 交付与剩余事项
+
+26.2 已交付的 Windows native ZIP 保持有效，路径 build/test-packages/OMP-26.2-Windows-Native-preview-animation-fix.zip，SHA256=4cf1e6480abf621dd02c115b11f35a02e1062cc9d511556ffe6c8162e61fbd1c；它在源修复提交前生成，Java修复内容相同，包内版本/README仍描述构建时的3bc6e297工作区。本次跨版本同步未要求额外打包，未为其它版本新增包。
+
+当前26.2无未提交生产修改，本汇总仅更新本手册，随收尾文档提交推送；最终HEAD以git log为准。原未跟踪.codex/保留，其他项目原有.mcp.json/.omc等也均保留。串行状态快照 build/cross-version-preview-sync.json 标记complete。
+
+可靠额度最后查询：used15%/remaining85%，10080分钟窗口、reset1794405624、planType原值prolite，未触发额度交接，不推断订阅。没有活动构建或待接续版本。下文所有“尚未发送/未提交/未修复”为历史状态，以上文最终结论为准。
+
+---
 # 当前任务：提交 26.2 修复并串行同步其它 OMP 版本
 
 2026-11-06（Asia/Seoul）。用户明确授权提交推送，并通过现有版本聊天依次发送修复，确认一个版本完成后才发送下一个。
