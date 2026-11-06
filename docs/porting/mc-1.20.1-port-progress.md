@@ -310,3 +310,17 @@ Neo与Forge47.4.20额外customParticleSmokeTest/boneTreeSmokeTest通过；Forge4
 本地验证：stageNativeBase Forge PASS（20s），历史 NeoForge PASS（11s）；Gradle stageNativeBase/assembleNativeJar dry-run 仅含生产任务，无测试编译/执行入口。Windows ProductionOnly native 编译 PASS，CMakeCache 为 BUILD_TESTING:BOOL=OFF，生成 build.ninja 无 accel_tests 目标；生产 JNI 独立输出目录仅有 NativeBindings/NativeLibraryLoader/FallbackReason 类。PowerShell 脚本语法、actionlint 和 git diff --check PASS。日志 build/tmp/ci-production-{task-graph,forge,neoforge,windows-native,actionlint}.log。
 
 没有执行 Actions，没有声称远端测试通过。Linux/macOS/Android 编译未在本机执行；六平台最终组装需要正式 workflow 产物，本次未模拟或伪造。此次仅改构建配置，无生产运行时代码修改；先前实机验收缺口保持。授权提交推送当前 1.20.1 分支，不手动触发 Actions。
+
+## 2026-11-06：同步关闭衣柜后的本地预览动画准备
+
+源提交：26.2 的 222e150e9c89246773cdf0610b4ca2f0e978134b；参考 1.21.1 立即渲染适配 f4b46b3c。仅修改本版，不转发其它聊天。
+
+根因：衣柜 detach 的私有 LibraryPreviewSession 不属于 AvatarManager 正式模型集合；LocalOutfitPreview.tick 只负责 tick，关闭 GUI 后 beforeExtract 不再执行，主体骨骼动画停留。1.20.1 世界入口为 EntityFrame.begin → OutfitRenderBinding.capture，在 retain 前准备 local session；采用现有 GameRenderer.render HEAD 推进的 YsmRenderFrameClock，同帧 GUI/world 只准备一次，下一帧重新准备，新 session generation 重置，borrowedBase 保留原正式模型准备所有权。
+
+实体 ID 项不适用：实际 patched 1.20.1 Entity 构造器用 ENTITY_COUNTER.incrementAndGet 写入 id，getId 直接读取；LibraryPreviewPlayer 无需额外分配负 ID。新增实际构造器检查 distinct/positive/stable，不更改生产预览实体。
+
+离线 RED：仅加入世界入口回归后，libraryPreviewRuntimeSmokeTest 在 Lua “world preparation ran” assertion failed，见 build/tmp/local-preview-animation-red.log。最小修复后完整 preview suite GREEN（21s），包括 detach 后实际 EntityFrame.begin、WORLD_RENDER 准备、同帧 GUI/world 去重、下一帧、borrowed base 不额外推进，以及实际预览实体 ID 构造检查。日志 build/tmp/local-preview-animation-green.log。夹具使用真实 Avatar/Lua 会话和构造器，不是完整游戏或 GPU 像素验收。
+
+用户禁止启动游戏：真实 GUI、GPU/游戏画面验收 SKIPPED（用户决定，未执行）。不改 Actions，不额外打 native 包，不变更版本；本地 loader 生产 assemble 结果及最终提交推送记录见根目录 AGENT_HANDOFF.md。
+
+最终本地生产构建：Forge47.1.3 :forge:assemble PASS（33s）；历史 NeoForge47.1.106 完整预览回归 + :forge:assemble PASS（30s），见 build/tmp/local-preview-animation-forge-build.log 与 local-preview-animation-neoforge-green-build.log。当前同步无剩余实施任务，按授权提交推送当前分支。
