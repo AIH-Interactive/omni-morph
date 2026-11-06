@@ -1,3 +1,22 @@
+# 最终状态：Actions runner 修复与全部版本串行同步完成
+
+2026-11-06。当前任务全部完成，无剩余实施或待发送版本。根因是已退役 macos-14 ARM runner 分配失败；26.2只改一行标签为macos-15，保留Intel macos-15-intel。
+
+严格按26.2 → 26.3 → 26.1.2 → 1.21.1 → 1.20.1执行；每版完成并核对远端后才发送下一版。各版最终提交及远端SHA已独立只读确认：
+
+| 版本/分支 | 结果 | 已确认远端HEAD |
+| --- | --- | --- |
+| 26.2 / 26.2 | 单行修复 | cd548e8439a83d9030007ad343e9f45faea35f31；本最终汇总另作docs提交 |
+| 26.3 / 26.3 | 既有13925413已修复，本次仅核验记录 | 585669e294f60a3b23769afb60385e2c50f0378a |
+| 26.1.2 / main | 单行修复 | 1b0a7b4c14c37f6021d2d5dd18bdb58d46c4d0a1 |
+| 1.21.1 / 1.21.1 | 单行修复与记录 | 3cd66c027466374c150cd33f4535beb4311d18dc |
+| 1.20.1 / 1.20.1 | 既有67994a89已修复，本次仅核验记录 | 912429c73946c224611808e073e780afebb4b5ab |
+
+验证：全部真实YAML六平台/ARM与Intel标签校验、生产调用链静态审计及diff检查通过。1.21.1、1.20.1另有actionlint通过。未引入CI测试，JNI生产源、native关闭测试、各版JDK/loader/macOS部署目标保持。runner-only未重复全编译。协调端读取各日志确认：26.2 build/ci-runner-{RED,GREEN}.log；26.3 docs/ci-macos-runner-sync-verify.log；26.1.2 .gradle/macos-runner-validation.log；1.21.1 build/tmp/macos-runner-{audit,actionlint}.log；1.20.1 build/tmp/runner-matrix-{audit,actionlint}.log。
+
+所有原有未跟踪文件保留；26.2仅.codex/。没有启动游戏，没有手动触发Actions，修复后远端新run调度/编译仍MANUAL/PENDING，不宣称远端构建通过。用户授权的修复、提交推送和串行同步均完成，无实际阻碍。本汇总提交推送后最终HEAD以git log及ls-remote为准。下文保留历史证据，旧“待同步”等状态由本节覆盖。
+
+---
 # 当前任务：Actions macOS ARM64 runner 修复与串行同步
 
 2026-11-06。26.2 根因已证实：run 42222244392 的 macos-aarch64 job 在分配 runner 时报告 `The configuration 'macos-14-arm64-us-default' is not supported`，未进入编译；其余基础包与五个平台 native 成功，合包/发布随后跳过。
