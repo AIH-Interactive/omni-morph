@@ -1831,6 +1831,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         try {
             top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.show(editor, preview);
             testHiddenFormalParticleEmitter(unsafe, preview, player, editor);
+            testLocalWorldAnimationPreparation(preview, player, editor);
             var worldFrame = new EntityFrame(player, 1);
             top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.capture(player, worldFrame);
             require(AvatarManager.getAvatar(worldFrame) == preview.outfitState().base()
@@ -3820,6 +3821,46 @@ public final class LibraryPreviewRuntimeSmokeTest {
         }
     }
 
+    private static void testLocalWorldAnimationPreparation(LibraryPreviewSession preview,
+                                                           CurrentPreviewPlayer player, Object editor) throws Exception {
+        Avatar base = preview.outfitBase();
+        base.loadScript("world preview preparation counter", """
+                world_preview_preparations = 0
+                events.WORLD_RENDER:register(function()
+                    world_preview_preparations = world_preview_preparations + 1
+                end, "world-preview-preparation-test")
+                """).call();
+        top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.detach(editor);
+        try {
+            top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
+            EntityFrame.end(EntityFrame.begin(player, 0.5f));
+            base.loadScript("world preparation ran", "assert(world_preview_preparations == 1)").call();
+            preview.beforeExtract(0.5f);
+            EntityFrame.end(EntityFrame.begin(player, 0.5f));
+            base.loadScript("world and GUI prepare once", "assert(world_preview_preparations == 1)").call();
+
+            top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
+            EntityFrame.end(EntityFrame.begin(player, 0.5f));
+            base.loadScript("next frame prepares again", "assert(world_preview_preparations == 2)").call();
+
+            boolean borrowed = field(LibraryPreviewSession.class, "borrowedBase").getBoolean(preview);
+            field(LibraryPreviewSession.class, "borrowedBase").setBoolean(preview, true);
+            try {
+                top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.beginFrame();
+                EntityFrame.end(EntityFrame.begin(player, 0.5f));
+                base.loadScript("resident keeps preparation ownership", "assert(world_preview_preparations == 2)").call();
+            } finally {
+                field(LibraryPreviewSession.class, "borrowedBase").setBoolean(preview, borrowed);
+            }
+            System.out.println("PASS local world animation preparation: detached, once per frame, GUI dedup and borrowed base");
+        } finally {
+            base.loadScript("remove preparation counter",
+                    "events.WORLD_RENDER:remove('world-preview-preparation-test')").call();
+            top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.finishFrame();
+            top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.show(editor, preview);
+        }
+    }
+
     private static final class CurrentPreviewPlayer extends net.minecraft.client.player.LocalPlayer
             implements org.figuramc.figura.mixin.EntityAccessor {
         private CurrentPreviewPlayer() {
@@ -4162,6 +4203,14 @@ public final class LibraryPreviewRuntimeSmokeTest {
     }
 
     private static void testPreviewAppearance(Unsafe unsafe) throws Exception {
+        var level = (PreviewLevel) unsafe.allocateInstance(PreviewLevel.class);
+        var first = new LibraryPreviewPlayer(level, UUID.randomUUID(), () -> null);
+        var second = new LibraryPreviewPlayer(level, UUID.randomUUID(), () -> null);
+        int firstId = first.getId();
+        require(firstId > 0 && second.getId() > 0 && firstId != second.getId(),
+                "vanilla constructors assign distinct preview IDs before rendering");
+        require(first.getId() == firstId, "preview ID remains stable between render frames");
+        System.out.println("PASS constructed preview entity IDs: assigned, distinct and stable");
         var source = (AppearancePlayer) unsafe.allocateInstance(AppearancePlayer.class);
         source.skin = net.minecraft.client.resources.DefaultPlayerSkin.get(DEFAULT_SKIN_OWNER);
         require(source.skin.model() == net.minecraft.client.resources.PlayerSkin.Model.WIDE,
@@ -4189,6 +4238,33 @@ public final class LibraryPreviewRuntimeSmokeTest {
         require(player.getSkin() != null && player.isModelPartShown(net.minecraft.world.entity.player.PlayerModelPart.JACKET),
                 "missing source player keeps a native default skin and visible skin layers");
         System.out.println("PASS isolated player appearance: native skin, live loading/model type, skin layers and fallback");
+    }
+
+    private static final class PreviewLevel extends net.minecraft.client.multiplayer.ClientLevel {
+        private PreviewLevel() {
+            super(null, null, null, null, 0, 0, null, null, false, 0L);
+        }
+
+        @Override
+        public net.minecraft.core.BlockPos getSharedSpawnPos() {
+            return net.minecraft.core.BlockPos.ZERO;
+        }
+
+        @Override
+        public float getSharedSpawnAngle() {
+            return 0;
+        }
+
+        @Override
+        public net.minecraft.world.level.BlockGetter getChunkForCollisions(int x, int z) {
+            return null;
+        }
+
+        @Override
+        public net.minecraft.core.RegistryAccess registryAccess() {
+            return net.minecraft.core.RegistryAccess.fromRegistryOfRegistries(
+                    net.minecraft.core.registries.BuiltInRegistries.REGISTRY);
+        }
     }
 
     private static final class AppearancePlayer extends RemotePlayer {

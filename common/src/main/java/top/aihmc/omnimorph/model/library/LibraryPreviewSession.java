@@ -43,6 +43,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
     private final boolean detachedMode;
     private boolean currentPlayerFigura;
     private boolean borrowedBase;
+    private long preparedWorldFrame = Long.MIN_VALUE;
     private final AtomicLong generations = new AtomicLong();
     private LibraryTransferService.Operation transfer;
     private LibraryClient.Request<CompoundTag> resource;
@@ -480,6 +481,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
             throw new IllegalStateException("PREVIEW_CLOSED");
         }
         long generation = generations.incrementAndGet();
+        preparedWorldFrame = Long.MIN_VALUE;
         cancelCompositionPreparation();
         if (resource != null) {
             resource.cancel();
@@ -676,6 +678,14 @@ public final class LibraryPreviewSession implements AutoCloseable {
     public void beforeExtract(float delta) {
         refreshPlayerPreview();
         if (current(generations.get()) && avatar != null && !borrowedBase && !AvatarManager.panic) {
+            if (top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.uses(this)) {
+                long frame = top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.currentFrame();
+                if (preparedWorldFrame == frame) {
+                    return;
+                }
+                // World and wardrobe rendering can share this session within the same frame.
+                preparedWorldFrame = frame;
+            }
             binding.withPlayerContext(() -> binding.withBaseBudget(() -> {
                 avatar.render(delta);
                 avatar.clearAnimations();
