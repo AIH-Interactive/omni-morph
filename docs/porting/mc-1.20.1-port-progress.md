@@ -324,3 +324,9 @@ Neo与Forge47.4.20额外customParticleSmokeTest/boneTreeSmokeTest通过；Forge4
 用户禁止启动游戏：真实 GUI、GPU/游戏画面验收 SKIPPED（用户决定，未执行）。不改 Actions，不额外打 native 包，不变更版本；本地 loader 生产 assemble 结果及最终提交推送记录见根目录 AGENT_HANDOFF.md。
 
 最终本地生产构建：Forge47.1.3 :forge:assemble PASS（33s）；历史 NeoForge47.1.106 完整预览回归 + :forge:assemble PASS（30s），见 build/tmp/local-preview-animation-forge-build.log 与 local-preview-animation-neoforge-green-build.log。当前同步无剩余实施任务，按授权提交推送当前分支。
+
+## 2026-11-06：核对 macOS runner 同步
+
+参考源26.2提交 cd548e8439a83d9030007ad343e9f45faea35f31。1.20.1 已由既有提交67994a894将 macos-aarch64 runner 设为macos-15，Intel仍macos-15-intel，无需重复改动workflow。本次仅记录核查结果，不引入新功能。
+
+离线验证真实YAML六平台映射 PASS；生产调用链核查 PASS：stageNativeBase仅依赖remapJar/compileProductionNativeInterface，JNI接口只有三个生产源；Unix/Android BUILD_TESTING=OFF；Windows CI传ProductionOnly且不执行CTest；保留JDK17/21、Forge/历史Neo及macOS部署目标13.0。actionlint PASS、git diff --check PASS。日志build/tmp/runner-matrix-audit.log、runner-matrix-actionlint.log。runner-only不重复全编译，不启动游戏、不手动触发Actions；远端新run未验证。
