@@ -149,3 +149,13 @@ NativeGpuFenceSmokeTest现于实际adapter传入的compilePipeline边界，使�
 当前分支26.3，跟踪origin/26.3；本节与代码以 fix: keep local outfit preview animations updating 提交并推送，交付时核对HEAD与ls-remote一致。当前任务实施/规定离线回归完成，无剩余实施项；不启动下一版本，不联系其它聊天。仅原未跟踪.codex/保留，docs日志按既有ignore策略本地保存。无需额外native包，build/local-native仍是旧修复的本地包，不冒称包含本次修改。
 
 游戏、真实GUI、真实GPU像素验收：SKIPPED（用户禁止启动游戏，未执行）。本次真实模型证据仅为CPU生产顶点输出，没有执行26.2 GPU记录对照。Actions未改也未触发，仍生产构建/BUILD_TESTING=OFF。最新可靠额度used14%/remaining86%，未达交接阈值，当前无运行中构建或子智能体。
+
+## 2026-11-06 runner 修复串行同步核验（最新任务）
+
+协调端请求同步26.2源提交cd548e8439a83d9030007ad343e9f45faea35f31的macOS ARM64 runner修复。26.3已由13925413febeff883467e608d69763068ea5539c完成完全相同的macos-14→macos-15变更，Intel保持macos-15-intel；本次不重复修改workflow、不空提交，仅记录核验。
+
+已验证：docs/ci-macos-runner-sync-verify.log，真实YAML解析后确认六个唯一平台及各runner、matrix.runner调度、JDK25、Fabric/NeoForge双loader和仅stageNativeBase/assembleNativeJar生产Gradle入口，退出0。调用链静态复核：stageNativeBase仅依赖loader assemble和common compileNativeProductionInterface，JNI仅三个src/main/java类；assembleNativeJar仅doLast合包；native通用/Android脚本均BUILD_TESTING=OFF，Windows传SkipTests且其脚本在该开关下不执行CTest；native CMake测试目标受BUILD_TESTING控制。macOS部署13.0和进程/成品架构检查、原有commit/run/hash/ABI/许可证/条目保真校验保持。未重复全编译，没有编译或运行CI测试。
+
+当前分支26.3，跟踪origin/26.3；核验前HEAD=5369fd424e08f5ff7eb74920841ce19ce2a9b9aa。本节以docs: record existing macOS runner sync verification提交推送，交付核对最终本地/远端HEAD一致。仅更新本手册，原未跟踪.codex/保持；日志按既有ignore策略本地保存。当前版本同步核验完成，无剩余修改，不转发其它聊天或版本。
+
+远端新run：未触发、未验证调度/编译；不能从离线配置检查声明远端构建通过。未启动游戏。最新可靠额度used15%/remaining85%，未触发交接阈值，无运行中构建或子智能体。
