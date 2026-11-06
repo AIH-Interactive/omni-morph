@@ -13,6 +13,12 @@ when staging both locally. Production assembly checks loader identity, commit/ru
 licenses and base-entry preservation. Runtime/client/device validation is `MANUAL/PENDING`.
 The local `nativePackagingSmokeTest` uses synthetic bytes and is never invoked by Actions.
 
+Rerunning only failed jobs may reuse successful artifacts from earlier attempts of the
+same workflow run and commit. Producer attempts must be positive integers no greater
+than the assembly attempt; each native entry retains its original attempt in the final
+manifest. Commit/run identity, hashes, ABI, platform set, licenses and base-entry
+preservation remain mandatory. The final manifest's top-level attempt identifies assembly.
+
 H2 implements Windows x86_64 numerical transforms. The Java path remains the default;
 this directory does not implement GPU drawing. Sources are independently written;
 see `NOTICE.txt` for provenance.

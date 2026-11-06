@@ -99,3 +99,22 @@ NativeGpuFenceSmokeTest现于实际adapter传入的compilePipeline边界，使�
 最新交付验证：docs/activation-fabric-package.log、activation-neoforge-package.log均assemble/实际JNI通过；activation-package-integrity.log验证完整性及新哈希通过；activation-packaged-probe.log验证两个成品的生产class都包含layout(location=0)片元输出。activation-native-preparation.log复用原DLL并刷新清单，没有修改native源码、ABI或重跑CTest。
 
 当前修复的实施、离线验证及交付包全部完成，无剩余实施/自动验证事项；最终记录随本次提交交付。真实GPU/驱动/像素仍MANUAL/PENDING，未启动游戏；截图的YSM controller-parse警告不属于此修复。当前无运行中构建或子智能体，额度剩余95%。
+## 2026-11-06 CI 失败任务重跑复用修复（最新任务）
+
+用户授权：支持只重跑失败任务时复用同一run、同一提交的有效产物，保留完整性检查，RED/GREEN后提交推送。
+
+根因：run41855680950第3次尝试中，两基础包和多数native产物来自attempt1，macos-x86_64来自attempt2；原合包强制producer attempt等于当前attempt，双loader在基础包检查即失败。
+
+实施：native/packaging.gradle仅替换两处attempt相等判断，集中校验producer是规范正整数字符串且<=当前attempt。当前/产物均0仅保留原有本地无GitHub环境fixture行为。commit、runId、base/native哈希、ABI、loader、sourceDirty、六平台唯一完整集合、许可证/NOTICE和原base条目逐字节保真校验均保持。最终manifest顶层attempt记录合包尝试，各native entry保留实际producer attempt，不改写来源。NativeLibraryLoader不要求entry attempt等于顶层，运行时验证不需修改。
+
+验证：
+- docs/ci-rerun-RED.log：新增复用案例通过真实assembleNative入口在旧校验下失败，Base JAR commit/run/hash/ABI mismatch，退出1。
+- docs/ci-rerun-fabric-GREEN.log、ci-rerun-neoforge-GREEN.log：两loader合包回归全部通过，包含attempt1/2用于2/3，来源保留，以及未来10、0、null、非法字符串、错误类型、跨commit/run、错误base/native hash和ABI拒收。原有缺失/重复平台、许可证篡改/缺失、native文件篡改拒收与base字节保真仍通过。
+- docs/ci-rerun-real-fabric.log、ci-rerun-real-neoforge.log：下载失败run的两原始base和六真实native产物（未篡改manifest或payload），用新生产assembleNativeJar和原run/commit、attempt3本地回放，两loader均退出0。生产任务仅assembleNativeJar，没有编译或执行测试代码。
+- docs/ci-rerun-real-manifests.log：两个实际合包结果顶层attempt3，各6个native entry保持macos-x86_64=2、其它=1，run/commit一致。
+- 回放产物位于build/ci-rerun-replay/{fabric,neoforge}-complete.jar，仅作旧run产物复用验证；没有发布或替代build/local-native的现有运行包。本任务不改Java/native源码，无需重建本地Windows运行包。
+
+修改范围：native/packaging.gradle、native/README.md、本手册。新增测试仍只在本地nativePackagingSmokeTest执行，没有挂到Actions生产链。workflow调用链仍为stageNativeBase→生产assemble/生产JNI与assembleNativeJar；native CI仍SkipTests/BUILD_TESTING=OFF。
+
+当前实施及全部规定验证完成，无剩余开发/验证项；随本次提交推送后核对远端与工作区。未触发或重跑GitHub Actions。旧run重跑仍checkout其旧提交；本修复须从新提交创建的run开始生效，之后可只重跑失败任务。根目录原有.codex/保持不动。
+可靠额度最近used12%/remaining88%，未达交接阈值，不使用Luna。当前无运行中构建或子智能体。

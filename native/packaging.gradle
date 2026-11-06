@@ -75,10 +75,22 @@ def writeNativeJar = { File base, File destination, Map<String, byte[]> addition
     }
 }
 
+// Successful jobs retain their producer attempt when only failed jobs are rerun.
+def isReusableAttempt = { Object producer, String current ->
+    if (!(producer instanceof String) || !(producer ==~ /0|[1-9][0-9]*/)
+            || !(current ==~ /0|[1-9][0-9]*/)) {
+        return false
+    }
+    if (current == '0') {
+        return producer == '0' // Existing local packaging fixtures have no GitHub attempt.
+    }
+    return producer != '0' && new BigInteger(producer) <= new BigInteger(current)
+}
+
 def assembleNative = { File baseDirectory, File artifacts, File destination, String commit, String runId, String attempt ->
     def metadata = new JsonSlurper().parse(new File(baseDirectory, 'base-manifest.json'))
     File base = new File(baseDirectory, metadata.jar as String)
-    if (metadata.sourceCommit != commit || metadata.runId != runId || metadata.runAttempt != attempt
+    if (metadata.sourceCommit != commit || metadata.runId != runId || !isReusableAttempt(metadata.runAttempt, attempt)
             || metadata.sha256 != sha256(base) || metadata.abi != 2 || metadata.loader != nativeLoader) {
         throw new GradleException('Base JAR commit/run/hash/ABI mismatch')
     }
@@ -101,7 +113,7 @@ def assembleNative = { File baseDirectory, File artifacts, File destination, Str
         String expectedPath = "natives/${entry.platform}/${required[entry.platform]}"
         if (!required.containsKey(entry.platform) || !seenPlatforms.add(entry.platform)
                 || entry.path != expectedPath || entry.abi != 2 || entry.sourceCommit != commit
-                || entry.runId != runId || entry.runAttempt != attempt || entry.sourceDirty != false
+                || entry.runId != runId || !isReusableAttempt(entry.runAttempt, attempt) || entry.sourceDirty != false
                 || !entry.platform.endsWith('-' + entry.architecture)
                 || !(entry.sourceTreeSha256 ==~ /[0-9a-f]{64}/)
                 || !entry.toolchain || !entry.minimumRuntime || !(entry.dependencies instanceof List)) {
@@ -260,6 +272,67 @@ tasks.register('nativePackagingSmokeTest') {
             reject { run(metadata.sourceCommit) }
         } finally {
             baseManifest.text = savedBaseManifest
+        }
+        // A failed-jobs rerun keeps successful artifacts from earlier attempts of this run.
+        def savedNativeManifests = platforms.keySet().collectEntries { platform ->
+            File file = new File(artifacts, "$platform/natives/manifest.json")
+            [(file): file.text]
+        }
+        def reusedBase = new JsonSlurper().parseText(savedBaseManifest)
+        reusedBase.runAttempt = '1'
+        try {
+            baseManifest.text = JsonOutput.toJson(reusedBase)
+            savedNativeManifests.each { file, text ->
+                def data = new JsonSlurper().parseText(text)
+                data.libraries[0].runAttempt = data.libraries[0].platform == 'macos-x86_64' ? '2' : '1'
+                file.text = JsonOutput.toJson(data)
+            }
+            def rerun = { String attempt ->
+                assembleNative(rootProject.file(nativeBaseDirectory.get()), artifacts,
+                        new File(root, 'rerun.jar'), metadata.sourceCommit, metadata.runId, attempt)
+            }
+            rerun('2')
+            rerun('3')
+            new ZipFile(new File(root, 'rerun.jar')).withCloseable { jar ->
+                def result = new JsonSlurper().parse(jar.getInputStream(jar.getEntry('natives/manifest.json')))
+                if (result.runAttempt != '3' || result.libraries.any { entry ->
+                    entry.runAttempt != (entry.platform == 'macos-x86_64' ? '2' : '1')
+                }) {
+                    throw new GradleException('Rerun assembly lost original producer attempts')
+                }
+            }
+            ['10', '0', null, 'invalid', 2].each { invalidAttempt ->
+                baseManifest.text = JsonOutput.toJson(reusedBase + [runAttempt: invalidAttempt])
+                reject { rerun('3') }
+            }
+            [sourceCommit: 'f' * 40, runId: 'another-run', sha256: '0' * 64, abi: 3].each { field, invalid ->
+                baseManifest.text = JsonOutput.toJson(reusedBase + [(field): invalid])
+                reject { rerun('3') }
+            }
+            baseManifest.text = JsonOutput.toJson(reusedBase)
+            File reusedNative = new File(artifacts, 'macos-x86_64/natives/manifest.json')
+            String validNative = reusedNative.text
+            try {
+                ['10', '0', null, 'invalid', 2].each { invalidAttempt ->
+                    def data = new JsonSlurper().parseText(validNative)
+                    data.libraries[0].runAttempt = invalidAttempt
+                    reusedNative.text = JsonOutput.toJson(data)
+                    reject { rerun('3') }
+                }
+                [sourceCommit: 'f' * 40, runId: 'another-run', sha256: '0' * 64, abi: 3].each { field, invalid ->
+                    def data = new JsonSlurper().parseText(validNative)
+                    data.libraries[0][field] = invalid
+                    reusedNative.text = JsonOutput.toJson(data)
+                    reject { rerun('3') }
+                }
+            } finally {
+                reusedNative.text = validNative
+            }
+            rerun('3')
+            logger.lifecycle("PASS ${nativeLoader} rerun reuse: attempts 1/2 into 3, provenance and integrity rejection")
+        } finally {
+            baseManifest.text = savedBaseManifest
+            savedNativeManifests.each { file, text -> file.text = text }
         }
         File androidManifest = new File(artifacts, 'android-aarch64/natives/manifest.json')
         String savedAndroid = androidManifest.text
