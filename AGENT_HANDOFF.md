@@ -118,3 +118,15 @@ NativeGpuFenceSmokeTest现于实际adapter传入的compilePipeline边界，使�
 
 当前实施及全部规定验证完成，无剩余开发/验证项；随本次提交推送后核对远端与工作区。未触发或重跑GitHub Actions。旧run重跑仍checkout其旧提交；本修复须从新提交创建的run开始生效，之后可只重跑失败任务。根目录原有.codex/保持不动。
 可靠额度最近used12%/remaining88%，未达交接阈值，不使用Luna。当前无运行中构建或子智能体。
+
+## 2026-11-06 macOS ARM64 runner 退役修复（最新任务）
+
+再次报错对应 run42210011074、提交baf5e17a5afa8bd593ca985b8253d45d2e1738d0、attempt1。两loader基础包及其它五个平台native成功；Native macos-aarch64在分配runner前取消，零steps，annotation为 The configuration 'macos-14-arm64-us-default' is not supported，导致合包/发布跳过。与上一任务的attempt产物复用校验无关。
+
+根因：GitHub macOS14镜像于2026-11-02退役。官方依据：https://github.com/actions/runner-images/issues/13518 ；ARM64支持标签：https://docs.github.com/en/actions/reference/runners/github-hosted-runners 。
+
+最小修复仅将.github/workflows/fabric-build.yml的macos-aarch64 runner从macos-14更新为macos-15；Intel继续macos-15-intel。六平台集合、架构检查、macOS部署目标13.0、BUILD_TESTING=OFF/SkipTests及合包完整性检查保持。
+
+验证：docs/ci-macos-runner-RED.log记录原配置未通过受支持ARM64 runner检查；docs/ci-macos-runner-GREEN.log记录同一检查在修改后通过，含YAML解析、六平台数量及Intel标签检查。git diff --check通过。该检查仅验证配置，不冒充远端runner调度或macOS实际编译；远端新run尚未执行。没有启动游戏或新增CI测试。
+
+当前分支26.3，跟踪origin/26.3；本修复与本手册随本次提交推送并核对远端。实施完成，无剩余代码修改；如需远端构建验证，应从含本修复的新提交启动run，旧run重跑仍使用旧workflow。未触发Actions。原有未跟踪.codex/保留；日志按既有ignore策略本地保存。额度used12%/remaining88%，未触发交接阈值，无运行中构建或子智能体。
