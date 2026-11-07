@@ -52,6 +52,7 @@ tasks.named('jar') {
     archiveFileName = 'preview-host.jar'
     destinationDirectory = runtimeDirectory
     manifest {
-        attributes 'Main-Class': 'top.aihmc.omm.PreviewLauncher'
+        attributes 'Main-Class': 'top.aihmc.omm.PreviewLauncher',
+            'Premain-Class': 'top.aihmc.omm.RuntimeAccessAgent'
     }
 }

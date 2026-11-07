@@ -5,5 +5,34 @@
   "forgeVersionDirectory": "",
   "textureJar": "",
   "skinPath": "D:/UserData/Desktop/Project/OMP/OMP_26.1.2/tools/preview/skin.png",
-  "skinModel": "auto"
+  "skinModel": "auto",
+  "renderInputs": {
+    "tint": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "light0": [
+      0.2,
+      1,
+      0.7
+    ],
+    "light1": [
+      -0.2,
+      1,
+      -0.7
+    ],
+    "fogColor": [
+      0,
+      0,
+      0,
+      1
+    ],
+    "fogStart": 10000,
+    "fogEnd": 20000,
+    "gameTime": 0,
+    "packedLight": 15728880,
+    "packedOverlay": 655360
+  }
 }

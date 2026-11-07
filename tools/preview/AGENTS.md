@@ -7,7 +7,7 @@
 - 直接调用依赖内的模型解析、Molang、动画、GPU、SIMD实现。宿主只提供窗口、配置输入、数据适配和对比记录；不复制这些算法，不实现 Minecraft 状态机。
 - Minecraft 提供的时间、查询值、光照、变换等由配置传参。缺失必要输入时明确报错，不伪造完整游戏环境。
 - 各MOD独立JVM运行，避免同名类和不同Minecraft版本互相覆盖。记录实际执行类的CodeSource、native来源和运行参数。
-- Figura模型只允许OmniMorph后端；YSM模型可选OmniMorph、OpenYSM、SPM。配置校验拒绝Figura与OpenYSM/SPM组合。
+- Figura模型只由OmniMorph加载；单独Figura与参考后端组合须拒绝。scene.models包含Figura时，将整场景统一为OmniMorph并记录requestedBackend与实际backend；纯YSM场景可选OmniMorph、OpenYSM、SPM。
 - Java、SIMD、GPU选择映射到MOD自身的后端入口，保留原能力检测与回退机制；报告请求模式、实际模式和回退原因。
 - Minecraft贴图从对应版本的本机Minecraft JAR提取至构建目录，保留完整 `assets/minecraft/...` 路径；记录源JAR与资源SHA256，不上传Minecraft JAR或提取资源。
 - 用户已允许提交推送 `libs` 中的 MOD JAR。保留其许可证与来源；不要将本机构建缓存或Minecraft运行时一起纳入仓库。
@@ -17,6 +17,10 @@
 - 模型渲染必须在真实可见窗口中进行，背景为使用本机Minecraft贴图的超平坦世界；宿主场景不启动游戏或扩展为世界状态机。
 - Figura复用OmniMorph实际运行后的原版部件显隐状态，未隐藏的部件补上原版玩家模型；不得通过扫描Lua文本猜测显隐。皮肤路径可配置，默认preview目录的skin.png；支持Alex/Steve，单独PNG没有可靠模型元数据时允许配置明确选择。
 - 抽样验证从普通YSM、加密YSM、旧版YSM、Figura各随机选一个真实模型，记录随机种子、路径、文件哈希、后端、实窗结果；缺少样本或尚未渲染如实记录，不以解析成功代替渲染成功。
+- 单模型与多模型均须支持；多实例独立姿态和配置输入，随机摆放记录种子与每实例坐标，同一对比场景跨后端使用相同布局。HUD/记录区分加载、可见和提交实例数。
+- 内置随机抽样至少覆盖加密YSM、旧版YSM、ZIP与文件夹，并保留普通YSM/Figura覆盖；格式与容器分开标注，按原MOD识别结果分类，缺类明确报告。清单保存种子/路径/哈希和逐类加载渲染状态，可作为单模型或多模型输入。
+- 抽样场景含Figura时，场景内全部YSM/Figura统一使用OmniMorph；跨MOD性能对比仅使用相同纯YSM样本/布局/配置，混合场景功能结果单列，不混入性能统计。
+- Figura性能比较使用不同OMP JAR构建：固定样本/布局/输入/采样条件，分别新JVM启动，记录基线/候选JAR版本与哈希及相对FPS/帧耗时变化。当前任务不实施生产模组优化，不以YSM收益推断Figura收益。
 
 ## 验证和交付
 
