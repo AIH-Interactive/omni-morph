@@ -31,7 +31,10 @@ final class RuntimeDependencies {
             backend.equals("oysm") ? "forgeVersionDirectory" : "fabricVersionDirectory"));
         JsonObject info = RuntimeConfiguration.json(version.resolve(version.getFileName() + ".json"));
         Path libraries = Path.of(RuntimeConfiguration.text(settings, "librariesDirectory"));
-        Path mod = Path.of(RuntimeConfiguration.text(settings, "modDirectory")).resolve(MODS.get(backend));
+        String configuredJar = RuntimeConfiguration.text(settings, "modJar");
+        Path mod = configuredJar.isBlank()
+            ? Path.of(RuntimeConfiguration.text(settings, "modDirectory")).resolve(MODS.get(backend))
+            : Path.of(configuredJar).toAbsolutePath();
         List<Path> paths = new ArrayList<>();
         paths.add(mod);
         nested(Files.readAllBytes(mod), output.resolve("nested"), paths);

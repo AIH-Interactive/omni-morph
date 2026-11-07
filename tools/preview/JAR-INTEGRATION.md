@@ -39,3 +39,9 @@ SPM/OMP使用26.1.2官方命名类型；OYSM使用安装目录的Forge补丁clie
 先通用资源/动画和三个后端，再场景/皮肤及原版部件，最后原界面/HUD/分析，遵守IMPLEMENTATION-PLAN的阶段检查点。模型可见性使用原运行结果；GPU像素检查在加入背景后必须改成模型独立证据。
 
 原始字节码记录位于本机构建目录 `build/preview/jar-audit/omp-host-api.txt`、`spm-integration-api.txt`、`oysm-integration-api.txt` 以及各gpu/renderer文件；运行证据汇总在Comparison-Results.md。更换JAR后重新确认接口，不沿用参考仓库假设。
+
+## 半透明材质路径核对（第179–183轮）
+
+实际JAR字节码：SPM GpuRenderPath.tryRender先拒绝translucent；OpenYSM GpuRenderPath先alphaMode=1，再对原isTranslucentTexture开启defaultBlendFunc执行alphaMode=2，depthMask保持true。两者原纹理扫描器已参与宿主buildMesh。hsr_fuxuan_1.ysm在SPM显式回退Java，在OpenYSM两遍GPU运行通过。此前直接底层shader通过不等于原正式路由支持，性能结果必须按实际后端归组。尚待完整统一相机/材质与性能测量，不将当前像素计数作为画面等价证据。
+
+阶段2收口至第320轮：原Java/SIMD/GPU、单/多模型、配置动画/查询、原材质/透明面顺序、自定义Figura纹理及清理已有记录，详见IMPLEMENTATION-PLAN阶段2验收表。Minecraft外部RESOURCE/SKIN及原版部件由阶段3接入；原Lua/界面交互、纹理动态更新与HUD归阶段4。当前JAR仍是开发入口，不作最终交付。
