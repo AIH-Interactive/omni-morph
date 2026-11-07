@@ -1,27 +1,14 @@
-# OMP 离线加速对比接入记录
+# 外部 JAR 预览器实施记录
 
-来源：D:/UserData/Desktop/Project/omm-core/tools/preview，2026-11-07 工作区快照。
-逐文件来源 SHA256 见 import-source-hashes.json。保留原命名空间及 vendor 许可证。
-复制的是独立 GLFW/LWJGL 预览器，不是 Minecraft 运行时。
+工作分支preview-acceleration-compare；权威阶段划分见IMPLEMENTATION-PLAN.md。
 
-## 顺序与状态
+历史：原源码导入已推送638dc159；用户随后授权删除旧src/vendor/native及自写解析器，恢复备份build/preview/legacy-before-jar-20261107-230020.zip。新计划单独提交推送0637a7f4。
 
-1. 复制预览器与两份 omm-core Java JNI 声明，独立构建：PASS。
-   Build-Preview.ps1 仅把 Java bindings 来源改为本目录 vendor/omm-core/java。
-   前台构建日志：根 build.log；输出 build/preview/preview.jar 与 lib/。
-   native/ 中 omm-core 桥接仍依赖外部 omm-core DLL，不声称已移植公共核心。
-2. 接入可切换的 OYSM/SPM 离线后端及真实窗口验证：待实施。
-3. 完成差异记录与交付：待实施。
+新计划阶段1：验收通过，提交推送检查点进行中。独立Gradle、top.aihmc.omm标准源码目录、可执行JAR、Java本机配置/依赖解析、真实配置弹窗、CLI覆盖与有效配置快照均已实现。SPM/OYSM原固定fixture接入口通过新启动链回归，包括CPU对照和60帧可见GPU窗口。测试逐轮记录至Comparison-Results第43轮；实际JAR入口分析见JAR-INTEGRATION.md。
 
-每阶段自动验证后检查 diff、提交并推送，再开始下一阶段。
-只进行离线预览器验证；游戏实测完全交由人工，MANUAL/PENDING，不作为阻塞条件。
-Actions 不接入预览器测试。所有构建/测试前台输出并 Tee-Object 至 build.log。
-运行前请区分原 README 的历史结果与本分支的新验证；本分支只声称本记录列出的结果。
-原 README 的 ../../docs/preview 链接属于来源仓库历史文档，未复制历史基准报告。
+阶段2：尚未开始本阶段实施。已有组件探针供复用，通用模型/完整动画、OMP与Figura、CPU模式窗口与实际后端选择尚未完成。
+阶段3：超平坦背景、皮肤与Figura原版部件待实施。
+阶段4：原MOD轮盘/模型设置、HUD/逐帧记录/分析待实施。
+阶段5：四类真实模型抽样实窗、最终能力矩阵和交付审核待实施。
 
-## 额度
-
-安全检查点读取可靠接口；当前周窗口剩余50%，可用reset两次。
-剩余<=2%时优先使用用户已授权的banked reset；未能重置时按交接规则安全保存。
-
-复制哈希核对通过（Build-Preview.ps1为已记录的路径适配）。git diff --cached --check：非vendor文件通过；vendor中既有13处空白诊断保留，未为格式改动第三方源码。
+仅实现预览器，不优化生产模组，不启动游戏。游戏实测MANUAL/PENDING。用户授权全部推送及libs中的MOD JAR；不提交Minecraft JAR/提取贴图、本机配置、用户模型或构建缓存。用户skin.png保留本地，不在本阶段提交。

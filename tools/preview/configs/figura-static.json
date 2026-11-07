@@ -1,9 +1,0 @@
-{
-  "schemaVersion": 1,
-  "window": {"width": 1280, "height": 720, "vsync": 1, "title": "omm-core Figura static preview"},
-  "camera": {"yawDegrees": 0, "pitchDegrees": 0, "fieldOfViewDegrees": 50, "distanceScale": 2.8},
-  "execution": {"implementation": "java", "path": "gpu", "threads": 1},
-  "scene": {"type": "single", "count": 1, "models": ["../../../refs/avatars/小符玄"]},
-  "benchmark": {"enabled": false},
-  "recording": {"enabled": true, "outputDirectory": "../../../build/preview/runs/figura-static"}
-}

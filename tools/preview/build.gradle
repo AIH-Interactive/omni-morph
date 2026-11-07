@@ -1,0 +1,57 @@
+plugins {
+    id 'java'
+}
+
+group = 'top.aihmc.omm'
+version = '1.0.0-dev'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+def runtimeDirectory = layout.projectDirectory.dir('../../build/preview/jar-host')
+def dependencyList = runtimeDirectory.file('spm/classpath.txt')
+
+// Compile-only dependencies stay outside the host JAR.
+tasks.register('prepareCompileDependencies', Exec) {
+    workingDir projectDir
+    commandLine 'python', 'prepare_runtime.py', 'spm', '--config',
+        providers.gradleProperty('runtimeConfig').getOrElse('runtime.local.json'), '--no-dialog'
+}
+
+dependencies {
+    compileOnly files(providers.provider {
+        if (!dependencyList.asFile.isFile()) {
+            throw new GradleException('Compile dependency preparation did not produce classpath.txt')
+        }
+        dependencyList.asFile.getText('UTF-8').trim().split(java.io.File.pathSeparator)
+    })
+}
+
+tasks.named('compileJava') {
+    dependsOn 'prepareCompileDependencies'
+    options.encoding = 'UTF-8'
+    options.release = 25
+}
+
+tasks.named('jar') {
+    // Bundle only the launcher's JSON library, retaining its license metadata.
+    // All MOD/Minecraft libraries remain external and are resolved per worker JVM.
+    from({
+        def gson = dependencyList.asFile.getText('UTF-8').trim().split(java.io.File.pathSeparator)
+            .findAll { new File(it).name.startsWith('gson-') }
+        if (gson.size() != 1) {
+            throw new GradleException('Expected exactly one installed Gson dependency')
+        }
+        zipTree(gson[0])
+    }) {
+        exclude 'META-INF/MANIFEST.MF', 'module-info.class', 'META-INF/versions/**/module-info.class'
+    }
+    archiveFileName = 'preview-host.jar'
+    destinationDirectory = runtimeDirectory
+    manifest {
+        attributes 'Main-Class': 'top.aihmc.omm.PreviewLauncher'
+    }
+}
