@@ -1,0 +1,578 @@
+package top.aihmc.omnimorph.model.ysm.controller;
+
+import top.aihmc.omm.preview.PreviewMolang;
+import top.aihmc.omnimorph.molang.parser.ast.Expression;
+import top.aihmc.omnimorph.molang.runtime.ExpressionEvaluator;
+import top.aihmc.omnimorph.molang.runtime.MolangExecutionBudget;
+import top.aihmc.omnimorph.molang.storage.StringPool;
+import top.aihmc.omnimorph.molang.storage.VariableStorage;
+import top.aihmc.omnimorph.model.ysm.animation.YsmAnimationClip;
+import top.aihmc.omm.preview.PreviewControllerPlayer;
+
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+public class YsmControllerRuntime {
+    private static final String CHILD_ENTRY_PREFIX = "ysm-entry-";
+    private static final int MAX_CONTROLLER_DEPTH = 5;
+    private final PreviewControllerPlayer player;
+    private final Map<String, YsmAnimationController> controllers = new LinkedHashMap<>();
+    private final Map<String, String> currentStates = new HashMap<>();
+    private final Map<String, Float> stateTimes = new HashMap<>();
+    private final Map<String, Set<String>> activeByController = new HashMap<>();
+    private final Map<String, Set<String>> completedOnceByController = new HashMap<>();
+    private final Set<String> enteredInitialStates = new HashSet<>();
+    private final Set<SoundTransitionKey> heldSoundTransitions = new HashSet<>();
+    private final Map<String, String> activeChildren = new HashMap<>();
+
+    private record SoundTransitionKey(String controller, String source, String target) {
+    }
+
+    public YsmControllerRuntime(PreviewControllerPlayer player) {
+        this.player = player;
+    }
+
+    public void register(Map<String, YsmAnimationController> newControllers) {
+        if (newControllers == null || newControllers.isEmpty())
+            return;
+        controllers.putAll(newControllers);
+        heldSoundTransitions.removeIf(key -> newControllers.containsKey(key.controller()));
+        for (YsmAnimationController controller : newControllers.values()) {
+            player.stopControllerSounds(controller.name());
+            deactivateChild(controller, null);
+            YsmControllerState state = controller.initialStateDefinition();
+            if (state != null) {
+                currentStates.put(controller.name(), state.name());
+                stateTimes.put(controller.name(), 0f);
+                enteredInitialStates.remove(controller.name());
+            }
+        }
+    }
+
+    public Map<String, YsmAnimationController> controllers() {
+        return controllers;
+    }
+
+    public String currentState(String controller) {
+        return currentStates.get(controller);
+    }
+
+    public float stateTime(String controller) {
+        return stateTimes.getOrDefault(controller, 0f);
+    }
+
+    /** Imported state does not replay entry/exit effects or infer transitions from observer input. */
+    public void applyRemoteState(Map<String, String> states, Map<String, Float> times) {
+        for (var entry : states.entrySet()) {
+            YsmAnimationController controller = controllers.get(entry.getKey());
+            Float time = times.get(entry.getKey());
+            if (controller == null || !controller.states().containsKey(entry.getValue())
+                    || time == null || !Float.isFinite(time) || time < 0) {
+                throw new IllegalArgumentException("Invalid remote controller state");
+            }
+        }
+        currentStates.clear();
+        currentStates.putAll(states);
+        stateTimes.clear();
+        stateTimes.putAll(times);
+        enteredInitialStates.clear();
+        enteredInitialStates.addAll(states.keySet());
+        activeByController.clear();
+        completedOnceByController.clear();
+        activeChildren.clear();
+        heldSoundTransitions.clear();
+    }
+
+    public void addRemotePlayback(String controller, String clip) {
+        String name = controllers.keySet().stream().filter(key -> key.equalsIgnoreCase(controller)).findFirst().orElse(controller);
+        activeByController.computeIfAbsent(name, ignored -> new HashSet<>()).add(clip);
+    }
+
+    public void advanceRemoteTime(float deltaSeconds) {
+        if (Float.isFinite(deltaSeconds) && deltaSeconds > 0) {
+            stateTimes.replaceAll((name, time) -> (float) Math.min(Float.MAX_VALUE, (double) time + deltaSeconds));
+        }
+    }
+
+    public void update(ExpressionEvaluator<?> evaluator) {
+        update(evaluator, 0f);
+    }
+
+    public void update(ExpressionEvaluator<?> evaluator, float deltaTime) {
+        update(evaluator, deltaTime, true);
+    }
+
+    public void update(ExpressionEvaluator<?> evaluator, float deltaTime, boolean firstPersonActive) {
+        if (!firstPersonActive) {
+            deactivateFirstPersonControllers(evaluator);
+        }
+        Set<String> childDefinitions = new HashSet<>();
+        for (YsmAnimationController controller : controllers.values()) {
+            for (YsmControllerState state : controller.states().values()) {
+                String child = childName(controller, state);
+                if (child != null) {
+                    childDefinitions.add(child);
+                }
+            }
+        }
+        controllers.values().stream()
+                .filter(controller -> !childDefinitions.contains(controller.name()))
+                .filter(controller -> firstPersonActive || controller.slot() != YsmControllerSlot.FIRST_PERSON_ARM)
+                .sorted(Comparator
+                        .comparingInt((YsmAnimationController controller) -> YsmControllerSlot.executionOrder(controller.name()))
+                        .thenComparing(YsmAnimationController::name))
+                .forEach(controller -> update(controller, evaluator, deltaTime, 1));
+    }
+
+    private void update(YsmAnimationController controller, ExpressionEvaluator<?> evaluator, float deltaTime, int depth) {
+        YsmControllerState state = state(controller);
+        if (state == null)
+            return;
+        stateTimes.merge(controller.name(), Math.max(0f, deltaTime), Float::sum);
+
+        PreviewMolang context = evaluator != null && evaluator.entity() instanceof PreviewMolang molangContext ? molangContext : null;
+        try (ContextScope contextScope = openControllerContext(controller.name(), evaluator)) {
+            player.runFunctionEventsForController(controller, evaluator);
+            applyControllerContext(controller, context);
+            Set<String> visitedStates = new HashSet<>();
+            boolean initialEntry = enteredInitialStates.add(controller.name());
+            if (initialEntry) {
+                visitedStates.add(state.name());
+                player.beginControllerPoseTransition(controller.name(), state.blendCurve());
+                execute(state.onEntry(), evaluator);
+                applyControllerContext(controller, context);
+                player.playControllerSounds(controller.name(), state);
+            }
+            // Initial entry consumes a slot-bearing state's turn just like any later transition.
+            // On subsequent updates the current state is not visited yet, so self re-entry is allowed.
+            boolean mayTransition = !initialEntry || state.isBuiltin()
+                    || state.animations().isEmpty() || childName(controller, state) != null;
+            YsmControllerTransition transition;
+            while (mayTransition && (transition = firstTransition(controller, state, evaluator, visitedStates)) != null) {
+                visitedStates.add(transition.targetState());
+                transition(controller, state, transition.targetState(), evaluator);
+                state = state(controller);
+                if (state == null)
+                    return;
+                // Declared slots count even if their condition is zero or their clip is unavailable.
+                mayTransition = state.isBuiltin() || state.animations().isEmpty() || childName(controller, state) != null;
+            }
+
+            String childName = childName(controller, state);
+            if (childName != null) {
+                YsmAnimationController child = controllers.get(childName);
+                if (child != null && depth < MAX_CONTROLLER_DEPTH) {
+                    activeChildren.put(controller.name(), childName);
+                    update(child, evaluator, deltaTime, depth + 1);
+                }
+                return;
+            }
+
+            Set<String> desired = new HashSet<>();
+            Set<String> completed = completedOnceByController.computeIfAbsent(controller.name(), ignored -> new HashSet<>());
+            for (String animation : Set.copyOf(activeByController.computeIfAbsent(controller.name(), ignored -> new HashSet<>()))) {
+                if (player.isControllerAnimationFinished(controller.name(), animation))
+                    completed.add(normalize(animation));
+            }
+            for (YsmControllerAnimationRef ref : state.isBuiltin() ? List.<YsmControllerAnimationRef>of() : state.animations()) {
+                if (ref.animation() == null || ref.animation().isBlank() || "empty".equals(ref.animation()))
+                    continue;
+                float weight = animationWeight(ref.condition(), evaluator);
+                YsmAnimationClip clip = clip(controller.name(), ref.animation());
+                if (clip == null)
+                    continue;
+                desired.add(ref.animation());
+                player.playControllerAnimation(controller.name(), ref.animation(), clip.loopMode, weight,
+                        state.blendTransition(), evaluator);
+            }
+
+            Set<String> previous = activeByController.computeIfAbsent(controller.name(), ignored -> new HashSet<>());
+            for (String animation : Set.copyOf(previous)) {
+                if (!desired.contains(animation)) {
+                    boolean finishedOnce = player.isControllerAnimationFinished(controller.name(), animation);
+                    player.fadeOutControllerAnimation(controller.name(), animation, state.blendTransition());
+                    if (!finishedOnce)
+                        completed.remove(normalize(animation));
+                }
+            }
+            previous.clear();
+            previous.addAll(desired);
+        }
+    }
+
+    private static String childName(YsmAnimationController controller, YsmControllerState state) {
+        if (!state.name().startsWith(CHILD_ENTRY_PREFIX)) {
+            return null;
+        }
+        return controller.name() + "." + state.name().substring(CHILD_ENTRY_PREFIX.length());
+    }
+
+    private void deactivateChild(YsmAnimationController controller, ExpressionEvaluator<?> evaluator) {
+        String childName = activeChildren.remove(controller.name());
+        YsmAnimationController child = controllers.get(childName);
+        if (child == null) {
+            return;
+        }
+        deactivateController(child, evaluator);
+    }
+
+    private void preserveChildPose(YsmAnimationController controller) {
+        String childName = activeChildren.get(controller.name());
+        YsmAnimationController child = controllers.get(childName);
+        if (child != null) {
+            preserveChildPose(child);
+            player.inheritControllerPose(controller.name(), child.name());
+        }
+    }
+
+    public void deactivateFirstPersonControllers(ExpressionEvaluator<?> evaluator) {
+        for (YsmAnimationController controller : controllers.values()) {
+            if (controller.slot() == YsmControllerSlot.FIRST_PERSON_ARM && enteredInitialStates.contains(controller.name())) {
+                deactivateController(controller, evaluator);
+            }
+        }
+    }
+
+    private void deactivateController(YsmAnimationController child, ExpressionEvaluator<?> evaluator) {
+        deactivateChild(child, evaluator);
+        YsmControllerState state = state(child);
+        if (state != null && enteredInitialStates.contains(child.name())) {
+            try (ContextScope contextScope = openControllerContext(child.name(), evaluator)) {
+                execute(state.onExit(), evaluator);
+            }
+        }
+        player.resetControllerAnimations(child.name());
+        player.stopControllerSounds(child.name());
+        activeByController.remove(child.name());
+        completedOnceByController.remove(child.name());
+        enteredInitialStates.remove(child.name());
+        heldSoundTransitions.removeIf(key -> key.controller().equals(child.name()));
+        currentStates.put(child.name(), child.initialState());
+        stateTimes.put(child.name(), 0f);
+    }
+
+    private YsmControllerState state(YsmAnimationController controller) {
+        String stateName = currentStates.get(controller.name());
+        YsmControllerState state = controller.states().get(stateName);
+        if (state != null)
+            return state;
+        state = controller.initialStateDefinition();
+        if (state != null)
+            currentStates.put(controller.name(), state.name());
+        return state;
+    }
+
+    private YsmControllerTransition firstTransition(YsmAnimationController controller, YsmControllerState state,
+                                                     ExpressionEvaluator<?> evaluator, Set<String> visitedStates) {
+        for (YsmControllerTransition transition : state.transitions()) {
+            YsmControllerState target = controller.states().get(transition.targetState());
+            if (target == null) {
+                continue;
+            }
+            boolean condition = transition.condition() == null || evalBool(transition.condition(), evaluator);
+            if (hasSoundTrigger(controller.name(), target)) {
+                SoundTransitionKey key = new SoundTransitionKey(controller.name(), state.name(), target.name());
+                if (!condition) {
+                    heldSoundTransitions.remove(key);
+                    continue;
+                }
+                if (!heldSoundTransitions.add(key)) {
+                    continue;
+                }
+            }
+            if (condition) {
+                // Sparkle applies its sound gate first, then stops the search on a visited target.
+                return visitedStates.contains(target.name()) ? null : transition;
+            }
+        }
+        return null;
+    }
+
+    private boolean hasSoundTrigger(String controllerName, YsmControllerState state) {
+        if (!state.soundEffects().isEmpty()) {
+            return true;
+        }
+        for (YsmControllerAnimationRef reference : state.animations()) {
+            YsmAnimationClip clip = clip(controllerName, reference.animation());
+            if (clip != null && clip.events.stream().anyMatch(event -> "sound".equals(event.type()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void transition(YsmAnimationController controller, YsmControllerState oldState, String newState, ExpressionEvaluator<?> evaluator) {
+        YsmControllerState target = controller.states().get(newState);
+        if (target == null)
+            return;
+        preserveChildPose(controller);
+        deactivateChild(controller, evaluator);
+        player.stopControllerSounds(controller.name());
+        PreviewMolang exitContext = evaluator != null && evaluator.entity() instanceof PreviewMolang value
+                ? value : null;
+        applyControllerClock(controller, exitContext);
+        applyControllerContext(controller, exitContext);
+        execute(oldState.onExit(), evaluator);
+        currentStates.put(controller.name(), target.name());
+        stateTimes.put(controller.name(), 0f);
+        float fadeSeconds = target.blendCurve().duration();
+        player.beginControllerPoseTransition(controller.name(), target.blendCurve());
+        for (String animation : activeByController.computeIfAbsent(controller.name(), ignored -> new HashSet<>()))
+            player.retireControllerAnimation(controller.name(), animation, fadeSeconds);
+        activeByController.get(controller.name()).clear();
+        completedOnceByController.computeIfAbsent(controller.name(), ignored -> new HashSet<>()).clear();
+        PreviewMolang context = evaluator != null && evaluator.entity() instanceof PreviewMolang value ? value : null;
+        applyControllerClock(controller, context);
+        applyControllerContext(controller, context);
+        execute(target.onEntry(), evaluator);
+        player.playControllerSounds(controller.name(), target);
+    }
+
+    private void execute(Iterable<Expression> expressions, ExpressionEvaluator<?> evaluator) {
+        if (evaluator == null || expressions == null)
+            return;
+        try (var effectScope = player.beginControllerEffects(); var functionScope = player.beginFunctionEffects()) {
+            for (Expression expression : expressions) {
+                try {
+                    evaluator.eval(expression);
+                } catch (MolangExecutionBudget.Exceeded exhausted) {
+                    throw exhausted;
+                } catch (Exception failure) {
+                    reportFailure(evaluator, failure);
+                }
+            }
+        }
+    }
+
+    private boolean evalBool(Expression expression, ExpressionEvaluator<?> evaluator) {
+        if (expression == null)
+            return true;
+        if (evaluator == null)
+            return false;
+        try {
+            return evaluator.evalAsBoolean(expression);
+        } catch (MolangExecutionBudget.Exceeded exhausted) {
+            throw exhausted;
+        } catch (Exception failure) {
+            reportFailure(evaluator, failure);
+            return false;
+        }
+    }
+
+    private static float animationWeight(Expression expression, ExpressionEvaluator<?> evaluator) {
+        if (expression == null) {
+            return 1f;
+        }
+        if (evaluator == null) {
+            return 0f;
+        }
+        try {
+            float value = evaluator.evalAsFloat(expression);
+            return Float.isFinite(value) && value > 0f ? value : 0f;
+        } catch (MolangExecutionBudget.Exceeded exhausted) {
+            throw exhausted;
+        } catch (RuntimeException e) {
+            reportFailure(evaluator, e);
+            return 0f;
+        }
+    }
+
+    private static void reportFailure(ExpressionEvaluator<?> evaluator, Exception failure) {
+        throw new IllegalStateException("Controller execution failed", failure);
+    }
+
+    private void applyControllerClock(YsmAnimationController controller, PreviewMolang context) {
+        if (context == null)
+            return;
+        float maxTime = 0f;
+        float maxLength = 0f;
+        boolean any = false;
+        boolean all = true;
+        boolean hasAnimation = false;
+        java.util.List<PreviewControllerPlayer.PlayingAnimation> instances = new java.util.ArrayList<>();
+        Set<String> animations = activeByController.get(controller.name());
+        if (animations != null) {
+            for (String animation : animations) {
+                PreviewControllerPlayer.PlayingAnimation playing = player.getControllerAnimation(controller.name(), animation);
+                if (playing != null && playing.controllerConditionActive) {
+                    instances.add(playing);
+                }
+            }
+        }
+        PreviewControllerPlayer.PlayingAnimation function = player.getControllerFunctionAnimation(controller.name());
+        if (function != null) {
+            instances.add(function);
+        }
+        for (PreviewControllerPlayer.PlayingAnimation playing : instances) {
+            hasAnimation = true;
+            maxTime = Math.max(maxTime, playing.time);
+            maxLength = Math.max(maxLength, playing.clip.length);
+            boolean finished = playing.hasCompletedCycle();
+            any |= finished;
+            all &= finished;
+        }
+        context.anim_time = maxTime;
+        context.life_time = maxLength;
+        context.any_animation_finished = !hasAnimation || any ? 1f : 0f;
+        context.all_animations_finished = !hasAnimation || all ? 1f : 0f;
+    }
+
+    private void applyControllerContext(YsmAnimationController controller, PreviewMolang context) {
+        if (context == null)
+            return;
+        String stateName = currentStates.getOrDefault(controller.name(), "");
+        setControllerValue(context, "controller", controller.name());
+        setControllerValue(context, "slot", controller.slot().name().toLowerCase(Locale.US));
+        setControllerValue(context, "current_state", stateName);
+        setControllerValue(context, "state_time", stateTimes.getOrDefault(controller.name(), 0f));
+        setControllerValue(context, "anim_time", context.anim_time);
+        setControllerValue(context, "life_time", context.life_time);
+        setControllerValue(context, "any_animation_finished", context.any_animation_finished);
+        setControllerValue(context, "all_animations_finished", context.all_animations_finished);
+        for (String knownState : controller.states().keySet())
+            setControllerValue(context, normalizeStateFlag(knownState), knownState.equals(stateName) ? 1f : 0f);
+    }
+
+    public ContextScope openControllerContext(String controllerName, ExpressionEvaluator<?> evaluator) {
+        PreviewMolang context = evaluator != null && evaluator.entity() instanceof PreviewMolang value
+                ? value : null;
+        YsmAnimationController controller = controllerName == null ? null : controllers.get(controllerName);
+        if (controller == null && controllerName != null) {
+            controller = controllers.values().stream()
+                    .filter(definition -> definition.name().equalsIgnoreCase(controllerName))
+                    .findFirst().orElse(null);
+        }
+        ContextScope scope = new ContextScope(context, controllerName == null ? Set.of() : controllerContextFields());
+        if (context != null && controller != null) {
+            for (YsmAnimationController definition : controllers.values()) {
+                for (String state : definition.states().keySet()) {
+                    setControllerValue(context, normalizeStateFlag(state), 0f);
+                }
+            }
+            applyControllerClock(controller, context);
+            applyControllerContext(controller, context);
+            context.is_first_person = controller.slot() == YsmControllerSlot.FIRST_PERSON_ARM ? 1f : 0f;
+        }
+        return scope;
+    }
+
+    public ContextScope openAnimationContext(String controllerName, ExpressionEvaluator<?> evaluator,
+                                             float animationTime, float animationLength) {
+        ContextScope scope = openControllerContext(controllerName, evaluator);
+        if (scope.context != null) {
+            scope.context.anim_time = animationTime;
+            scope.context.life_time = animationLength;
+            if (controllerName != null) {
+                setControllerValue(scope.context, "anim_time", animationTime);
+                setControllerValue(scope.context, "life_time", animationLength);
+            }
+        }
+        return scope;
+    }
+
+    public ContextScope openAnimationContext(String controllerName, ExpressionEvaluator<?> evaluator,
+                                             float animationTime, float animationLength, boolean firstPerson) {
+        ContextScope scope = openAnimationContext(controllerName, evaluator, animationTime, animationLength);
+        if (scope.context != null) {
+            scope.context.is_first_person = firstPerson ? 1f : 0f;
+        }
+        return scope;
+    }
+
+    private Set<Integer> controllerContextFields() {
+        Set<Integer> fields = new HashSet<>();
+        for (String field : List.of("controller", "slot", "current_state", "state_time", "anim_time",
+                "life_time", "any_animation_finished", "all_animations_finished")) {
+            fields.add(StringPool.computeIfAbsent(field));
+        }
+        for (YsmAnimationController controller : controllers.values()) {
+            for (String state : controller.states().keySet()) {
+                fields.add(StringPool.computeIfAbsent(normalizeStateFlag(state)));
+            }
+        }
+        return fields;
+    }
+
+    public static final class ContextScope implements AutoCloseable {
+        private final PreviewMolang context;
+        private final VariableStorage.Scope fields;
+        private final float animationTime;
+        private final float lifeTime;
+        private final float anyFinished;
+        private final float allFinished;
+        private final float firstPerson;
+        private boolean closed;
+
+        private ContextScope(PreviewMolang context, Set<Integer> names) {
+            this.context = context;
+            fields = context == null ? null : context.controller.preserveScopedValues(names);
+            animationTime = context == null ? 0f : context.anim_time;
+            lifeTime = context == null ? 0f : context.life_time;
+            anyFinished = context == null ? 0f : context.any_animation_finished;
+            allFinished = context == null ? 0f : context.all_animations_finished;
+            firstPerson = context == null ? 0f : context.is_first_person;
+        }
+
+        @Override
+        public void close() {
+            if (closed || context == null) {
+                return;
+            }
+            closed = true;
+            fields.close();
+            context.anim_time = animationTime;
+            context.life_time = lifeTime;
+            context.any_animation_finished = anyFinished;
+            context.all_animations_finished = allFinished;
+            context.is_first_person = firstPerson;
+        }
+    }
+
+    private static void setControllerValue(PreviewMolang context, String name, Object value) {
+        context.controller.setScoped(StringPool.computeIfAbsent(name), value);
+    }
+
+    private static String normalizeStateFlag(String name) {
+        if (name == null || name.isBlank())
+            return "state";
+        return name.toLowerCase(Locale.US).replace('-', '_').replace(' ', '_').replace('.', '_');
+    }
+
+    private static String normalize(String name) {
+        if (name == null)
+            return "";
+        String value = name;
+        if (value.startsWith("animation."))
+            value = value.substring("animation.".length());
+        int colon = value.indexOf(':');
+        if (colon >= 0 && colon + 1 < value.length())
+            value = value.substring(colon + 1);
+        int suffix = value.indexOf('#');
+        if (suffix >= 0)
+            value = value.substring(0, suffix);
+        return value.toLowerCase(Locale.US);
+    }
+
+    private YsmAnimationClip clip(String controllerName, String name) {
+        YsmAnimationClip clip = player.clipsForController(controllerName).get(name);
+        if (clip != null)
+            return clip;
+        String normalized = normalize(name);
+        clip = player.clipsForController(controllerName).get(normalized);
+        if (clip != null)
+            return clip;
+        int dot = normalized.lastIndexOf('.');
+        if (dot >= 0 && dot + 1 < normalized.length()) {
+            clip = player.clipsForController(controllerName).get(normalized.substring(dot + 1));
+            if (clip != null)
+                return clip;
+        }
+        return null;
+    }
+}
