@@ -25,8 +25,8 @@ public final class PreviewLauncher {
                   --fixture DIRECTORY         Two-bones diagnostic fixture directory
                   --model PATH                Original model path; alternatively set scene.models in JSON
                   --mode gpu|java|simd         Requested rendering mode
-                  --skin FILE                 Skin path override (binding implemented in stage 3)
-                  --skin-model auto|alex|steve Skin type override (binding implemented in stage 3)
+                  --skin FILE                 Local skin (64x64 or legacy 64x32)
+                  --skin-model auto|alex|steve Original player model; auto infers from PNG transparency
                   --frames NUMBER             Positive bounded window frame count (default: 120)
                   --probe parse|bake|window|gpu|gpu-check  Diagnostic scope (default: gpu)
                   --help                      Show this help
@@ -55,6 +55,9 @@ public final class PreviewLauncher {
                 overrides.put(field, options.get(argument));
             }
         });
+        if (overrides.containsKey("skinPath")) {
+            overrides.put("skinPath", Path.of(overrides.get("skinPath")).toAbsolutePath().normalize().toString());
+        }
         var settings = RuntimeConfiguration.read(config, overrides);
         String backend = RuntimeConfiguration.text(settings, "backend");
         if (!List.of("omp", "spm", "oysm").contains(backend)) {

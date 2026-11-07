@@ -8,6 +8,8 @@ final class FiguraMaterials {
     private final Method resolve;
     private final Class<?> customizationType;
     private final RenderInputs inputs;
+    private MinecraftTextureSources externalTextures;
+    private PreviewSkin skin;
 
     FiguraMaterials(Object renderer) throws Exception {
         this.renderer = renderer;
@@ -38,7 +40,7 @@ final class FiguraMaterials {
     record Material(Object semantics, Object texture) {}
 
     Material resolve(Object customization, Object textureSet, boolean primary, int faces, boolean visible) throws Exception {
-        Object data = resolve.invoke(renderer, customization, textureSet, primary);
+        Object data = resolveTexture(customization, textureSet, primary);
         Object renderType = field(data, "renderType");
         if (renderType == null) {
             return null;
@@ -75,7 +77,19 @@ final class FiguraMaterials {
             }
         }
         if (selected == null) {
-            throw new UnsupportedOperationException("Figura external resource texture binding pending: " + identifier);
+            if (identifier != null && identifier.toString().equals(PreviewSkin.IDENTIFIER)) {
+                if (skin == null) {
+                    skin = new PreviewSkin();
+                }
+                selected = skin.bytes();
+            } else if (identifier != null && identifier.toString().startsWith("minecraft:textures/")) {
+                if (externalTextures == null) {
+                    externalTextures = new MinecraftTextureSources();
+                }
+                selected = externalTextures.read(identifier.toString());
+            } else {
+                throw new UnsupportedOperationException("Unresolved Figura resource texture: " + identifier);
+            }
         }
         Object color = field(data, "color");
         Class<?> semantics = Class.forName("top.aihmc.omnimorph.render.acceleration.DrawSemantics");
@@ -91,6 +105,25 @@ final class FiguraMaterials {
             customizationType.getField("alpha").get(customization),
             ((Number) field(data, "vertexOffset")).doubleValue(), visible);
         return new Material(result, selected);
+    }
+
+    private Object resolveTexture(Object customization, Object textureSet, boolean primary) throws Exception {
+        var textureField = customizationType.getField(primary ? "primaryTexture" : "secondaryTexture");
+        Object original = textureField.get(customization);
+        Object override = original == null ? null : original.getClass().getMethod("getOverrideType").invoke(original);
+        if (override == null || !override.toString().equals("SKIN")) {
+            return resolve.invoke(renderer, customization, textureSet, primary);
+        }
+        // Only replace the external player resource; keep the original renderer's material selection.
+        Object resource = override.getClass().getField("RESOURCE").get(null);
+        Object replacement = original.getClass().getConstructor(override.getClass(), Object.class)
+            .newInstance(resource, PreviewSkin.IDENTIFIER);
+        try {
+            textureField.set(customization, replacement);
+            return resolve.invoke(renderer, customization, textureSet, primary);
+        } finally {
+            textureField.set(customization, original);
+        }
     }
 
     private static Object field(Object object, String name) throws Exception {

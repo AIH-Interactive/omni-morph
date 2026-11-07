@@ -50,6 +50,7 @@ final class ReferenceGpuWindow {
         var modelTextures = new java.util.LinkedHashMap<Path, Integer>();
         int[] textures = new int[3];
         CpuVertexPass cpuPass = null;
+        SuperflatBackground background = null;
         try (var cleanup = new ResourceCleanup()) {
             try {
                 glfwDefaultWindowHints();
@@ -62,6 +63,7 @@ final class ReferenceGpuWindow {
                 }
                 glfwMakeContextCurrent(window);
                 GL.createCapabilities();
+                background = new SuperflatBackground();
                 Class<?> renderSystem = Class.forName("com.mojang.blaze3d.systems.RenderSystem");
                 if (!(boolean) renderSystem.getMethod("isOnRenderThread").invoke(null)) {
                     renderSystem.getMethod("initRenderThread").invoke(null);
@@ -146,8 +148,12 @@ final class ReferenceGpuWindow {
                 long cpuDrawCalls = 0;
                 long cpuSubmittedIndices = 0;
                 for (int frame = 0; frame < frameLimit && !glfwWindowShouldClose(window); frame++) {
-                    glClearColor(0, 0, 0, 1);
+                    glClearColor(0.53f, 0.75f, 1f, 1);
+                    glDepthMask(true);
+                    glColorMask(true, true, true, true);
                     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                    background.draw(cpuCamera);
+                    byte[] backgroundPixels = frame == frameLimit - 1 ? WindowPixels.capture(960, 640) : null;
                     for (int instance = 0; instance < instances.size(); instance++) {
                         PreparedInstance prepared = instances.get(instance);
                         if (prepared.cpuFallback() != null) {
@@ -246,7 +252,8 @@ final class ReferenceGpuWindow {
                         }
                     }
                     if (frame == frameLimit - 1) {
-                        nonBackground = nonBackgroundPixels();
+                        nonBackground = WindowPixels.changed(backgroundPixels, WindowPixels.capture(960, 640));
+                        System.out.println("REFERENCE MODEL PIXELS versusBackground=" + nonBackground);
                     }
                     int error = glGetError();
                     if (error != GL_NO_ERROR) {
@@ -266,6 +273,9 @@ final class ReferenceGpuWindow {
                     + " gpuDrawCalls=" + (drawCalls - cpuDrawCalls) + " cpuDrawCalls=" + cpuDrawCalls
                     + " cpuSubmittedIndices=" + cpuSubmittedIndices);
             } finally {
+                if (background != null) {
+                    cleanup.add(background);
+                }
                 if (cpuPass != null) {
                     cleanup.add(cpuPass);
                 }

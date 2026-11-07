@@ -61,7 +61,41 @@ public final class FiguraInstanceIsolationProbe {
             verifyVisibility(firstRenderer, firstBatches);
             verifyDrawOrder(firstBatches.drawBatches());
             verifyCustomTexture(first, firstRenderer);
+            verifyVanillaPlayer(first);
         }
+    }
+
+    private static void verifyVanillaPlayer(Object owner) throws Exception {
+        Object api = Class.forName("org.figuramc.figura.lua.api.vanilla_model.VanillaModelAPI")
+            .getConstructor(owner.getClass()).newInstance(owner);
+        var steve = new VanillaPlayerGeometry(false);
+        var alex = new VanillaPlayerGeometry(true);
+        double[] regular = steve.vertices(api);
+        double[] slim = alex.vertices(api);
+        if (regular.length == 0 || regular.length != slim.length || java.util.Arrays.equals(regular, slim)) {
+            throw new AssertionError("Original player models did not expose distinct, complete geometry");
+        }
+        Object player = api.getClass().getField("PLAYER").get(api);
+        var setVisible = player.getClass().getMethod("setVisible", Boolean.class);
+        setVisible.invoke(player, false);
+        if (steve.vertices(api).length != 0 || alex.vertices(api).length != 0) {
+            throw new AssertionError("Original PLAYER group hide did not hide the entire player mesh");
+        }
+        setVisible.invoke(player, new Object[]{null});
+        if (!java.util.Arrays.equals(regular, steve.vertices(api))) {
+            throw new AssertionError("Original player visibility did not restore to default");
+        }
+        Object arm = api.getClass().getField("LEFT_ARM").get(api);
+        arm.getClass().getMethod("setVisible", Boolean.class).invoke(arm, false);
+        double[] partial = steve.vertices(api);
+        if (partial.length <= 0 || partial.length >= regular.length) {
+            throw new AssertionError("Original LEFT_ARM hide did not preserve other player parts");
+        }
+        if (!java.util.Arrays.equals(regular, steve.vertices(null))) {
+            throw new AssertionError("Figura customization leaked into the underlying Minecraft model");
+        }
+        System.out.println("VANILLA PLAYER GEOMETRY PASS regularVertices=" + regular.length / 9
+            + " partialVertices=" + partial.length / 9 + " slimDistinct=true groupVisibility=true restored=true");
     }
 
     private static void verifyCustomTexture(Object owner, Object renderer) throws Exception {
@@ -98,6 +132,30 @@ public final class FiguraInstanceIsolationProbe {
                 registered.remove("preview-custom-probe");
             }
             Path output = Path.of(System.getProperty("omm.preview.output"), "custom-texture-probe.png");
+            settings.getClass().getField("primaryTexture").set(settings,
+                customization.getConstructor(overrideType, Object.class)
+                    .newInstance(overrideType.getField("RESOURCE").get(null), "minecraft:textures/block/grass_block_top.png"));
+            Object selected = materials.resolve(settings, textureSet, true, 1, true).texture();
+            var config = RuntimeConfiguration.json(output.getParent().resolve("effective-config.json"));
+            try (var zip = new java.util.zip.ZipFile(config.get("textureJar").getAsString());
+                 var stream = zip.getInputStream(zip.getEntry("assets/minecraft/textures/block/grass_block_top.png"))) {
+                if (!(selected instanceof byte[] bytes) || !java.util.Arrays.equals(bytes, stream.readAllBytes())) {
+                    throw new AssertionError("Original RESOURCE binding did not preserve configured Minecraft texture bytes");
+                }
+            }
+            System.out.println("FIGURA MINECRAFT RESOURCE PASS identifier=minecraft:textures/block/grass_block_top.png bytesExact=true");
+            Object skinOverride = customization.getConstructor(overrideType, Object.class)
+                .newInstance(overrideType.getField("SKIN").get(null), null);
+            settings.getClass().getField("primaryTexture").set(settings, skinOverride);
+            Object skin = materials.resolve(settings, textureSet, true, 1, true).texture();
+            if (!(skin instanceof byte[] skinBytes) || !java.util.Arrays.equals(skinBytes,
+                    java.nio.file.Files.readAllBytes(Path.of(config.get("skinPath").getAsString())))) {
+                throw new AssertionError("Original SKIN material did not use configured skin bytes");
+            }
+            if (settings.getClass().getField("primaryTexture").get(settings) != skinOverride) {
+                throw new AssertionError("Skin resource substitution changed the original customization");
+            }
+            System.out.println("FIGURA CONFIGURED SKIN PASS bytesExact=true customizationRestored=true");
             textureType.getMethod("writeTexture", Path.class).invoke(custom, output);
             var image = javax.imageio.ImageIO.read(output.toFile());
             if (image == null || image.getWidth() != 2 || image.getHeight() != 2) {

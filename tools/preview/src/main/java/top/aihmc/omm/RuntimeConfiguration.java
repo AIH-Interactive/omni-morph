@@ -29,10 +29,14 @@ final class RuntimeConfiguration {
     static JsonObject read(Path path, java.util.Map<String, String> overrides) throws Exception {
         JsonObject settings = Files.exists(path) ? json(path) : new JsonObject();
         defaultValue(settings, "librariesDirectory", "D:/Program Files/AIHMC/.minecraft/libraries");
-        defaultValue(settings, "skinPath", path.getParent().resolve("skin.png").toString());
+        defaultValue(settings, "skinPath", "D:/UserData/Desktop/Project/OMP/OMP_26.1.2/tools/preview/skin.png");
         defaultValue(settings, "skinModel", "auto");
         defaultValue(settings, "modDirectory", path.getParent().resolve("libs").toString());
         overrides.forEach(settings::addProperty);
+        Path skinPath = Path.of(text(settings, "skinPath"));
+        if (!skinPath.isAbsolute()) {
+            settings.addProperty("skinPath", path.getParent().resolve(skinPath).normalize().toString());
+        }
         if (!valid(settings)) {
             SwingUtilities.invokeAndWait(() -> configure(settings));
             Files.createDirectories(path.getParent());

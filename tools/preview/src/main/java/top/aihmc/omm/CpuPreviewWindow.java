@@ -77,6 +77,7 @@ final class CpuPreviewWindow {
         int colorsBuffer = 0;
         int lightingBuffer = 0;
         CpuLightTextures lightTextures = null;
+        SuperflatBackground background = null;
         var textures = new java.util.IdentityHashMap<byte[], Integer>();
         try {
             glfwDefaultWindowHints();
@@ -92,6 +93,7 @@ final class CpuPreviewWindow {
             glfwSwapInterval(1);
             program = program();
             lightTextures = new CpuLightTextures();
+            background = new SuperflatBackground();
             vao = glGenVertexArrays();
             verticesBuffer = glGenBuffers();
             indicesBuffer = glGenBuffers();
@@ -253,10 +255,12 @@ final class CpuPreviewWindow {
                 int[] height = new int[1];
                 glfwGetFramebufferSize(window, width, height);
                 glViewport(0, 0, width[0], height[0]);
-                glClearColor(0, 0, 0, 1);
+                glClearColor(0.53f, 0.75f, 1f, 1);
                 glDepthMask(true);
                 glColorMask(true, true, true, true);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                background.draw(camera);
+                byte[] backgroundPixels = frame == frames - 1 ? WindowPixels.capture(width[0], height[0]) : null;
                 long[] drawOffsets = new long[batches.size()];
                 long drawOffset = 0;
                 for (int batch = 0; batch < batches.size(); batch++) {
@@ -288,7 +292,8 @@ final class CpuPreviewWindow {
                         drawOffsets[batch] + (long) range.firstIndex() * Integer.BYTES);
                 }
                 if (frame == frames - 1) {
-                    visiblePixels = pixels(width[0], height[0]);
+                    visiblePixels = WindowPixels.changed(backgroundPixels, WindowPixels.capture(width[0], height[0]));
+                    System.out.println("CPU MODEL PIXELS versusBackground=" + visiblePixels);
                 }
                 int error = glGetError();
                 if (error != GL_NO_ERROR) {
@@ -306,6 +311,9 @@ final class CpuPreviewWindow {
                 + " minimumVertices=" + minimumVertices + " maximumVertices=" + maximumVertices);
         } finally {
             if (window != 0) {
+                if (background != null) {
+                    background.close();
+                }
                 if (lightTextures != null) {
                     lightTextures.close();
                 }
@@ -411,7 +419,7 @@ final class CpuPreviewWindow {
         return program;
     }
 
-    private static int shader(int type, String source) {
+    static int shader(int type, String source) {
         int shader = glCreateShader(type);
         glShaderSource(shader, source);
         glCompileShader(shader);
