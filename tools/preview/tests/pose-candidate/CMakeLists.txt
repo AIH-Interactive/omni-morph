@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 3.24)
+project(preview_pose_candidate LANGUAGES CXX)
+
+set(JAVA_INCLUDE_DIR "" CACHE PATH "JDK include directory")
+add_library(preview_pose_candidate SHARED pose_candidate.cpp pose_avx.cpp)
+target_compile_features(preview_pose_candidate PRIVATE cxx_std_20)
+target_include_directories(preview_pose_candidate PRIVATE "${JAVA_INCLUDE_DIR}" "${JAVA_INCLUDE_DIR}/win32")
+if(MSVC)
+    target_compile_options(preview_pose_candidate PRIVATE /W4 /fp:precise)
+    set_source_files_properties(pose_avx.cpp PROPERTIES COMPILE_OPTIONS /arch:AVX2)
+endif()

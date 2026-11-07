@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "window": {"width": 1280, "height": 720, "vsync": 1, "title": "omm-core preview"},
+  "execution": {"implementation": "java", "path": "gpu", "threads": 1},
+  "scene": {"type": "single", "count": 1, "seed": 42, "models": ["builtin:cube"]},
+  "benchmark": {"enabled": false, "warmupFrames": 120, "sampleFrames": 600, "rounds": 5, "exitAfterFrames": 0},
+  "recording": {"enabled": true, "outputDirectory": "../../../build/preview/runs/demo"},
+  "states": {"running": true}
+}
