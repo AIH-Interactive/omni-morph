@@ -112,6 +112,7 @@ final class OmniMorphGpuWindow {
                      TextureFormat.DEPTH32, WIDTH, HEIGHT, 1, 1);
                  var colorView = device.createTextureView(color);
                  var depthView = device.createTextureView(depth);
+                 var scenery = new GpuScenery(color, depth);
                  var modelTextures = new ModelTextures(device);
                  var lightmapImage = NativeImage.read(LightingTextureInputs.read("lightmapTexture"));
                  var overlayImage = NativeImage.read(LightingTextureInputs.read("overlayTexture"));
@@ -164,7 +165,9 @@ final class OmniMorphGpuWindow {
                             throw new IllegalStateException("Animated GPU batch texture topology changed");
                         }
                         beginFrame.invoke(backend);
-                        device.createCommandEncoder().clearColorAndDepthTextures(color, 0xff000000, depth, 1);
+                        device.createCommandEncoder().clearColorAndDepthTextures(color, 0xff87bfff, depth, 1);
+                        scenery.draw(new Matrix4f(projectionMatrix).mul(viewMatrix));
+                        byte[] backgroundPixels = frame == frames - 1 ? scenery.capture() : null;
                         Object[] prepared = new Object[batches.size()];
                         for (var range : drawOrder.ranges(batches)) {
                             int index = range.batch();
@@ -181,10 +184,11 @@ final class OmniMorphGpuWindow {
                             }
                             accepted++;
                         }
-                        device.createCommandEncoder().presentTexture(colorView);
-                        if (frame == 0 || frame == frames - 1) {
-                            pixels = visiblePixels(window);
+                        if (backgroundPixels != null) {
+                            pixels = WindowPixels.changed(backgroundPixels, scenery.capture());
+                            System.out.println("OMP GPU MODEL PIXELS versusBackground=" + pixels);
                         }
+                        device.createCommandEncoder().presentTexture(colorView);
                         int error = glGetError();
                         if (error != GL_NO_ERROR) {
                             throw new IllegalStateException("Original GPU window GL error: " + error);
@@ -207,6 +211,63 @@ final class OmniMorphGpuWindow {
                     .invoke(retirement, 1_000_000_000L)) {
                 throw new IllegalStateException("GPU resources did not retire before context shutdown");
             }
+        }
+    }
+
+    /** Uses the original target attachments; raw GL bindings are restored before MOD rendering. */
+    private static final class GpuScenery implements AutoCloseable {
+        private final SuperflatBackground background;
+        private final int framebuffer;
+
+        GpuScenery(GpuTexture color, GpuTexture depth) throws Exception {
+            background = new SuperflatBackground();
+            framebuffer = glGenFramebuffers();
+            int previous = glGetInteger(GL_DRAW_FRAMEBUFFER_BINDING);
+            try {
+                glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer);
+                glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D,
+                    ((com.mojang.blaze3d.opengl.GlTexture) color).glId(), 0);
+                glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,
+                    ((com.mojang.blaze3d.opengl.GlTexture) depth).glId(), 0);
+                if (glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+                    throw new IllegalStateException("Preview scenery target is incomplete");
+                }
+            } catch (RuntimeException | Error failure) {
+                close();
+                throw failure;
+            } finally {
+                glBindFramebuffer(GL_DRAW_FRAMEBUFFER, previous);
+            }
+        }
+
+        void draw(Matrix4f camera) {
+            int previous = glGetInteger(GL_DRAW_FRAMEBUFFER_BINDING);
+            int[] viewport = new int[4];
+            glGetIntegerv(GL_VIEWPORT, viewport);
+            try {
+                glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer);
+                glViewport(0, 0, WIDTH, HEIGHT);
+                background.draw(camera);
+            } finally {
+                glBindFramebuffer(GL_DRAW_FRAMEBUFFER, previous);
+                glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+            }
+        }
+
+        byte[] capture() {
+            int previous = glGetInteger(GL_READ_FRAMEBUFFER_BINDING);
+            try {
+                glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer);
+                return WindowPixels.capture(WIDTH, HEIGHT);
+            } finally {
+                glBindFramebuffer(GL_READ_FRAMEBUFFER, previous);
+            }
+        }
+
+        @Override
+        public void close() {
+            glDeleteFramebuffers(framebuffer);
+            background.close();
         }
     }
 

@@ -1,6 +1,6 @@
 # 外部 MOD JAR 预览器（开发中）
 
-预览器已使用外部 MOD JAR 加载与渲染模型：OMP 支持 YSM/Figura，OpenYSM/SPM 支持 YSM；Java/SIMD/GPU、配置动画和多模型场景已有离线实窗证据。完整交互预览器尚未交付，HUD、超平坦场景、原界面及抽样报告仍待后续阶段；当前命令用于开发验证，不是性能基准。
+预览器已使用外部 MOD JAR 加载与渲染模型：OMP 支持 YSM/Figura，OpenYSM/SPM 支持 YSM；Java/SIMD/GPU、配置动画和多模型场景已有离线实窗证据。超平坦场景、配置皮肤和Figura原版玩家部件已接入。完整交互预览器尚未交付，HUD、原界面及抽样报告仍待后续阶段；当前命令用于开发验证，不是性能基准。
 
 ## 本机配置
 
@@ -8,7 +8,7 @@
 
 `runtime.local.json` 不进入 Git。JAR启动时直接读取配置、解析安装版本依赖并提取MOD嵌套JAR，未配置或目录失效时显示Swing配置窗口（实窗保存/取消及中文显示已验证）。只读取安装文件，不启动游戏。仓库不包含 Minecraft JAR 或提取资源。`modDirectory` 可指定MOD目录，默认配置文件旁的 `libs`。
 
-`skinPath` 默认是预览器目录的 `skin.png`，可在配置中替换。`skinModel` 接受 `auto`、`alex`、`steve`；配置读取已支持这些字段，皮肤渲染接入尚待完成。自动选择优先使用皮肤模型元数据；单独PNG无法始终唯一确定手臂类型，可显式指定Alex/Steve。
+`skinPath` 默认 `D:/UserData/Desktop/Project/OMP/OMP_26.1.2/tools/preview/skin.png`，可在配置或 `--skin` 中替换。`skinModel` 接受 `auto`、`alex`、`steve`，对应原Minecraft玩家网格。auto根据64x64皮肤闲置臂部条带透明度推断体型；PNG无权威体型元数据，可显式覆盖。64x32皮肤由原Minecraft转换，源图片不改。
 
 ```powershell
 python tools/preview/prepare_runtime.py spm
@@ -213,3 +213,27 @@ OMP Java/SIMD/GPU现在按原材质的sortOnUpload选择原GpuSubmission.faces�
 本次验证使用真实YSM原实例的同一原Molang表达式，证明不同health配置隔离和未配置anim_time沿用原实现。真实模型是否引用指定查询取决于其动画内容，不能以配置成功推断画面必然变化。
 
 第308–310轮补充真实模型证据：taisho原jump含ground_speed表达式，在固定0.1秒将单个实例配置为10会改变原变换顶点，其他实例保持不变；相同相机的实窗也观察到画面读回变化。模型项自身animation覆盖顶层animation时，应将queries放入该模型项的animation对象。
+
+### 本机Minecraft RESOURCE贴图（阶段3进行中）
+
+Figura原材质选定的 `minecraft:textures/...png` 现从配置的textureJar读取，所需PNG及存在的mcmeta提取至运行输出目录的 `resources/<源JAR SHA256>/assets/minecraft/...`，同目录texture-sources.json保存源JAR与所读资源哈希。多个模型读取时合并清单，不打包Minecraft资源。第324轮验证原RESOURCE解析结果与本机26.1.2草方块贴图字节完全一致。该入口尚不代表动态纹理动画、SKIN/CAPE或超平坦背景已完成。
+
+### 超平坦背景进度（第325–329轮）
+
+独立CPU窗口（各MOD Java/SIMD）与SPM/OpenYSM参考GPU窗口已加入本机Minecraft草地贴图的水平地面和天空底色；SPM同窗Java回退共用深度。第326轮真实桌面截图确认CPU模型与场景，第328轮SPM GPU/Java运行通过。OMP GPU背景仍待接入；皮肤/原版部件仍在阶段3实施中。
+
+新日志的 `pixels` / `versusBackground` 是同一帧“背景加模型”与“仅背景”的差异像素，不再是非黑像素数；不会将地面当作模型。第329轮隐藏所有根部件后差异0并按预期拒绝验收。背景绘制成本后续在HUD/报告中单列，当前不提供性能收益结论。
+
+阶段3进度（第330–336轮）：OMP、SPM、OpenYSM GPU 与 CPU 窗口均已接入超平坦草地背景。OMP GPU 直接共享原模型的颜色/深度纹理；模型像素为末帧相对仅背景的差异，隐藏全部模型会按预期拒绝通过。OpenYSM 旧 LWJGL 读回释放签名已修复并实窗复测；YSM/Figura 混合 OMP GPU 已通过。当前开发构建为第334轮，皮肤/原版部件和后续HUD/UI仍未完成，不能作为最终交付版本。
+
+第337–339轮已接通 Figura `SKIN` 纹理：从 `skinPath`（或 `--skin`）读取本机64x64/旧64x32图片，作为玩家资源输入交给原MOD材质选择。默认路径为 `D:/UserData/Desktop/Project/OMP/OMP_26.1.2/tools/preview/skin.png`；相对配置路径按配置文件目录解析。原Avatar探针已验证原始字节一致和原customization恢复。此处仅完成SKIN资源绑定，`skinModel`的Alex/Steve人物几何、旧皮肤转换及原版部件尚未完成。
+
+第340–342轮新增原版玩家几何适配，直接使用本机Minecraft的Alex/Steve网格与Figura原PLAYER部件变换/显隐接口，离线验证通过。该适配尚未接入常规预览场景，原Lua脚本驱动和皮肤体型选择仍在阶段3实施中。
+
+第343–349轮：常规FiguraScene已调用原Avatar.initializeLibraryPreview，执行原编译NBT中的脚本初始化。真实小符玄脚本在离线运行时隐藏原版PLAYER；混合YSM/Figura GPU实窗通过。当前尚未接逐帧Lua事件与原版玩家绘制批次；这些仍属后续实施，不把初始化等同完整游戏事件环境。
+
+第350–355轮：常规Figura场景已补充原Minecraft玩家部件，通过OMP原加速批次绘制，与自定义模型共享实例位置。原Lua `vanilla_model` 的显隐/变换决定部件提交；未隐藏则显示，隐藏时保留槽位但不提交。`skinModel=alex|steve`（或`--skin-model`）选择体型；`auto`对64x64皮肤检查双臂闲置条带透明度推断Alex，否则Steve，PNG本身无权威体型元数据，可显式覆盖。`--skin`相对路径以命令工作目录为基准，配置`skinPath`相对路径以配置目录为基准。旧64x32皮肤转换仍待完成。
+
+第356–360轮：64x32旧皮肤已调用本机Minecraft原processLegacySkin转换到64x64，镜像肢体与透明处理沿用原实现，输出在运行目录skins/源SHA256.png，源皮肤不改。原版玩家Java/SIMD/GPU三条实窗路径均通过，当前场景仍是配置驱动，不模拟游戏状态机。
+
+第361–363轮补齐原Figura ParentType绑定：用原VanillaModelData采集玩家变换，调用原applyVanillaTransforms/resetVanillaTransforms驱动自定义模型，保留其动画覆盖规则。真实模型HEAD旋转、重复刷新无累积、恢复原状态验证通过。原玩家隐藏不连带隐藏自定义模型，顺序与原渲染器一致。

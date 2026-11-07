@@ -25,7 +25,9 @@ final class FiguraScene implements OriginalScene {
                 Object copy = data.getClass().getMethod("copy").invoke(data);
                 Object runtime = FiguraWorker.createRuntime(copy, model);
                 instances.add(new Instance(runtime, null, null, 0));
-                FiguraBatches batches = new FiguraBatches(runtime.getClass().getField("renderer").get(runtime));
+                Object lua = FiguraLuaInput.initialize(runtime);
+                FiguraBatches batches = new FiguraBatches(runtime.getClass().getField("renderer").get(runtime),
+                    lua.getClass().getField("vanilla_model").get(lua));
                 instances.set(instances.size() - 1, new Instance(runtime, batches, null, 0));
                 FiguraAnimationInput animation = animationConfig == null ? null : new FiguraAnimationInput(runtime, animationConfig);
                 float start = animationConfig == null ? 0 : animationConfig.get("time").getAsFloat()

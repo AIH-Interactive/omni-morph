@@ -1383,3 +1383,205 @@ PASS：相同3实例配置，原GPU30帧393批11790draw、43564像素，384上�
 ### 第320轮：宿主包边界检查
 
 - 297条目，未包含net/minecraft、assets/minecraft、org/figuramc、top/aihmc/omnimorph类/资源，也未包含src/test实际测试类。生产CLI诊断入口保留。退出0 PASS，日志 build/preview/jar-audit/round320-package.log。
+
+### 第321轮：阶段3本机Minecraft资源贴图接入编译
+
+- 新增MinecraftTextureSources，从effective-config.textureJar读取指定minecraft:textures/*.png及可选mcmeta，按源SHA256隔离并保留assets/minecraft路径，记录来源和资源哈希。FiguraMaterials原RESOURCE解析结果可使用原JAR字节，FiguraBatches将字节交给既有窗口纹理上传。
+- assemble PASS，日志 build/preview/jar-audit/round321-build.log。阶段3仍在实施，背景/皮肤/原版部件未完成。
+
+### 第322轮：多实例资源来源清单合并编译
+
+- 读取者共享同一源SHA256输出目录时，写清单前合并已有资源哈希，防止不同模型读取覆盖先前资源记录。assemble PASS，日志 build/preview/jar-audit/round322-build.log。
+
+### 第323轮：原Figura Minecraft RESOURCE探针编译
+
+- javac PASS；真实Avatar原RESOURCE覆盖grass_block_top，断言宿主选定字节与配置Minecraft JAR内原条目完全一致。日志 build/preview/jar-audit/round323-resource-probe-compile.log。
+
+### 第324轮：原Figura RESOURCE与本机Minecraft字节一致
+
+- 原小符玄Avatar/material解析minecraft:textures/block/grass_block_top.png，宿主选择字节与配置26.1.2 JAR条目逐字节一致；输出保留assets/minecraft/textures/block路径，源SHA256=b1b3158572666445eff01e82fad8c7de2e4953db6d354f311730d77a8359d0b0。
+- 原自定义纹理、实例隔离/显隐/排序探针继续通过，2clean退出0。日志 build/preview/jar-audit/round324-resource-probe.log。此为资源绑定证据，尚未验收超平坦背景或该贴图的实窗视觉。
+
+### 第325轮：CPU实窗超平坦背景编译
+
+- SuperflatBackground使用本机grass_block_top贴图和静态水平面，天空底色；不实现世界状态。CPU窗口最终帧先读取仅背景，再读取背景+模型，以差异像素验证模型，避免地面导致空画面假PASS。
+- assemble PASS，日志 build/preview/jar-audit/round325-build.log。参考GPU与OMP GPU背景尚待接入，实际视觉待验证。
+
+### 第326轮：超平坦CPU实窗与真实桌面检查
+
+- OMP YSM SIMD真实窗口1200帧，截图build/preview/round326-desktop.png显示草地原贴图、天空及模型同窗可见；非offscreen。最终模型相对同帧仅背景差异11714像素，11760顶点/17640索引，最大姿态变化0.03586840629577637，原clean、退出0。
+- 日志 build/preview/jar-audit/round326-superflat-cpu.log。此处pixels语义改为相对背景差异，不能继续按非黑像素解释。参考GPU/OMP GPU背景尚未验证。
+
+### 第327轮：参考GPU超平坦背景编译
+
+- SPM/OpenYSM原GPU窗口接入相同静态草地/天空，SPM同窗Java回退共用背景与深度。最终模型检测改为同帧仅背景差分，资源纳入原清理队列。assemble PASS，日志 build/preview/jar-audit/round327-build.log。
+
+### 第328轮：SPM原GPU/Java同窗超平坦背景
+
+- 5帧两个真实YSM，原GPU5draw/原透明Java回退5draw，同帧背景差异24952像素，578160累计提交索引，退出0 PASS。日志 build/preview/jar-audit/round328-superflat-spm.log。
+- 该统计排除背景，不能与旧非黑像素直接比较性能。OMP GPU背景尚待接入。
+
+### 第329轮：仅背景不能通过模型验收
+
+- 将taisho五个原根部件全部隐藏，保留显式相机，真实窗口绘制草地/天空2帧。最终versusBackground=0，原clean后抛出模型不可见AssertionError并非零退出。负向验证PASS，日志 build/preview/jar-audit/round329-background-only.log。
+- 证明新增地面不会使空模型画面误通过；该预期失败不是渲染崩溃。
+
+### 第330轮：OMP GPU 同目标超平坦背景编译
+
+- assemble PASS，日志 build/preview/jar-audit/round330-build.log。背景使用原 GPU color/depth 附件；GL 绑定、采样器、裁剪、写入掩码和深度状态恢复后调用原后端，末帧以同目标背景差分统计模型像素。运行验证待下一轮。
+
+### 第331轮：OMP 原 GPU 同窗草地运行
+
+- 真实窗口5帧 PASS，原131批次、635draw、124uploads/511cacheHits，模型相对背景差异11714像素，原Avatar清理通过，退出0。日志 build/preview/jar-audit/round331-superflat-omp.log。
+- 使用配置相机和原jump/Molang速度输入；地面与原模型共用color/depth。与第326轮SIMD的末帧模型差异数一致；这里只验证渲染结果，不构成性能提升结论。
+
+### 第332轮：OMP GPU 仅背景负向验收
+
+- 全部原根部件隐藏，真实GPU窗口2帧模型背景差异0，原Avatar清理后按预期模型不可见AssertionError退出1。负向验证PASS；日志 build/preview/jar-audit/round332-background-only-gpu.log。草地不会让未渲染模型通过检查。
+
+### 第333轮：OpenYSM 背景读回失败
+
+- 原两模型加载/解密及背景纹理成功，末帧读回释放出现NoSuchMethodError: MemoryUtil.memFree(ByteBuffer)，退出1 FAIL。日志 build/preview/jar-audit/round333-superflat-oysm.log。
+- 原因是编译侧较新LWJGL生成ByteBuffer重载调用，OpenYSM隔离运行使用旧LWJGL仅支持Buffer签名；将新WindowPixels释放显式转换为Buffer，沿用现有预览器跨版本调用方式。
+
+### 第334轮：旧 LWJGL 释放签名修复编译
+
+- assemble PASS，日志 build/preview/jar-audit/round334-build.log。WindowPixels显式调用MemoryUtil.memFree(Buffer)，当前开发JAR更新为本轮，OpenYSM复测待下一轮。
+
+### 第335轮：OpenYSM 原 GPU 背景复测
+
+- 两个真实YSM（含加密）5帧原GPU通过；15gpuDraw/0cpuDraw，1084260提交索引，模型相对背景24953像素，退出0。第333轮memFree链接失败已修复。日志 build/preview/jar-audit/round335-superflat-oysm.log。
+
+### 第336轮：YSM/Figura 混合 OMP GPU 背景
+
+- 真实YSM与Figura统一OMP，5帧原动画和原GPU材质，3164批次、49291draw、1737uploads/7083cacheHits，模型背景差异56599像素，两Avatar原清理通过，退出0。日志 build/preview/jar-audit/round336-superflat-mixed.log。
+- 本轮验证现有模型与背景共存，不包括尚未接入的Figura Lua原版骨骼显隐、皮肤/原版人物部件及HUD。
+
+### 第337轮：Figura 配置 SKIN 入口编译
+
+- assemble PASS，日志 build/preview/jar-audit/round337-build.log。SKIN外部玩家资源输入临时映射为配置资源标识，原renderer仍决定材质；调用后恢复原TextureCustomization。配置默认皮肤按用户指定路径，显式相对路径按配置目录解析。Alex/Steve几何与原版部件尚未接入。
+
+### 第338轮：原 Figura SKIN 验证探针编译
+
+- 原Figura实例隔离探针增加SKIN原材质解析、配置文件字节一致性和原customization恢复断言；javac退出0 PASS，日志 build/preview/jar-audit/round338-probe-compile.log。
+
+### 第339轮：配置皮肤与原 Figura 材质解析
+
+- 真实原Avatar探针通过：SKIN得到配置64x64皮肤的原始字节，原TextureCustomization引用恢复；原RESOURCE、自定义纹理、双实例动画隔离、显隐、9822面排序及两Avatar清理继续PASS，退出0。日志 build/preview/jar-audit/round339-skin-probe.log。
+- 该轮为离线原材质/资源证据，不宣称原版人物几何或皮肤实窗已完成。
+
+### 第340轮：原版玩家网格适配编译
+
+- assemble PASS，日志 build/preview/jar-audit/round340-build.log。VanillaPlayerGeometry直接调用本机Minecraft PlayerModel.createMesh/LayerDefinition与ModelPart.render，收集原顶点/UV/法线，并调用原Figura PLAYER save/preTransform/posTransform/restore。不复制人物立方体定义；尚未接入场景或Lua脚本执行。
+
+### 第341轮：原版玩家网格验证探针编译
+
+- javac PASS，日志 build/preview/jar-audit/round341-probe-compile.log。增加原Alex/Steve几何差异、PLAYER全隐藏/恢复、LEFT_ARM局部隐藏及底层ModelPart恢复断言。
+
+### 第342轮：原 Alex/Steve 网格与 Figura 部件显隐
+
+- 原Minecraft PlayerModel两种体型均输出288顶点且几何不同，原PLAYER分组隐藏后0顶点，恢复后原始顶点一致；隐藏LEFT_ARM后240顶点，其它部件保留，原ModelPart恢复通过。真实Avatar现有隔离/排序/SKIN等验证仍通过，两Avatar清理退出0 PASS。日志 build/preview/jar-audit/round342-vanilla-geometry.log。
+- 此处直接调用原部件API，尚未证明模型Lua脚本已执行或原版人物已接入实窗。
+
+### 第343轮：原 Figura Lua 验证探针编译
+
+- javac PASS，日志 build/preview/jar-audit/round343-lua-compile.log。新探针构造原FiguraLuaRuntime并执行真实PLAYER隐藏脚本，下一轮验证运行入口。
+
+### 第344轮：原 Figura Lua 实际执行
+
+- 原FiguraLuaRuntime执行 `vanilla_model.PLAYER:setVisible(false)` 成功，原玩家网格变为0顶点，Avatar清理通过，退出0 PASS。日志 build/preview/jar-audit/round344-lua.log。无MC客户端，未复制Lua解析器；真实模型全量脚本仍待验证。
+
+### 第345轮：原 Avatar 脚本队列入口编译
+
+- assemble PASS，日志 build/preview/jar-audit/round345-build.log。FiguraLuaInput调用原initializeLibraryPreview(null)，由原Avatar执行排队脚本并保留错误状态检查；尚未接常规场景。
+
+### 第346轮：真实模型 Lua 探针编译
+
+- javac PASS，日志 build/preview/jar-audit/round346-lua-compile.log，新增model参数直接使用原Avatar已排队的真实脚本。
+
+### 第347轮：真实 Figura 模型脚本初始化
+
+- 小符玄原Avatar的initializeLibraryPreview(null)成功执行原队列脚本，scriptError=false，原vanilla_model使玩家网格0顶点；原清理退出0 PASS。日志 build/preview/jar-audit/round347-model-lua.log。该证据来自真实编译NBT脚本，非手写隐藏声明或正则提取。
+
+### 第348轮：常规 Figura 场景接原 Lua 编译
+
+- assemble PASS，日志 build/preview/jar-audit/round348-build.log。FiguraScene在原Avatar加载后、网格批次创建前调用原脚本初始化；失败仍由原资源清理路径处理。
+
+### 第349轮：真实模型 Lua 接入混合 GPU 实窗
+
+- YSM/Figura统一OMP，真实Figura脚本初始化后5帧原GPU绘制通过；3164批次、49276draw、1737uploads/7083cacheHits，模型背景差异56821像素，两Avatar原清理退出0 PASS。日志 build/preview/jar-audit/round349-lua-mixed.log。
+- 与第336轮相比脚本初始化已实际改变输出（此前49291draw、56599像素）；不是性能改善证据。当前只初始化脚本，逐帧Lua事件及原版人物批次待接入。
+
+### 第350轮：原版玩家固定批次接入编译
+
+- assemble PASS，日志 build/preview/jar-audit/round350-build.log。原ModelPart.visit固定逐cube槽位，原cube.compile只缓存局部网格，每帧原变换/显隐构造OMP原MeshHandle/PoseSnapshot/DrawBatch；与Figura共用lease和placement，纹理为配置皮肤。skinModel支持显式alex/steve，auto按两臂闲置区域透明度启发式选择，可显式覆盖。
+
+### 第351轮：CLI 相对皮肤路径解析失败
+
+- 真实场景在加载皮肤时NoSuchFileException退出1 FAIL，两个Avatar清理通过，日志 build/preview/jar-audit/round351-vanilla-hidden.log。`--skin tools/preview/skin.png`被错误地按配置目录解析，应按调用工作目录；配置内相对路径仍按配置目录。
+
+### 第352轮：CLI 皮肤路径修复编译
+
+- assemble PASS，日志 build/preview/jar-audit/round352-build.log。显式--skin由launcher按cwd转绝对路径，配置内相对路径继续按配置目录处理。
+
+### 第353轮：隐藏原版玩家固定批次 GPU 回归
+
+- 相对--skin修复后实窗5帧通过，auto选择alex；新增12原版部件槽位后3176批次，实际draw仍49276，模型差异56821与第349轮一致，uploads/cacheHits不变，两Avatar清理退出0。日志 build/preview/jar-audit/round353-vanilla-hidden.log。
+- 证明真实Lua隐藏原版部件时新增槽位不会多提交原版几何；可见原版玩家实窗待验证。
+
+### 第354轮：可见原版玩家实窗探针编译
+
+- javac PASS，日志 build/preview/jar-audit/round354-probe-compile.log。探针对原编译NBT内存副本设置仅隐藏自定义模型的Lua，不改原资源；断言仅12原版部件可见后走原OMP GPU窗口，验证未声明隐藏原版的补全路径。
+
+### 第355轮：未隐藏原版玩家的 OMP GPU 实窗
+
+- 内存NBT样例仅隐藏自定义模型，原Lua未隐藏vanilla_model；断言12原版部件可见。真实窗口5帧通过：3045槽位、330draw、12uploads/48cacheHits，相对背景4529像素，auto alex皮肤加载，原Avatar清理退出0。日志 build/preview/jar-audit/round355-player-window.log。
+- 样例只改编译NBT内存副本，不改本机模型；验证补全路径，不计为真实分类随机抽样或人工视觉验收。
+
+### 第356轮：旧皮肤转换编译
+
+- assemble PASS，日志 build/preview/jar-audit/round356-build.log。64x32通过原Minecraft SkinTextureDownloader.processLegacySkin转换为64x64，输出到本轮skins/源SHA256.png，不修改源图片；64x64保留原字节。
+
+### 第357轮：皮肤与 CPU 玩家探针编译
+
+- javac PASS，日志 build/preview/jar-audit/round357-probe-compile.log。增加旧皮肤镜像肢体/源文件不变/显式体型断言，原玩家实窗探针支持Java/SIMD原后端。
+
+### 第358轮：Minecraft 原旧皮肤转换验证
+
+- 64x32测试皮肤经原转换得到64x64，镜像手臂/腿已填充，源文件字节不变；auto选Steve，显式Alex/Steve均生效，退出0 PASS。日志 build/preview/jar-audit/round358-legacy-skin.log。配置在finally恢复，测试未改用户皮肤。
+
+### 第359轮：原版玩家 Java 实窗
+
+- 原OMP Java后端，12原版部件可见、其他自定义槽位隐藏，5帧模型背景差异4529像素，与第355轮GPU一致；原Avatar清理退出0 PASS。日志 build/preview/jar-audit/round359-player-java.log。CPU vertices/indices含固定隐藏槽位，不当作实际绘制量。
+
+### 第360轮：原版玩家 SIMD 实窗
+
+- 原OMP SIMD native caps63加载，12原版部件可见，5帧背景差异4529像素，与Java/GPU相同；原Avatar清理退出0 PASS。日志 build/preview/jar-audit/round360-player-simd.log。只验证渲染路径，不作帧率性能结论。
+
+### 第361轮：Figura 原 ParentType 骨骼绑定编译
+
+- 审查发现预览自定义批次未调用原applyVanillaTransforms；已从原PlayerModel经原VanillaModelData.update采集preTransform后、posTransform前的骨骼状态，按原renderer顺序调用apply/reset，保留原vanillaVisible语义。assemble PASS，日志 build/preview/jar-audit/round361-build.log；绑定行为待下一轮。
+
+### 第362轮：真实绑定回归探针编译
+
+- javac PASS，日志 build/preview/jar-audit/round362-probe-compile.log。真实模型初始化后旋转原HEAD，检查自定义模型顶点变化、重复refresh不累积以及恢复初始状态，固定槽位数保持。
+
+### 第363轮：真实 Figura 原版骨骼绑定验证
+
+- 小符玄原脚本初始化后，原HEAD旋转45度使自定义模型顶点最大变化22.089708532794095；重复refresh不累积，恢复原旋转后顶点恢复，批次/顶点拓扑不变。原玩家仍按脚本隐藏，Avatar清理退出0 PASS。日志 build/preview/jar-audit/round363-binding.log。
+
+### 第364轮：骨骼绑定后的混合 GPU 实窗回归
+
+- 5帧PASS，3176批次/49276draw/56821差异像素，与第353轮默认姿态一致；原Lua初始化、两Avatar清理通过，退出0。日志 build/preview/jar-audit/round364-binding-mixed.log。
+
+### 第365轮：固定玩家槽位显隐探针编译
+
+- javac PASS，日志 build/preview/jar-audit/round365-probe-compile.log。增加PLAYER全隐藏/恢复时批次数不变、mesh身份不变和恢复顶点一致断言。
+
+### 第366轮：Steve GPU 实窗与动态显隐固定槽位
+
+- 显式Steve皮肤，PLAYER隐藏/恢复3045槽位、mesh身份保持，恢复顶点一致；12原版部件GPU5帧通过，330draw、12uploads/48hits、模型背景差异4752像素，原Avatar清理退出0 PASS。日志 build/preview/jar-audit/round366-steve.log。
+
+### 第367轮：阶段3检查点构建
+
+- 最终assemble PASS，日志 build/preview/jar-audit/round367-build.log。CLI皮肤帮助更新；阶段3验收表已写入IMPLEMENTATION-PLAN，后续阶段4–5仍未完成。当前开发JAR不是整体任务最终交付版。

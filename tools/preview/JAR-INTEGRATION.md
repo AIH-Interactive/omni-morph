@@ -45,3 +45,7 @@ SPM/OMP使用26.1.2官方命名类型；OYSM使用安装目录的Forge补丁clie
 实际JAR字节码：SPM GpuRenderPath.tryRender先拒绝translucent；OpenYSM GpuRenderPath先alphaMode=1，再对原isTranslucentTexture开启defaultBlendFunc执行alphaMode=2，depthMask保持true。两者原纹理扫描器已参与宿主buildMesh。hsr_fuxuan_1.ysm在SPM显式回退Java，在OpenYSM两遍GPU运行通过。此前直接底层shader通过不等于原正式路由支持，性能结果必须按实际后端归组。尚待完整统一相机/材质与性能测量，不将当前像素计数作为画面等价证据。
 
 阶段2收口至第320轮：原Java/SIMD/GPU、单/多模型、配置动画/查询、原材质/透明面顺序、自定义Figura纹理及清理已有记录，详见IMPLEMENTATION-PLAN阶段2验收表。Minecraft外部RESOURCE/SKIN及原版部件由阶段3接入；原Lua/界面交互、纹理动态更新与HUD归阶段4。当前JAR仍是开发入口，不作最终交付。
+
+## 阶段3接入结果
+
+本机Minecraft资源保持assets/minecraft路径和源哈希；草地/天空同窗，模型检测改为同帧仅背景差分。Figura SKIN以配置资源模拟玩家资料入口，原材质选择保持；64x32调用原SkinTextureDownloader转换。原PlayerModel生成Alex/Steve网格，原VanillaModelAPI控制显隐/变换，原VanillaModelData与apply/resetVanillaTransforms保持ParentType绑定，最终经原OMP三后端绘制。原Avatar.initializeLibraryPreview执行真实脚本初始化，尚未模拟游戏状态机；逐帧事件与原界面归阶段4。完整证据见Comparison第321–366轮。

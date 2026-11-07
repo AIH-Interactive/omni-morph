@@ -24,8 +24,13 @@ final class FiguraBatches implements AutoCloseable {
     private final Method skinnedMesh;
     private final Map<Boolean, Object> backends = new java.util.HashMap<>();
     private SceneLayout.Placement placement;
+    private final VanillaPlayerBatches player;
 
     FiguraBatches(Object renderer) throws Exception {
+        this(renderer, null);
+    }
+
+    FiguraBatches(Object renderer, Object vanillaModelApi) throws Exception {
         this.renderer = renderer;
         materials = new FiguraMaterials(renderer);
         Class<?> partType = Class.forName("org.figuramc.figura.model.FiguraModelPart");
@@ -39,6 +44,7 @@ final class FiguraBatches implements AutoCloseable {
         Class<?> serviceType = Class.forName(ACCELERATION + "AccelerationService");
         Object service = serviceType.getConstructor().newInstance();
         lease = serviceType.getMethod("capture", ownerType, String.class).invoke(service, owner, "figura-preview");
+        player = vanillaModelApi == null ? null : new VanillaPlayerBatches(lease, vanillaModelApi);
         var cacheField = renderer.getClass().getDeclaredField("staticMeshes");
         cacheField.setAccessible(true);
         cache = cacheField.get(renderer);
@@ -57,7 +63,15 @@ final class FiguraBatches implements AutoCloseable {
     private void collect(Object part, boolean parentVisible) throws Exception {
         Class<?> partType = part.getClass();
         Object customization = partType.getField("customization").get(part);
+        if (player != null) {
+            Object data = renderer.getClass().getField("vanillaModelData").get(renderer);
+            partType.getMethod("applyVanillaTransforms", data.getClass()).invoke(part, data);
+        }
         boolean visible = parentVisible && customizationType.getField("visible").getBoolean(customization);
+        if (player != null && !renderer.getClass().getField("ignoreVanillaVisibility").getBoolean(renderer)
+                && Boolean.FALSE.equals(customizationType.getField("vanillaVisible").get(customization))) {
+            visible = false;
+        }
         customizationType.getMethod("recalculate").invoke(customization);
         stack.getClass().getMethod("push", customizationType).invoke(stack, customization);
         try {
@@ -115,6 +129,9 @@ final class FiguraBatches implements AutoCloseable {
             }
         } finally {
             stack.getClass().getMethod("pop").invoke(stack);
+            if (player != null) {
+                partType.getMethod("resetVanillaTransforms").invoke(part);
+            }
         }
     }
 
@@ -135,11 +152,20 @@ final class FiguraBatches implements AutoCloseable {
     void refresh() throws Exception {
         batches.clear();
         textures.clear();
+        if (player != null) {
+            player.updateBindings(renderer.getClass().getField("vanillaModelData").get(renderer));
+        }
         stack.getClass().getMethod("push", customizationType).invoke(stack, materials.defaults());
         try {
             collect(root, true);
         } finally {
             stack.getClass().getMethod("pop").invoke(stack);
+        }
+        if (player != null) {
+            for (Object batch : player.sample(placement)) {
+                batches.add(batch);
+                textures.add(player.textureBytes());
+            }
         }
     }
 
@@ -162,6 +188,10 @@ final class FiguraBatches implements AutoCloseable {
         Map<Object, byte[]> encoded = new java.util.IdentityHashMap<>();
         List<byte[]> result = new ArrayList<>();
         for (Object texture : textures) {
+            if (texture instanceof byte[] bytes) {
+                result.add(bytes);
+                continue;
+            }
             if (texture == null) {
                 throw new UnsupportedOperationException("Figura texture set has no primary texture");
             }
