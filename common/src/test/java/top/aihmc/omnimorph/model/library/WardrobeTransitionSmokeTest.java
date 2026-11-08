@@ -63,9 +63,11 @@ public final class WardrobeTransitionSmokeTest {
                 "fixed GUI scales keep the existing layouts at the same logical width");
         // Control screens: compact windows keep "settings | preview" instead of hiding the preview.
         var controls = top.aihmc.omnimorph.gui.widgets.wardrobe.ControlsPaneLayout.of(480, true);
-        // Penpot 27: settings 30..236 and preview 242..448.
-        require(controls.previewWidth() == 206 && controls.controlsWidth() == 206 && controls.gap() == 6,
-                "compact controls keep a preview beside an equally wide settings column");
+        // User correction of Penpot 27: the preview is half of the former 206, the settings take the rest.
+        require(controls.previewWidth() == 103 && controls.controlsWidth() == 309 && controls.gap() == 6,
+                "compact controls keep a narrow preview beside a wide settings column");
+        require(controls.rowWidgetWidth() == 115 && controls.rowWidgetOffset() == 173 && controls.rowLabelWidth() == 120,
+                "compact control rows size the widget to the column and keep the label clear of it");
         require(controls.panelWidth() == 418 && controls.controlsWidth() + controls.gap()
                         + controls.previewWidth() == controls.panelWidth(),
                 "compact settings and preview fill the panel without overlap");
@@ -74,6 +76,8 @@ public final class WardrobeTransitionSmokeTest {
         var wideControls = top.aihmc.omnimorph.gui.widgets.wardrobe.ControlsPaneLayout.of(854, false);
         require(wideControls.previewWidth() == 271 && wideControls.controlsWidth() == 527,
                 "wide controls keep their existing proportions");
+        require(wideControls.rowWidgetWidth() == 180 && wideControls.rowWidgetOffset() == 238,
+                "wide control rows keep their existing widget size and position");
         var directory = Files.createTempDirectory("wardrobe-candidates-");
         var source = directory.resolve("original-model.txt");
         try {
