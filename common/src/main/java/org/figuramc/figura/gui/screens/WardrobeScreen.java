@@ -32,6 +32,7 @@ import org.figuramc.figura.gui.widgets.LoadingErrorWidget;
 import org.figuramc.figura.gui.widgets.StatusWidget;
 import org.figuramc.figura.gui.widgets.SwitchButton;
 import org.figuramc.figura.gui.widgets.TextField;
+import top.aihmc.omnimorph.gui.widgets.library.CompactMode;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryActionBar;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryIconButton;
@@ -321,10 +322,18 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 showLoadedOutfitDraft();
             }
         }
-        layout = tab == Tab.COLLECTION ? WardrobeLayout.collectionOf(width, height) : WardrobeLayout.of(width, height);
+        if (tab == Tab.COLLECTION) {
+            layout = WardrobeLayout.collectionOf(width, height);
+        } else if (compactOutfit()) {
+            layout = bonesShown ? WardrobeLayout.bonesOf(width, height) : WardrobeLayout.compactOf(width, height);
+        } else {
+            layout = WardrobeLayout.of(width, height);
+        }
         addRenderableWidget(new VerticalWardrobeTab(4, 28, 66, text("outfit"), button -> switchTab(Tab.OUTFIT)));
         addRenderableWidget(new VerticalWardrobeTab(4, 98, 100, text("collection"), button -> switchTab(Tab.COLLECTION)));
-        if (layout.compact()) {
+        if (compactOutfit()) {
+            buildCompactPaneTabs();
+        } else if (layout.compact()) {
             var panes = tab == Tab.COLLECTION ? List.of(Pane.RESOURCES, Pane.PREVIEW) : List.of(Pane.values());
             int sectionWidth = Math.max(1, (width - 36) / panes.size());
             for (Pane target : panes) {
@@ -348,6 +357,52 @@ public class WardrobeScreen extends AbstractPanelScreen {
                         text("tree"), null, button -> switchRightPane(true))).setActive(!bonesShown);
             }
         }
+        if (compactOutfit()) {
+            buildCompactOutfitPanes();
+        } else {
+            buildPanes();
+        }
+        buildToolbar();
+        refreshVisibility();
+    }
+
+    private boolean compactOutfit() {
+        return tab == Tab.OUTFIT && CompactMode.active(width);
+    }
+
+    /** Right-side vertical tabs of the compact outfit: preview, default information and bone tree. */
+    private void buildCompactPaneTabs() {
+        int x = WardrobeLayout.rightTabX(width);
+        boolean information = !bonesShown && pane == Pane.INFO;
+        addRenderableWidget(new VerticalWardrobeTab(x, 28, 60, text("preview"), button -> {
+            if (bonesShown) {
+                switchRightPane(false);
+            }
+            pane = Pane.PREVIEW;
+            rebuild();
+        })).setActive(bonesShown || information);
+        addRenderableWidget(new VerticalWardrobeTab(x, 92, 60, text("default_panel"),
+                button -> switchRightPane(false))).setActive(!information);
+        addRenderableWidget(new VerticalWardrobeTab(x, 156, 60, text("tree"),
+                button -> switchRightPane(true))).setActive(!bonesShown);
+    }
+
+    /** The list stays beside the preview or default information; bone editing replaces the list. */
+    private void buildCompactOutfitPanes() {
+        if (bonesShown) {
+            buildPreview();
+            buildRightPane();
+            return;
+        }
+        buildResources();
+        if (pane == Pane.INFO) {
+            buildInformation();
+        } else {
+            buildPreview();
+        }
+    }
+
+    private void buildPanes() {
         if (!layout.compact() || pane == Pane.RESOURCES) {
             buildResources();
         }
@@ -361,8 +416,6 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 buildRightPane();
             }
         }
-        buildToolbar();
-        refreshVisibility();
     }
 
     private static Component text(String key) {
@@ -605,7 +658,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     private boolean compactCollection() {
-        return tab == Tab.COLLECTION && width < top.aihmc.omnimorph.gui.widgets.library.ModelLibraryLayout.COMPACT_SCREEN_WIDTH;
+        return tab == Tab.COLLECTION && CompactMode.active(width);
     }
 
     private void buildPreview() {
@@ -614,7 +667,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         boolean cloudActions = source == Source.CLOUD || source == Source.ALL && selected != null && selected.cloud() != null;
         int actionCount = tab == Tab.OUTFIT ? 16 : cloudActions ? 8 : 5;
         // The compact collection keeps one action row so the preview uses the remaining height.
-        int actionsHeight = compactCollection() ? LibraryActionBar.budgetedHeight(false)
+        int actionsHeight = compactCollection() || compactOutfit() ? LibraryActionBar.budgetedHeight(false)
                 : LibraryActionBar.heightFor(w, actionCount);
         int actionsY = height - 28 - actionsHeight;
         int size = LibraryWorkspaceLayout.previewHeightBeforeActions(layout.top(), actionsY);
@@ -672,6 +725,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
         var actions = addRenderableWidget(new LibraryActionBar(x, actionsY, w, actionsHeight));
         if (compactCollection()) {
             actions.budget(3);
+        } else if (compactOutfit()) {
+            actions.budget(5);
         }
         if (tab == Tab.COLLECTION) {
             candidateButton = actions.action(new LibraryIconButton("wardrobe_outfit", 2,

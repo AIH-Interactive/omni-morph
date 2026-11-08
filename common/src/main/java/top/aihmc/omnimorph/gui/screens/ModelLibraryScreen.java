@@ -15,6 +15,7 @@ import org.figuramc.figura.gui.widgets.SearchBar;
 import org.figuramc.figura.gui.widgets.SwitchButton;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryActionBar;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryIconButton;
+import top.aihmc.omnimorph.gui.widgets.library.CompactMode;
 import top.aihmc.omnimorph.gui.widgets.library.LibrarySectionLayout;
 import top.aihmc.omnimorph.gui.widgets.library.LibrarySectionTabs;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
@@ -419,7 +420,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
     }
 
     private boolean compact() {
-        return width < ModelLibraryLayout.COMPACT_SCREEN_WIDTH;
+        return CompactMode.active(width);
     }
 
     private int gridTop() {
