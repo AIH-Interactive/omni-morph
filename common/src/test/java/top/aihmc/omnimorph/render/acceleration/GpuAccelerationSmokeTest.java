@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.render.acceleration;
 
+import top.aihmc.omnimorph.render.RenderOwner;
+
 import com.mojang.blaze3d.buffers.GpuFence;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -105,7 +107,7 @@ public final class GpuAccelerationSmokeTest {
             service.beginFrame();
         }
         require(units.get() == 3 && device.selfTests == 1 && device.compiles == 2, "three bounded initialization units");
-        var owner = new AccelerationOwner();
+        var owner = new RenderOwner();
         MeshHandle first = quad(1);
         DrawBatch batch = batch(service, owner, first, 5, material());
         require(service.tryDraw(batch, CONTEXT) == GpuAccelerationBackend.DrawResult.DRAWN, "actual shared draw operation routed");
@@ -139,7 +141,7 @@ public final class GpuAccelerationSmokeTest {
         var retirement = new GpuRetirement();
         var gpu = ready(device, retirement, 1_000_000);
         var service = new AccelerationService();
-        var owner = new AccelerationOwner();
+        var owner = new RenderOwner();
         service.useBackend(gpu);
 
         require(service.tryDraw(batch(service, owner, quad(1), 1, material()), CONTEXT)
@@ -171,7 +173,7 @@ public final class GpuAccelerationSmokeTest {
         var gpu = ready(device, retirement, 1_000_000);
         var service = new AccelerationService();
         service.useBackend(gpu);
-        var owner = new AccelerationOwner();
+        var owner = new RenderOwner();
         DrawBatch stale = batch(service, owner, quad(1), 0, material());
         service.beginFrame();
         require(service.tryDraw(stale, CONTEXT) == GpuAccelerationBackend.DrawResult.STALE && device.uploads == 0,
@@ -211,7 +213,7 @@ public final class GpuAccelerationSmokeTest {
         var small = new FakeDevice();
         var smallGpu = ready(small, new GpuRetirement(), 128);
         service.useBackend(smallGpu);
-        require(service.tryDraw(batch(service, new AccelerationOwner(), quad(1), 0, material()), CONTEXT)
+        require(service.tryDraw(batch(service, new RenderOwner(), quad(1), 0, material()), CONTEXT)
                 == GpuAccelerationBackend.DrawResult.UNSUPPORTED && small.uploads == 0, "budget rejection precedes allocations");
         service.useBackend(null);
     }
@@ -226,7 +228,7 @@ public final class GpuAccelerationSmokeTest {
         var service = new AccelerationService();
         AtomicInteger failures = new AtomicInteger();
         service.useBackend(gpu, ignored -> failures.incrementAndGet());
-        var owner = new AccelerationOwner();
+        var owner = new RenderOwner();
         DrawBatch batch = batch(service, owner, quad(1), 5, material());
         var result = service.tryDraw(batch, CONTEXT);
         require(result == (afterIssue ? GpuAccelerationBackend.DrawResult.ISSUED_BEFORE_FAILURE
@@ -268,7 +270,7 @@ public final class GpuAccelerationSmokeTest {
             if (failurePoint == 2) {
                 device.current = false;
             }
-            DrawBatch batch = batch(service, new AccelerationOwner(), quad(1), 5, material());
+            DrawBatch batch = batch(service, new RenderOwner(), quad(1), 5, material());
             require(service.tryDraw(batch, CONTEXT) == GpuAccelerationBackend.DrawResult.UNSUPPORTED,
                     "allocation/device loss before draw permits safe Java replay");
             require(service.transform(batch.lease(), ignored -> batch)[0] == 6 && device.drawCalls == 0,
@@ -285,7 +287,7 @@ public final class GpuAccelerationSmokeTest {
         var retirement = new GpuRetirement();
         var gpu = ready(device, retirement, 1_000_000);
         var service = new AccelerationService();
-        var owner = new AccelerationOwner();
+        var owner = new RenderOwner();
         var batches = List.of(batch(service, owner, quad(1), 0, material()), batch(service, owner, quad(4), 2, material()));
         // Compile the rigid group material through the normal pending-material frame step.
         gpu.supports(AccelerationBackend.Operation.GPU_DRAW, batches.getFirst());
@@ -348,7 +350,7 @@ public final class GpuAccelerationSmokeTest {
         var retirement = new GpuRetirement();
         var gpu = ready(device, retirement, 1_000_000);
         var service = new AccelerationService();
-        var owner = new AccelerationOwner();
+        var owner = new RenderOwner();
         service.useBackend(gpu);
 
         require(service.tryDraw(batch(service, owner, quad(1), 5, material()), CONTEXT)
@@ -428,7 +430,7 @@ public final class GpuAccelerationSmokeTest {
         var retirement = new GpuRetirement();
         var gpu = ready(device, retirement, 4_000_000);
         var service = new AccelerationService();
-        var owner = new AccelerationOwner();
+        var owner = new RenderOwner();
         List<DrawBatch> batches = new ArrayList<>();
         for (int index = 0; index < 130; index++) {
             batches.add(batch(service, owner, quad(1), index % 65, material()));
@@ -475,7 +477,7 @@ public final class GpuAccelerationSmokeTest {
         var retirement = new GpuRetirement();
         var gpu = ready(device, retirement, 1_000_000);
         var service = new AccelerationService();
-        var owner = new AccelerationOwner();
+        var owner = new RenderOwner();
         service.useBackend(gpu);
         gpu.prepare(batch(service, owner, quad(1), 1, material()), () -> true);
         service.beginFrame();
@@ -509,7 +511,7 @@ public final class GpuAccelerationSmokeTest {
         var retirement = new GpuRetirement();
         var gpu = ready(device, retirement, 4_000_000);
         var service = new AccelerationService();
-        var owner = new AccelerationOwner();
+        var owner = new RenderOwner();
         var triangle = new MeshHandle(new double[]{
                 0, 0, 0, 1, 0, 1, 0, 0, 0,
                 1, 0, 0, 1, 0, 1, 0, 1, 0,
@@ -664,7 +666,7 @@ public final class GpuAccelerationSmokeTest {
         var retirement = new GpuRetirement();
         var gpu = ready(device, retirement, 1_000_000);
         var service = new AccelerationService();
-        var owner = new AccelerationOwner();
+        var owner = new RenderOwner();
         service.useBackend(gpu);
 
         require(service.tryDraw(batch(service, owner, quad(1), 5, material()), CONTEXT)
@@ -719,7 +721,7 @@ public final class GpuAccelerationSmokeTest {
         return RenderTypes.entityCutout(Identifier.parse("omni-morph:contract_texture"));
     }
 
-    private static DrawBatch batch(AccelerationService service, AccelerationOwner owner, MeshHandle mesh, double translation, RenderType material) {
+    private static DrawBatch batch(AccelerationService service, RenderOwner owner, MeshHandle mesh, double translation, RenderType material) {
         var semantics = new DrawSemantics(material, Identifier.parse("omni-morph:contract_texture"), DrawSemantics.Layer.PRIMARY,
                 "world", 0, mesh.faceCount(), 0x00a000a0, 0x000a0000, 0.5f, 1, 1, 1, 0, true);
         return new DrawBatch(service.capture(owner, "world"), mesh,

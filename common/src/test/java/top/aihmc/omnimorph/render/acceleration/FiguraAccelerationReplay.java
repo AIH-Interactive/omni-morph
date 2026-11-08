@@ -186,7 +186,7 @@ public final class FiguraAccelerationReplay {
         }
         positions.clear();
         push.invoke(renderer, 1, data, customization, textures, vertices, null, null);
-        owner.accelerationOwner().retire();
+        owner.renderOwner().retire();
         consume.invoke(buffer, true, destination);
         flusher.run();
         require(positions.isEmpty(), "retired Avatar cannot emit a deferred Figura draw");

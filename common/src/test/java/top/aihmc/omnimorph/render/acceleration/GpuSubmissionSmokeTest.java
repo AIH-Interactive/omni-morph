@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.render.acceleration;
 
+import top.aihmc.omnimorph.render.RenderOwner;
+
 import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.VertexFormat;
@@ -286,7 +288,7 @@ public final class GpuSubmissionSmokeTest {
         }
     }
 
-    private static DrawBatch batch(AccelerationService service, AccelerationOwner owner, RenderType material, double... depths) {
+    private static DrawBatch batch(AccelerationService service, RenderOwner owner, RenderType material, double... depths) {
         double[] vertices = new double[depths.length * 4 * 9];
         for (int face = 0; face < depths.length; face++) {
             for (int vertex = 0; vertex < 4; vertex++) {
@@ -418,7 +420,7 @@ public final class GpuSubmissionSmokeTest {
         final GpuRetirement retirement = new GpuRetirement();
         final GpuAccelerationBackend gpu;
         final AccelerationService service = new AccelerationService();
-        final AccelerationOwner owner = new AccelerationOwner();
+        final RenderOwner owner = new RenderOwner();
         final List<Float> javaFaces = new ArrayList<>();
         final GpuSubmission submission;
         int scopesOpened;

@@ -124,7 +124,7 @@ public final class OutfitInstanceSync implements AutoCloseable {
             return !retired && client.current() && entries.get(key) == this
                     && net.minecraft.client.Minecraft.getInstance().level == world
                     && AvatarManager.getLoadedUser(key.owner()) == user && user.getOutfit() == outfit
-                    && avatar.accelerationOwner().isCurrent();
+                    && avatar.renderOwner().isCurrent();
         }
 
         private boolean owner() {
