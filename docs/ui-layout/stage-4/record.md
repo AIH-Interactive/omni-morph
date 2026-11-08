@@ -26,3 +26,5 @@
 | `common/src/test/.../WardrobeTransitionSmokeTest.java` | 控件页宽度分配的断言 |
 
 紧凑判定沿用阶段三的 `CompactMode`（GUI 缩放为“自动”且宽度小于 560）。
+
+> 后续修正：本阶段执行时没有查询 Penpot MCP。之后补查发现控件页宽度和间距与设计稿不一致（应为 206/6/206），已在 `../penpot-alignment/record.md` 中修正。

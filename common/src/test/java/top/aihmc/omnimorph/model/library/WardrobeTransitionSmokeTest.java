@@ -49,6 +49,12 @@ public final class WardrobeTransitionSmokeTest {
         require(bones.compact() && bones.leftWidth() == 0 && bones.previewX() == 30 && bones.previewWidth() == 206
                         && bones.treeX() == 242 && bones.treeWidth() == 206,
                 "compact bone editing hides the list and splits preview and tree into equal panes");
+        // Penpot 01/37/40: panes start at the top row, right tabs are 22x52 at y 28, 84 and 140.
+        require(outfit.top() == 28 && bones.top() == 28,
+                "compact outfit panes take over the former pane-switch row");
+        require(WardrobeLayout.rightTabY(0) == 28 && WardrobeLayout.rightTabY(1) == 84
+                        && WardrobeLayout.rightTabY(2) == 140 && WardrobeLayout.RIGHT_TAB_HEIGHT == 52,
+                "right pane tabs follow the reference size and spacing");
         require(top.aihmc.omnimorph.gui.widgets.library.CompactMode.active(480, 0)
                         && !top.aihmc.omnimorph.gui.widgets.library.CompactMode.active(560, 0),
                 "the automatic GUI scale uses compact layouts only below 560 GUI units");
@@ -57,9 +63,10 @@ public final class WardrobeTransitionSmokeTest {
                 "fixed GUI scales keep the existing layouts at the same logical width");
         // Control screens: compact windows keep "settings | preview" instead of hiding the preview.
         var controls = top.aihmc.omnimorph.gui.widgets.wardrobe.ControlsPaneLayout.of(480, true);
-        require(controls.previewWidth() == 212 && controls.controlsWidth() == 212,
+        // Penpot 27: settings 30..236 and preview 242..448.
+        require(controls.previewWidth() == 206 && controls.controlsWidth() == 206 && controls.gap() == 6,
                 "compact controls keep a preview beside an equally wide settings column");
-        require(controls.controlsWidth() + top.aihmc.omnimorph.gui.widgets.wardrobe.ControlsPaneLayout.GAP
+        require(controls.panelWidth() == 418 && controls.controlsWidth() + controls.gap()
                         + controls.previewWidth() == controls.panelWidth(),
                 "compact settings and preview fill the panel without overlap");
         require(top.aihmc.omnimorph.gui.widgets.wardrobe.ControlsPaneLayout.of(480, false).previewWidth() == 0,

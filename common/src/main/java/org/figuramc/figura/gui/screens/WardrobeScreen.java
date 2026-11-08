@@ -377,16 +377,17 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private void buildCompactPaneTabs() {
         int x = WardrobeLayout.rightTabX(width);
         boolean information = !bonesShown && pane == Pane.INFO;
-        addRenderableWidget(new VerticalWardrobeTab(x, 28, 60, text("preview"), button -> {
+        int tabHeight = WardrobeLayout.RIGHT_TAB_HEIGHT;
+        addRenderableWidget(new VerticalWardrobeTab(x, WardrobeLayout.rightTabY(0), tabHeight, text("preview"), button -> {
             if (bonesShown) {
                 switchRightPane(false);
             }
             pane = Pane.PREVIEW;
             rebuild();
         })).setActive(bonesShown || information);
-        addRenderableWidget(new VerticalWardrobeTab(x, 92, 60, text("default_panel"),
+        addRenderableWidget(new VerticalWardrobeTab(x, WardrobeLayout.rightTabY(1), tabHeight, text("default_panel"),
                 button -> switchRightPane(false))).setActive(!information);
-        addRenderableWidget(new VerticalWardrobeTab(x, 156, 60, text("tree"),
+        addRenderableWidget(new VerticalWardrobeTab(x, WardrobeLayout.rightTabY(2), tabHeight, text("tree"),
                 button -> switchRightPane(true))).setActive(!bonesShown);
     }
 

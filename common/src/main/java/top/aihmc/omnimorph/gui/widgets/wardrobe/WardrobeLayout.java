@@ -18,6 +18,14 @@ public record WardrobeLayout(int leftX, int leftWidth, int previewX, int preview
                 52, Math.max(24, height - 160), false);
     }
 
+    public static final int RIGHT_TAB_HEIGHT = 52;
+    /** Compact outfit panes start on the top row, which no longer holds pane-switch buttons. */
+    private static final int COMPACT_TOP = 28;
+
+    public static int rightTabY(int index) {
+        return COMPACT_TOP + index * (RIGHT_TAB_HEIGHT + 4);
+    }
+
     /** X of the compact right-side pane tabs. */
     public static int rightTabX(int width) {
         return width - 28;
@@ -32,7 +40,7 @@ public record WardrobeLayout(int leftX, int leftWidth, int previewX, int preview
         int list = Math.min(132, content / 3);
         int paneX = 30 + list + 6;
         int pane = Math.max(1, content - list - 6);
-        return new WardrobeLayout(30, list, paneX, pane, paneX, pane, 54, Math.max(24, height - 160), true);
+        return new WardrobeLayout(30, list, paneX, pane, paneX, pane, COMPACT_TOP, compactHeight(height), true);
     }
 
     /** Compact bone tree and related editors: the resource list gives way to two equal panes. */
@@ -40,7 +48,12 @@ public record WardrobeLayout(int leftX, int leftWidth, int previewX, int preview
         int available = compactAvailable(width);
         int half = Math.max(1, (available - 6) / 2);
         return new WardrobeLayout(30, 0, 30, half, 30 + half + 6, available - half - 6,
-                54, Math.max(24, height - 160), true);
+                COMPACT_TOP, compactHeight(height), true);
+    }
+
+    /** The regular content height, extended by the reclaimed pane-switch row. */
+    private static int compactHeight(int height) {
+        return Math.max(24, height - 160 + (54 - COMPACT_TOP));
     }
 
     /** Content width between the left wardrobe tabs and the right pane tabs. */

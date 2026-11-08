@@ -47,3 +47,5 @@
 
 - 进入骨骼变换、配件变换、虚拟挂点编辑时，都走 `bonesShown = true` → `bonesOf` 这条路径。具体的编辑面板在 206 宽度下能否完整显示，没有自动化覆盖。
 - 切换 Tab 不会重建选择、预览视角或草稿状态（只调用原来的 `switchRightPane`/`rebuild`），但没有专门的界面层测试。
+
+> 后续修正：本阶段执行时没有查询 Penpot MCP。之后补查发现右侧 Tab 尺寸和面板顶部与设计稿不一致，已在 `../penpot-alignment/record.md` 中修正。

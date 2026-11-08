@@ -632,7 +632,7 @@ public class AvatarControlsScreen extends Screen {
     }
 
     private int panelWidth() {
-        return Math.min(960, width - 40);
+        return paneLayout().panelWidth();
     }
 
     private int panelX() {
@@ -656,7 +656,7 @@ public class AvatarControlsScreen extends Screen {
     }
 
     private int previewX() {
-        return panelX() + controlsWidth() + 16;
+        return panelX() + controlsWidth() + paneLayout().gap();
     }
 
     private int previewY() {
