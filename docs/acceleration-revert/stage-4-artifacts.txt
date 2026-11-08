@@ -1,0 +1,8 @@
+alpha.8 ordinary JAR / nested ZIP CRC / metadata / retained features and AVIF / removed custom acceleration: PASS
+Production runtime source: 7d59c3c2e4f7d85162945b6008aed291f6a7dc57; final stage changes tests/docs only.
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\build\distributions\acceleration-revert\omni-morph-1.0.0-alpha.8+1.21.1-fabric-mc.jar
+SHA256 37c2b7d271f4e763cabdbf6f0c7e0c5ccc317574424e8dbea6b1cd3fbf104fbe
+bytes 16708748
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\build\distributions\acceleration-revert\omni-morph-1.0.0-alpha.8+1.21.1-neoforge-mc.jar
+SHA256 fc26b0eccf96e044c34c72ba0d34bb484dcb9becb88576e5f03e938bb23ca0a7
+bytes 16352701
