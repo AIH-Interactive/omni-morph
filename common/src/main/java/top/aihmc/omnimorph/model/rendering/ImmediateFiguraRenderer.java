@@ -1,6 +1,7 @@
 package top.aihmc.omnimorph.model.rendering;
 
 import top.aihmc.omnimorph.model.library.PreviewBoneHighlight;
+import top.aihmc.omnimorph.render.RenderLifetime;
 import top.aihmc.omnimorph.model.outfit.OutfitInstructionBudget;
 
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -33,12 +34,6 @@ import top.aihmc.omnimorph.model.rendering.texture.FiguraRenderTypes;
 import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import org.figuramc.figura.model.rendering.texture.FiguraTextureSet;
 import org.figuramc.figura.model.rendertasks.RenderTask;
-import top.aihmc.omnimorph.render.acceleration.AccelerationService;
-import top.aihmc.omnimorph.render.acceleration.DrawBatch;
-import top.aihmc.omnimorph.render.acceleration.DrawSemantics;
-import top.aihmc.omnimorph.render.acceleration.MeshHandle;
-import top.aihmc.omnimorph.render.acceleration.PoseSnapshot;
-import top.aihmc.omnimorph.render.acceleration.GpuSubmission;
 import org.figuramc.figura.utils.ColorUtils;
 import org.figuramc.figura.utils.ui.UIHelper;
 import org.jetbrains.annotations.Nullable;
@@ -161,8 +156,6 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
 
     private static final PartCustomization pivotOffsetter = new PartCustomization();
     protected static final VertexBuffer VERTEX_BUFFER = new VertexBuffer();
-    // Owned by this Avatar's renderer, so unloading the Avatar releases every cached mesh with it.
-    private final FiguraStaticMeshCache staticMeshes = new FiguraStaticMeshCache();
 
     public ImmediateFiguraRenderer(Avatar avatar) {
         super(avatar);
@@ -901,99 +894,31 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         int light = vertexData.fullBright ? LightCoordsUtil.FULL_BRIGHT : customization.light;
 
         boolean useSkinning = boneDeltas != null && boneDeltas.length > 0 && part.skinBoneIndices != null && part.skinBoneWeights != null;
-        AccelerationService acceleration = AccelerationService.INSTANCE;
+        RenderLifetime acceleration = RenderLifetime.INSTANCE;
         var lease = acceleration.capture(avatar.renderOwner(), String.valueOf(avatar.renderMode));
 
         VERTEX_BUFFER.getBufferFor(rt, vertexData.primary, buffers -> {
             if (!acceleration.isCurrent(lease)) {
                 return;
             }
-            if (!acceleration.accelerated()) {
-                VertexConsumer vertexConsumer = buffers.getBuffer(rt);
-                for (int i = 0; i < vertCount; i++) {
-                    Vertex vertex = vertices.get(i);
-                    pos.set(vertex.x, vertex.y, vertex.z, 1);
-                    if (useSkinning && vertex.origIdx >= 0 && vertex.origIdx < part.skinBoneIndices.length
-                            && part.skinBoneIndices[vertex.origIdx] != null) {
-                        applySkinningDelta(pos, vertex.origIdx, part, boneDeltas);
-                    }
-                    pos.transform(customization.positionMatrix);
-                    pos.add(pos.normalized().scale(vertexData.vertexOffset));
-                    normal.set(vertex.nx, vertex.ny, vertex.nz).transform(customization.normalMatrix);
-                    uv.set(vertex.u, vertex.v, 1).divide(uvFixer).transform(customization.uvMatrix);
-                    vertexConsumer.addVertex((float) pos.x, (float) pos.y, (float) pos.z)
-                            .setColor((float) vertexData.color.x, (float) vertexData.color.y, (float) vertexData.color.z, alpha)
-                            .setUv((float) uv.x, (float) uv.y).setOverlay(overlay).setLight(light)
-                            .setNormal((float) normal.x, (float) normal.y, (float) normal.z);
+            VertexConsumer vertexConsumer = buffers.getBuffer(rt);
+            for (int i = 0; i < vertCount; i++) {
+                Vertex vertex = vertices.get(i);
+                pos.set(vertex.x, vertex.y, vertex.z, 1);
+                if (useSkinning && vertex.origIdx >= 0 && vertex.origIdx < part.skinBoneIndices.length
+                        && part.skinBoneIndices[vertex.origIdx] != null) {
+                    applySkinningDelta(pos, vertex.origIdx, part, boneDeltas);
                 }
-                return;
-            }
-            MeshHandle mesh = useSkinning
-                    ? skinnedMesh(vertices, vertCount, uvFixer, part)
-                    : staticMeshes.mesh(vertices, vertCount, uvFixer.x, uvFixer.y);
-            PoseSnapshot pose = new PoseSnapshot(customization.positionMatrix, customization.normalMatrix,
-                    customization.uvMatrix, boneDeltas);
-            DrawSemantics semantics = new DrawSemantics(rt, vertexData.texture,
-                    vertexData.primary ? DrawSemantics.Layer.PRIMARY : DrawSemantics.Layer.SECONDARY,
-                    lease.view(), vertexData.primary ? 0 : 1, faceCount, light, overlay,
-                    (float) vertexData.color.x, (float) vertexData.color.y, (float) vertexData.color.z,
-                    alpha, vertexData.vertexOffset, true);
-            DrawBatch batch = new DrawBatch(lease, mesh, pose, semantics);
-            double[][] output = {null};
-            GpuSubmission.JavaEmitter fallback = (vertexConsumer, firstVertex, vertexCount) -> {
-                if (!acceleration.isCurrent(lease)) {
-                    return;
-                }
-                if (output[0] == null) {
-                    output[0] = acceleration.transform(lease, token -> batch);
-                }
-                double[] transformed = output[0];
-                if (transformed == null) {
-                    return;
-                }
-                for (int i = firstVertex; i < firstVertex + vertexCount; i++) {
-                    int offset = i * MeshHandle.STRIDE;
-                    pos.set(transformed[offset], transformed[offset + 1], transformed[offset + 2], transformed[offset + 3]);
-                    pos.add(pos.normalized().scale(semantics.vertexOffset()));
-                    normal.set(transformed[offset + 4], transformed[offset + 5], transformed[offset + 6]);
-                    vertexConsumer.addVertex((float) pos.x, (float) pos.y, (float) pos.z)
-                            .setColor(semantics.red(), semantics.green(), semantics.blue(), semantics.alpha())
-                            .setUv((float) transformed[offset + 7], (float) transformed[offset + 8])
-                            .setOverlay(semantics.overlay()).setLight(semantics.light())
-                            .setNormal((float) normal.x, (float) normal.y, (float) normal.z);
-                }
-            };
-            if (!GpuSubmission.enqueue(buffers, batch, fallback)) {
-                fallback.emit(buffers.getBuffer(rt), 0, vertCount);
+                pos.transform(customization.positionMatrix);
+                pos.add(pos.normalized().scale(vertexData.vertexOffset));
+                normal.set(vertex.nx, vertex.ny, vertex.nz).transform(customization.normalMatrix);
+                uv.set(vertex.u, vertex.v, 1).divide(uvFixer).transform(customization.uvMatrix);
+                vertexConsumer.addVertex((float) pos.x, (float) pos.y, (float) pos.z)
+                        .setColor((float) vertexData.color.x, (float) vertexData.color.y, (float) vertexData.color.z, alpha)
+                        .setUv((float) uv.x, (float) uv.y).setOverlay(overlay).setLight(light)
+                        .setNormal((float) normal.x, (float) normal.y, (float) normal.z);
             }
         });
-    }
-
-    /** Weighted meshes are rebuilt every submission; only rigid meshes go through the static cache. */
-    private static MeshHandle skinnedMesh(List<Vertex> vertices, int vertCount, FiguraVec3 uvFixer, FiguraModelPart part) {
-        double[] input = new double[Math.multiplyExact(vertCount, MeshHandle.STRIDE)];
-        List<MeshHandle.Influences> influences = new ArrayList<>(vertCount);
-        for (int i = 0; i < vertCount; i++) {
-            Vertex vertex = vertices.get(i);
-            int offset = i * MeshHandle.STRIDE;
-            input[offset] = vertex.x;
-            input[offset + 1] = vertex.y;
-            input[offset + 2] = vertex.z;
-            input[offset + 3] = 1;
-            input[offset + 4] = vertex.nx;
-            input[offset + 5] = vertex.ny;
-            input[offset + 6] = vertex.nz;
-            input[offset + 7] = vertex.u / uvFixer.x;
-            input[offset + 8] = vertex.v / uvFixer.y;
-            int original = vertex.origIdx;
-            int[] joints = original >= 0 && original < part.skinBoneIndices.length
-                    ? part.skinBoneIndices[original] : null;
-            float[] weights = joints == null ? null : part.skinBoneWeights[original];
-            influences.add(joints == null || weights == null
-                    ? new MeshHandle.Influences(new int[0], new float[0])
-                    : new MeshHandle.Influences(joints, weights));
-        }
-        return new MeshHandle(input, 4, influences);
     }
 
     private static final FiguraVec4 skinTempPos = FiguraVec4.of();
