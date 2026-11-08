@@ -1,11 +1,12 @@
 package top.aihmc.omnimorph.model.outfit;
 
+import top.aihmc.omnimorph.render.RenderLifetime;
+
 import org.figuramc.figura.model.FiguraModelPart;
 import org.figuramc.figura.model.ParentType;
 import org.figuramc.figura.model.PartCustomization;
 import org.figuramc.figura.math.matrix.FiguraMat4;
 import top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer;
-import top.aihmc.omnimorph.render.acceleration.AccelerationService;
 import org.joml.Matrix4f;
 import org.luaj.vm2.LuaFunction;
 
@@ -105,21 +106,21 @@ public final class FiguraRenderPose {
     private final PartState[] states;
     private final Spare spare;
     private PartState[] live;
-    private final AccelerationService.Lease lease;
+    private final RenderLifetime.Lease lease;
     private final ImmediateFiguraRenderer renderer;
     private final Map<FiguraModelPart, Matrix4f> overrides;
 
-    public FiguraRenderPose(List<FiguraModelPart> parts, AccelerationService.Lease lease) {
+    public FiguraRenderPose(List<FiguraModelPart> parts, RenderLifetime.Lease lease) {
         this(parts, lease, null, Map.of(), null);
     }
 
-    public FiguraRenderPose(List<FiguraModelPart> parts, AccelerationService.Lease lease,
+    public FiguraRenderPose(List<FiguraModelPart> parts, RenderLifetime.Lease lease,
                              ImmediateFiguraRenderer renderer, Map<FiguraModelPart, Matrix4f> overrides) {
         this(parts, lease, renderer, overrides, null);
     }
 
     /** {@code spare} may supply snapshot objects released by an earlier pose; it receives them back on release. */
-    public FiguraRenderPose(List<FiguraModelPart> parts, AccelerationService.Lease lease,
+    public FiguraRenderPose(List<FiguraModelPart> parts, RenderLifetime.Lease lease,
                              ImmediateFiguraRenderer renderer, Map<FiguraModelPart, Matrix4f> overrides, Spare spare) {
         this.spare = spare;
         states = takeStates(spare, parts.size());
@@ -163,7 +164,7 @@ public final class FiguraRenderPose {
     }
 
     public void draw(Runnable nativeDrawing) {
-        if (!AccelerationService.INSTANCE.isCurrent(lease)) {
+        if (!RenderLifetime.INSTANCE.isCurrent(lease)) {
             return;
         }
         boolean unchanged = true;

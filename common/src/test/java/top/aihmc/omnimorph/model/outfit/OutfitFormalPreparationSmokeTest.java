@@ -196,11 +196,11 @@ public final class OutfitFormalPreparationSmokeTest {
         base.load(baseData);
         base.bindOutfitSource(resource);
         base.initializePreviewPlayer(wearer);
-        require(!base.scriptError && base.luaRuntime != null && base.accelerationOwner().isCurrent()
+        require(!base.scriptError && base.luaRuntime != null && base.renderOwner().isCurrent()
                         && base.isYsmNative() == (resource.format() != OutfitConfig.Format.FIGURA),
                 "publication fixture initialization " + resource.format() + ": scriptError=" + base.scriptError
                         + ", lua=" + (base.luaRuntime != null) + ", native=" + base.isYsmNative()
-                        + ", current=" + base.accelerationOwner().isCurrent() + ", error=" + base.errorText);
+                        + ", current=" + base.renderOwner().isCurrent() + ", error=" + base.errorText);
         var lua = base.luaRuntime;
         var ysm = base.getYsmRuntime();
         var withBase = new OutfitConfig(1, 0, resource, configuration.instances(), List.of(),
@@ -225,10 +225,10 @@ public final class OutfitFormalPreparationSmokeTest {
             require(await(user.publishOutfit(revision(withBase, 2), base, second, user.ysmLoads.begin(), () -> true), drain),
                     "configuration-only publication succeeds with the existing base");
             require(user.getMainAvatar() == base && base.luaRuntime == lua && base.getYsmRuntime() == ysm
-                            && base.accelerationOwner().isCurrent(), "same-base publication preserves Lua/YSM/control runtime identity");
-            require(retainedInstance.accelerationOwner().isCurrent(), "old composition survives an in-flight native frame");
+                            && base.renderOwner().isCurrent(), "same-base publication preserves Lua/YSM/control runtime identity");
+            require(retainedInstance.renderOwner().isCurrent(), "old composition survives an in-flight native frame");
             held.close();
-            require(!retainedInstance.accelerationOwner().isCurrent(), "retired composition releases after its last frame");
+            require(!retainedInstance.renderOwner().isCurrent(), "retired composition releases after its last frame");
             user.tick();
             base.tick.reset(65536);
             require(lua.run(lua.load("one-tick", "assert(ticks == 1)"), base.tick) != null && !base.scriptError,
@@ -239,8 +239,8 @@ public final class OutfitFormalPreparationSmokeTest {
             user.ysmLoads.begin();
             require(!await(user.publishOutfit(revision(withBase, 3), base, stale, oldGeneration, () -> true), drain),
                     "retired native preparation cannot publish");
-            require(user.getOutfit().composition() == second && base.accelerationOwner().isCurrent()
-                            && !staleInstance.accelerationOwner().isCurrent(), "stale rejection only destroys candidate-owned resources");
+            require(user.getOutfit().composition() == second && base.renderOwner().isCurrent()
+                            && !staleInstance.renderOwner().isCurrent(), "stale rejection only destroys candidate-owned resources");
             var mismatched = prepare.get();
             var changed = new OutfitConfig(1, 3, withBase.base(), withBase.instances(), List.of(), withBase.displayOrdinals(), true);
             require(!await(user.publishOutfit(changed, base, mismatched, user.ysmLoads.begin(), () -> true), drain)
@@ -248,7 +248,7 @@ public final class OutfitFormalPreparationSmokeTest {
             Avatar replacement = new Avatar(wearer.getUUID());
             replacement.load(baseData.copy());
             require(await(user.publishAvatar(replacement, user.ysmLoads.begin(), () -> true), drain)
-                            && user.getOutfit() == null && !base.accelerationOwner().isCurrent(),
+                            && user.getOutfit() == null && !base.renderOwner().isCurrent(),
                     "old single-avatar publication retires the entire prior outfit");
             var empty = OutfitConfig.empty();
             var wrongWearer = OutfitPreparation.prepare(empty, OutfitLimits.defaults(), wearer.getUUID(), UUID.randomUUID(),
@@ -267,7 +267,7 @@ public final class OutfitFormalPreparationSmokeTest {
             user.tick();
             user.clear();
             require(user.getOutfit() == null && user.getMainAvatar() == null
-                            && !replacement.accelerationOwner().isCurrent(), "clear retires vanilla/custom outfit state and old bases");
+                            && !replacement.renderOwner().isCurrent(), "clear retires vanilla/custom outfit state and old bases");
         } finally {
             user.clear();
             base.clean();
@@ -309,7 +309,7 @@ public final class OutfitFormalPreparationSmokeTest {
                 composition.validatePreparedBase(base);
             }
             require(base.loaded && base.nbt != null && base.outfitSource().equals(resource)
-                            && base.accelerationOwner().isCurrent(), "composition retirement never destroys its borrowed base");
+                            && base.renderOwner().isCurrent(), "composition retirement never destroys its borrowed base");
             base.nbt.getCompound("metadata").putString("resource_kind", "ACCESSORY");
             reject(() -> OutfitPreparation.prepare(withBase, OutfitLimits.defaults(), wearer.getUUID(),
                     UUID.randomUUID(), wearer, permissions, new SkeletonIndex.Cache(), (ref, cancelled) -> data.copy(),
@@ -321,7 +321,7 @@ public final class OutfitFormalPreparationSmokeTest {
             reject(() -> OutfitPreparation.prepare(withBase, OutfitLimits.defaults(), wearer.getUUID(),
                     UUID.randomUUID(), wearer, permissions, new SkeletonIndex.Cache(), (ref, cancelled) -> data.copy(),
                     () -> false, CosmeticInstanceContext.Scope.OWNER, base, authorized, authorized));
-            require(base.accelerationOwner().isCurrent(), "failed formal preparation keeps the caller's base alive");
+            require(base.renderOwner().isCurrent(), "failed formal preparation keeps the caller's base alive");
         } finally {
             base.clean();
         }

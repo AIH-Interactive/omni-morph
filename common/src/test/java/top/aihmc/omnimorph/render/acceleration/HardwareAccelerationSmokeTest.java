@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.render.acceleration;
 
+import top.aihmc.omnimorph.render.RenderOwner;
+
 import com.google.gson.JsonParser;
 import org.figuramc.figura.config.ConfigManager;
 import org.figuramc.figura.config.ConfigType;
@@ -147,7 +149,7 @@ public final class HardwareAccelerationSmokeTest {
         controller.beginFrame();
         require(controller.report().state() == State.READY && controller.report().effective() == Effective.SSE2,
                 "explicit SIMD can be ready independently of GPU");
-        var lease = service.capture(new AccelerationOwner(), "first-person");
+        var lease = service.capture(new RenderOwner(), "first-person");
         controller.request(false, Mode.SIMD);
         require(service.isCurrent(lease), "disable retires at a frame boundary");
         controller.beginFrame();
@@ -211,7 +213,7 @@ public final class HardwareAccelerationSmokeTest {
                 new AccelerationController.Activation(broken, Effective.SSE2, 3), ignored -> {});
         controller.request(true, Mode.SIMD);
         controller.beginFrame();
-        var lease = service.capture(new AccelerationOwner(), "world");
+        var lease = service.capture(new RenderOwner(), "world");
         MeshHandle mesh = new MeshHandle(new double[]{1, 2, 3, 1, 0, 1, 0, 0.25, 0.75}, 1);
         EngineAccelerationAdapter adapter = captured -> new DrawBatch(captured, mesh,
                 new PoseSnapshot(FiguraMat4.of().translate(4, 5, 6), FiguraMat3.of()));

@@ -40,7 +40,7 @@ import org.figuramc.figura.backend2.NetworkStuff;
 import top.aihmc.omnimorph.avatar.control.AvatarControlRuntime;
 import top.aihmc.omnimorph.avatar.ysm.YsmModelData;
 import org.figuramc.figura.config.Configs;
-import top.aihmc.omnimorph.render.acceleration.AccelerationOwner;
+import top.aihmc.omnimorph.render.RenderOwner;
 import org.figuramc.figura.lua.FiguraLuaPrinter;
 import org.figuramc.figura.lua.FiguraLuaRuntime;
 import org.figuramc.figura.lua.api.TextureAPI;
@@ -107,17 +107,17 @@ import top.aihmc.omnimorph.avatar.AvatarLoadProgress;
 // contains all things related to the avatar
 // and also related to the owner, like its permissions
 public class Avatar {
-    private volatile AccelerationOwner accelerationOwner;
+    private volatile RenderOwner renderOwner;
 
-    public AccelerationOwner accelerationOwner() {
-        if (accelerationOwner == null) {
+    public RenderOwner renderOwner() {
+        if (renderOwner == null) {
             synchronized (this) {
-                if (accelerationOwner == null) {
-                    accelerationOwner = new AccelerationOwner();
+                if (renderOwner == null) {
+                    renderOwner = new RenderOwner();
                 }
             }
         }
-        return accelerationOwner;
+        return renderOwner;
     }
 
     public static boolean firstPerson;
@@ -1837,7 +1837,7 @@ public class Avatar {
         if (cosmeticAnimations != null) {
             cosmeticAnimations.close();
         }
-        accelerationOwner().retire();
+        renderOwner().retire();
         if (molangContext != null) {
             molangContext.filters.clear();
         }

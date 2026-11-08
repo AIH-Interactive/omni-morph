@@ -172,7 +172,7 @@ public class UserData {
                         && (outfit == null || committed.revision() >= outfit.configuration().revision())
                         && ((committed.base() == null && base == null)
                         || committed.base() != null && base != null && id.equals(base.owner) && base.loaded && base.nbt != null
-                        && base.accelerationOwner().isCurrent() && committed.base().equals(base.outfitSource()));
+                        && base.renderOwner().isCurrent() && committed.base().equals(base.outfitSource()));
                 OutfitState previous = outfit;
                 var previousAvatars = new ArrayList<>(avatars);
                 boolean published = valid && ysmLoads.publish(generation, () -> {

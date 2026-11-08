@@ -159,7 +159,7 @@ final class AvatarCloudRefreshSmokeTest {
                     "prepared publication does not upload, equip or download the source again");
             var obsolete = NetworkStuff.beginLibrarySelection();
             Avatar stale = prepare(player, formalTag.copy(), drain);
-            var lifetime = stale.accelerationOwner();
+            var lifetime = stale.renderOwner();
             NetworkStuff.localSelectionChanged();
             require(!NetworkStuff.publishLibraryEquipment(obsolete, stale).get(5, TimeUnit.SECONDS)
                             && user.getMainAvatar() == prepared && !lifetime.isCurrent(),

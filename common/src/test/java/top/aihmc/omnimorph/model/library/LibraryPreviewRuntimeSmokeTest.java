@@ -179,7 +179,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             LibraryPreviewBinding.capture(entity, secondFrame);
             var armorFrame = new EntityFrame(entity, 1);
             LibraryPreviewBinding.capture(entity, armorFrame);
-            var lifetime = avatar.accelerationOwner();
+            var lifetime = avatar.renderOwner();
             preview.clear();
             require(preview.hierarchy().nodes().isEmpty(), "retiring a preview clears its old hierarchy immediately");
             require(AvatarManager.getAvatar(firstFrame) == avatar && AvatarManager.getEntity(secondFrame) == entity,
@@ -384,14 +384,14 @@ public final class LibraryPreviewRuntimeSmokeTest {
             preview.tick();
             waitReady(preview, drain);
             Avatar latest = (Avatar) field(LibraryPreviewSession.class, "avatar").get(preview);
-            require(latest != copy && !copy.accelerationOwner().isCurrent(),
+            require(latest != copy && !copy.renderOwner().isCurrent(),
                     "late or refreshed player data retires the previous independent copy");
             require(latest.nbt.getCompound("metadata").getString("name")
                             .equals("updated offline player"),
                     "permissions fallback uses the refreshed player model");
             copy = latest;
         }
-        require(!copy.accelerationOwner().isCurrent(), "closing permissions preview releases only its own copy");
+        require(!copy.renderOwner().isCurrent(), "closing permissions preview releases only its own copy");
         System.out.println("PASS offline permissions copy: native load, private identity, refreshed NBT and cleanup; GUI MANUAL/PENDING");
     }
 
@@ -1313,7 +1313,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             preview.clear();
             require(LibraryPreviewBinding.isVanilla(outfitFrame)
                             && LibraryPreviewBinding.composition(outfitFrame) != null
-                            && equipped.accelerationOwner().isCurrent(),
+                            && equipped.renderOwner().isCurrent(),
                     "retiring vanilla preview preserves extracted frames and equipped resources");
             LibraryPreviewBinding.finishFrame();
             require(!LibraryPreviewBinding.isVanilla(state) && AvatarManager.getAvatar(player) == equipped,
@@ -1516,7 +1516,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             preview.withPlayerContext(() -> LibraryPreviewBinding.capture(player, new EntityFrame(player, 1)));
             preview.close();
             LibraryPreviewBinding.finishFrame();
-            require(base.accelerationOwner().isCurrent() && base.luaRuntime != null,
+            require(base.renderOwner().isCurrent() && base.luaRuntime != null,
                     "closing and retiring a borrowed preview never cleans the resident base");
             base.loadScript("retained live particle toggle", "assert(particle_runtime_enabled())").call();
             System.out.println("PASS outfit tab opens on the restored outfit: draft, bone tree instance, retained Lua toggle, single tick owner and borrowed cleanup; GUI MANUAL/PENDING");
@@ -3767,9 +3767,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(AvatarManager.getEntity(frame) == player && AvatarManager.getAvatar(frame) == avatar,
                     "deferred native Figura render uses the same real player and selected model");
             preview.clear();
-            require(avatar.accelerationOwner().isCurrent(), "queued player preview remains alive until GUI completion");
+            require(avatar.renderOwner().isCurrent(), "queued player preview remains alive until GUI completion");
             LibraryPreviewBinding.finishFrame();
-            require(!avatar.accelerationOwner().isCurrent(), "closing player preview retires its own model resources");
+            require(!avatar.renderOwner().isCurrent(), "closing player preview retires its own model resources");
             var outfit = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
             field(net.minecraft.client.gui.screens.Screen.class, "minecraft").set(outfit, Minecraft.getInstance());
             field(outfit.getClass(), "preview").set(outfit, preview);

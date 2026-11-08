@@ -141,7 +141,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
             resident = state == null ? user.getMainAvatar() : state.base();
         }
         if (resident == null || !resident.loaded || resident.nbt == null
-                || !reference.equals(resident.outfitSource()) || !resident.accelerationOwner().isCurrent()) {
+                || !reference.equals(resident.outfitSource()) || !resident.renderOwner().isCurrent()) {
             return false;
         }
         resetPlayerPreview();
@@ -577,7 +577,7 @@ public final class LibraryPreviewSession implements AutoCloseable {
         return !closed && generations.get() == generation && (client == null || client.current())
                 && Minecraft.getInstance().level == world
                 && (!currentPlayerFigura || Minecraft.getInstance().player == entity)
-                && (!borrowedBase || avatar != null && avatar.accelerationOwner().isCurrent());
+                && (!borrowedBase || avatar != null && avatar.renderOwner().isCurrent());
     }
 
     public void tick() {

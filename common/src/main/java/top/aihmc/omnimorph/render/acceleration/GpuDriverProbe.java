@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.render.acceleration;
 
+import top.aihmc.omnimorph.render.RenderOwner;
+
 import org.figuramc.figura.math.matrix.FiguraMat3;
 import org.figuramc.figura.math.matrix.FiguraMat4;
 import org.lwjgl.opengl.*;
@@ -157,7 +159,7 @@ final class GpuDriverProbe {
             vertices[vertex * MeshHandle.STRIDE + 3] = 1;
             vertices[vertex * MeshHandle.STRIDE + 6] = 1;
         }
-        var lease = AccelerationService.INSTANCE.capture(new AccelerationOwner(), "driver-probe");
+        var lease = AccelerationService.INSTANCE.capture(new RenderOwner(), "driver-probe");
         var semantics = new DrawSemantics(null, null, DrawSemantics.Layer.PRIMARY, "driver-probe", 0, 1,
                 0, 0, 1, 0, 0, 1, 0, true);
         return new DrawBatch(lease, new MeshHandle(vertices, 4), pose, semantics);

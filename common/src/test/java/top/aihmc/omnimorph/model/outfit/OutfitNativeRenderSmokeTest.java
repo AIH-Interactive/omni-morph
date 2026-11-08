@@ -564,14 +564,14 @@ public final class OutfitNativeRenderSmokeTest {
                             "old base callbacks do not overwrite the newer callback result");
                 }
                 require(indexes.parseCount() == 2, "base and accessory snapshots keep shared structural indexes");
-                var mountedOwner = accessory.accelerationOwner();
+                var mountedOwner = accessory.renderOwner();
                 composition.close();
                 newFrame.close();
                 oldFrame.drawFiguraBase(base, () -> {
                     oldFrame.close();
                     require(mountedOwner.isCurrent(), "closing the base frame waits for its whole callback scope");
                 });
-                require(!mountedOwner.isCurrent() && base.accelerationOwner().isCurrent(),
+                require(!mountedOwner.isCurrent() && base.renderOwner().isCurrent(),
                         "last base callback releases owned accessories without destroying the borrowed base");
             }
         } finally {

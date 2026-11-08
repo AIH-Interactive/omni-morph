@@ -7,8 +7,8 @@ import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import org.joml.Matrix4f;
 import sun.misc.Unsafe;
-import top.aihmc.omnimorph.render.acceleration.AccelerationOwner;
-import top.aihmc.omnimorph.render.acceleration.AccelerationService;
+import top.aihmc.omnimorph.render.RenderOwner;
+import top.aihmc.omnimorph.render.RenderLifetime;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -187,8 +187,8 @@ public final class YsmDeferredPoseSmokeTest {
     }
 
     private static void testStaleSubmission() {
-        AccelerationService service = AccelerationService.INSTANCE;
-        AccelerationOwner owner = new AccelerationOwner();
+        RenderLifetime service = RenderLifetime.INSTANCE;
+        RenderOwner owner = new RenderOwner();
         var lease = service.capture(owner, "body");
         YsmRenderPose pose = YsmRenderPose.capture(List.of(), new Matrix4f(), false, lease);
         service.beginFrame();
