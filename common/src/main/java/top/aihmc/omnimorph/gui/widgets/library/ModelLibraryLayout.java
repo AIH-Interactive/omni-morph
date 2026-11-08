@@ -10,8 +10,6 @@ public record ModelLibraryLayout(int width, int height, int count, int columns, 
     public static final int COMPACT_IMAGE_SIZE = 32;
     public static final int COLLECTION_CARD_HEIGHT = 54;
     public static final int COLLECTION_IMAGE_SIZE = 24;
-    /** GUI width below which the library, collection and wardrobe use their compact arrangement. */
-    public static final int COMPACT_SCREEN_WIDTH = 560;
 
     public static int imageSize(int cardWidth) {
         return Math.max(1, Math.min(CARD_HEIGHT - 8, (cardWidth - 16) / 2));

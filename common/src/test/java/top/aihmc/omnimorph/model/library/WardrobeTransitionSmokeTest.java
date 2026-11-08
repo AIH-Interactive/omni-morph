@@ -36,6 +36,25 @@ public final class WardrobeTransitionSmokeTest {
                 }
             }
         }
+        // Reference 480x252 GUI: wardrobe tabs end at 26, the right pane tabs start at 452.
+        var outfit = WardrobeLayout.compactOf(480, 252);
+        require(outfit.compact() && outfit.leftX() == 30 && outfit.leftWidth() == 132,
+                "compact outfit keeps a narrow resource list instead of a full-width single pane");
+        require(outfit.previewX() == 168 && outfit.previewWidth() == 280
+                        && outfit.treeX() == 168 && outfit.treeWidth() == 280,
+                "compact preview and default information share the wide pane beside the list");
+        require(WardrobeLayout.rightTabX(480) == 452 && outfit.previewX() + outfit.previewWidth() <= 448,
+                "the right vertical tabs stay clear of the content");
+        var bones = WardrobeLayout.bonesOf(480, 252);
+        require(bones.compact() && bones.leftWidth() == 0 && bones.previewX() == 30 && bones.previewWidth() == 206
+                        && bones.treeX() == 242 && bones.treeWidth() == 206,
+                "compact bone editing hides the list and splits preview and tree into equal panes");
+        require(top.aihmc.omnimorph.gui.widgets.library.CompactMode.active(480, 0)
+                        && !top.aihmc.omnimorph.gui.widgets.library.CompactMode.active(560, 0),
+                "the automatic GUI scale uses compact layouts only below 560 GUI units");
+        require(!top.aihmc.omnimorph.gui.widgets.library.CompactMode.active(480, 2)
+                        && !top.aihmc.omnimorph.gui.widgets.library.CompactMode.active(320, 3),
+                "fixed GUI scales keep the existing layouts at the same logical width");
         var directory = Files.createTempDirectory("wardrobe-candidates-");
         var source = directory.resolve("original-model.txt");
         try {
