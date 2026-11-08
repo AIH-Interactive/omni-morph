@@ -18,6 +18,8 @@ import org.figuramc.figura.utils.FiguraText;
 import org.figuramc.figura.avatar.Avatar;
 import top.aihmc.omnimorph.avatar.control.AvatarControlDefinition;
 import top.aihmc.omnimorph.avatar.control.AvatarControlType;
+import top.aihmc.omnimorph.gui.widgets.library.CompactMode;
+import top.aihmc.omnimorph.gui.widgets.wardrobe.ControlsPaneLayout;
 import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.gui.widgets.Button;
 import org.figuramc.figura.gui.widgets.ContextMenu;
@@ -642,14 +644,15 @@ public class AvatarControlsScreen extends Screen {
     }
 
     private int controlsWidth() {
-        int preview = previewWidth();
-        return preview <= 0 ? panelWidth() : Math.max(360, panelWidth() - preview - 16);
+        return paneLayout().controlsWidth();
     }
 
     private int previewWidth() {
-        if (width < 620)
-            return 0;
-        return Math.max(180, Math.min(280, panelWidth() / 3));
+        return paneLayout().previewWidth();
+    }
+
+    private ControlsPaneLayout paneLayout() {
+        return ControlsPaneLayout.of(width, CompactMode.active(width));
     }
 
     private int previewX() {
