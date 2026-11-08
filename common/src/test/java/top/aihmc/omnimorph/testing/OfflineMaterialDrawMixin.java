@@ -7,7 +7,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Runs after the production placeholder interceptor; ordinary Java geometry goes to the test device. */
+/** Records ordinary Java geometry at the platform draw boundary. */
 @Mixin(value = PreparedRenderType.class, priority = 900)
 public abstract class OfflineMaterialDrawMixin {
     @Inject(method = "drawFromBuffer(Lnet/minecraft/client/renderer/StagedVertexBuffer$ExecuteInfo;)V",

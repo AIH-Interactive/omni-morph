@@ -18,9 +18,6 @@ import org.figuramc.figura.model.rendering.EntityRenderMode;
 import top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer;
 import org.figuramc.figura.permissions.PermissionPack;
 import org.figuramc.figura.permissions.Permissions;
-import top.aihmc.omnimorph.render.acceleration.AccelerationBackend;
-import top.aihmc.omnimorph.render.acceleration.AccelerationService;
-import top.aihmc.omnimorph.render.acceleration.JavaAccelerationBackend;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -47,10 +44,7 @@ public final class CosmeticBoneOverrideSmokeTest {
     }
 
     private static void skinnedOverride(boolean accelerated) throws Exception {
-        var service = AccelerationService.INSTANCE;
-        var setter = service.getClass().getDeclaredMethod("useBackend", AccelerationBackend.class);
-        setter.setAccessible(true);
-        setter.invoke(service, accelerated ? new JavaAccelerationBackend() : null);
+        var service = RenderLifetime.INSTANCE;
         UUID account = UUID.randomUUID();
         var resource = resource(OutfitConfig.Format.FIGURA);
         var model = new PlayerModel(LayerDefinition.create(PlayerModel.createMesh(CubeDeformation.NONE, false),
@@ -103,17 +97,13 @@ public final class CosmeticBoneOverrideSmokeTest {
             }
         } finally {
             avatar.clean();
-            setter.invoke(service, new Object[]{null});
         }
         System.out.println("PASS weighted Figura internal bone overlay: native joint pivot, rotation and scale; accelerated preparation="
                 + accelerated + "; GUI/GPU MANUAL/PENDING");
     }
 
     private static void nativeOverrides(boolean ysm, boolean accelerated) throws Exception {
-        var service = AccelerationService.INSTANCE;
-        var setBackend = service.getClass().getDeclaredMethod("useBackend", AccelerationBackend.class);
-        setBackend.setAccessible(true);
-        setBackend.invoke(service, accelerated ? new JavaAccelerationBackend() : null);
+        var service = RenderLifetime.INSTANCE;
         var limits = OutfitLimits.defaults();
         var indexes = new SkeletonIndex.Cache();
         var model = new PlayerModel(LayerDefinition.create(PlayerModel.createMesh(CubeDeformation.NONE, false),
@@ -188,7 +178,6 @@ public final class CosmeticBoneOverrideSmokeTest {
                 var outer = new Matrix4f().translation(7, 11, 13);
                 OutfitNativeRenderer.drawVanilla(frame, model, state, .5f, outer, outer, type -> sink,
                         EntityRenderMode.FIGURA_GUI);
-                require(service.accelerated() == accelerated, "the requested native preparation branch is active");
                 require(positions.size() == (ysm ? 52 : 12), "both copies and the dependent emit their original native meshes");
                 if (ysm) {
                     for (var point : positions.subList(24, 48)) {
@@ -261,7 +250,6 @@ public final class CosmeticBoneOverrideSmokeTest {
             }
         } finally {
             avatars.values().forEach(Avatar::clean);
-            setBackend.invoke(service, new Object[]{null});
         }
         System.out.println("PASS internal native overlays: local pivot T/R/S, child sockets, two-copy isolation, immutable source and retained pose; YSM="
                 + ysm + ", accelerated preparation=" + accelerated + "; GUI/GPU MANUAL/PENDING");

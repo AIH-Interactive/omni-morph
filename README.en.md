@@ -16,7 +16,6 @@ It supports both Lua and Molang: Lua handles scripting and interaction, while Mo
 - **Model library**: upload, categorize, search, favorite, download, equip, and edit basic model information.
 - **Access and moderation**: public and private models, authorization management, reports, appeals, model blocking, and recycle-bin restoration.
 - **Multiplayer sharing**: model distribution and dynamic state synchronization through a compatible backend, with Figura Cloud and Protobuf support.
-- **Optional hardware acceleration**: SIMD, GPU, and automatic modes, disabled by default, with a Java fallback when unavailable.
 - **Interface languages**: bundled Simplified Chinese and English.
 
 ## Requirements
@@ -75,13 +74,13 @@ if ($buildExitCode -ne 0) {
 
 The final artifact is in `fabric/build/libs/`, named `omni-morph-...-fabric-mc.jar`.
 
-A standard Fabric build does not require a C++ toolchain. See [native/README.md](native/README.md) for local SIMD library builds and [protocol/README.md](protocol/README.md) for the protocol specification.
+See [protocol/README.md](protocol/README.md) for the protocol specification.
 
 ### NeoForge
 
 With JDK 25, replace `:fabric:build` in the PowerShell command above with `:neoforge:build -Prelease --no-daemon`. The final JAR is `neoforge/build/libs/omni-morph-1.0.0-alpha.7+26.1.2-neoforge-mc.jar`, targeting Minecraft 26.1.2 and NeoForge 26.1.2.126. Install only the JAR matching your loader. `build` includes `verifyNeoForgeJar`; `remapJar` is a packaging alias because 26.1.2 is unobfuscated.
 
-The [unified workflow](https://github.com/AIH-Interactive/omni-morph/actions/workflows/fabric-build.yml) shares six native builds between Fabric and NeoForge, assembles each loader's complete JAR, and publishes both artifacts. Actions compile production sources, package and publish only; they never compile or execute test code. The loader ID is `omni_morph`; resource namespaces and data paths retain their existing names. The local command builds a Java base JAR without C++; workflow artifacts include Windows x86_64, Linux x86_64/aarch64, Android aarch64 and macOS x86_64/aarch64 native libraries, using the existing acceleration settings and Java fallback. Actual client, GUI/GPU, Android device and optional-mod compatibility checks remain non-blocking `MANUAL/PENDING`.
+The unified workflow builds and publishes standard Java artifacts for Fabric and NeoForge.
 
 ## Credits
 

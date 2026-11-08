@@ -12,7 +12,7 @@ import java.nio.file.Path;
  */
 public final class YsmAstronautVisibilitySmokeTest {
     public static void main(String[] args) throws Exception {
-        YsmMaterialNativeSmokeTest.replayAcceleration(Path.of(args[0]), runtime -> {
+        YsmMaterialNativeSmokeTest.replayModel(Path.of(args[0]), runtime -> {
             var context = runtime.owner().getMolangContext();
             context.variables.setPath("roaming.a", 0f);
             context.variables.setPath("roaming.helmet", 0f);

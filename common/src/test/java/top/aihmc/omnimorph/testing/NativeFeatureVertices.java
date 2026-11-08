@@ -7,6 +7,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.renderer.StagedVertexBuffer;
 import net.minecraft.client.renderer.rendertype.PreparedRenderType;
 import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderSetup;
 import top.aihmc.omnimorph.model.rendering.FiguraVertexSource;
 
 import java.util.IdentityHashMap;
@@ -24,7 +25,7 @@ public final class NativeFeatureVertices {
     private final List<Draw> draws = new ArrayList<>();
     private RenderType activeMaterial;
     private BufferBuilder activeBuilder;
-    private final FiguraVertexSource source = FiguraVertexSource.nativePreparation(this::getBuffer);
+    private final FiguraVertexSource source = this::getBuffer;
     private final BiConsumer<RenderType, MeshData> javaDraw;
 
     public NativeFeatureVertices(ByteBufferBuilder memory) {
@@ -100,7 +101,17 @@ public final class NativeFeatureVertices {
 
     private static final class RecordingMaterial extends RenderType {
         RecordingMaterial(RenderType original) {
-            super("offline_recording_" + original, original.state);
+            super("offline_recording_" + original, setup(original));
+        }
+
+        private static RenderSetup setup(RenderType original) {
+            try {
+                var field = RenderType.class.getDeclaredField("state");
+                field.setAccessible(true);
+                return (RenderSetup) field.get(original);
+            } catch (ReflectiveOperationException failure) {
+                throw new AssertionError("Cannot capture original material setup", failure);
+            }
         }
 
         @Override

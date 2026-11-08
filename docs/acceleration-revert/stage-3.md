@@ -1,0 +1,17 @@
+# 阶段三：删除专用加速基础设施
+
+设置RED：stage-3-settings-red.log退出1，实际设置分类断言removed hardware acceleration category must not appear in settings。阶段二已验证普通双引擎不依赖后端，再删除后端。
+
+参考26.3 28960dac逐文件/逐块核对。删除render/acceleration生产和测试目录、GPU/JNI/SIMD/探测/fence、硬件分类/设置/状态控件/通知/重试和关闭钩子、专用AW及native/CMake/Gradle发行任务。26.2 GameRenderer原签名保留，直接推进RenderLifetime；资源重载直接使租约失效。普通FiguraVertexSource改等价方法引用，保留SameFrameFeaturePreparation/FeaturePreparationScope/原版RenderType与PIP。离线材质夹具改测试内反射读取原RenderSetup，不保留专用生产AW。
+
+本版额外核对：DeferredMaterialDrawExtension/PreparedRenderTypeMixin在删除GpuSubmission后无生产调用，仅剩自有测试，故一并删除接口、专用Mixin、注册与测试任务；保留普通原版PreparedRenderType及测试平台记录器。公共模型夹具replayAcceleration重命名为replayModel，保持所有非加速模型回归调用。混合衣装预算测试去除已不存在的后端开关，原顶点/预算断言保留。
+
+删除tools前检查运行时代码无依赖；仅现有native发行链引用其脚本，随本阶段移除。递归删除前逐个验证解析绝对路径在本仓库内：tools、native及专用加速源目录。原.codex/未触碰。README四语言去除自身硬件加速/六平台发行描述，相关模组描述保留。AVIF和粒子物理acceleration等正常业务不变；生产解析器、缓存认证及协议源码未改。
+
+Actions改本版手动触发Java25 Fabric/NeoForge普通remapJar、产物和失败日志上传。无测试编译/运行或tools/native调用。YAML、全部资源JSON解析和workflow PowerShell AST语法通过；未执行远端Actions。
+
+stage-3-initial-green.log九项1分35秒退出0：testClasses、双loader compileJava、libraryPreviewRuntimeSmokeTest、ysmDeferredPoseSmokeTest、modelCacheCodecSmokeTest、omniMorphIdentitySmokeTest及双remapJar。旧硬件键按未知键忽略，保留普通缓存偏好、云协议及导入配置，保存去掉旧硬件键且备份不变。
+
+删除最后专用Mixin后stage-3-green.log七项56秒退出0：testClasses、libraryPreviewRuntimeSmokeTest、nativeFeaturePreparationSmokeTest、featurePreparationScopeSmokeTest、nativePipFailureSmokeTest及双remapJar。日志中的既有Unsafe/remap警告非失败。stage-3-artifacts.txt记录双JAR SHA、主ZIP/嵌套ZIP CRC、alpha.8元数据、保留业务和删除加速内容检查全部通过；最终哈希阶段四重建刷新。
+
+额度剩余92%，未触发Luna；实机SKIPPED（用户决定，未执行）。阶段四真实语料、保留业务最终回归、任务图和交付尚待本检查点推送完成后执行。

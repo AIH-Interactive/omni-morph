@@ -14,7 +14,7 @@ public final class FiguraFeatureRenderer extends RenderTypeFeatureRenderer<Figur
 
     @Override
     protected void buildGroup(FeatureFrameContext context, List<FiguraSubmission> submissions) {
-        var vertices = FiguraVertexSource.nativePreparation(this::getVertexBuilder);
+        FiguraVertexSource vertices = this::getVertexBuilder;
         for (FiguraSubmission submission : submissions) {
             if (submission.avatar() == null) {
                 continue;

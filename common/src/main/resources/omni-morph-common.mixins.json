@@ -45,7 +45,6 @@
     "render.feature.ItemFeatureRendererMixin",
     "render.feature.ModelFeatureRendererMixin",
     "render.feature.NameTagFeatureRenderer$StorageMixin",
-    "render.feature.PreparedRenderTypeMixin",
     "render.layers.EquipmentLayerRendererAccessor",
     "render.model.ModelMixin",
     "render.model.ModelPartMixin",

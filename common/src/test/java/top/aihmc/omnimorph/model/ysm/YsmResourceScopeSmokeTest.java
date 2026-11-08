@@ -31,7 +31,7 @@ public final class YsmResourceScopeSmokeTest {
         check(index.projectilePaths().contains("animations/arrow.animation.json"),
                 "arrow animation must remain available in projectile resources", failures);
 
-        YsmMaterialNativeSmokeTest.replayAcceleration(model, runtime -> {
+        YsmMaterialNativeSmokeTest.replayModel(model, runtime -> {
             try {
                 var player = runtime.animations();
                 check(player.getClips().get("parallel0").boneAnimations.containsKey("gun"),

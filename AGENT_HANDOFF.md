@@ -32,3 +32,6 @@
 
 ## 阶段二检查点
 双引擎普通顶点/预算RED→GREEN完成，六项56秒退出0，详见docs/acceleration-revert/stage-2.md及stage-2-{red,green}.log。0ec53ca1/869be295已以no-commit撤回，GPU路由和两套专用网格缓存移除；本检查点提交推送后开始阶段三，阶段三四尚未实施。
+
+## 阶段三检查点
+专用后端/设置/native/tools/CI及无业务调用的延期绘制Mixin删除，设置RED→GREEN。九项初验及七项最终复验通过，双alpha.8普通JAR内容/CRC通过，记录docs/acceleration-revert/stage-3.md。下一步阶段四保留功能/真实语料回归与普通JAR最终交付；本检查点提交推送核对后才开始。无活动构建。

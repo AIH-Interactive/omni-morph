@@ -43,11 +43,6 @@ accessible class net/minecraft/client/gui/components/SubtitleOverlay$Subtitle
 accessible class net/minecraft/client/particle/ParticleResources$MutableSpriteSet
 accessible class net/minecraft/client/resources/model/sprite/AtlasManager$AtlasEntry
 
-# Read original material metadata at the acceleration draw boundary.
-accessible field net/minecraft/client/renderer/rendertype/RenderType state Lnet/minecraft/client/renderer/rendertype/RenderSetup;
-accessible field net/minecraft/client/renderer/rendertype/RenderSetup layeringTransform Lnet/minecraft/client/renderer/rendertype/LayeringTransform;
-accessible field net/minecraft/client/renderer/rendertype/RenderSetup textureTransform Lnet/minecraft/client/renderer/rendertype/TextureTransform;
-
 # Prepare submissions emitted by Figura callbacks before the native shared-buffer upload.
 accessible class net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PhaseSubmitGrouper
 accessible class net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedGroup

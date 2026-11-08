@@ -27,7 +27,7 @@ public abstract class ItemFeatureRendererMixin extends RenderTypeFeatureRenderer
     private void figura$withGroupCallbacks(FeatureFrameContext context, List<ItemFeatureRenderer.Submit> submits,
                                            Operation<Void> original) {
         var previousVertices = figura$vertices;
-        figura$vertices = FiguraVertexSource.nativePreparation(this::getVertexBuilder);
+        figura$vertices = this::getVertexBuilder;
         try {
             original.call(context, submits);
         } finally {
