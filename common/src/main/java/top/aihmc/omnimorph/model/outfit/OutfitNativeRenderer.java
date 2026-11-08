@@ -64,7 +64,7 @@ public final class OutfitNativeRenderer {
             return;
         }
         Avatar avatar = command.avatar();
-        if (!avatar.loaded || avatar.scriptError || !avatar.accelerationOwner().isCurrent()) {
+        if (!avatar.loaded || avatar.scriptError || !avatar.renderOwner().isCurrent()) {
             return;
         }
         EntityRenderMode previous = avatar.renderMode;

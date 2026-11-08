@@ -139,17 +139,17 @@ public final class OutfitCompositionSmokeTest {
             composition.close();
             first.close();
             Avatar ysm = instances.get(declarations.get(2).instanceId());
-            require(ysm.getYsmRuntime() != null && ysm.accelerationOwner().isCurrent(),
+            require(ysm.getYsmRuntime() != null && ysm.renderOwner().isCurrent(),
                     "retiring a draft preserves resources held by another extracted frame");
             var lastFrame = second;
             var drawn = new int[1];
             lastFrame.draw(pose, null, .5f, command -> {
                 drawn[0]++;
                 lastFrame.close();
-                require(ysm.getYsmRuntime() != null && ysm.accelerationOwner().isCurrent(),
+                require(ysm.getYsmRuntime() != null && ysm.renderOwner().isCurrent(),
                         "closing during drawing defers native resource cleanup until the callback returns");
             });
-            require(drawn[0] == 1 && ysm.getYsmRuntime() == null && !ysm.accelerationOwner().isCurrent(),
+            require(drawn[0] == 1 && ysm.getYsmRuntime() == null && !ysm.renderOwner().isCurrent(),
                     "last frame retirement stops later commands and releases native resources exactly once");
             lastFrame.close();
             System.out.println("PASS outfit controller: Lua-owned static selection, native instances, timeout isolation and deferred generation cleanup; combined rendering pending");

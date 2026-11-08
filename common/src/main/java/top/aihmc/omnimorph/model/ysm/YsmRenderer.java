@@ -84,7 +84,7 @@ public class YsmRenderer {
     }
 
     public boolean render(PoseStack stack, MultiBufferSource bufferSource, int light, YsmPartMask mask, YsmRenderPose pose) {
-        if ((pose != null && !pose.isCurrent()) || !runtime.owner().accelerationOwner().isCurrent()) {
+        if ((pose != null && !pose.isCurrent()) || !runtime.owner().renderOwner().isCurrent()) {
             return false;
         }
         runtime.recordComplexity(0);
@@ -190,7 +190,7 @@ public class YsmRenderer {
 
     private boolean renderAttachment(PoseStack stack, MultiBufferSource bufferSource, int light,
                                       YsmAttachmentPoint point, YsmRenderPose pose) {
-        if ((pose != null && !pose.isCurrent()) || !runtime.owner().accelerationOwner().isCurrent()) {
+        if ((pose != null && !pose.isCurrent()) || !runtime.owner().renderOwner().isCurrent()) {
             return false;
         }
         runtime.recordComplexity(0);
@@ -243,7 +243,7 @@ public class YsmRenderer {
 
     public boolean renderFirstPersonArm(PoseStack stack, MultiBufferSource bufferSource, int light,
                                          boolean left, YsmRenderPose pose) {
-        if ((pose != null && !pose.isCurrent()) || !runtime.owner().accelerationOwner().isCurrent()) {
+        if ((pose != null && !pose.isCurrent()) || !runtime.owner().renderOwner().isCurrent()) {
             return false;
         }
         runtime.recordComplexity(0);
@@ -483,7 +483,7 @@ public class YsmRenderer {
     }
 
     private void quad(DrawTarget vertices, PoseStack stack, YsmGeometry.Quad quad, int light) {
-        if (!runtime.owner().accelerationOwner().isCurrent()) {
+        if (!runtime.owner().renderOwner().isCurrent()) {
             return;
         }
         float[] positions = quad.positions();
@@ -531,7 +531,7 @@ public class YsmRenderer {
 
     private void submitGeometry(DrawTarget target, MeshHandle mesh, PoseSnapshot pose, int light, int faces) {
         AccelerationService acceleration = AccelerationService.INSTANCE;
-        var lease = acceleration.capture(runtime.owner().accelerationOwner(), String.valueOf(runtime.owner().renderMode));
+        var lease = acceleration.capture(runtime.owner().renderOwner(), String.valueOf(runtime.owner().renderMode));
         DrawSemantics semantics = new DrawSemantics(target.material(), target.texture(),
                 DrawSemantics.Layer.PRIMARY, target.channel(), target.order(), faces, light,
                 OverlayTexture.NO_OVERLAY, 1, 1, 1, target.alpha(), 0, true);

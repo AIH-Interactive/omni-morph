@@ -147,7 +147,7 @@ public final class OutfitObserverService implements AutoCloseable {
         private void prepare() {
             var configuration = snapshot.configuration();
             Avatar resident = user.getMainAvatar();
-            Avatar reusable = resident != null && resident.accelerationOwner().isCurrent()
+            Avatar reusable = resident != null && resident.renderOwner().isCurrent()
                     && configuration.base() != null && configuration.base().equals(resident.outfitSource()) ? resident : null;
             AvatarLoadExecutor.submit(() -> {
                 Avatar base = reusable;
