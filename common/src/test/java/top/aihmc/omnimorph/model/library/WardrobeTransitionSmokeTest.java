@@ -55,6 +55,18 @@ public final class WardrobeTransitionSmokeTest {
         require(!top.aihmc.omnimorph.gui.widgets.library.CompactMode.active(480, 2)
                         && !top.aihmc.omnimorph.gui.widgets.library.CompactMode.active(320, 3),
                 "fixed GUI scales keep the existing layouts at the same logical width");
+        // Control screens: compact windows keep "settings | preview" instead of hiding the preview.
+        var controls = top.aihmc.omnimorph.gui.widgets.wardrobe.ControlsPaneLayout.of(480, true);
+        require(controls.previewWidth() == 212 && controls.controlsWidth() == 212,
+                "compact controls keep a preview beside an equally wide settings column");
+        require(controls.controlsWidth() + top.aihmc.omnimorph.gui.widgets.wardrobe.ControlsPaneLayout.GAP
+                        + controls.previewWidth() == controls.panelWidth(),
+                "compact settings and preview fill the panel without overlap");
+        require(top.aihmc.omnimorph.gui.widgets.wardrobe.ControlsPaneLayout.of(480, false).previewWidth() == 0,
+                "fixed GUI scales keep the existing narrow controls layout");
+        var wideControls = top.aihmc.omnimorph.gui.widgets.wardrobe.ControlsPaneLayout.of(854, false);
+        require(wideControls.previewWidth() == 271 && wideControls.controlsWidth() == 527,
+                "wide controls keep their existing proportions");
         var directory = Files.createTempDirectory("wardrobe-candidates-");
         var source = directory.resolve("original-model.txt");
         try {
