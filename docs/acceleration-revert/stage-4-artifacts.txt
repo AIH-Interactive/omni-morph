@@ -1,0 +1,7 @@
+forge
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\build\distributions\acceleration-revert\omni-morph-1.0.0-alpha.8+1.20.1-minecraftforge-mc.jar
+SHA256 5a821ee4338a846dc5fc60a6b10287296d8baea6e85324309a6f6d05444e1467
+
+neoforge
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\build\distributions\acceleration-revert\omni-morph-1.0.0-alpha.8+1.20.1-neoforge-mc.jar
+SHA256 5a821ee4338a846dc5fc60a6b10287296d8baea6e85324309a6f6d05444e1467
