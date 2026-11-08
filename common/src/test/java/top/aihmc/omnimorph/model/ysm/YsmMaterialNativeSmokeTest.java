@@ -1524,18 +1524,10 @@ public final class YsmMaterialNativeSmokeTest {
                 ]}]}
                 """);
         var runtime = fixture.runtime;
-        var service = top.aihmc.omnimorph.render.acceleration.AccelerationService.INSTANCE;
-        Field backend = service.getClass().getDeclaredField("preferredBackend");
-        backend.setAccessible(true);
-        Object previousBackend = backend.get(service);
         boolean previousPaperdoll = org.figuramc.figura.utils.ui.UIHelper.paperdoll;
         try {
             for (boolean accelerated : new boolean[]{false, true}) {
                 // A distinct Java backend exercises production accelerated capture and fallback emission.
-                if (accelerated) {
-                    backend.set(service, new top.aihmc.omnimorph.render.acceleration.JavaAccelerationBackend());
-                }
-                top.aihmc.omnimorph.render.acceleration.FiguraAccelerationReplay.replay(null);
                 var alphas = new ArrayList<Float>();
                 var currentMaterial = new java.util.concurrent.atomic.AtomicReference<net.minecraft.client.renderer.rendertype.RenderType>();
                 var consumer = (com.mojang.blaze3d.vertex.VertexConsumer) java.lang.reflect.Proxy.newProxyInstance(
@@ -1591,7 +1583,6 @@ public final class YsmMaterialNativeSmokeTest {
             }
             System.out.println("PASS Figura/YSM bone fade: Java and accelerated emitters, selected subtree, deferred alpha and world isolation");
         } finally {
-            backend.set(service, previousBackend);
             top.aihmc.omnimorph.model.library.PreviewBoneHighlight.finishFrame();
             org.figuramc.figura.utils.ui.UIHelper.paperdoll = previousPaperdoll;
             runtime.close();

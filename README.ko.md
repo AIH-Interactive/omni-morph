@@ -16,7 +16,6 @@ Lua와 Molang 런타임을 함께 지원합니다. Lua는 스크립트와 상호
 - **모델 라이브러리**: 업로드, 분류, 검색, 즐겨찾기, 다운로드, 장착, 기본 정보 편집.
 - **접근 제어와 관리**: 공개·비공개 모델, 사용 권한 관리, 신고, 이의 신청, 모델 차단, 휴지통 복원.
 - **멀티플레이 공유**: 호환 백엔드를 통한 모델 배포와 동적 상태 동기화. Figura Cloud 및 Protobuf 지원.
-- **선택적 하드웨어 가속**: SIMD, GPU, 자동 모드를 제공하며 기본적으로 꺼져 있습니다. 사용할 수 없으면 Java 처리로 전환합니다.
 - **인터페이스 언어**: 중국어 간체와 영어를 기본 포함합니다.
 
 ## 실행 환경
@@ -75,13 +74,13 @@ if ($buildExitCode -ne 0) {
 
 최종 결과물은 `fabric/build/libs/`에 생성되며 파일 이름은 `omni-morph-...-fabric-mc.jar`입니다.
 
-일반 Fabric 빌드에는 C++ 툴체인이 필요하지 않습니다. 로컬 SIMD 라이브러리 빌드는 [native/README.md](native/README.md), 프로토콜 사양은 [protocol/README.md](protocol/README.md)를 참고하세요.
+프로토콜 사양은 [protocol/README.md](protocol/README.md)을 참조하세요.
 
 ### NeoForge
 
 JDK 25를 사용하고 위 PowerShell 명령의 `:fabric:build`를 `:neoforge:build -Prelease --no-daemon`으로 바꾸세요. Minecraft 26.1.2 / NeoForge 26.1.2.126용 결과물은 `neoforge/build/libs/omni-morph-1.0.0-alpha.7+26.1.2-neoforge-mc.jar`입니다. 로더에 맞는 JAR 하나만 설치하세요. `build`에는 `verifyNeoForgeJar` 패키지 검증이 포함됩니다.
 
-수동 실행 가능한 [통합 워크플로](https://github.com/AIH-Interactive/omni-morph/actions/workflows/fabric-build.yml)는 네이티브 빌드 6개를 공유하고 Fabric/NeoForge 완성 JAR를 각각 조립한 뒤 게시합니다. Actions는 제품 코드 빌드·패키징·게시만 수행하며 테스트 코드의 컴파일과 실행을 금지합니다. 로더 ID는 `omni_morph`이며 리소스 네임스페이스와 데이터 경로는 기존 이름을 유지합니다. 로컬 명령은 C++ 없이 Java 기본 JAR를 생성하고 CI 결과물에는 Windows x86_64, Linux x86_64/aarch64, Android aarch64, macOS x86_64/aarch64 네이티브 라이브러리가 포함됩니다. 기존 가속 설정과 Java 대체 경로를 사용합니다. 실제 클라이언트, GUI/GPU, Android 기기 및 선택 모드 검증은 진행을 막지 않는 `MANUAL/PENDING`입니다.
+통합 워크플로는 Fabric과 NeoForge의 일반 Java 배포 JAR를 빌드하고 게시합니다.
 
 ## 감사의 말
 

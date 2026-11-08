@@ -41,6 +41,10 @@ public final class OmniMorphIdentitySmokeTest {
                     "Save writes the new mod config and preserves the original backup");
             var saved = JsonParser.parseString(Files.readString(newFile)).getAsJsonObject();
             require(saved.get("cloud_protocol").getAsString().equals("FIGURA_CLOUD"), "Explicit old protocol survives migration");
+            saved.addProperty("hardware_acceleration.enabled", true);
+            saved.addProperty("hardware_acceleration.mode", 2);
+            saved.addProperty("hardware_acceleration.ssbo", true);
+            saved.addProperty("wardrobe_auto_cache", true);
             saved.addProperty("cloud_protocol", "PROTOBUF");
             saved.addProperty("server_ip", "https://new-choice.test");
             Files.writeString(newFile, saved.toString());
@@ -48,6 +52,12 @@ public final class OmniMorphIdentitySmokeTest {
             require(Configs.CLOUD_PROTOCOL.value == 1 && Configs.SERVER_IP.value.equals("https://new-choice.test"),
                     "New configuration takes precedence over retained legacy config");
             require(Files.readString(oldFile).equals(legacyConfig), "Reload does not mutate the legacy backup");
+            require(Configs.WARDROBE_AUTO_CACHE.value,
+                    "Removed acceleration keys do not reset ordinary cache preference");
+            ConfigManager.saveConfig();
+            var withoutAcceleration = JsonParser.parseString(Files.readString(newFile)).getAsJsonObject();
+            require(withoutAcceleration.keySet().stream().noneMatch(key -> key.startsWith("hardware_acceleration")),
+                    "Saving configuration omits removed acceleration keys");
 
             Path previousDirectory = Files.createDirectory(directory.resolve("omni-morph"));
             Files.writeString(previousDirectory.resolve("previous-marker"), "previous-root");

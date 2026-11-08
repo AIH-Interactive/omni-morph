@@ -18,7 +18,6 @@ import org.figuramc.figura.gui.FiguraToast;
 import org.figuramc.figura.gui.PopupMenu;
 import org.figuramc.figura.gui.screens.WardrobeScreen;
 import org.figuramc.figura.lua.FiguraLuaPrinter;
-import top.aihmc.omnimorph.render.acceleration.HardwareAcceleration;
 import org.figuramc.figura.utils.FiguraText;
 import org.figuramc.figura.utils.EntityUtils;
 import org.jetbrains.annotations.Nullable;
@@ -135,10 +134,6 @@ public abstract class MinecraftMixin {
         NetworkStuff.unsubscribeAll();
     }
 
-    @Inject(at = @At("HEAD"), method = "close")
-    private void figura$closeAcceleration(CallbackInfo ci) {
-        HardwareAcceleration.shutdown();
-    }
 
     @Inject(at = @At("RETURN"), method = "setLevel")
     private void setLevel(ClientLevel world, CallbackInfo ci) {
