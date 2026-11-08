@@ -27,6 +27,18 @@
 
 自动测试的覆盖范围只有导航几何（列方向、尺寸、滚动上限、空隙/滚动条/裁剪区的命中）和现有目录回调；不证明屏幕像素正确。
 
+## 修改清单（供其他版本移植）
+
+| 文件 | 修改要点 |
+| --- | --- |
+| `common/.../gui/widgets/library/LibrarySectionLayout.java`（新增） | 纯几何 record：`WIDTH=30`、`TAB_WIDTH=22`、`TAB_HEIGHT=60`、`GAP=4`；提供 `tabY(index, scroll)`、`maximumScroll()`、`clampScroll()`、`hit()` |
+| `common/.../gui/widgets/library/LibrarySectionTabs.java` | 构造参数由 `(x, y, width, …)` 改为 `(x, y, height, …)`，宽度固定 30。子项改为 `VerticalWardrobeTab`，左侧 1 像素作选中标记。渲染时裁剪，内容超高时在右侧显示滚动条，滚轮每格 16。点击只按 `LibrarySectionLayout.hit` 判定 |
+| `common/.../gui/widgets/wardrobe/VerticalWardrobeTab.java` | 去掉 `final` |
+| `common/.../gui/screens/ModelLibraryScreen.java` | 导航放在 `(4, 28)`，高 `height - 60`。新增 `CONTENT_X = 38`、`CONTENT_INSET = 30`，`leftWidth` 减去 30。搜索栏移到 y=28，筛选移到 y=52，网格起点 `gridTop()` 为 52（筛选展开时为 76）。分页按钮、状态文字随内容区移动 |
+| `common/.../gui/screens/library/ModelUploadScreen.java` | 导航放在 `(4, top)`，高 `height - top - 8`。表单 x 改为 `left + 30`，宽度减 30，从 `top()` 开始（回收原 Tab 行） |
+| `common/.../gui/screens/library/ModelLibraryAdminScreen.java` | 导航放在 `(4, 28)`，高 `height - 60`；`contentX` 加 30，`area` 减 30；Y 坐标不变 |
+| `common/src/test/.../ModelLibraryLayoutSmokeTest.java` | 竖排导航的几何断言 |
+
 ## 记录事项
 
 - 设计稿的导航第 5 项是“我的申诉”，而现有第 5 项是管理员“管理”入口。按范围保护保留了原入口和右上角“我的申诉”按钮，没有改动导航项集合，留作后续确认。

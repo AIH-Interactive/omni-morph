@@ -119,7 +119,8 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         leftWidth = layout.contentWidth() - CONTENT_INSET;
         int rightX = layout.previewX();
         int rightWidth = layout.previewWidth();
-        int actionsHeight = LibraryActionBar.heightFor(rightWidth, 7);
+        // Compact windows keep one action row so the preview uses the remaining height.
+        int actionsHeight = compact() ? LibraryActionBar.budgetedHeight(false) : LibraryActionBar.heightFor(rightWidth, 7);
         actionsY = height - 28 - actionsHeight;
         sections = addRenderableWidget(new LibrarySectionTabs(4, 28, height - 60, scope,
                 capabilities != null && capabilities.adminLoginAvailable(), this::openSection));
@@ -182,6 +183,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
             grid.setX(CONTENT_X);
             grid.setY(gridTop());
             grid.setWidth(leftWidth);
+            grid.compact(compact());
             grid.setHeight(height - grid.getY() - 28);
             addRenderableWidget(grid);
         }
@@ -201,6 +203,9 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
             addRenderableWidget(widget);
         }
         var actions = addRenderableWidget(new LibraryActionBar(rightX, actionsY, rightWidth, actionsHeight));
+        if (compact()) {
+            actions.budget(3);
+        }
         edit = actions.action(new LibraryIconButton("library_edit", 1, () -> 0,
                 FiguraText.of("gui.library.edit"), null, ignored -> {
                     if (client != null && LibraryModelEdits.available(selected, client.session().player())) {
@@ -413,6 +418,10 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         updateButtons();
     }
 
+    private boolean compact() {
+        return width < ModelLibraryLayout.COMPACT_SCREEN_WIDTH;
+    }
+
     private int gridTop() {
         return filtersExpanded ? 76 : 52;
     }
@@ -421,8 +430,10 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         var layout = new LibraryWorkspaceLayout(width, height);
         int top = gridTop();
         // Match ModelLibraryGrid's scrollbar and inner padding exactly.
-        return ModelLibraryLayout.of(layout.contentWidth() - CONTENT_INSET - 18, height - top - 32, 0)
-                .pageCapacity(capabilities.maxPageSize());
+        int area = ModelLibraryGrid.cardAreaWidth(layout.contentWidth() - CONTENT_INSET, compact());
+        var cards = compact() ? ModelLibraryLayout.compact(area, height - top - 32, 0)
+                : ModelLibraryLayout.of(area, height - top - 32, 0);
+        return cards.pageCapacity(capabilities.maxPageSize());
     }
 
     private void select(LibraryModels.Model model) {
