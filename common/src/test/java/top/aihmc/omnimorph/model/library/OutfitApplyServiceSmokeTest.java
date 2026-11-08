@@ -91,7 +91,7 @@ public final class OutfitApplyServiceSmokeTest {
                 }
                 require(accepted instanceof OutfitApplyResult.Accepted && server.commits == 1
                                 && user.getOutfit().configuration().revision() == 1 && user.getMainAvatar() != original
-                                && !original.accelerationOwner().isCurrent(),
+                                && !original.renderOwner().isCurrent(),
                         "native preparation, actual CAS and current authority recheck publish one real resident pair");
                 Avatar retained = user.getMainAvatar();
                 var runtime = retained.getYsmRuntime();
@@ -226,7 +226,7 @@ public final class OutfitApplyServiceSmokeTest {
                     await(service.refresh(user, wearer, () -> true).future(), drain);
                     throw new AssertionError("older observer revision published");
                 } catch (ExecutionException | java.util.concurrent.CancellationException expected) {
-                    require(user.getOutfit() == stable && base.accelerationOwner().isCurrent(),
+                    require(user.getOutfit() == stable && base.renderOwner().isCurrent(),
                             "an older authorized snapshot cannot replace a newer resident revision or clean its borrowed base");
                 }
                 server.denySources = true;
@@ -238,7 +238,7 @@ public final class OutfitApplyServiceSmokeTest {
                 try (var failing = new OutfitObserverService(client, FiguraMod.getCacheDirectory().resolve("observer-failure-" + UUID.randomUUID()))) {
                     server.observerBadBody = true;
                     failure(failing.refresh(user, wearer, () -> true).future(), drain, "DISTRIBUTION_HASH_MISMATCH");
-                    require(user.getOutfit() == stable && base.accelerationOwner().isCurrent(),
+                    require(user.getOutfit() == stable && base.renderOwner().isCurrent(),
                             "ordinary observer source failure preserves the preceding resident pair");
                     server.observerBadBody = false;
                 }
@@ -253,7 +253,7 @@ public final class OutfitApplyServiceSmokeTest {
                 }
                 server.denySources = true;
                 require(await(service.refresh(user, wearer, () -> true).future(), drain) == OutfitObserverService.Result.HIDDEN
-                                && user.getMainAvatar() == null && user.getOutfit() == null && !base.accelerationOwner().isCurrent(),
+                                && user.getMainAvatar() == null && user.getOutfit() == null && !base.renderOwner().isCurrent(),
                         "an authoritative hidden projection retires both old base and instances");
                 server.denySources = false;
                 server.revision = 0;
@@ -766,10 +766,10 @@ public final class OutfitApplyServiceSmokeTest {
                         == org.figuramc.figura.model.rendering.EntityRenderMode.RENDER,
                 "world extraction captures the actual resident base/composition pair without a GUI binding");
         user.clear();
-        require(base.accelerationOwner().isCurrent() && AvatarManager.getAvatar(state) == base,
+        require(base.renderOwner().isCurrent() && AvatarManager.getAvatar(state) == base,
                 "resident retirement preserves the captured base until deferred world/hand consumption ends");
         top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.finishFrame();
-        require(!base.accelerationOwner().isCurrent()
+        require(!base.renderOwner().isCurrent()
                         && !top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.hasFrame(state),
                 "frame completion releases retired bases and frozen composition leases");
         var vanilla = top.aihmc.omnimorph.model.outfit.OutfitPreparation.prepare(OutfitConfig.empty(), OutfitLimits.defaults(),

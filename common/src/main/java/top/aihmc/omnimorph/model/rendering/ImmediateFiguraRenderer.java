@@ -911,7 +911,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
 
         boolean useSkinning = boneDeltas != null && boneDeltas.length > 0 && part.skinBoneIndices != null && part.skinBoneWeights != null;
         AccelerationService acceleration = AccelerationService.INSTANCE;
-        var lease = acceleration.capture(avatar.accelerationOwner(), String.valueOf(avatar.renderMode));
+        var lease = acceleration.capture(avatar.renderOwner(), String.valueOf(avatar.renderMode));
 
         VERTEX_BUFFER.getBufferFor(rt, vertexData.primary, buffers -> {
             if (!acceleration.isCurrent(lease)) {

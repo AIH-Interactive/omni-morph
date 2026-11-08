@@ -1,5 +1,9 @@
 package top.aihmc.omnimorph.render.acceleration;
 
+import top.aihmc.omnimorph.render.RenderOwner;
+
+import top.aihmc.omnimorph.render.RenderLifetime;
+
 import com.mojang.blaze3d.vertex.PoseStack;
 import org.figuramc.figura.math.matrix.FiguraMat3;
 import org.figuramc.figura.math.matrix.FiguraMat4;
@@ -22,7 +26,7 @@ public final class AccelerationContractSmokeTest {
         require(mesh.component(0, 0) == 1, "geometry owns both constructor and accessor arrays");
 
         AccelerationService service = new AccelerationService();
-        AccelerationOwner owner = new AccelerationOwner();
+        RenderOwner owner = new RenderOwner();
         var lease = service.capture(owner, "contract-view");
         FiguraMat4 position = FiguraMat4.of();
         position.scale(-2, 3, 4);
@@ -65,7 +69,7 @@ public final class AccelerationContractSmokeTest {
         var ownerLease = service.capture(owner, "contract-view");
         owner.retire();
         require(service.transform(ownerLease, adapter) == null, "model retirement rejects old batches");
-        AccelerationOwner replacement = new AccelerationOwner();
+        RenderOwner replacement = new RenderOwner();
         require(replacement.generation() != owner.generation(), "replacement has a distinct lifetime");
         var replacementLease = service.capture(replacement, "contract-view");
         require(service.transform(replacementLease, token -> {
@@ -86,7 +90,7 @@ public final class AccelerationContractSmokeTest {
         System.out.println("Acceleration contract passed: immutable data, numeric conventions, frame/resource/model retirement.");
     }
 
-    private static void testSkinAndUv(AccelerationService service, AccelerationService.Lease lease, MeshHandle mesh) {
+    private static void testSkinAndUv(AccelerationService service, RenderLifetime.Lease lease, MeshHandle mesh) {
         int[] joints = {0, 1, 2, 3, 4};
         float[] weights = {1, 1, 1, 1, 1};
         MeshHandle.Influences influences = new MeshHandle.Influences(joints, weights);

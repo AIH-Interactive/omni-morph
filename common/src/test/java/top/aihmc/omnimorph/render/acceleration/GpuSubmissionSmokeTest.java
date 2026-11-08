@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.render.acceleration;
 
+import top.aihmc.omnimorph.render.RenderOwner;
+
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
@@ -56,7 +58,7 @@ public final class GpuSubmissionSmokeTest {
 
     private static void sustainedFallback() throws Exception {
         var service = AccelerationService.INSTANCE;
-        var owner = new AccelerationOwner();
+        var owner = new RenderOwner();
         var material = new RecordingType(false);
         service.useBackend(new AccelerationBackend() {
             public boolean supports(Operation operation, DrawBatch batch) {
@@ -120,7 +122,7 @@ public final class GpuSubmissionSmokeTest {
 
     private static void queuedBoundary() {
         var service = AccelerationService.INSTANCE;
-        var owner = new AccelerationOwner();
+        var owner = new RenderOwner();
         var material = new RecordingType(true);
         int[] gpuDraws = {0};
         service.useBackend(new AccelerationBackend() {
@@ -201,7 +203,7 @@ public final class GpuSubmissionSmokeTest {
 
     private static void opaqueBoundary() {
         var service = new AccelerationService();
-        var owner = new AccelerationOwner();
+        var owner = new RenderOwner();
         var material = new RecordingType(false);
         var source = MultiBufferSource.immediate(new BufferBuilder(256));
         offer(service, source, batch(service, owner, material, 1, 2));
@@ -216,7 +218,7 @@ public final class GpuSubmissionSmokeTest {
     private static void transparentBoundary(VertexSorting sorting, List<Float> expected) {
         RenderSystem.setProjectionMatrix(new Matrix4f(), sorting);
         var service = new AccelerationService();
-        var owner = new AccelerationOwner();
+        var owner = new RenderOwner();
         var material = new RecordingType(true);
         var source = MultiBufferSource.immediate(new BufferBuilder(256));
         offer(service, source, batch(service, owner, material, 1, 3));
@@ -230,7 +232,7 @@ public final class GpuSubmissionSmokeTest {
     private static void groupedPoses() {
         RenderSystem.setProjectionMatrix(new Matrix4f(), VertexSorting.DISTANCE_TO_ORIGIN);
         var service = new AccelerationService();
-        var owner = new AccelerationOwner();
+        var owner = new RenderOwner();
         for (int frame = 0; frame < 3; frame++) {
             service.beginFrame();
             var material = new RecordingType(true);
@@ -254,7 +256,7 @@ public final class GpuSubmissionSmokeTest {
     private static void staleOwnership() {
         for (int invalidation = 0; invalidation < 4; invalidation++) {
             var service = new AccelerationService();
-            var owner = new AccelerationOwner();
+            var owner = new RenderOwner();
             var material = new RecordingType(false);
             var captured = batch(service, owner, material, 1);
             switch (invalidation) {
@@ -323,7 +325,7 @@ public final class GpuSubmissionSmokeTest {
         }
     }
 
-    private static DrawBatch batch(AccelerationService service, AccelerationOwner owner, RenderType material, double... depths) {
+    private static DrawBatch batch(AccelerationService service, RenderOwner owner, RenderType material, double... depths) {
         double[] vertices = new double[depths.length * 4 * MeshHandle.STRIDE];
         for (int face = 0; face < depths.length; face++) {
             for (int vertex = 0; vertex < 4; vertex++) {

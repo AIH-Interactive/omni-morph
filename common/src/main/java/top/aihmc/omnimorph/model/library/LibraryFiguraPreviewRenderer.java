@@ -60,7 +60,7 @@ public final class LibraryFiguraPreviewRenderer {
 
     static void draw(LibraryFiguraPreviewState state, PoseStack stack, MultiBufferSource source, PlayerModel<?> model) {
         Avatar avatar = state.avatar();
-        if (!avatar.loaded || !avatar.accelerationOwner().isCurrent()) {
+        if (!avatar.loaded || !avatar.renderOwner().isCurrent()) {
             return;
         }
         EntityRenderMode previousMode = avatar.renderMode;

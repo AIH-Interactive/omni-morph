@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.render.acceleration;
 
+import top.aihmc.omnimorph.render.RenderOwner;
+
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -336,7 +338,7 @@ public final class NativeAccelerationSmokeTest {
     }
 
     private static DrawBatch batch(MeshHandle mesh, PoseSnapshot pose) {
-        return new DrawBatch(AccelerationService.INSTANCE.capture(new AccelerationOwner(), "jni-smoke"), mesh, pose);
+        return new DrawBatch(AccelerationService.INSTANCE.capture(new RenderOwner(), "jni-smoke"), mesh, pose);
     }
 
     private static ByteBuffer identityMatrices() {

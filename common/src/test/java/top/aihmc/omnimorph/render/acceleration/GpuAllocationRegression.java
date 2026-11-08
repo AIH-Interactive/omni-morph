@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.render.acceleration;
 
+import top.aihmc.omnimorph.render.RenderOwner;
+
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.VertexSorting;
 import net.minecraft.SharedConstants;
@@ -35,7 +37,7 @@ public final class GpuAllocationRegression {
         var material = RenderType.entityTranslucent(new ResourceLocation("omni-morph:allocation-test"));
         var semantics = new DrawSemantics(material, null, DrawSemantics.Layer.PRIMARY, "world", 0, faces,
                 0, 0, 1, 1, 1, 1, 0, true);
-        var batch = new DrawBatch(AccelerationService.INSTANCE.capture(new AccelerationOwner(), "world"),
+        var batch = new DrawBatch(AccelerationService.INSTANCE.capture(new RenderOwner(), "world"),
                 new MeshHandle(vertices, 4), new PoseSnapshot(FiguraMat4.of(), FiguraMat3.of()), semantics);
         List<DrawBatch> batches = List.of(batch);
         var backend = new OpenGlAccelerationBackend();

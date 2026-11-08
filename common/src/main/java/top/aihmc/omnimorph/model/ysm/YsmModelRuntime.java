@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.model.ysm;
 
+import top.aihmc.omnimorph.render.RenderLifetime;
+
 import org.figuramc.figura.utils.NbtDefaults;
 
 import top.aihmc.omnimorph.render.acceleration.AccelerationService;
@@ -1554,8 +1556,8 @@ public class YsmModelRuntime implements AutoCloseable {
             applyModelScale(scale);
         }
         boolean unlit = guiNoLighting && owner.renderMode == org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI;
-        var lease = AccelerationService.INSTANCE.capture(
-                owner.accelerationOwner(), String.valueOf(owner.renderMode));
+        var lease = RenderLifetime.INSTANCE.capture(
+                owner.renderOwner(), String.valueOf(owner.renderMode));
         return YsmRenderPose.capture(uniqueParts(firstPerson), scale.last().pose(), unlit, lease);
     }
 
@@ -1745,7 +1747,7 @@ public class YsmModelRuntime implements AutoCloseable {
     @Override
     public synchronized void close() {
         closed = true;
-        owner.accelerationOwner().retire();
+        owner.renderOwner().retire();
         renderer.clearAccelerationMeshes();
         subEntityInstances.close();
         for (Tag value : functionInput) {

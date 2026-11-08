@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.render.acceleration;
 
+import top.aihmc.omnimorph.render.RenderOwner;
+
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferUploader;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
@@ -40,7 +42,7 @@ final class OpenGlAccelerationBackend implements AccelerationBackend {
     private final Thread renderThread = Thread.currentThread();
     private volatile boolean invalidated;
 
-    private record MeshKey(MeshHandle mesh, int joints, boolean floatPose, AccelerationOwner owner) {}
+    private record MeshKey(MeshHandle mesh, int joints, boolean floatPose, RenderOwner owner) {}
 
     private record Geometry(int vao, int vertices, int indices, int count, long bytes, long retainedBytes, long frame) {
         void delete() {

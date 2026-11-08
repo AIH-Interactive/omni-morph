@@ -244,14 +244,14 @@ public final class CosmeticBoneOverrideSmokeTest {
                     require(parent.renderer.root.children.get(0).customization.getPos().x == 999,
                             "failed retained overlay restores newer authored state");
                     parent.renderer.root.children.get(0).customization.setPos(4, 0, 0);
-                    var bare = new FiguraRenderPose(parts, service.capture(parent.accelerationOwner(), "bare"));
+                    var bare = new FiguraRenderPose(parts, service.capture(parent.renderOwner(), "bare"));
                     positions.clear();
                     OutfitNativeRenderer.drawInstance(new OutfitComposition.Draw(first.instanceId(), parent,
                             command.matrix(), null, bare), .5f, outer, type -> sink, 0x00f000f0,
                             EntityRenderMode.FIGURA_GUI);
                     require(positions.size() == 4, "a draw without configured offsets uses the original mesh");
                     near(positions.get(0), 7 + 23f / 16, 11 + 2f / 16, 13 + 3f / 16);
-                    retainedPoseSnapshots(parts, service.capture(parent.accelerationOwner(), "p1"),
+                    retainedPoseSnapshots(parts, service.capture(parent.renderOwner(), "p1"),
                             parent.renderer.root.children.get(0));
                 }
                 previewSelection(composition, parent, avatars.get(second.instanceId()), base, model, state, ysm);
@@ -268,7 +268,7 @@ public final class CosmeticBoneOverrideSmokeTest {
      * P1: an unchanged retained pose draws without restoring anything; a pose changed between submit and draw
      * still draws the submit-time state and then returns the newer one; released snapshots are reused.
      */
-    private static void retainedPoseSnapshots(List<FiguraModelPart> parts, AccelerationService.Lease lease,
+    private static void retainedPoseSnapshots(List<FiguraModelPart> parts, top.aihmc.omnimorph.render.RenderLifetime.Lease lease,
                                               FiguraModelPart child) {
         child.customization.setPos(1, 2, 3);
         var spare = new FiguraRenderPose.Spare();
