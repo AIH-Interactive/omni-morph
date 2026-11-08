@@ -16,18 +16,11 @@ import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import org.figuramc.figura.math.vector.FiguraVec3;
 import org.figuramc.figura.model.rendering.EntityRenderMode;
-import top.aihmc.omnimorph.render.acceleration.AccelerationService;
-import top.aihmc.omnimorph.render.acceleration.DrawBatch;
-import top.aihmc.omnimorph.render.acceleration.DrawSemantics;
-import top.aihmc.omnimorph.render.acceleration.MeshHandle;
-import top.aihmc.omnimorph.render.acceleration.PoseSnapshot;
-import top.aihmc.omnimorph.render.acceleration.GpuSubmission;
 
 import java.util.List;
 
 public class YsmRenderer {
     private final YsmModelRuntime runtime;
-    private final YsmAccelerationMeshes accelerationMeshes = new YsmAccelerationMeshes();
     private Identifier culledTranslucentTexture;
     private RenderType culledTranslucentType;
     private YsmPreviewRenderTypes previewTypes;
@@ -69,10 +62,6 @@ public class YsmRenderer {
         } else {
             stack.rotate(Axis.YP.rotationDegrees(180f - bodyYaw));
         }
-    }
-
-    void clearAccelerationMeshes() {
-        accelerationMeshes.clear();
     }
 
     public boolean render(PoseStack stack, FiguraVertexSource bufferSource, int light) {
@@ -496,68 +485,8 @@ public class YsmRenderer {
     }
 
     private void renderGeometry(List<YsmGeometry.Cube> cubes, PoseStack stack, DrawTarget target, int light) {
-        AccelerationService acceleration = AccelerationService.INSTANCE;
-        if (!acceleration.accelerated()) {
-            accelerationMeshes.clear();
-            for (YsmGeometry.Cube cube : cubes) {
-                renderCube(cube, stack, target, light);
-            }
-            return;
-        }
-        int visibleFaces = 0;
         for (YsmGeometry.Cube cube : cubes) {
-            for (YsmGeometry.Quad face : cube.quads) {
-                if (face.visible()) {
-                    visibleFaces++;
-                }
-            }
-        }
-        if (visibleFaces == 0) {
-            return;
-        }
-        if (!runtime.consumeOutfitFaces(visibleFaces)) {
-            // A mesh is indivisible here; submit only the permitted prefix through native quads.
-            for (YsmGeometry.Cube cube : cubes) {
-                renderCube(cube, stack, target, light);
-            }
-            return;
-        }
-        PoseSnapshot pose = new PoseSnapshot(stack.last());
-        for (MeshHandle mesh : accelerationMeshes.get(cubes)) {
-            submitGeometry(target, mesh, pose, light, mesh.faceCount());
-        }
-    }
-
-    private void submitGeometry(DrawTarget target, MeshHandle mesh, PoseSnapshot pose, int light, int faces) {
-        AccelerationService acceleration = AccelerationService.INSTANCE;
-        var lease = acceleration.capture(runtime.owner().renderOwner(), String.valueOf(runtime.owner().renderMode));
-        DrawSemantics semantics = new DrawSemantics(target.material(), target.texture(),
-                DrawSemantics.Layer.PRIMARY, target.channel(), target.order(), faces, light,
-                OverlayTexture.NO_OVERLAY, 1, 1, 1, target.alpha(), 0, true);
-        DrawBatch batch = new DrawBatch(lease, mesh, pose, semantics);
-        double[][] output = {null};
-        GpuSubmission.JavaEmitter fallback = (consumer, firstVertex, vertexCount) -> {
-            if (!acceleration.isCurrent(lease)) {
-                return;
-            }
-            if (output[0] == null) {
-                output[0] = acceleration.transform(lease, token -> batch);
-            }
-            double[] transformed = output[0];
-            if (transformed == null) {
-                return;
-            }
-            for (int vertex = firstVertex; vertex < firstVertex + vertexCount; vertex++) {
-                int offset = vertex * MeshHandle.STRIDE;
-                consumer.addVertex((float) transformed[offset], (float) transformed[offset + 1], (float) transformed[offset + 2])
-                        .setColor(semantics.red(), semantics.green(), semantics.blue(), semantics.alpha())
-                        .setUv((float) transformed[offset + 7], (float) transformed[offset + 8])
-                        .setOverlay(semantics.overlay()).setLight(semantics.light())
-                        .setNormal((float) transformed[offset + 4], (float) transformed[offset + 5], (float) transformed[offset + 6]);
-            }
-        };
-        if (!GpuSubmission.enqueue(target.source(), batch, fallback)) {
-            fallback.emit(target.consumer(), 0, mesh.vertexCount());
+            renderCube(cube, stack, target, light);
         }
     }
 

@@ -1741,7 +1741,6 @@ public class YsmModelRuntime implements AutoCloseable {
     public synchronized void close() {
         closed = true;
         owner.renderOwner().retire();
-        renderer.clearAccelerationMeshes();
         subEntityInstances.close();
         for (Tag value : functionInput) {
             if (value instanceof CompoundTag entry) {
