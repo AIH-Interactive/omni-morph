@@ -10,3 +10,7 @@
 4. 业务与真实只读语料回归，alpha.8双loader测试JAR、SHA和ZIP内容核对；记录已知scanner限制。实机SKIPPED，不启动游戏。更新交接、提交推送。
 
 每阶段通过自动验收→可靠额度查询→diff/status/空白检查→提交推送确认→下一阶段。日志和详细步骤位于docs/acceleration-revert。用户真实模型目录仅只读，不修改解析器来掩盖既有语料兼容失败。Wiki已由协调端清理，不重复。
+
+## 最终状态
+
+四阶段实施与规定自动验收完成（2026-11-08）。阶段一90a24616、阶段二a279c880及纯探测revert4a679e1b、阶段三28960dac已分别提交推送核对。阶段四只修真实ZIP测试的内部.bbmodel根路径空值过滤并整理交付，21个请求入口最终全部通过，详见stage-4.md。严格scanner53候选47valid/6invalid与扩展绑定门禁失败单列，不修改解析器；实机SKIPPED。双alpha.8普通JAR及SHA见stage-4-artifacts.txt；无剩余实施。
