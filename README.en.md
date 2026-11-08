@@ -25,7 +25,7 @@ It supports both Lua and Molang: Lua handles scripting and interaction, while Mo
 | Minecraft Java | 26.1.2 |
 | Mod loader | Fabric / NeoForge 26.1.2.126 |
 | Java | 25 |
-| Mod version | 1.0.0-alpha.7 |
+| Mod version | 1.0.0-alpha.9 |
 
 Build dependency versions are listed in [gradle.properties](gradle.properties). This is a client mod; multiplayer resource distribution and state synchronization require a compatible backend.
 
@@ -78,7 +78,7 @@ See [protocol/README.md](protocol/README.md) for the protocol specification.
 
 ### NeoForge
 
-With JDK 25, replace `:fabric:build` in the PowerShell command above with `:neoforge:build -Prelease --no-daemon`. The final JAR is `neoforge/build/libs/omni-morph-1.0.0-alpha.7+26.1.2-neoforge-mc.jar`, targeting Minecraft 26.1.2 and NeoForge 26.1.2.126. Install only the JAR matching your loader. `build` includes `verifyNeoForgeJar`; `remapJar` is a packaging alias because 26.1.2 is unobfuscated.
+With JDK 25, replace `:fabric:build` in the PowerShell command above with `:neoforge:build -Prelease --no-daemon`. The final JAR is `neoforge/build/libs/omni-morph-1.0.0-alpha.9+26.1.2-neoforge-mc.jar`, targeting Minecraft 26.1.2 and NeoForge 26.1.2.126. Install only the JAR matching your loader. `build` includes `verifyNeoForgeJar`; `remapJar` is a packaging alias because 26.1.2 is unobfuscated.
 
 The unified workflow builds and publishes standard Java artifacts for Fabric and NeoForge.
 
