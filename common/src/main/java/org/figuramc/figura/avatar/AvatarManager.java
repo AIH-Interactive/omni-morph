@@ -25,8 +25,7 @@ import org.figuramc.figura.lua.api.particle.ParticleAPI;
 import org.figuramc.figura.lua.api.sound.SoundAPI;
 import org.figuramc.figura.lua.api.world.WorldAPI;
 import top.aihmc.omnimorph.model.library.LibraryPreviewBinding;
-import top.aihmc.omnimorph.render.acceleration.AccelerationService;
-import top.aihmc.omnimorph.render.acceleration.HardwareAcceleration;
+import top.aihmc.omnimorph.render.RenderLifetime;
 import org.figuramc.figura.utils.EntityUtils;
 import org.figuramc.figura.utils.FiguraClientCommandSource;
 import org.figuramc.figura.utils.FiguraResourceListener;
@@ -54,8 +53,7 @@ public class AvatarManager {
 
     public static final FiguraResourceListener RESOURCE_RELOAD_EVENT = FiguraResourceListener.createResourceListener("resource_reload_event", manager -> {
         top.aihmc.omnimorph.model.ysm.animation.YsmDefaultAnimationResolver.clear();
-        AccelerationService.INSTANCE.invalidateResources();
-        HardwareAcceleration.retryAfterResourceReload();
+        RenderLifetime.INSTANCE.invalidateResources();
         executeAll("resourceReloadEvent", Avatar::resourceReloadEvent);
     });
 

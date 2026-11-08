@@ -14,7 +14,6 @@ import org.figuramc.figura.utils.ui.UIHelper;
 import java.util.ArrayList;
 import java.util.List;
 
-import top.aihmc.omnimorph.gui.widgets.config.ReadOnlyElement;
 public class CategoryWidget extends AbstractContainerElement {
 
     protected final List<AbstractConfigElement> entries = new ArrayList<>();
@@ -66,9 +65,7 @@ public class CategoryWidget extends AbstractContainerElement {
         int width = getWidth();
 
         AbstractConfigElement element;
-        if (config instanceof ConfigType.ReadOnlyConfig readOnly) {
-            element = new ReadOnlyElement(width, readOnly, parent, this);
-        } else if (config instanceof ConfigType.BoolConfig boolConfig) {
+        if (config instanceof ConfigType.BoolConfig boolConfig) {
             element = new BooleanElement(width, boolConfig, parent, this);
         } else if (config instanceof ConfigType.EnumConfig enumConfig) {
             element = new EnumElement(width, enumConfig, parent, this);

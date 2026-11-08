@@ -392,27 +392,9 @@ public final class OutfitNativeRenderSmokeTest {
     }
 
     private static void testYsmBaseBudget(boolean accelerated) throws Exception {
-        var service = top.aihmc.omnimorph.render.acceleration.AccelerationService.INSTANCE;
-        var backendSetter = service.getClass().getDeclaredMethod("useBackend",
-                top.aihmc.omnimorph.render.acceleration.AccelerationBackend.class);
-        backendSetter.setAccessible(true);
-        backendSetter.invoke(service, accelerated
-                ? new top.aihmc.omnimorph.render.acceleration.AccelerationBackend() {
-                    @Override
-                    public boolean supports(Operation operation,
-                            top.aihmc.omnimorph.render.acceleration.DrawBatch batch) {
-                        throw new AssertionError("Ordinary rendering must not consult acceleration backend");
-                    }
-
-                    @Override
-                    public double[] transform(top.aihmc.omnimorph.render.acceleration.DrawBatch batch) {
-                        throw new AssertionError("Ordinary rendering must not transform through acceleration backend");
-                    }
-                } : null);
         Avatar base = Avatar.createLibraryPreview(UUID.randomUUID(), "YSM composed budget base");
         var avatars = new LinkedHashMap<UUID, Avatar>();
         try (var textures = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.recordingTextureDevice()) {
-            require(service.accelerated() == accelerated, "fixture selects the actual mesh preparation branch");
             base.permissions.insert(Permissions.COMPLEXITY, 8, org.figuramc.figura.FiguraMod.MOD_ID);
             base.load(ysmCube());
             base.initializePreviewPlayer(null);
@@ -482,7 +464,6 @@ public final class OutfitNativeRenderSmokeTest {
         } finally {
             avatars.values().forEach(Avatar::clean);
             base.clean();
-            backendSetter.invoke(service, new Object[]{null});
         }
         System.out.println("PASS composed YSM base/Figura/YSM face allowance, accelerated preparation="
                 + accelerated + "; CPU vertices only, GUI/GPU MANUAL/PENDING");
