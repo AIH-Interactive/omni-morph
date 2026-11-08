@@ -29,3 +29,6 @@
 真实语料只读D:/Program Files/AIHMC/.minecraft/versions/26.1.2-Fabric 0.19.3/omnimorph/avatars。参考8 Figura/35 YSM/18 encrypted正式加载；严格scanner53候选47valid6invalid和扩展ctrl绑定门禁失败须单列，不改生产解析器。ZIP根getFileName为空仅修测试遍历；外部fs2000.png缺失后嵌入Base64实际贴图非空是正常回退。
 
 可靠额度最近used8%/remaining92%，10080分钟窗口、reset1794697473、planType原值prolite，不推断订阅。未触发额度交接，未调用Luna；≤2%时仅委派GPT-6 Luna整理交接，当前保存真实状态并核对。
+
+## 阶段二检查点
+双引擎普通顶点/预算RED→GREEN完成，六项56秒退出0，详见docs/acceleration-revert/stage-2.md及stage-2-{red,green}.log。0ec53ca1/869be295已以no-commit撤回，GPU路由和两套专用网格缓存移除；本检查点提交推送后开始阶段三，阶段三四尚未实施。

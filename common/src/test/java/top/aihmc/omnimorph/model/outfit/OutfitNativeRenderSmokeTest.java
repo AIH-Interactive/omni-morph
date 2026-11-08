@@ -397,7 +397,18 @@ public final class OutfitNativeRenderSmokeTest {
                 top.aihmc.omnimorph.render.acceleration.AccelerationBackend.class);
         backendSetter.setAccessible(true);
         backendSetter.invoke(service, accelerated
-                ? new top.aihmc.omnimorph.render.acceleration.JavaAccelerationBackend() : null);
+                ? new top.aihmc.omnimorph.render.acceleration.AccelerationBackend() {
+                    @Override
+                    public boolean supports(Operation operation,
+                            top.aihmc.omnimorph.render.acceleration.DrawBatch batch) {
+                        throw new AssertionError("Ordinary rendering must not consult acceleration backend");
+                    }
+
+                    @Override
+                    public double[] transform(top.aihmc.omnimorph.render.acceleration.DrawBatch batch) {
+                        throw new AssertionError("Ordinary rendering must not transform through acceleration backend");
+                    }
+                } : null);
         Avatar base = Avatar.createLibraryPreview(UUID.randomUUID(), "YSM composed budget base");
         var avatars = new LinkedHashMap<UUID, Avatar>();
         try (var textures = top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.recordingTextureDevice()) {
