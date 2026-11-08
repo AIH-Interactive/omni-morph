@@ -148,6 +148,26 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
         }
     }
 
+    /** Width of the preview status row drawn by {@link #drawPreviewStatus}. */
+    public static final int PREVIEW_STATUS_WIDTH = 3 * 17 - 3;
+
+    /**
+     * Preview indicators for blocked, authorization and visibility, always all three: lit for the
+     * current state, and dimmed when the previewed resource has no library metadata.
+     */
+    public static void drawPreviewStatus(GuiGraphicsExtractor gui, int x, int y, boolean known,
+                                         boolean blocked, boolean requiresAuthorization, boolean privateVisibility) {
+        gui.fill(x, y, x + 14, y + 14, 0xd0101820);
+        LibraryRowList.drawIcon(gui, LibraryRowList.Icon.BLOCK, x + 2, y + 2,
+                known && blocked ? 0xffff5555 : 0xff5a6470, 1);
+        // Authorization row 1 is the closed lock; visibility row 0 is the crossed-out eye.
+        drawStatusIcon(gui, AUTHORIZATION, x + 18, y + 1, requiresAuthorization ? 1 : 0);
+        drawStatusIcon(gui, VISIBILITY, x + 35, y + 1, privateVisibility ? 0 : 1);
+        if (!known) {
+            gui.fill(x, y, x + PREVIEW_STATUS_WIDTH, y + 14, 0x99101820);
+        }
+    }
+
     private static void drawStatusIcon(GuiGraphicsExtractor gui, Identifier texture, int x, int y, int variant) {
         gui.fill(x - 1, y - 1, x + 13, y + 13, 0xd0101820);
         gui.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, 24, variant * 24,

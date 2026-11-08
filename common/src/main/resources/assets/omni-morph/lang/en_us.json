@@ -53,6 +53,7 @@
     "omni-morph.gui.wardrobe.resources": "Resources",
     "omni-morph.gui.wardrobe.preview": "Preview",
     "omni-morph.gui.wardrobe.tree": "Bones",
+    "omni-morph.gui.wardrobe.preview_status_unavailable": "Local, draft or equipped models have no library status",
     "omni-morph.gui.wardrobe.info": "Info",
     "omni-morph.gui.wardrobe.coming_2": "Coming soon (2.0)",
     "omni-morph.gui.wardrobe.combination": "Decoration slots",
