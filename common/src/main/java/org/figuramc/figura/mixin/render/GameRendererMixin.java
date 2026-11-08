@@ -26,8 +26,7 @@ import org.figuramc.figura.utils.EntityUtils;
 import org.figuramc.figura.utils.RenderUtils;
 import top.aihmc.omnimorph.model.library.LibraryPreviewBinding;
 import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;
-import top.aihmc.omnimorph.render.acceleration.AccelerationService;
-import top.aihmc.omnimorph.render.acceleration.HardwareAcceleration;
+import top.aihmc.omnimorph.render.RenderLifetime;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.joml.Quaternionfc;
@@ -62,9 +61,8 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
 
     @Inject(method = "render", at = @At("HEAD"))
     private void figura$beginYsmRenderFrame(DeltaTracker deltaTracker, boolean tick, CallbackInfo ci) {
-        HardwareAcceleration.beginFrame();
         YsmRenderFrameClock.beginFrame();
-        AccelerationService.INSTANCE.beginFrame();
+        RenderLifetime.INSTANCE.beginFrame();
     }
 
     @WrapMethod(method = "render")

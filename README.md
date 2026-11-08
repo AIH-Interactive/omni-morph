@@ -16,7 +16,6 @@ OmniMorph 是基于 [Figura](https://github.com/FiguraMC/Figura) 的 Minecraft J
 - **模型库**：上传、分类、搜索、收藏、下载、装备和基础信息编辑。
 - **访问与管理**：公开或私有模型、授权管理、举报、申诉、模型屏蔽和回收站恢复。
 - **多人共享**：通过兼容后端进行模型资源分发和动态状态同步，支持 Figura Cloud 与 Protobuf 协议。
-- **可选硬件加速**：提供 SIMD、GPU 和自动模式，默认关闭；不可用时回退至 Java 路径。
 - **界面语言**：内置简体中文与英文界面。
 
 ## 运行环境
@@ -26,7 +25,7 @@ OmniMorph 是基于 [Figura](https://github.com/FiguraMC/Figura) 的 Minecraft J
 | Minecraft Java | 26.1.2 |
 | 模组加载器 | Fabric |
 | Java | 25 |
-| 模组版本 | 1.0.0-alpha.7 |
+| 模组版本 | 1.0.0-alpha.8 |
 
 构建依赖版本见 [gradle.properties](gradle.properties)。这是客户端模组；多人资源分发与状态同步需要兼容的后端服务。
 
@@ -77,7 +76,7 @@ if ($buildExitCode -ne 0) {
 
 成品位于 `fabric/build/libs/`，文件名为 `omni-morph-...-fabric-mc.jar`。
 
-普通 Fabric 构建不需要 C++ 工具链。本地 SIMD 库的构建方法见 [native/README.md](native/README.md)；协议规范见 [protocol/README.md](protocol/README.md)。
+协议规范见 [protocol/README.md](protocol/README.md)。
 
 ## 致谢
 
@@ -86,7 +85,6 @@ if ($buildExitCode -ne 0) {
 - [Figura](https://github.com/FiguraMC/Figura)：Avatar、Lua、权限和界面的代码基础。
 - [YesSteveModel](https://github.com/YesSteveModel/YesSteveModel) 与 [YesSteveModel-Native](https://github.com/YesSteveModel/YesSteveModel-Native)：YSM 模型生态与实现参考。
 - [Sparkle-Morpher](https://github.com/sdf123098/Sparkle-Morpher)、[OpenYSM / YSMParser](https://github.com/OpenYSM/YSMParser)：模型运行行为及格式解析参考。
-- [openysm.cpp](https://github.com/OpenYSMDev/openysm.cpp)：SIMD/native 算法对照参考。
 - [Sculptor](https://github.com/MrXiaoM/sculptor) 与 [spm-cloud](https://github.com/sdf123098/spm-cloud)：后端及协议设计参考。
 - [FiguraMC/Assets](https://github.com/FiguraMC/Assets)：部分简体中文界面译文。
 

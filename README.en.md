@@ -16,7 +16,6 @@ It supports both Lua and Molang: Lua handles scripting and interaction, while Mo
 - **Model library**: upload, categorize, search, favorite, download, equip, and edit basic model information.
 - **Access and moderation**: public and private models, authorization management, reports, appeals, model blocking, and recycle-bin restoration.
 - **Multiplayer sharing**: model distribution and dynamic state synchronization through a compatible backend, with Figura Cloud and Protobuf support.
-- **Optional hardware acceleration**: SIMD, GPU, and automatic modes, disabled by default, with a Java fallback when unavailable.
 - **Interface languages**: bundled Simplified Chinese and English.
 
 ## Requirements
@@ -26,7 +25,7 @@ It supports both Lua and Molang: Lua handles scripting and interaction, while Mo
 | Minecraft Java | 26.1.2 |
 | Mod loader | Fabric |
 | Java | 25 |
-| Mod version | 1.0.0-alpha.7 |
+| Mod version | 1.0.0-alpha.8 |
 
 Build dependency versions are listed in [gradle.properties](gradle.properties). This is a client mod; multiplayer resource distribution and state synchronization require a compatible backend.
 
@@ -75,7 +74,7 @@ if ($buildExitCode -ne 0) {
 
 The final artifact is in `fabric/build/libs/`, named `omni-morph-...-fabric-mc.jar`.
 
-A standard Fabric build does not require a C++ toolchain. See [native/README.md](native/README.md) for local SIMD library builds and [protocol/README.md](protocol/README.md) for the protocol specification.
+See [protocol/README.md](protocol/README.md) for the protocol specification.
 
 ## Credits
 
@@ -84,7 +83,6 @@ Thanks to these projects and their contributors:
 - [Figura](https://github.com/FiguraMC/Figura): the code foundation for Avatars, Lua, permissions, and the interface.
 - [YesSteveModel](https://github.com/YesSteveModel/YesSteveModel) and [YesSteveModel-Native](https://github.com/YesSteveModel/YesSteveModel-Native): the YSM model ecosystem and implementation references.
 - [Sparkle-Morpher](https://github.com/sdf123098/Sparkle-Morpher) and [OpenYSM / YSMParser](https://github.com/OpenYSM/YSMParser): references for model runtime behavior and format parsing.
-- [openysm.cpp](https://github.com/OpenYSMDev/openysm.cpp): reference comparisons for SIMD/native algorithms.
 - [Sculptor](https://github.com/MrXiaoM/sculptor) and [spm-cloud](https://github.com/sdf123098/spm-cloud): references for backend and protocol design.
 - [FiguraMC/Assets](https://github.com/FiguraMC/Assets): some Simplified Chinese interface translations.
 

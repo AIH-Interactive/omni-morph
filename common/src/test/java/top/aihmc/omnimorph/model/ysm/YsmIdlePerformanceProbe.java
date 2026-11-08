@@ -27,7 +27,7 @@ public final class YsmIdlePerformanceProbe {
             for (String model : models.split(";")) {
                 Path path = Path.of(model);
                 long before = System.nanoTime();
-                YsmMaterialNativeSmokeTest.replayAcceleration(path, runtime -> {
+                YsmMaterialNativeSmokeTest.replayModel(path, runtime -> {
                     System.out.printf("MODEL %s load_ms=%.2f bones=%d cubes=%d clips=%d controllers=%d%n",
                             path.getFileName(), (System.nanoTime() - before) / 1e6,
                             runtime.geometry().bones.size(), runtime.geometry().bones.values().stream()

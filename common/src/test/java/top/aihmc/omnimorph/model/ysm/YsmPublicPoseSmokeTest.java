@@ -13,7 +13,7 @@ import java.nio.file.Path;
 public final class YsmPublicPoseSmokeTest {
     public static void main(String[] args) throws Exception {
         Path root = Path.of(args[0]);
-        YsmMaterialNativeSmokeTest.replayAcceleration(root.resolve("DS鲸鱼娘.ysm"), runtime -> {
+        YsmMaterialNativeSmokeTest.replayModel(root.resolve("DS鲸鱼娘.ysm"), runtime -> {
             var entity = groundedEntity();
             for (int tick = 0; tick < 6; tick++) {
                 entity.tickCount = tick;
@@ -43,7 +43,7 @@ public final class YsmPublicPoseSmokeTest {
             }
             System.out.println("PASS real YSM shared arm hierarchy: each hand omits the opposite subtree; GPU pending");
         });
-        YsmMaterialNativeSmokeTest.replayAcceleration(root.resolve("少女-哥伦比娅.ysm"), runtime -> {
+        YsmMaterialNativeSmokeTest.replayModel(root.resolve("少女-哥伦比娅.ysm"), runtime -> {
             var entity = groundedEntity();
             YsmEntityFrame state = null;
             for (float pitch : new float[]{0, -80, 80}) {

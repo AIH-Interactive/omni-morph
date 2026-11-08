@@ -42,7 +42,7 @@ public final class YsmHandAnimationSmokeTest {
         entity.main = new ItemStack(Items.BOW);
 
         if (args.length > 0) {
-            YsmMaterialNativeSmokeTest.replayAcceleration(Path.of(args[0]), runtime -> {
+            YsmMaterialNativeSmokeTest.replayModel(Path.of(args[0]), runtime -> {
                 try {
                     verifyReferenceBow(runtime, entity, update);
                     verifyReferenceTrident(runtime, entity, update);
@@ -55,7 +55,7 @@ public final class YsmHandAnimationSmokeTest {
         }
 
         if (args.length > 1) {
-            YsmMaterialNativeSmokeTest.replayAcceleration(Path.of(args[1]), runtime -> {
+            YsmMaterialNativeSmokeTest.replayModel(Path.of(args[1]), runtime -> {
                 try {
                     verifyNoInventedLanceCharge(runtime, entity, update);
                 } catch (ReflectiveOperationException failure) {

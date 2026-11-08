@@ -16,7 +16,6 @@ Lua と Molang の両ランタイムに対応しています。Lua はスクリ�
 - **モデルライブラリ**：アップロード、分類、検索、お気に入り、ダウンロード、装備、基本情報の編集。
 - **アクセス制御と管理**：公開・非公開モデル、利用許可の管理、通報、異議申し立て、モデルのブロック、ごみ箱からの復元。
 - **マルチプレイでの共有**：対応バックエンドによるモデル配信と動的状態の同期。Figura Cloud と Protobuf に対応。
-- **任意のハードウェアアクセラレーション**：SIMD、GPU、自動モードを用意。初期設定では無効で、利用できない場合は Java 処理にフォールバック。
 - **画面の言語**：簡体字中国語と英語を同梱。
 
 ## 動作環境
@@ -26,7 +25,7 @@ Lua と Molang の両ランタイムに対応しています。Lua はスクリ�
 | Minecraft Java | 26.1.2 |
 | Mod ローダー | Fabric |
 | Java | 25 |
-| Mod バージョン | 1.0.0-alpha.7 |
+| Mod バージョン | 1.0.0-alpha.8 |
 
 ビルド依存関係のバージョンは [gradle.properties](gradle.properties) を参照してください。本 Mod はクライアント用です。マルチプレイでのリソース配信と状態同期には、対応バックエンドが必要です。
 
@@ -75,7 +74,7 @@ if ($buildExitCode -ne 0) {
 
 最終成果物は `fabric/build/libs/` に生成され、ファイル名は `omni-morph-...-fabric-mc.jar` です。
 
-通常の Fabric ビルドに C++ ツールチェーンは不要です。ローカル SIMD ライブラリのビルド方法は [native/README.md](native/README.md)、プロトコル仕様は [protocol/README.md](protocol/README.md) を参照してください。
+プロトコル仕様は [protocol/README.md](protocol/README.md) を参照してください。
 
 ## 謝辞
 
@@ -84,7 +83,6 @@ if ($buildExitCode -ne 0) {
 - [Figura](https://github.com/FiguraMC/Figura)：Avatar、Lua、権限、画面のコード基盤。
 - [YesSteveModel](https://github.com/YesSteveModel/YesSteveModel) と [YesSteveModel-Native](https://github.com/YesSteveModel/YesSteveModel-Native)：YSM モデルのエコシステムと実装の参考。
 - [Sparkle-Morpher](https://github.com/sdf123098/Sparkle-Morpher)、[OpenYSM / YSMParser](https://github.com/OpenYSM/YSMParser)：モデルの実行動作と形式解析の参考。
-- [openysm.cpp](https://github.com/OpenYSMDev/openysm.cpp)：SIMD/native アルゴリズムの比較参考。
 - [Sculptor](https://github.com/MrXiaoM/sculptor) と [spm-cloud](https://github.com/sdf123098/spm-cloud)：バックエンドとプロトコル設計の参考。
 - [FiguraMC/Assets](https://github.com/FiguraMC/Assets)：簡体字中国語の画面翻訳の一部。
 
