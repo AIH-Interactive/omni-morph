@@ -16,3 +16,6 @@
 真实语料仅只读D:/Program Files/AIHMC/.minecraft/versions/26.1.2-Fabric 0.19.3/omnimorph/avatars；不将模型入Git，不修改生产解析器掩盖既有严格scanner/扩展ctrl绑定失败。ZIP根空getFileName仅修正测试遍历过滤，嵌入Base64纹理按实际非空输出验收。Wiki已由协调端完成，不重复。
 
 人工实机验收统一SKIPPED（用户决定，未执行）：不启动游戏、不等待人工、不作为受阻条件、不记录为PASS。额度可靠≤10%预警、≤2%安全收尾并按授权仅委派GPT-6 Luna整理交接；接口未返回不猜测。
+
+## 最终状态
+四阶段实施与规定自动验收完成：阶段一61ded160、阶段二32dd22d7、阶段三25560dd2已分别推送核对；阶段四随最终检查点提交。20个最终请求入口全部通过，严格scanner既有门禁失败单列，不算PASS。实机SKIPPED，无剩余实施。详细状态、日志、成品路径和SHA见docs/acceleration-revert/stage-4.md及AGENT_HANDOFF.md。

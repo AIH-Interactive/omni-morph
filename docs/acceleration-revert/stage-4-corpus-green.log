@@ -1,0 +1,219 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/eryth/.gradle/wrapper/dists/gradle-9.4.1-bin/arn2x92ynaizyzdaamcbpbhtj/gradle-9.4.1/lib/native-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Architect Plugin: 3.5.168
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+> Task :common:compileJava UP-TO-DATE
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes UP-TO-DATE
+> Task :common:extractIncludeTestProto UP-TO-DATE
+> Task :common:extractTestProto UP-TO-DATE
+> Task :common:generateTestProto NO-SOURCE
+> Task :common:compileTestJava
+> Task :common:processTestResources UP-TO-DATE
+> Task :common:testClasses
+
+> Task :common:ysmLocalCorpusSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.joml.MemUtil$MemUtilUnsafe (file:/C:/Users/eryth/.gradle/caches/modules-2/files-2.1/org.joml/joml/1.10.8/fc0a71dad90a2cf41d82a76156a0e700af8e4f8d/joml-1.10.8.jar)
+WARNING: Please consider reporting this to the maintainers of class org.joml.MemUtil$MemUtilUnsafe
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[13:31:24] [main/INFO]: [YSM Validation] models/main.json: 195 bones, 5 roots, 490 cubes, 2940 quads, 14 locators - OK
+[13:31:24] [main/INFO]: [YSM Validation] models/arm.json: 16 bones, 1 roots, 36 cubes, 216 quads, 5 locators - OK
+YSM_DATA_OK 01_taisho_maid
+[13:31:24] [main/INFO]: [YSM Validation] models/main.json: 138 bones, 5 roots, 342 cubes, 2052 quads, 14 locators - OK
+[13:31:24] [main/INFO]: [YSM Validation] models/arm.json: 11 bones, 5 roots, 14 cubes, 84 quads, 2 locators - OK
+YSM_DATA_OK 02_new_year
+[13:31:24] [main/INFO]: [YSM Validation] models/main.json: 149 bones, 3 roots, 552 cubes, 3312 quads, 13 locators - OK
+[13:31:24] [main/INFO]: [YSM Validation] models/arm.json: 11 bones, 2 roots, 20 cubes, 120 quads, 5 locators - OK
+YSM_DATA_OK 03_astronaut
+[13:31:24] [main/INFO]: [YSM Validation] models/main.json: 154 bones, 5 roots, 456 cubes, 2736 quads, 14 locators - OK
+[13:31:24] [main/INFO]: [YSM Validation] models/arm.json: 13 bones, 2 roots, 19 cubes, 114 quads, 5 locators - OK
+YSM_DATA_OK 04_kongfu
+[13:31:24] [main/WARN]: [YSM Validation] models/main.json: 344 bones (high count may impact performance)
+[13:31:24] [main/INFO]: [YSM Validation] models/main.json: 344 bones, 8 roots, 1544 cubes, 9255 quads, 13 locators - OK
+[13:31:24] [main/INFO]: [YSM Validation] models/arm.json: 13 bones, 1 roots, 34 cubes, 204 quads, 6 locators - OK
+YSM_DATA_OK 05_magical
+[13:31:24] [main/INFO]: [YSM Validation] models/main.json: 117 bones, 1 roots, 471 cubes, 2826 quads, 11 locators - OK
+[13:31:24] [main/INFO]: [YSM Validation] models/arm.json: 15 bones, 2 roots, 22 cubes, 132 quads, 2 locators - OK
+YSM_DATA_OK 06_hanfu
+[13:31:24] [main/INFO]: [YSM Validation] models/main.json: 113 bones, 4 roots, 335 cubes, 2010 quads, 10 locators - OK
+[13:31:24] [main/INFO]: [YSM Validation] models/arm.json: 8 bones, 2 roots, 12 cubes, 72 quads, 2 locators - OK
+YSM_DATA_OK 07_jk
+[13:31:24] [main/WARN]: [YSM Validation] models/main.json: 526 bones (high count may impact performance)
+[13:31:24] [main/WARN]: [YSM Validation] models/main.json: 26564 quads (high poly count may impact performance)
+[13:31:24] [main/INFO]: [YSM Validation] models/main.json: 526 bones, 4 roots, 4533 cubes, 26564 quads, 5 locators - OK
+[13:31:24] [main/INFO]: [YSM Validation] models/arm.json: 8 bones, 2 roots, 26 cubes, 156 quads, 2 locators - OK
+YSM_DATA_OK 08_sta
+[13:31:24] [main/INFO]: [YSM Validation] models/main.json: 153 bones, 1 roots, 705 cubes, 4151 quads, 11 locators - OK
+[13:31:24] [main/INFO]: [YSM Validation] models/arm.json: 13 bones, 3 roots, 31 cubes, 181 quads, 2 locators - OK
+YSM_DATA_OK 09_hailuo
+[13:31:25] [main/INFO]: [YSM Validation] models/main.json: 227 bones, 3 roots, 976 cubes, 5794 quads, 6 locators - OK
+[13:31:25] [main/INFO]: [YSM Validation] models/arm.json: 19 bones, 2 roots, 32 cubes, 192 quads, 2 locators - OK
+YSM_DATA_OK 10_zhiban
+[13:31:25] [main/INFO]: [YSM Validation] models/main.json: 101 bones, 4 roots, 276 cubes, 1656 quads, 10 locators - OK
+[13:31:25] [main/INFO]: [YSM Validation] models/arm.json: 12 bones, 2 roots, 26 cubes, 156 quads, 4 locators - OK
+YSM_DATA_OK 11_salesperson
+[13:31:25] [main/INFO]: [YSM Validation] models/main.json: 153 bones, 5 roots, 407 cubes, 2442 quads, 15 locators - OK
+[13:31:25] [main/INFO]: [YSM Validation] models/arm.json: 15 bones, 1 roots, 34 cubes, 204 quads, 6 locators - OK
+YSM_DATA_OK 12_little
+[13:31:25] [main/WARN]: [YSM Validation] models/main.json: 260 bones (high count may impact performance)
+[13:31:25] [main/INFO]: [YSM Validation] models/main.json: 260 bones, 5 roots, 634 cubes, 3776 quads, 17 locators - OK
+[13:31:25] [main/INFO]: [YSM Validation] models/arm.json: 12 bones, 2 roots, 34 cubes, 204 quads, 3 locators - OK
+YSM_DATA_OK 13_matured
+[13:31:25] [main/WARN]: [YSM Validation] models/main.json: 300 bones (high count may impact performance)
+[13:31:25] [main/INFO]: [YSM Validation] models/main.json: 300 bones, 7 roots, 523 cubes, 3138 quads, 16 locators - OK
+[13:31:25] [main/INFO]: [YSM Validation] models/arm.json: 13 bones, 1 roots, 34 cubes, 204 quads, 6 locators - OK
+YSM_DATA_OK 14_momo
+[13:31:25] [main/WARN]: [YSM Validation] models/main.json: 262 bones (high count may impact performance)
+[13:31:25] [main/INFO]: [YSM Validation] models/main.json: 262 bones, 1 roots, 1148 cubes, 5685 quads, 10 locators - OK
+[13:31:25] [main/INFO]: [YSM Validation] models/arm.json: 21 bones, 2 roots, 48 cubes, 195 quads, 5 locators - OK
+YSM_DATA_OK 15_kluonoa
+[13:31:25] [main/INFO]: [YSM Validation] models/main.json: 101 bones, 5 roots, 648 cubes, 3772 quads, 13 locators - OK
+[13:31:25] [main/INFO]: [YSM Validation] models/arm.json: 12 bones, 1 roots, 16 cubes, 96 quads, 5 locators - OK
+YSM_DATA_OK 16_tactics
+[13:31:25] [main/INFO]: [YSM Validation] models/main.json: 194 bones, 1 roots, 513 cubes, 3078 quads, 11 locators - OK
+[13:31:25] [main/INFO]: [YSM Validation] models/arm.json: 11 bones, 1 roots, 26 cubes, 156 quads, 4 locators - OK
+YSM_DATA_OK 17_mini
+[13:31:25] [main/WARN]: [YSM Validation] models/main.json: 317 bones (high count may impact performance)
+[13:31:25] [main/INFO]: [YSM Validation] models/main.json: 317 bones, 6 roots, 1554 cubes, 6817 quads, 12 locators - OK
+[13:31:25] [main/INFO]: [YSM Validation] models/arm.json: 42 bones, 1 roots, 326 cubes, 1226 quads, 5 locators - OK
+YSM_DATA_OK 18_wedding
+[13:31:25] [main/WARN]: [YSM Validation] models/main.json: 347 bones (high count may impact performance)
+[13:31:25] [main/INFO]: [YSM Validation] models/main.json: 347 bones, 5 roots, 793 cubes, 4758 quads, 14 locators - OK
+[13:31:25] [main/INFO]: [YSM Validation] models/arm.json: 16 bones, 1 roots, 36 cubes, 216 quads, 5 locators - OK
+YSM_DATA_OK 19_nine_tailed
+[13:31:25] [main/INFO]: [YSM Validation] models/main.json: 204 bones, 5 roots, 1321 cubes, 7232 quads, 12 locators - OK
+[13:31:25] [main/INFO]: [YSM Validation] models/arm.json: 2 bones, 2 roots, 32 cubes, 192 quads, 0 locators - OK
+YSM_DATA_OK 20_survivor
+[13:31:26] [main/INFO]: [YSM Validation] models/main.json: 185 bones, 5 roots, 750 cubes, 4035 quads, 11 locators - OK
+[13:31:26] [main/INFO]: [YSM Validation] models/arm.json: 12 bones, 1 roots, 34 cubes, 204 quads, 5 locators - OK
+YSM_DATA_OK 21_saint
+[13:31:26] [main/INFO]: [YSM Validation] models/main.json: 226 bones, 5 roots, 513 cubes, 3078 quads, 13 locators - OK
+[13:31:26] [main/INFO]: [YSM Validation] models/arm.json: 16 bones, 1 roots, 36 cubes, 216 quads, 5 locators - OK
+YSM_DATA_OK 22_elf
+FIGURA_COMPILE_OK AI Hobbyist Founder Public Server
+FIGURA_COMPILE_OK AI Hobbyist Founder Public Server
+FIGURA_COMPILE_OK anan-fullmodel-0.0.7-rel
+FIGURA_COMPILE_OK aylDWT
+[13:31:26] [main/INFO]: [YSM Validation] models/main.json: 64 bones, 1 roots, 172 cubes, 1032 quads, 12 locators - OK
+[13:31:26] [main/INFO]: [YSM Validation] models/arm.json: 6 bones, 2 roots, 10 cubes, 60 quads, 2 locators - OK
+YSM_DATA_OK default
+ENCRYPTED_DATA_REHYDRATE_OK DS������.ysm
+[13:31:28] [main/INFO]: [YSM Validation] models/main.json: 158 bones, 6 roots, 1024 cubes, 6144 quads, 4 locators - OK
+[13:31:28] [main/INFO]: [YSM Validation] models/arm.json: 8 bones, 2 roots, 54 cubes, 324 quads, 2 locators - OK
+YSM_DATA_OK Elaina
+[13:31:28] [main/INFO]: [YSM Validation] models/main.json: 199 bones, 8 roots, 2242 cubes, 13427 quads, 2 locators - OK
+[13:31:28] [main/INFO]: [YSM Validation] models/arm.json: 12 bones, 2 roots, 38 cubes, 228 quads, 2 locators - OK
+YSM_DATA_OK GI_Furina
+[13:31:28] [main/WARN]: [YSM Validation] models/main.json: 445 bones (high count may impact performance)
+[13:31:28] [main/WARN]: [YSM Validation] models/main.json: 17346 quads (high poly count may impact performance)
+[13:31:28] [main/INFO]: [YSM Validation] models/main.json: 445 bones, 9 roots, 2891 cubes, 17346 quads, 4 locators - OK
+[13:31:28] [main/INFO]: [YSM Validation] models/arm.json: 16 bones, 2 roots, 142 cubes, 852 quads, 2 locators - OK
+YSM_DATA_OK hsr_fuxuan_1
+ENCRYPTED_DATA_REHYDRATE_OK hsr_fuxuan_1.ysm
+ENCRYPTED_DATA_REHYDRATE_OK new.ysm
+ENCRYPTED_DATA_REHYDRATE_OK old.ysm
+FIGURA_COMPILE_OK sickle
+FIGURA_COMPILE_OK wangshu
+[13:31:30] [main/INFO]: [YSM Validation] models/main.json: 64 bones, 1 roots, 172 cubes, 1032 quads, 12 locators - OK
+[13:31:30] [main/INFO]: [YSM Validation] models/arm.json: 6 bones, 2 roots, 10 cubes, 60 quads, 2 locators - OK
+YSM_DATA_OK YSM_NEW_Model
+[13:31:31] [main/INFO]: [YSM Validation] main.json: 118 bones, 1 roots, 1076 cubes, 6456 quads, 2 locators - OK
+[13:31:31] [main/INFO]: [YSM Validation] arm.json: 12 bones, 2 roots, 86 cubes, 516 quads, 2 locators - OK
+YSM_DATA_OK YSM_OLD_Model
+[13:31:31] [main/INFO]: [YSM Validation] models/main.json: 134 bones, 1 roots, 2125 cubes, 12746 quads, 2 locators - OK
+[13:31:31] [main/INFO]: [YSM Validation] models/arm.json: 24 bones, 2 roots, 214 cubes, 1284 quads, 2 locators - OK
+YSM_DATA_OK ZZZ_Ellen_1
+ENCRYPTED_DATA_REHYDRATE_OK ZZZ_Ellen_1.ysm
+ENCRYPTED_DATA_REHYDRATE_OK _����С��_˪��.ysm
+ENCRYPTED_DATA_REHYDRATE_OK ��������.ysm
+FIGURA_COMPILE_OK С����
+ENCRYPTED_DATA_REHYDRATE_OK ��Ů-���ױ��.ysm
+ENCRYPTED_DATA_REHYDRATE_OK ϣ��ޱSylvie.ysm
+ENCRYPTED_DATA_REHYDRATE_OK ����2��Ů��.ysm
+[13:31:37] [main/WARN]: [YSM Validation] models/main.json: 582 bones (high count may impact performance)
+[13:31:37] [main/WARN]: [YSM Validation] models/main.json: 16794 quads (high poly count may impact performance)
+[13:31:37] [main/INFO]: [YSM Validation] models/main.json: 582 bones, 9 roots, 2799 cubes, 16794 quads, 10 locators - OK
+[13:31:37] [main/INFO]: [YSM Validation] models/arm.json: 13 bones, 2 roots, 92 cubes, 552 quads, 5 locators - OK
+YSM_DATA_OK ����v1.1
+ENCRYPTED_DATA_REHYDRATE_OK ����v1.1.ysm
+ENCRYPTED_DATA_REHYDRATE_OK ��м����.ysm
+ENCRYPTED_DATA_REHYDRATE_OK ĩӰ����.ysm
+[13:31:47] [main/INFO]: [YSM Validation] main.json: 93 bones, 1 roots, 903 cubes, 5418 quads, 3 locators - OK
+[13:31:47] [main/INFO]: [YSM Validation] arm.json: 9 bones, 2 roots, 144 cubes, 864 quads, 2 locators - OK
+YSM_DATA_OK �����1
+ENCRYPTED_DATA_REHYDRATE_OK �Ӣ.ysm
+ENCRYPTED_DATA_REHYDRATE_OK �Ӣ��ģv1.0.ysm
+[13:31:51] [main/INFO]: [YSM Validation] models/main.json: 115 bones, 4 roots, 429 cubes, 2574 quads, 2 locators - OK
+[13:31:51] [main/INFO]: [YSM Validation] models/arm.json: 10 bones, 2 roots, 24 cubes, 144 quads, 2 locators - OK
+YSM_DATA_OK �շ�ԭ���ﻯ ����������
+[13:31:51] [main/INFO]: [YSM Validation] main.json: 206 bones, 1 roots, 2413 cubes, 14478 quads, 5 locators - OK
+[13:31:51] [main/INFO]: [YSM Validation] arm.json: 10 bones, 2 roots, 84 cubes, 504 quads, 2 locators - OK
+YSM_DATA_OK ܽ����1
+ENCRYPTED_DATA_REHYDRATE_OK ܽ����Lv.999-��v1.11.ysm
+ENCRYPTED_DATA_REHYDRATE_OK ܽ����v3.14��������.ysm
+[13:31:56] [main/ERROR]: 
+java.io.FileNotFoundException: Could not locate texture 'fs2000.png'
+	at org.figuramc.figura.parsers.BlockbenchParser2$Intermediary$TextureRepresentation.load(BlockbenchParser2.java:215)
+	at org.figuramc.figura.parsers.BlockbenchParser2$Intermediary.loadTextures(BlockbenchParser2.java:102)
+	at org.figuramc.figura.parsers.BlockbenchV5Model.convert(BlockbenchV5Model.java:109)
+	at org.figuramc.figura.parsers.BlockbenchParser2.parseModel(BlockbenchParser2.java:54)
+	at org.figuramc.figura.avatar.local.LocalAvatarLoader.loadModels(LocalAvatarLoader.java:335)
+	at org.figuramc.figura.avatar.local.LocalAvatarLoader.compileFiguraAvatar(LocalAvatarLoader.java:195)
+	at org.figuramc.figura.avatar.local.LocalAvatarLoader.compileFiguraAvatar(LocalAvatarLoader.java:167)
+	at org.figuramc.figura.avatar.local.LocalAvatarLoader.compileFiguraAvatar(LocalAvatarLoader.java:153)
+	at top.aihmc.omnimorph.avatar.ysm.YsmLocalCorpusSmokeTest.compileFigura(YsmLocalCorpusSmokeTest.java:142)
+	at top.aihmc.omnimorph.avatar.ysm.YsmLocalCorpusSmokeTest.main(YsmLocalCorpusSmokeTest.java:57)
+FIGURA_COMPILE_OK null
+ENCRYPTED_DATA_REHYDRATE_OK ����Lv.999v1.2.ysm
+[13:31:56] [main/INFO]: [YSM Validation] models/main.json: 86 bones, 1 roots, 1166 cubes, 6996 quads, 6 locators - OK
+[13:31:56] [main/INFO]: [YSM Validation] models/arm.json: 10 bones, 2 roots, 64 cubes, 384 quads, 2 locators - OK
+YSM_DATA_OK ����1
+[13:31:57] [main/INFO]: [YSM Validation] models/main.json: 220 bones, 1 roots, 1617 cubes, 8905 quads, 10 locators - OK
+[13:31:57] [main/INFO]: [YSM Validation] models/arm.json: 11 bones, 2 roots, 52 cubes, 308 quads, 5 locators - OK
+YSM_DATA_OK ����-�����1.2
+Local corpus: Figura compiled=8 YSM data assembled=35 encrypted assembled/rehydrated=18
+
+> Task :common:jar UP-TO-DATE
+> Task :fabric:compileJava UP-TO-DATE
+> Task :fabric:processResources UP-TO-DATE
+> Task :fabric:classes UP-TO-DATE
+> Task :fabric:jar UP-TO-DATE
+> Task :fabric:processIncludeJars UP-TO-DATE
+> Task :fabric:shadowJar UP-TO-DATE
+> Task :fabric:remapJar UP-TO-DATE
+> Task :common:transformProductionNeoForge UP-TO-DATE
+> Task :neoforge:compileJava UP-TO-DATE
+> Task :neoforge:generateAccessTransformer UP-TO-DATE
+> Task :neoforge:processResources UP-TO-DATE
+> Task :neoforge:classes UP-TO-DATE
+> Task :neoforge:processIncludeJars UP-TO-DATE
+> Task :neoforge:jar UP-TO-DATE
+> Task :neoforge:shadowJar UP-TO-DATE
+> Task :neoforge:remapJar UP-TO-DATE
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_26.2/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 46s
+25 actionable tasks: 2 executed, 23 up-to-date
