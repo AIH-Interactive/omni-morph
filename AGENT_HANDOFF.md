@@ -1,6 +1,6 @@
 # 当前任务交接
 
-更新日期：2026-11-08。分支：revert_acceleration，上游origin/revert_acceleration。
+更新日期：2026-11-08。分支：main，上游origin/main。
 
 ## 最终任务状态
 
@@ -35,4 +35,4 @@
 
 ## 用户最终验收与合并授权
 
-用户已明确验收通过，授权提交推送、合并到main并切换main，删除revert_acceleration、preview-acceleration-compare、ysm-alignment本地及远端分支。此前自动实施期间实机SKIPPED为历史状态；用户验收现记为用户报告通过，不虚构Agent实机执行。既有tools删除与未跟踪参考文件继续保留。待按Git实际结果核对最终合并状态。
+用户已明确验收通过，授权提交推送、合并到main并切换main，删除revert_acceleration、preview-acceleration-compare、ysm-alignment本地及远端分支。此前自动实施期间实机SKIPPED为历史状态；用户验收现记为用户报告通过，不虚构Agent实机执行。既有tools删除与未跟踪参考文件继续保留。已快进合并并推送main（合并落点02387ecb）；三个指定远端分支均已删除，本地revert_acceleration已删除，其余两个本地分支原本不存在。当前只保留main。原122项工具删除与3项未跟踪文件保留。
