@@ -43,6 +43,7 @@ import top.aihmc.omnimorph.gui.widgets.wardrobe.BoneTreeWidget;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCloudList;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid;
+import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobePreviewStatus;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeEditorPanel;
 import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
 import top.aihmc.omnimorph.model.library.LibraryModelEdits;
@@ -75,6 +76,8 @@ import org.figuramc.figura.utils.FiguraText;
 import org.figuramc.figura.utils.IOUtils;
 import org.figuramc.figura.utils.TextUtils;
 import org.figuramc.figura.utils.ui.UIHelper;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import top.aihmc.omnimorph.gui.widgets.library.ModelCardWidget;
 
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -682,6 +685,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
         previewWidget.setDependencyIssues(tab == Tab.OUTFIT ? outfitIssues : List.of());
         previewWidget.setSelectedBone(previewBoneSelection());
         addRenderableWidget(previewWidget);
+        int statusBottom = layout.top() + size;
+        addRenderableOnly((gui, mouseX, mouseY, delta) -> renderPreviewStatus(gui, x, statusBottom, mouseX, mouseY));
         var statusFont = Minecraft.getInstance().font;
         if (statusFont != null) {
             int statusHeight = statusFont.lineHeight + 5;
@@ -974,6 +979,43 @@ public class WardrobeScreen extends AbstractPanelScreen {
         cosmeticAnimationsOpen = false;
         if (!returning) {
             removed();
+        }
+    }
+
+    /** State of the model in the preview; null for drafts, the equipped avatar and local resources. */
+    public WardrobePreviewStatus previewStatus() {
+        if (draftPreviewActive) {
+            return null;
+        }
+        return WardrobePreviewStatus.of(selectedCollectionModel());
+    }
+
+    /** Reuses the catalog card status icons in the bottom-left corner of the wardrobe preview. */
+    private void renderPreviewStatus(GuiGraphicsExtractor gui, int x, int bottom, int mouseX, int mouseY) {
+        var status = previewStatus();
+        var model = selectedCollectionModel();
+        if (status == null || model == null) {
+            return;
+        }
+        // drawStatusIcons places its row at y + imageSize - 10; with no image this keeps the row inside the frame.
+        ModelCardWidget.drawStatusIcons(gui, x, bottom - 6, 0, model);
+        var lines = new ArrayList<Component>();
+        if (status.requiresAuthorization()) {
+            lines.add(FiguraText.of("gui.library.authorization"));
+        }
+        if (status.privateVisibility()) {
+            lines.add(FiguraText.of("gui.library.private"));
+        }
+        if (status.blocked()) {
+            lines.add(top.aihmc.omnimorph.gui.widgets.library.LibraryLabels.status(model.moderationStatus()));
+        }
+        int iconsWidth = lines.size() * 15;
+        if (UIHelper.isMouseOver(x + 4, bottom - 17, iconsWidth, 15, mouseX, mouseY)) {
+            var tooltip = Component.empty().copy();
+            for (int index = 0; index < lines.size(); index++) {
+                tooltip.append(index == 0 ? Component.empty() : Component.literal("\n")).append(lines.get(index));
+            }
+            UIHelper.setTooltip(tooltip);
         }
     }
 

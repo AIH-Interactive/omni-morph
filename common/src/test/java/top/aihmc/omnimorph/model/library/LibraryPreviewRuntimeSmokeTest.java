@@ -4604,6 +4604,46 @@ public final class LibraryPreviewRuntimeSmokeTest {
         }
     }
 
+    /** Preview status icons follow the previewed collection model: A, then B, then nothing. */
+    private static void testPreviewStatus(org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                          LibraryCollectionService collection,
+                                          java.lang.reflect.Constructor<?> selection, UUID first,
+                                          com.google.gson.JsonObject firstJson, com.google.gson.Gson gson) throws Exception {
+        var originalEntries = field(collection.getClass(), "entries").get(collection);
+        var originalSelection = field(screen.getClass(), "selected").get(screen);
+        UUID second = UUID.randomUUID();
+        var secondJson = firstJson.deepCopy();
+        secondJson.addProperty("model_id", second.toString());
+        secondJson.addProperty("visibility", "PUBLIC");
+        secondJson.addProperty("requires_authorization", false);
+        secondJson.addProperty("moderation_status", "BLOCKED");
+        var secondModel = gson.fromJson(secondJson, top.aihmc.omnimorph.backend2.library.LibraryModels.Model.class);
+        var entries = new java.util.ArrayList<Object>((java.util.List<?>) originalEntries);
+        entries.add(new top.aihmc.omnimorph.backend2.library.LibraryModels.CollectionEntry(
+                second, 1, "DOWNLOAD", false, secondModel));
+        field(collection.getClass(), "entries").set(collection, java.util.List.copyOf(entries));
+        try {
+            var status = screen.previewStatus();
+            require(status != null && status.requiresAuthorization() && status.privateVisibility() && !status.blocked(),
+                    "the preview status shows the selected private, authorization-gated model");
+            field(screen.getClass(), "selected").set(screen,
+                    selection.newInstance(null, null, false, second, net.minecraft.network.chat.Component.literal("second")));
+            status = screen.previewStatus();
+            require(status != null && status.blocked() && !status.requiresAuthorization() && !status.privateVisibility(),
+                    "selecting another model replaces the status instead of keeping the previous one");
+            field(screen.getClass(), "selected").set(screen, null);
+            require(screen.previewStatus() == null, "no selection leaves no stale status");
+            field(screen.getClass(), "selected").set(screen, originalSelection);
+            field(screen.getClass(), "draftPreviewActive").setBoolean(screen, true);
+            require(screen.previewStatus() == null, "a draft preview does not borrow the selected model status");
+        } finally {
+            field(screen.getClass(), "draftPreviewActive").setBoolean(screen, false);
+            field(screen.getClass(), "selected").set(screen, originalSelection);
+            field(collection.getClass(), "entries").set(collection, originalEntries);
+        }
+        System.out.println("PASS wardrobe preview status: selected model, replacement, empty selection and draft; GUI MANUAL/PENDING");
+    }
+
     private static void testCollectionActions(LibraryClient client) throws Exception {
         require(!Configs.WARDROBE_AUTO_CACHE.defaultValue && Configs.WARDROBE_AUTO_CACHE.parent == Configs.MISC
                         && Configs.MISC.children.contains(Configs.WARDROBE_AUTO_CACHE)
@@ -4641,6 +4681,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     selection.newInstance(null, null, false, id, net.minecraft.network.chat.Component.literal("selected")));
             field(collection.getClass(), "entries").set(collection, java.util.List.of(
                     new top.aihmc.omnimorph.backend2.library.LibraryModels.CollectionEntry(id, 1, "UPLOAD", false, model)));
+            testPreviewStatus(screen, collection, selection, id, modelJson, gson);
             var showModel = new org.figuramc.figura.gui.widgets.SwitchButton(0, 0, 24, 24,
                     net.minecraft.network.chat.Component.literal("show"), false);
             field(screen.getClass(), "showModel").set(screen, showModel);
