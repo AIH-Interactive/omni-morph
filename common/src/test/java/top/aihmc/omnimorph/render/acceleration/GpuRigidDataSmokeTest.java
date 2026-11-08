@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.render.acceleration;
 
+import top.aihmc.omnimorph.render.RenderOwner;
+
 import net.minecraft.SharedConstants;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.resources.Identifier;
@@ -19,7 +21,7 @@ public final class GpuRigidDataSmokeTest {
         SharedConstants.tryDetectVersion();
         Bootstrap.bootStrap();
         var service = new AccelerationService();
-        var owner = new AccelerationOwner();
+        var owner = new RenderOwner();
         var material = RenderTypes.entityTranslucent(Identifier.parse("omni-morph:rigid_contract"));
         double[] vertices = new double[4 * MeshHandle.STRIDE];
         for (int vertex = 0; vertex < 4; vertex++) {
@@ -68,7 +70,7 @@ public final class GpuRigidDataSmokeTest {
         require(faces == 130 && data.frameBytes() == 130L * 6 * Integer.BYTES + 3L * GpuRigidData.POSE_BYTES,
                 "every sorted face is covered exactly once and frame accounting includes indices");
         require(!GpuRigidData.supports(Collections.nCopies(4097, batches.getFirst())), "part remap bound is enforced");
-        var foreign = new DrawBatch(service.capture(new AccelerationOwner(), "world"), mesh,
+        var foreign = new DrawBatch(service.capture(new RenderOwner(), "world"), mesh,
                 batches.getFirst().pose(), batches.getFirst().semantics());
         require(!GpuRigidData.supports(List.of(batches.getFirst(), foreign)), "owners retain separate resource lifetimes");
         try {
@@ -257,7 +259,7 @@ public final class GpuRigidDataSmokeTest {
      * R4-3 M1: a model boundary mixing skinned, tinted and plain batches keeps one vertex/part/record layout whose
      * decoded shader math reproduces the Java path for every vertex.
      */
-    private static void testModelData(AccelerationService service, AccelerationOwner owner,
+    private static void testModelData(AccelerationService service, RenderOwner owner,
                                       net.minecraft.client.renderer.rendertype.RenderType material) {
         double[] vertices = new double[8 * MeshHandle.STRIDE];
         List<MeshHandle.Influences> influences = new ArrayList<>();
@@ -343,7 +345,7 @@ public final class GpuRigidDataSmokeTest {
         System.out.println("PASS R4-3 model data: skinned/tinted/plain batches decode to the Java result in one layout");
     }
 
-    private static DrawBatch modelBatch(AccelerationService service, AccelerationOwner owner,
+    private static DrawBatch modelBatch(AccelerationService service, RenderOwner owner,
                                         net.minecraft.client.renderer.rendertype.RenderType material, MeshHandle mesh,
                                         PoseSnapshot pose, int light, float red) {
         var semantics = new DrawSemantics(material, Identifier.parse("omni-morph:rigid_contract"),
@@ -412,7 +414,7 @@ public final class GpuRigidDataSmokeTest {
         System.out.println("PASS rigid group layout reuse and invalidation by face order and part sharing");
     }
 
-    private static void testStaticValidationReuse(AccelerationService service, AccelerationOwner owner,
+    private static void testStaticValidationReuse(AccelerationService service, RenderOwner owner,
                                                   net.minecraft.client.renderer.rendertype.RenderType material) {
         var semantics = new DrawSemantics(material, Identifier.parse("omni-morph:static_validation"),
                 DrawSemantics.Layer.PRIMARY, "world", 0, 1, 0x00f000a0, 0, 1, 1, 1, 1, 0, true);

@@ -1,8 +1,10 @@
 package top.aihmc.omnimorph.model.ysm;
 
+import top.aihmc.omnimorph.render.RenderLifetime;
+
 import com.mojang.blaze3d.vertex.PoseStack;
 import org.figuramc.figura.math.vector.FiguraVec3;
-import top.aihmc.omnimorph.render.acceleration.AccelerationService;
+
 import org.joml.Matrix4f;
 
 import java.util.LinkedHashMap;
@@ -15,7 +17,7 @@ public final class YsmRenderPose {
     private final Map<String, PartPose> parts;
     private final Matrix4f modelScale;
     private final boolean unlit;
-    private final AccelerationService.Lease lease;
+    private final RenderLifetime.Lease lease;
     private final Map<String, Matrix4f> boneOverrides;
     // Per pose instance; a captured pose may be consumed later, so the lazy map stays thread-safe.
     private final Map<String, YsmModelPart> readOnlyParts = new ConcurrentHashMap<>();
@@ -57,7 +59,7 @@ public final class YsmRenderPose {
     }
 
     public static YsmRenderPose capture(Iterable<YsmModelPart> source, Matrix4f modelScale, boolean unlit,
-                                       AccelerationService.Lease lease) {
+                                       RenderLifetime.Lease lease) {
         Map<String, PartPose> parts = new LinkedHashMap<>();
         for (YsmModelPart part : source) {
             PartPose pose = PartPose.capture(part);
@@ -68,12 +70,12 @@ public final class YsmRenderPose {
     }
 
     private YsmRenderPose(Map<String, PartPose> parts, Matrix4f modelScale, boolean unlit,
-                          AccelerationService.Lease lease) {
+                          RenderLifetime.Lease lease) {
         this(parts, modelScale, unlit, lease, Map.of());
     }
 
     private YsmRenderPose(Map<String, PartPose> parts, Matrix4f modelScale, boolean unlit,
-                          AccelerationService.Lease lease, Map<String, Matrix4f> boneOverrides) {
+                          RenderLifetime.Lease lease, Map<String, Matrix4f> boneOverrides) {
         this.lease = lease;
         this.unlit = unlit;
         this.parts = Map.copyOf(parts);
@@ -95,7 +97,7 @@ public final class YsmRenderPose {
     }
 
     boolean isCurrent() {
-        return lease == null || AccelerationService.INSTANCE.isCurrent(lease);
+        return lease == null || RenderLifetime.INSTANCE.isCurrent(lease);
     }
 
     /** A fresh detached copy; callers may modify it without affecting this snapshot. */

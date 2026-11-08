@@ -373,7 +373,7 @@ public final class OutfitComposition implements AutoCloseable {
             OutfitConfig.require(base == null);
         } else {
             OutfitConfig.require(base != null && base.loaded && base.nbt != null && !base.scriptError
-                    && base.cosmeticContext == null && base.accelerationOwner().isCurrent()
+                    && base.cosmeticContext == null && base.renderOwner().isCurrent()
                     && base.nbt.getCompoundOrEmpty("metadata").getStringOr("resource_kind", "AVATAR").equals("AVATAR")
                     && configuration.base().equals(base.outfitSource())
                     && top.aihmc.omnimorph.avatar.ysm.YsmSourcePayload.isEncrypted(base.nbt.getCompoundOrEmpty("ysm"))
@@ -553,7 +553,7 @@ public final class OutfitComposition implements AutoCloseable {
                 if (closed) {
                     break;
                 }
-                if (avatar.accelerationOwner().isCurrent() && !avatar.scriptError) {
+                if (avatar.renderOwner().isCurrent() && !avatar.scriptError) {
                     consumer.accept(avatar);
                 }
             }
@@ -715,8 +715,8 @@ public final class OutfitComposition implements AutoCloseable {
             }
             var parts = new FiguraSkeletonAdapter((ImmediateFiguraRenderer) base.renderer, configuration.base(),
                     null, indexes, limits).binding().parts();
-            var lease = top.aihmc.omnimorph.render.acceleration.AccelerationService.INSTANCE.capture(
-                    base.accelerationOwner(), String.valueOf(base.renderMode));
+            var lease = top.aihmc.omnimorph.render.RenderLifetime.INSTANCE.capture(
+                    base.renderOwner(), String.valueOf(base.renderMode));
             figuraBasePose = new FiguraRenderPose(parts, lease, null, java.util.Map.of(), baseSpare);
             figuraBase = base;
         }
@@ -1022,7 +1022,7 @@ public final class OutfitComposition implements AutoCloseable {
         @LuaWhitelist
         public boolean isHealthy(String id) {
             Avatar avatar = instances.get(UUID.fromString(id));
-            return avatar != null && avatar.loaded && !avatar.scriptError && avatar.accelerationOwner().isCurrent();
+            return avatar != null && avatar.loaded && !avatar.scriptError && avatar.renderOwner().isCurrent();
         }
 
         @LuaWhitelist
@@ -1185,8 +1185,8 @@ public final class OutfitComposition implements AutoCloseable {
                     var parts = new FiguraSkeletonAdapter((ImmediateFiguraRenderer) avatar.renderer,
                             avatar.cosmeticContext.resource(), avatar.cosmeticContext.instanceId(), indexes, limits)
                             .binding().parts();
-                    var lease = top.aihmc.omnimorph.render.acceleration.AccelerationService.INSTANCE.capture(
-                            avatar.accelerationOwner(), String.valueOf(avatar.renderMode));
+                    var lease = top.aihmc.omnimorph.render.RenderLifetime.INSTANCE.capture(
+                            avatar.renderOwner(), String.valueOf(avatar.renderMode));
                     activeFrame.figuraPoses.put(avatar.cosmeticContext.instanceId(), new FiguraRenderPose(parts, lease,
                             (ImmediateFiguraRenderer) avatar.renderer, overrides.figura()));
                 }

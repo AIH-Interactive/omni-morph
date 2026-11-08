@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.render.acceleration;
 
+import top.aihmc.omnimorph.render.RenderOwner;
+
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.MeshData;
@@ -151,7 +153,7 @@ public final class AccelerationPreparationBenchmark {
                             // Same bounded production activation sequence, using a command recorder.
                         }
                         SERVICE.useBackend(gpu);
-                        var owner = new AccelerationOwner();
+                        var owner = new RenderOwner();
                         for (RenderType material : recipes.keySet()) {
                             gpu.supports(AccelerationBackend.Operation.GPU_DRAW, warmup(owner, material));
                         }
@@ -210,7 +212,7 @@ public final class AccelerationPreparationBenchmark {
         return sorted[(int) Math.ceil(sorted.length * fraction) - 1] / 1000;
     }
 
-    private static DrawBatch warmup(AccelerationOwner owner, RenderType material) {
+    private static DrawBatch warmup(RenderOwner owner, RenderType material) {
         double[] vertices = new double[36];
         for (int vertex = 0; vertex < 4; vertex++) {
             vertices[vertex * 9 + 3] = 1;

@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.render.acceleration;
 
+import top.aihmc.omnimorph.render.RenderOwner;
+
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.ByteBufferBuilder;
 import com.mojang.blaze3d.vertex.MeshData;
@@ -48,7 +50,7 @@ public final class DualEngineGpuReplay {
                         materials.add(material);
                         return recorder;
                     }, 0x00f000a0, runtime.captureRenderPose(false));
-                    var warmOwner = new AccelerationOwner();
+                    var warmOwner = new RenderOwner();
                     for (RenderType material : materials) {
                         gpu.supports(AccelerationBackend.Operation.GPU_DRAW, warmup(service, warmOwner, material));
                     }
@@ -81,7 +83,7 @@ public final class DualEngineGpuReplay {
         System.out.println("PASS dual-engine GPU wire-layout numerical replay; real GPU pixels MANUAL/PENDING");
     }
 
-    private static DrawBatch warmup(AccelerationService service, AccelerationOwner owner, RenderType material) {
+    private static DrawBatch warmup(AccelerationService service, RenderOwner owner, RenderType material) {
         double[] vertices = new double[36];
         for (int vertex = 0; vertex < 4; vertex++) {
             vertices[vertex * 9 + 3] = 1;
