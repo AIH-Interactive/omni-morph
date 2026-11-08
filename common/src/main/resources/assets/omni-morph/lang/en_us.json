@@ -2038,6 +2038,7 @@
   "omni-morph.gui.library.filter.sort": "Sort: %s",
   "omni-morph.gui.library.unknown_author": "Unknown author",
   "omni-morph.gui.library.more_authors": " and others",
+  "omni-morph.gui.library.more_actions": "More actions",
   "omni-morph.gui.library.counts": "%s downloads · %s favorites",
   "omni-morph.gui.library.locked": "Authorization required",
   "omni-morph.gui.library.card_tooltip": "Internal name: %s\nAuthors:\n%s\nUploader: %s\nUUID: %s\nRight-click to copy uploader UUID",

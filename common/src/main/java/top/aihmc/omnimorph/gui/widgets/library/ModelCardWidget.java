@@ -67,35 +67,52 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
             texture = PLACEHOLDER;
         }
         // Full normalized texture, with dimensions independent of the source image's pixel size.
-        int imageSize = ModelLibraryLayout.imageSize(getWidth());
-        int informationX = x + imageSize + 10;
-        int informationWidth = Math.max(1, getWidth() - imageSize - 16);
-        gui.blit(RenderPipelines.GUI_TEXTURED, texture, x + 4, y + 4, 0, 0,
+        // Compact cards put the title on its own row above a smaller cover and stacked details.
+        boolean compact = getHeight() < ModelLibraryLayout.CARD_HEIGHT;
+        int imageSize = compact ? ModelLibraryLayout.COMPACT_IMAGE_SIZE : ModelLibraryLayout.imageSize(getWidth());
+        int imageY = compact ? y + 19 : y + 4;
+        int informationX = x + imageSize + (compact ? 8 : 10);
+        int informationWidth = Math.max(1, getWidth() - imageSize - (compact ? 12 : 16));
+        gui.blit(RenderPipelines.GUI_TEXTURED, texture, x + 4, imageY, 0, 0,
                 imageSize, imageSize, imageSize, imageSize);
-        ModelResourceBadges.drawType(gui, x + 4, y + 4, model.modelType(), 16);
-        drawStatusIcons(gui, x, y, imageSize, model);
-        UIHelper.renderScrollingText(gui, LibraryLabels.category(model.categoryId()), informationX, y + 20,
-                informationWidth, 0xffbac6d8);
-        favorite.setX(x + getWidth() - 24);
-        favorite.setY(y + getHeight() - 20);
+        ModelResourceBadges.drawType(gui, x + 4, imageY, model.modelType(), compact ? 12 : 16);
+        drawStatusIcons(gui, x, imageY - 4, imageSize, model);
+        int buttonWidth = compact ? 16 : 20;
+        int buttonHeight = compact ? 13 : 18;
+        favorite.setWidth(buttonWidth);
+        favorite.setHeight(buttonHeight);
+        favorite.setX(x + getWidth() - buttonWidth - 4);
+        favorite.setY(y + getHeight() - buttonHeight - 2);
         favorite.extractRenderState(gui, mouseX, mouseY, delta);
-        report.setX(x + getWidth() - 48);
-        report.setY(y + getHeight() - 20);
+        report.setWidth(buttonWidth);
+        report.setHeight(buttonHeight);
+        report.setX(x + getWidth() - buttonWidth * 2 - 8);
+        report.setY(y + getHeight() - buttonHeight - 2);
         report.extractRenderState(gui, mouseX, mouseY, delta);
-        UIHelper.renderScrollingText(gui, Component.literal(model.displayName()), informationX, y + 8,
-                informationWidth, 0xffeeeeee);
+        int titleX = compact ? x + 4 : informationX;
+        int titleWidth = compact ? getWidth() - 8 : informationWidth;
+        UIHelper.renderScrollingText(gui, Component.literal(model.displayName()), titleX, compact ? y + 4 : y + 8,
+                titleWidth, 0xffeeeeee);
         Component author = model.authors().isEmpty() ? FiguraText.of("gui.library.unknown_author")
                 : Component.literal(model.authors().getFirst()).append(model.authors().size() > 1
                 ? FiguraText.of("gui.library.more_authors") : Component.empty());
         UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.card_authors", author),
-                informationX, y + 34, informationWidth, 0xffbac6d8);
-        UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.card_uploader", model.uploader().name()), informationX, y + 46,
-                informationWidth, 0xffbac6d8);
+                informationX, compact ? y + 19 : y + 34, informationWidth, 0xffbac6d8);
+        UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.card_uploader", model.uploader().name()),
+                informationX, compact ? y + 31 : y + 46, informationWidth, 0xffbac6d8);
+        UIHelper.renderScrollingText(gui, LibraryLabels.category(model.categoryId()), informationX,
+                compact ? y + 43 : y + 20, informationWidth, 0xffbac6d8);
         Component counts = FiguraText.of("gui.library.counts", model.downloads(), model.favorites());
         if (model.requiresAuthorization() && !model.allows("equip")) {
             counts = counts.copy().append(" • ").append(FiguraText.of("gui.library.locked"));
         }
-        UIHelper.renderScrollingText(gui, counts, informationX, y + 58, informationWidth, 0xffa9bbc9);
+        if (compact) {
+            // The bottom row shares its width with the report and favorite buttons.
+            UIHelper.renderScrollingText(gui, counts, x + 4, y + 55,
+                    Math.max(1, getWidth() - buttonWidth * 2 - 16), 0xffa9bbc9);
+        } else {
+            UIHelper.renderScrollingText(gui, counts, informationX, y + 58, informationWidth, 0xffa9bbc9);
+        }
         if (isMouseOver(mouseX, mouseY) && !favorite.isMouseOver(mouseX, mouseY) && !report.isMouseOver(mouseX, mouseY)) {
             var tooltip = FiguraText.of("gui.library.card_tooltip", model.internalName(),
                     String.join("\n", model.authors()), model.uploader().name(), model.uploader().uuid().toString());

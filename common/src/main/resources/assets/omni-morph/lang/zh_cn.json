@@ -145,6 +145,7 @@
   "omni-morph.gui.library.filter.sort": "排序：%s",
   "omni-morph.gui.library.unknown_author": "未知作者",
   "omni-morph.gui.library.more_authors": " 等",
+  "omni-morph.gui.library.more_actions": "更多操作",
   "omni-morph.gui.library.counts": "%s 次下载 · %s 个收藏",
   "omni-morph.gui.library.locked": "需要授权",
   "omni-morph.gui.library.card_tooltip": "内部名称：%s\n完整作者：\n%s\n上传者：%s\nUUID：%s\n右键复制上传者 UUID",

@@ -26,6 +26,7 @@ public final class ModelLibraryGrid extends AbstractList implements AutoCloseabl
     private UUID selected;
     private ModelLibraryLayout layout;
     private int previousScroll;
+    private boolean compact;
 
     public ModelLibraryGrid(int x, int y, int width, int height, LibraryThumbnailService thumbnails,
                             Consumer<LibraryModels.Model> select, Consumer<LibraryModels.Model> favorite) {
@@ -50,6 +51,16 @@ public final class ModelLibraryGrid extends AbstractList implements AutoCloseabl
         scrollBar.setScrollProgressNoAnim(0);
     }
 
+    /** Compact grids show two small cards per row beside a slim scrollbar. */
+    public void compact(boolean value) {
+        compact = value;
+    }
+
+    /** The width available to cards, shared with the page budget of the owning screen. */
+    public static int cardAreaWidth(int width, boolean compact) {
+        return width - (compact ? 7 : 18);
+    }
+
     public void selected(UUID value) {
         selected = value;
     }
@@ -59,20 +70,23 @@ public final class ModelLibraryGrid extends AbstractList implements AutoCloseabl
     }
 
     private void arrange() {
-        var next = ModelLibraryLayout.of(getWidth() - 18, getHeight() - 4, models.size());
+        int area = cardAreaWidth(getWidth(), compact);
+        var next = compact ? ModelLibraryLayout.compact(area, getHeight() - 4, models.size())
+                : ModelLibraryLayout.of(area, getHeight() - 4, models.size());
         if (!next.equals(layout)) {
             int anchor = layout == null ? 0 : layout.first(previousScroll);
             layout = next;
             scrollBar.setScrollProgressNoAnim(layout.maximumScroll() == 0 ? 0
                     : (double) layout.scrollTo(anchor) / layout.maximumScroll());
         }
-        scrollBar.setX(getX() + getWidth() - 14);
+        scrollBar.setX(getX() + getWidth() - (compact ? 5 : 14));
+        scrollBar.setWidth(compact ? 4 : 10);
         scrollBar.setY(getY() + 4);
         scrollBar.setHeight(Math.max(24, getHeight() - 8));
         scrollBar.setVisible(layout.maximumScroll() > 0);
         scrollBar.setActive(layout.maximumScroll() > 0);
         if (layout.maximumScroll() > 0) {
-            scrollBar.setScrollRatio(ModelLibraryLayout.CARD_HEIGHT, layout.maximumScroll());
+            scrollBar.setScrollRatio(layout.cardHeight(), layout.maximumScroll());
         }
         int offset = scroll();
         previousScroll = offset;
@@ -95,6 +109,7 @@ public final class ModelLibraryGrid extends AbstractList implements AutoCloseabl
             card.setX(getX() + 2 + layout.x(index));
             card.setY(getY() + 2 + layout.y(index, offset));
             card.setWidth(layout.cardWidth());
+            card.setHeight(layout.cardHeight());
             card.selected(models.get(index).modelId().equals(selected));
             children.add(card);
         }

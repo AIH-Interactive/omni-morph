@@ -87,6 +87,25 @@ public final class ModelLibraryLayoutSmokeTest {
         var tallerViewport = ModelLibraryLayout.of(398, 100, 8);
         require(tallerViewport.hit(0, 92, 0) == -1, "vertical gaps are not card hits");
         require(ModelLibraryLayout.of(128, 116, 0).hit(0, 0, 0) == -1, "empty grid");
+        // Reference 480x252 GUI: the catalog card area is 282 wide, the wardrobe collection area 285.
+        var catalog = ModelLibraryLayout.compact(282, 170, 8);
+        require(catalog.columns() == 2 && catalog.cardWidth() == 138,
+                "compact catalog keeps two small cards per row instead of one large card");
+        require(catalog.cardHeight() == 68 && catalog.imageSize() == 32,
+                "compact catalog cards use the reference height and cover size");
+        require(catalog.x(1) == 144 && catalog.y(2, 0) == 74 && catalog.pageCapacity(64) == 4,
+                "compact catalog rows, columns and page budget follow the small cards");
+        require(catalog.hit(140, 10, 0) == -1 && catalog.hit(150, 10, 0) == 1 && catalog.hit(10, 70, 0) == -1,
+                "compact catalog gaps are not card hits");
+        var wideCatalog = ModelLibraryLayout.compact(300, 170, 8);
+        require(wideCatalog.columns() == 2 && wideCatalog.cardWidth() == 147,
+                "compact catalog grows its two cards with the available width");
+        var collectionCards = ModelLibraryLayout.compactCollection(285, 150, 9);
+        require(collectionCards.columns() == 2 && collectionCards.cardWidth() == 139
+                        && collectionCards.cardHeight() == 54 && collectionCards.imageSize() == 24,
+                "compact collection uses two 54-tall cards with a 24 cover");
+        require(collectionCards.rows() == 5 && collectionCards.maximumScroll() == 5 * 60 - 6 - 150,
+                "compact collection scrolling follows the small card height");
         // Reference 480x252 GUI: a 22-wide vertical tab column beside the content, 60-tall tabs, 4 apart.
         var sections = new LibrarySectionLayout(4, 28, 30, 192, 5);
         require(sections.tabX(0) == 4 && sections.tabX(4) == 4 && sections.tabWidth(0) == 22,

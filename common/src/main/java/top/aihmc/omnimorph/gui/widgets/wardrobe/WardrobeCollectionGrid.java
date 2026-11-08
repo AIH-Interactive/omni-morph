@@ -109,6 +109,7 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
     private List<Entry> entries = List.of();
     private List<Entry> filtered = List.of();
     private ModelLibraryLayout layout;
+    private boolean compact;
     private String selected;
     private final LibraryDropdown formatFilter;
     private List<LibraryDropdown> resourceFilters = List.of();
@@ -150,6 +151,12 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
         children.add(formatFilter);
         updateHeader();
         scrollBar.setScrollProgressNoAnim(view.scroll);
+    }
+
+    /** Compact collections show two short cards per row. */
+    public void compact(boolean value) {
+        compact = value;
+        layout = null;
     }
 
     private int contentTop() {
@@ -216,10 +223,13 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
     }
 
     private void arrange() {
-        layout = ModelLibraryLayout.of(getWidth() - 18, getHeight() - contentTop() - 2, filtered.size());
+        int area = getWidth() - 18;
+        int viewport = getHeight() - contentTop() - 2;
+        layout = compact ? ModelLibraryLayout.compactCollection(area, viewport, filtered.size())
+                : ModelLibraryLayout.of(area, viewport, filtered.size());
         scrollBar.setVisible(layout.maximumScroll() > 0);
         scrollBar.setActive(layout.maximumScroll() > 0);
-        scrollBar.setScrollRatio(ModelLibraryLayout.CARD_HEIGHT, Math.max(1, layout.maximumScroll()));
+        scrollBar.setScrollRatio(layout.cardHeight(), Math.max(1, layout.maximumScroll()));
         view.scroll = scrollBar.getScrollProgress();
         int first = layout.first(scroll());
         int end = layout.endWithPrefetch(scroll());
@@ -260,8 +270,9 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
         int y = getY() + contentTop() + layout.y(index, scroll());
         int width = layout.cardWidth();
         boolean active = entry.key().equals(selected);
-        gui.fill(x, y, x + width, y + ModelLibraryLayout.CARD_HEIGHT, active ? 0xc0335566 : 0xb51a202c);
-        UIHelper.fillOutline(gui, x, y, width, ModelLibraryLayout.CARD_HEIGHT,
+        int cardHeight = layout.cardHeight();
+        gui.fill(x, y, x + width, y + cardHeight, active ? 0xc0335566 : 0xb51a202c);
+        UIHelper.fillOutline(gui, x, y, width, cardHeight,
                 UIHelper.adjustColor(active ? FiguraMod.getAccentColor().getColor().getValue() : 0x4b5569));
         Identifier image = null;
         if (entry.local() != null) {
@@ -270,28 +281,45 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
         } else if (images.containsKey(index)) {
             image = images.get(index).capture();
         }
-        int size = ModelLibraryLayout.imageSize(width);
-        gui.blit(RenderPipelines.GUI_TEXTURED, image == null ? PLACEHOLDER : image, x + 4, y + 4,
+        // Compact cards put the name on its own row above the cover and up to three detail lines.
+        boolean compactCard = cardHeight < ModelLibraryLayout.CARD_HEIGHT;
+        int size = compactCard ? layout.imageSize() : ModelLibraryLayout.imageSize(width);
+        int imageY = compactCard ? y + 17 : y + 4;
+        gui.blit(RenderPipelines.GUI_TEXTURED, image == null ? PLACEHOLDER : image, x + 4, imageY,
                 0, 0, size, size, size, size);
-        ModelResourceBadges.drawType(gui, x + 4, y + 4, entry.format(), 16);
-        int textX = x + size + 10;
-        int textWidth = Math.max(1, width - size - 16);
-        UIHelper.renderScrollingText(gui, entry.name(), textX, y + 8, textWidth, 0xffeeeeee);
+        ModelResourceBadges.drawType(gui, x + 4, imageY, entry.format(), compactCard ? 10 : 16);
+        int textX = x + size + (compactCard ? 8 : 10);
+        int textWidth = Math.max(1, width - size - (compactCard ? 12 : 16));
+        if (compactCard) {
+            UIHelper.renderScrollingText(gui, entry.name(), x + 4, y + 3, width - 8, 0xffeeeeee);
+        } else {
+            UIHelper.renderScrollingText(gui, entry.name(), textX, y + 8, textWidth, 0xffeeeeee);
+        }
         Component detail = entry.cloud() == null ? entry.localDescription() : cacheState.apply(entry.cloud().modelId());
         if (entry.cloud() != null && entry.cloud().model() != null) {
             var model = entry.cloud().model();
-            ModelCardWidget.drawStatusIcons(gui, x, y, size, model);
-            UIHelper.renderScrollingText(gui, LibraryLabels.category(model.categoryId()), textX, y + 20, textWidth, 0xffbac6d8);
+            ModelCardWidget.drawStatusIcons(gui, x, imageY - 4, size, model);
             Component author = model.authors().isEmpty() ? FiguraText.of("gui.library.unknown_author")
                     : Component.literal(model.authors().getFirst());
-            UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.card_authors", author),
-                    textX, y + 34, textWidth, 0xffbac6d8);
-            UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.card_uploader", model.uploader().name()),
-                    textX, y + 46, textWidth, 0xffbac6d8);
-            UIHelper.renderScrollingText(gui, detail, textX, y + 58, textWidth, 0xffa9bbc9);
+            if (compactCard) {
+                UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.card_authors", author),
+                        textX, y + 17, textWidth, 0xffbac6d8);
+                UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.card_uploader", model.uploader().name()),
+                        textX, y + 28, textWidth, 0xffbac6d8);
+                UIHelper.renderScrollingText(gui, detail, textX, y + 40, textWidth, 0xffa9bbc9);
+            } else {
+                UIHelper.renderScrollingText(gui, LibraryLabels.category(model.categoryId()), textX, y + 20, textWidth, 0xffbac6d8);
+                UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.card_authors", author),
+                        textX, y + 34, textWidth, 0xffbac6d8);
+                UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.card_uploader", model.uploader().name()),
+                        textX, y + 46, textWidth, 0xffbac6d8);
+                UIHelper.renderScrollingText(gui, detail, textX, y + 58, textWidth, 0xffa9bbc9);
+            }
         } else {
-            UIHelper.renderScrollingText(gui, Component.literal(entry.format()), textX, y + 20, textWidth, 0xffbac6d8);
-            UIHelper.renderScrollingText(gui, detail, textX, y + 34, textWidth, 0xffbac6d8);
+            int formatY = compactCard ? y + 17 : y + 20;
+            int detailY = compactCard ? y + 28 : y + 34;
+            UIHelper.renderScrollingText(gui, Component.literal(entry.format()), textX, formatY, textWidth, 0xffbac6d8);
+            UIHelper.renderScrollingText(gui, detail, textX, detailY, textWidth, 0xffbac6d8);
         }
         if (isInsideScissors(mouseX, mouseY) && layout.hit(mouseX - getX() - 2, mouseY - getY() - contentTop(), scroll()) == index) {
             UIHelper.setTooltip(entry.name().copy().append("\n").append(detail));

@@ -551,6 +551,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
                     selectCloud(entry.cloud());
                 }
             }, id -> client == null ? FiguraText.of("gui.library.state.offline") : text(collection.cacheState(id))));
+            collectionGrid.compact(compactCollection());
             collectionGrid.setResourceFilters(sourceFilter, modeFilter, resourceFiltersExpanded,
                     expanded -> resourceFiltersExpanded = expanded);
             refreshCollectionCards();
@@ -603,12 +604,18 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 : FiguraText.of("gui.library.failure", collection.failure());
     }
 
+    private boolean compactCollection() {
+        return tab == Tab.COLLECTION && width < top.aihmc.omnimorph.gui.widgets.library.ModelLibraryLayout.COMPACT_SCREEN_WIDTH;
+    }
+
     private void buildPreview() {
         int x = layout.previewX();
         int w = layout.previewWidth();
         boolean cloudActions = source == Source.CLOUD || source == Source.ALL && selected != null && selected.cloud() != null;
         int actionCount = tab == Tab.OUTFIT ? 16 : cloudActions ? 8 : 5;
-        int actionsHeight = LibraryActionBar.heightFor(w, actionCount);
+        // The compact collection keeps one action row so the preview uses the remaining height.
+        int actionsHeight = compactCollection() ? LibraryActionBar.budgetedHeight(false)
+                : LibraryActionBar.heightFor(w, actionCount);
         int actionsY = height - 28 - actionsHeight;
         int size = LibraryWorkspaceLayout.previewHeightBeforeActions(layout.top(), actionsY);
         float scale = tab == Tab.COLLECTION ? Math.max(12f, w / 3f) : Math.min(w, size) * 0.38f;
@@ -663,6 +670,9 @@ public class WardrobeScreen extends AbstractPanelScreen {
             }
         });
         var actions = addRenderableWidget(new LibraryActionBar(x, actionsY, w, actionsHeight));
+        if (compactCollection()) {
+            actions.budget(3);
+        }
         if (tab == Tab.COLLECTION) {
             candidateButton = actions.action(new LibraryIconButton("wardrobe_outfit", 2,
                     () -> candidate() ? 1 : 0, text("add_outfit"), null, button -> changeCandidate()));
