@@ -1,4 +1,0 @@
-{"animations":{"compare":{"loop":true,"animation_length":2,"bones":{
-"root":{"position":["q.shift",0,0],"rotation":[0,"math.sin(q.anim_time * 90) * 30",0],
-        "scale":[1.2,0.8,1.1]},
-"child":{"rotation":[0,0,"math.sin(q.anim_time * 90) * 60"]}}}}}
