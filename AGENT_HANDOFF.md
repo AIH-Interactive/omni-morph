@@ -1,46 +1,60 @@
-# 当前任务交接
+# Agent 交接手册
 
-更新日期：2026-11-08。分支：main，上游origin/main。
+更新日期：2026-11-08。本文件是当前唯一有效的交接记录。实施规格见根目录 `排版改进计划书.md`，各阶段的详细记录和移植清单在 `docs/ui-layout/`。
 
-## 最终任务状态
+## 1. 当前任务与状态
 
-阶段一至四硬件加速撤销实施与自动验证完成，阶段四5a45a5ac已提交并成功推送。版本1.0.0-alpha.8。无需新增实施阶段。
+用户要求：脚本读取计划书，在 `main` 上依次执行阶段一至五，每完成一个阶段就提交推送一次，然后查询额度，达到阈值时自动交接。
 
-- 阶段一 fce9c5b5：生命周期迁出，已推送。
-- 阶段二 d9efc440：双引擎加速接入/缓存撤销，RED→GREEN，已推送。
-- 阶段三 3735d7b0：后端、设置、JNI/native、专用测试、mixin与CI清理，已推送。
-- 阶段四5a45a5ac：真实语料/最终回归及记录，已推送。
-- Wiki AIH-Interactive/omm-wiki main 63d2999已推送，Docusaurus构建成功，相关模组说明保留。
+- **已完成并推送**：阶段一至五，以及一次对齐 Penpot 的修正。
+- **已完成并推送（插入任务）**：版本号升级为 `1.0.0-alpha.9`（`gradle.properties` 和四份 README）。
+- **人工/实机验收**：一律 `SKIPPED（用户决定，未执行）`，不得记为 PASS。
+- **当前无进行中的实施，也没有新阶段。**
 
-## 验证
+| 提交 | 内容 |
+| --- | --- |
+| `8e98d057` | 阶段一：模型库竖排侧边导航 |
+| `f09791f7` | 版本号升级为 alpha.9 |
+| `4d86e000` | 阶段二：紧凑双列卡片与 3 按钮菜单 |
+| `53ac3366` | 阶段三：紧凑配装双区、右侧 Tab、骨骼等宽、5 按钮上限；加入 `CompactMode` |
+| `317e62c7` | 阶段四：紧凑控件页保留预览 |
+| `97c7d79e` | 阶段五：衣柜预览状态图标（复用现有图标） |
+| 本次提交 | 阶段三/四对齐 Penpot 的修正，以及本手册 |
 
-最终八任务通过：ysmLocalCorpusSmokeTest（Figura编译8、YSM组装35、加密重建18）、libraryPreviewRuntimeSmokeTest、libraryPreviewCacheSmokeTest、modelCacheCodecSmokeTest、ysmDeferredPoseSmokeTest、omniMorphIdentitySmokeTest、Fabric/NeoForge remapJar。1m10s、退出0。无运行中的构建会话。
+## 2. 用户在执行中追加的规则
 
-严格scanner另有失败：53候选47valid/6invalid及不支持扩展绑定门禁。对应解析/校验源码相对起点未修改，实际正式加载通过，兼容性问题记录为后续；不扩展本次范围。fs2000.png外部缺失由内嵌Base64回退，实际纹理字节断言通过。
+1. 紧凑专用规则（双列小卡、3/5 按钮上限、配装双区、骨骼等宽、控件保留预览）只在 Minecraft“界面尺寸：自动”时生效，判定入口为 `CompactMode.active(width)`（自动且宽度小于 560）。侧边导航、预览高度、状态图标属于公共规则。
+2. 每个阶段在 `docs/ui-layout/stage-N/record.md` 中写“修改清单（供其他版本移植）”。
+3. 项目里已有的屏蔽、需授权、可视性图标直接复用（`ModelCardWidget.drawStatusIcons`）。
 
-实机最终人工验收SKIPPED（用户决定，未执行）；不阻塞，不记PASS。GitHub Actions配置已改，远端run未执行；本地同remapJar通过。
+## 3. 验证
 
-## 产物和记录
+- 每个阶段都有 RED（预期内的断言失败）→ GREEN 的日志，存在对应的 `docs/ui-layout/` 目录下。
+- 最后一次整体回归：`wardrobeTransitionSmokeTest`、`libraryPreviewRuntimeSmokeTest`、`boneTreeSmokeTest`、`modelLibraryCatalogSmokeTest`、`modelLibraryLayoutSmokeTest`，加上 `:fabric:build`，结果 BUILD SUCCESSFUL，退出码 0。
+- 如实说明的缺口：
+  - 阶段三的 `CompactMode` 断言是在实现后补的，没有先跑出 RED。
+  - 测试客户端的 `Options.guiScale()` 为 null，无法在真实 `WardrobeScreen` 上做“自动”模式下的界面层 5 按钮测试。
+  - 像素、渲染、212/206 宽度下设置行的显示效果都没有自动化验证。
+  - 阶段三、四执行时没有查询 Penpot MCP，之后补查并修正，见 `docs/ui-layout/penpot-alignment/record.md`。
+  - NeoForge 没有构建。
 
-- fabric/build/libs/omni-morph-1.0.0-alpha.8+26.1.2-fabric-mc.jar
-- neoforge/build/libs/omni-morph-1.0.0-alpha.8+26.1.2-neoforge-mc.jar
-- docs/acceleration-revert/stage-1.md至stage-4.md及各RED/GREEN/final日志、产物SHA。
-- 根撤销SPM式硬件加速计划.md。
+## 4. 已知后续事项（未授权，不得自行实施）
 
-## 工作树与约束
+- `ContextMenu` 超高时不能独立滚动（计划 5.3）。
+- 窗口宽度在 300–480 之间时，紧凑卡片会小于 138 的下限，是否扩大“窗口过小”提示的触发范围有待确认。
+- 模型库导航第 5 项：设计稿是“我的申诉”，现有实现是“管理”入口，有待确认。
+- 控件页、预设页、轮盘编辑等独立界面的预览没有加状态图标。
+- 状态图标的顺序沿用卡片的“需授权、私有、屏蔽”，与设计稿顺序不同。
+- 原权限页“选他人仍显示自己”的问题（不在本轮范围内）。
 
-既有122个tools文件删除与refs、旧分析/组合计划未跟踪均保留，未混入阶段提交。不恢复工具、不重置用户修改。不自动启动游戏。Qt禁止offscreen。构建/测试前台PowerShell加Tee-Object和退出码检查。普通模型库、缓存加密、YSM、衣装与粒子保留。周额度最近已用6%，未达阈值。
+## 5. Git 状态
 
-阶段四推送已确认，任务完成，无剩余实施。此推送确认说明为本地交接收尾更新，未追加第五阶段提交。严禁将文档历史候选优化当作新任务。
+分支 `main`，跟踪 `origin/main`。以下未跟踪文件保留，不得纳入提交：`refs`、`分析结果.md`、`加速方案组合修改计划.md`、`排版改进计划书.md`、`.omc/`。
 
-## 用户最终验收与合并授权
+## 6. 额度
 
-用户已明确验收通过，授权提交推送、合并到main并切换main，删除revert_acceleration、preview-acceleration-compare、ysm-alignment本地及远端分支。此前自动实施期间实机SKIPPED为历史状态；用户验收现记为用户报告通过，不虚构Agent实机执行。既有tools删除与未跟踪参考文件继续保留。已快进合并并推送main（合并落点02387ecb）；三个指定远端分支均已删除，本地revert_acceleration已删除，其余两个本地分支原本不存在。当前只保留main。原122项工具删除与3项未跟踪文件保留。
+通过 Claude Code 的 `get_usage` 接口查询（Pro 计划）：最近一次 5 小时窗口已用 22%，周窗口已用 17%，未达到 ≤10% 的预警线。原计划中的 Codex 接口和 GPT-6 Luna 委派在本环境不可用，没有调用。
 
-## 用户要求删除tools
+## 7. 下一步
 
-用户明确要求在main删除整个tools目录。122个已跟踪工具文件删除纳入本次提交；目录本地移除，不改其他未跟踪文件。此次仅删除工具和记录，未修改生产代码，未额外构建。提交前diff --check验证空白及删除范围，推送状态以Git结果为准。
-
-## 跨版本串行分发跟进完成
-
-用户要求26.3→26.2→1.21.1→1.20.1依次完成，本会话逐版发送完整参考与要求、等待并核验本地HEAD/上游和交接，完成上一版才启动下一版。最终SHA依次681eeeeb、91aa421e、74f64875、e4a1c49d；四版无剩余实施，原未跟踪文件保留。详见docs/acceleration-revert/cross-version-dispatch.md及各版stage-4.md/交接/产物摘要。实机SKIPPED，严格scanner既有失败单列，不误报PASS；未触发远端Actions，未合并或删各版分支。当前无运行目标会话，不继续派发。
+计划内没有剩余实施工作。如需继续，请从第 4 节的后续事项中选择，并先取得用户授权。
