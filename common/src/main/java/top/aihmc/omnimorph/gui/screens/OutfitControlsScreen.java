@@ -64,7 +64,7 @@ public final class OutfitControlsScreen extends AvatarControlsScreen {
     }
 
     private static boolean eligible(UserData.OutfitState outfit, Avatar owner) {
-        if (!owner.loaded || owner.scriptError || !owner.accelerationOwner().isCurrent()) {
+        if (!owner.loaded || owner.scriptError || !owner.renderOwner().isCurrent()) {
             return false;
         }
         if (owner == outfit.base()) {

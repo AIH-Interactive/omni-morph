@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.render.acceleration;
 
+import top.aihmc.omnimorph.render.RenderOwner;
+
 import com.mojang.blaze3d.buffers.GpuBuffer;
 import com.mojang.blaze3d.buffers.GpuFence;
 import com.mojang.blaze3d.pipeline.ColorTargetState;
@@ -439,7 +441,7 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
             throw new IllegalStateException("Acceleration storage diagnostic shader rejected");
         }
         MeshHandle mesh = probeMesh();
-        DrawBatch batch = new DrawBatch(AccelerationService.INSTANCE.capture(new AccelerationOwner(), "activation-probe"),
+        DrawBatch batch = new DrawBatch(AccelerationService.INSTANCE.capture(new RenderOwner(), "activation-probe"),
                 mesh, new PoseSnapshot(FiguraMat4.of().translate(0.5, 0, 0), FiguraMat3.of()));
         ByteBuffer vertexData;
         ByteBuffer poseData;
@@ -536,7 +538,7 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
             throw new IllegalStateException("Acceleration diagnostic shader rejected");
         }
         MeshHandle mesh = probeMesh();
-        DrawBatch batch = new DrawBatch(AccelerationService.INSTANCE.capture(new AccelerationOwner(), "activation-probe"),
+        DrawBatch batch = new DrawBatch(AccelerationService.INSTANCE.capture(new RenderOwner(), "activation-probe"),
                 mesh, new PoseSnapshot(FiguraMat4.of().translate(0.5, 0, 0), FiguraMat3.of()));
         GpuRigidData group = grouped ? new GpuRigidData(List.of(batch), new long[]{0}) : null;
         ByteBuffer vertexData = grouped ? group.vertices() : GpuBatchData.vertices(mesh, 0, false);

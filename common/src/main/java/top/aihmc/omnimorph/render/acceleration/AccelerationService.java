@@ -1,5 +1,9 @@
 package top.aihmc.omnimorph.render.acceleration;
 
+import top.aihmc.omnimorph.render.RenderOwner;
+import top.aihmc.omnimorph.render.RenderLifetime;
+import top.aihmc.omnimorph.render.RenderLifetime.Lease;
+
 import java.util.Objects;
 import java.util.List;
 import java.util.function.BooleanSupplier;
@@ -10,25 +14,26 @@ import net.minecraft.client.renderer.rendertype.RenderType;
 /** Global routing and lifetime boundary. No engine names or platform loading here. */
 public final class AccelerationService {
     public static final int MAX_BATCH_VERTICES = 65_536;
-    public static final AccelerationService INSTANCE = new AccelerationService();
+    public static final AccelerationService INSTANCE = new AccelerationService(RenderLifetime.INSTANCE);
 
-    public record Lease(AccelerationOwner owner, long ownerGeneration, long resources, long frame, String view) {
-        public Lease {
-            Objects.requireNonNull(owner);
-            Objects.requireNonNull(view);
-        }
-    }
 
     private final AccelerationBackend javaBackend = new JavaAccelerationBackend();
     private volatile AccelerationBackend preferredBackend = javaBackend;
     private volatile Consumer<Throwable> backendFailure = ignored -> {};
-    private volatile long resources;
-    private volatile long frame;
+    private final RenderLifetime lifetime;
+
+    public AccelerationService() {
+        this(new RenderLifetime());
+    }
+
+    private AccelerationService(RenderLifetime lifetime) {
+        this.lifetime = lifetime;
+    }
 
     public void beginFrame() {
         AccelerationBackend backend;
         synchronized (this) {
-            frame++;
+            lifetime.beginFrame();
             backend = preferredBackend;
         }
         try {
@@ -39,7 +44,7 @@ public final class AccelerationService {
     }
 
     public synchronized void invalidateResources() {
-        resources++;
+        lifetime.invalidateResources();
         preferredBackend.invalidateResources();
     }
 
@@ -52,7 +57,7 @@ public final class AccelerationService {
         AccelerationBackend previous = preferredBackend;
         preferredBackend = backend == null ? javaBackend : Objects.requireNonNull(backend);
         backendFailure = Objects.requireNonNull(onFailure);
-        resources++;
+        lifetime.invalidateResources();
         if (previous != preferredBackend && previous != javaBackend) {
             previous.close();
         }
@@ -179,13 +184,12 @@ public final class AccelerationService {
         backendFailed(preferredBackend, failure);
     }
 
-    public Lease capture(AccelerationOwner owner, String view) {
-        return new Lease(owner, owner.generation(), resources, frame, view);
+    public Lease capture(RenderOwner owner, String view) {
+        return lifetime.capture(owner, view);
     }
 
     public boolean isCurrent(Lease lease) {
-        return lease.owner().isCurrent() && lease.ownerGeneration() == lease.owner().generation()
-                && lease.resources() == resources && lease.frame() == frame;
+        return lifetime.isCurrent(lease);
     }
 
     /** Null means stale; the caller must not publish a stale result or retry it as Java. */

@@ -1,5 +1,7 @@
 package top.aihmc.omnimorph.render.acceleration;
 
+import top.aihmc.omnimorph.render.RenderOwner;
+
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.rendertype.RenderType;
@@ -134,7 +136,7 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
     }
 
     private static final class Entry {
-        final AccelerationOwner owner;
+        final RenderOwner owner;
         final GpuDeviceAdapter.Mesh mesh;
         final int indices;
         long lastFrame;
@@ -169,8 +171,8 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
     private static final int MAX_POOLED_POSES = 256;
     private static final int POSE_DEMAND_WINDOW = 120;
     private final List<GpuDeviceAdapter.Pose> framePoses = new ArrayList<>();
-    private final Map<GpuDeviceAdapter.Resource, AccelerationOwner> poseOwners = new IdentityHashMap<>();
-    private final Map<AccelerationOwner, Map<Long, ArrayDeque<GpuDeviceAdapter.Pose>>> freePoses =
+    private final Map<GpuDeviceAdapter.Resource, RenderOwner> poseOwners = new IdentityHashMap<>();
+    private final Map<RenderOwner, Map<Long, ArrayDeque<GpuDeviceAdapter.Pose>>> freePoses =
             new IdentityHashMap<>();
     private int pooledPoses;
     private int poseDemand;
@@ -993,7 +995,7 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
     }
 
     /** Overwrites a fence-completed buffer of the same owner and layout size, or uploads a new one. */
-    private GpuDeviceAdapter.Pose acquirePose(AccelerationOwner owner, ByteBuffer data) {
+    private GpuDeviceAdapter.Pose acquirePose(RenderOwner owner, ByteBuffer data) {
         long size = data.remaining();
         Map<Long, ArrayDeque<GpuDeviceAdapter.Pose>> ownerPool = freePoses.get(owner);
         ArrayDeque<GpuDeviceAdapter.Pose> free = ownerPool == null ? null : ownerPool.get(size);
@@ -1022,7 +1024,7 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
         return pose;
     }
 
-    private void ownFramePose(AccelerationOwner owner, GpuDeviceAdapter.Pose pose) {
+    private void ownFramePose(RenderOwner owner, GpuDeviceAdapter.Pose pose) {
         framePoses.add(pose);
         poseOwners.put(pose, owner);
     }
@@ -1068,7 +1070,7 @@ public final class GpuAccelerationBackend implements AccelerationBackend {
 
     /** Runs from retirement after the fence completed; may run after close, when it declines. */
     private boolean recyclePose(GpuDeviceAdapter.Resource resource) {
-        AccelerationOwner owner = poseOwners.remove(resource);
+        RenderOwner owner = poseOwners.remove(resource);
         if (closed || invalidated || owner == null || !owner.isCurrent()
                 || pooledPoses >= Math.min(MAX_POOLED_POSES, poseDemand)
                 || !(resource instanceof GpuDeviceAdapter.Pose pose)) {
