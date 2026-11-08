@@ -595,6 +595,9 @@ public class WardrobeScreen extends AbstractPanelScreen {
             rebuild();
         });
         int listHeight = Math.max(88, height - 88);
+        // The compact outfit list starts on the top row beside the preview, which no longer holds pane buttons.
+        int listY = compactOutfit() ? layout.top() : 54;
+        listHeight += 54 - listY;
         if (tab == Tab.COLLECTION) {
             var view = cardViews.computeIfAbsent(context(), ignored -> new WardrobeCollectionGrid.View());
             collectionGrid = addRenderableWidget(new WardrobeCollectionGrid(x, 54, w,
@@ -621,7 +624,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
             }
         } else if (source == Source.LOCAL && mode != Mode.COSMETIC
                 && (mode == Mode.AVATAR || localCosmetics(true).isEmpty())) {
-            localList = new AvatarList(x, 54, w, listHeight, this, this::selectLocal,
+            localList = new AvatarList(x, listY, w, listHeight, this, this::selectLocal,
                     avatar -> tab == Tab.COLLECTION || localCandidates.contains(avatar.getTheActualPathForThis()));
             localList.showSourceBadge(true);
             localList.setOutfitRemoval(this::removeLocalOutfit);
@@ -634,7 +637,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
             addRenderableWidget(localList);
         } else {
             var view = cloudViews.computeIfAbsent(context(), ignored -> new WardrobeCloudList.View());
-            cloudList = addRenderableWidget(new WardrobeCloudList(x, 54, w, Math.max(72, listHeight - 14), view,
+            cloudList = addRenderableWidget(new WardrobeCloudList(x, listY, w, Math.max(72, listHeight - 14), view,
                     this::selectCloud, id -> client == null ? FiguraText.of("gui.library.state.offline")
                     : text(collection.cacheState(id))));
             cloudList.setResourceFilters(sourceFilter, modeFilter, resourceFiltersExpanded,
@@ -991,33 +994,33 @@ public class WardrobeScreen extends AbstractPanelScreen {
         return WardrobePreviewStatus.of(selectedCollectionModel());
     }
 
-    /** Reuses the catalog card status icons in the bottom-left corner of the wardrobe preview. */
+    /** Draws the three status indicators in the bottom-left corner of the wardrobe preview. */
     private void renderPreviewStatus(GuiGraphicsExtractor gui, int x, int bottom, int mouseX, int mouseY) {
         var status = previewStatus();
-        var model = selectedCollectionModel();
-        if (status == null || model == null) {
+        int iconX = x + 4;
+        int iconY = bottom - 18;
+        boolean known = status != null;
+        ModelCardWidget.drawPreviewStatus(gui, iconX, iconY, known,
+                known && status.blocked(), known && status.requiresAuthorization(), known && status.privateVisibility());
+        if (!UIHelper.isMouseOver(iconX, iconY, ModelCardWidget.PREVIEW_STATUS_WIDTH, 14, mouseX, mouseY)) {
             return;
         }
-        // drawStatusIcons places its row at y + imageSize - 10; with no image this keeps the row inside the frame.
-        ModelCardWidget.drawStatusIcons(gui, x, bottom - 6, 0, model);
-        var lines = new ArrayList<Component>();
-        if (status.requiresAuthorization()) {
-            lines.add(FiguraText.of("gui.library.authorization"));
+        if (!known) {
+            UIHelper.setTooltip(text("preview_status_unavailable"));
+            return;
         }
-        if (status.privateVisibility()) {
-            lines.add(FiguraText.of("gui.library.private"));
+        var model = selectedCollectionModel();
+        Component tooltip = Component.empty().copy()
+                .append(FiguraText.of("gui.library.filter.authorization",
+                        FiguraText.of(status.requiresAuthorization() ? "gui.yes" : "gui.no")))
+                .append("\n")
+                .append(FiguraText.of("gui.library.card_visibility",
+                        FiguraText.of(status.privateVisibility() ? "gui.library.private" : "gui.library.public")));
+        if (status.blocked() && model != null) {
+            tooltip = tooltip.copy().append("\n")
+                    .append(top.aihmc.omnimorph.gui.widgets.library.LibraryLabels.status(model.moderationStatus()));
         }
-        if (status.blocked()) {
-            lines.add(top.aihmc.omnimorph.gui.widgets.library.LibraryLabels.status(model.moderationStatus()));
-        }
-        int iconsWidth = lines.size() * 15;
-        if (UIHelper.isMouseOver(x + 4, bottom - 17, iconsWidth, 15, mouseX, mouseY)) {
-            var tooltip = Component.empty().copy();
-            for (int index = 0; index < lines.size(); index++) {
-                tooltip.append(index == 0 ? Component.empty() : Component.literal("\n")).append(lines.get(index));
-            }
-            UIHelper.setTooltip(tooltip);
-        }
+        UIHelper.setTooltip(tooltip);
     }
 
     private LibraryModels.Model selectedCollectionModel() {
@@ -1275,7 +1278,9 @@ public class WardrobeScreen extends AbstractPanelScreen {
                     }, index -> bones.view(choices.get(index).view()), 6));
             treeTop += 24;
         }
-        addRenderableWidget(new BoneTreeWidget(x, treeTop, w, Math.max(40, height - 140 - (treeTop - layout.top())), bones,
+        // Compact bone editing extends the tree down to its action button.
+        int treeHeight = compactOutfit() ? height - 64 - treeTop : height - 140 - (treeTop - layout.top());
+        addRenderableWidget(new BoneTreeWidget(x, treeTop, w, Math.max(40, treeHeight), bones,
                 this::refreshBones, this::selectTreeTarget)).setContextAction(
                         (target, event) -> openBoneContext(target, event.x(), event.y()));
         if (outfitDraft != null && draftPreviewActive) {

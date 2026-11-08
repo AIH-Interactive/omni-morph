@@ -53,6 +53,7 @@
     "omni-morph.gui.wardrobe.resources": "资源",
     "omni-morph.gui.wardrobe.preview": "预览",
     "omni-morph.gui.wardrobe.tree": "骨骼",
+    "omni-morph.gui.wardrobe.preview_status_unavailable": "本地、草稿或当前装备没有模型库状态",
     "omni-morph.gui.wardrobe.info": "信息",
     "omni-morph.gui.wardrobe.coming_2": "敬请期待（2.0实装）",
     "omni-morph.gui.wardrobe.combination": "装饰组合槽位",
