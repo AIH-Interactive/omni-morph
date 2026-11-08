@@ -10,7 +10,6 @@ import com.mojang.renderpearl.api.pipeline.ColorTargetState;
 import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import com.mojang.renderpearl.api.pipeline.ShaderType;
 import com.mojang.renderpearl.api.device.GpuDevice;
-import net.minecraft.client.renderer.RenderPipelines;
 import com.mojang.renderpearl.api.commands.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.renderpearl.api.textures.GpuTexture;
@@ -150,11 +149,6 @@ final class MinecraftGpuDeviceAdapter implements GpuDeviceAdapter {
     @Override
     public Material compile(RenderPipeline original) {
         return compile(original, false);
-    }
-
-    @Override
-    public boolean shaderSourcesReady() {
-        return sources.getShader(RenderPipelines.ENTITY_CUTOUT.getShaders().get(ShaderType.VERTEX), ShaderType.VERTEX) != null;
     }
 
     @Override
