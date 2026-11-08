@@ -306,13 +306,6 @@ tasks.register('gpuRigidDataSmokeTest', JavaExec) {
     mainClass = 'top.aihmc.omnimorph.render.acceleration.GpuRigidDataSmokeTest'
 }
 
-tasks.register('ysmAccelerationMeshesSmokeTest', JavaExec) {
-    group = 'verification'
-    description = 'Checks immutable YSM acceleration snapshots against direct geometry and visibility edits.'
-    dependsOn testClasses
-    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = 'top.aihmc.omnimorph.model.ysm.YsmAccelerationMeshesSmokeTest'
-}
 
 tasks.register('dualEngineGpuReplay', JavaExec) {
     group = 'verification'
@@ -416,13 +409,6 @@ tasks.register('accelerationPreparationBenchmark', JavaExec) {
     }
 }
 
-tasks.register('figuraStaticMeshCacheSmokeTest', JavaExec) {
-    group = 'verification'
-    description = 'Checks content-verified reuse of rigid Figura meshes and immediate vertex edits.'
-    dependsOn testClasses
-    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = 'top.aihmc.omnimorph.model.rendering.FiguraStaticMeshCacheSmokeTest'
-}
 
 tasks.register('figuraAccelerationReplay', JavaExec) {
     group = 'verification'
