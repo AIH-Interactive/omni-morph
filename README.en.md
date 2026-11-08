@@ -18,19 +18,18 @@ It supports both Lua and Molang: Lua handles scripting and interaction, while Mo
 - **Model library**: upload, categorize, search, favorite, download, equip, and edit basic model information.
 - **Access and moderation**: public and private models, authorization management, reports, appeals, model blocking, and recycle-bin restoration.
 - **Multiplayer sharing**: model distribution and dynamic state synchronization through a compatible backend, with Figura Cloud and Protobuf support.
-- **Optional hardware acceleration**: SIMD, GPU, and automatic modes, disabled by default, with a Java fallback when unavailable.
 - **Interface languages**: bundled Simplified Chinese and English.
 
 ## Requirements
 
-This branch targets Minecraft 1.20.1 with Forge-family variants. Run the game on Java 17; use JDK 21 for Gradle with an installed JDK 17 toolchain. Select historical NeoForge with `-PnativeLoader=neoforge`, sharing `forge/`. Download complete six-platform native JARs from successful CI; ordinary local JARs omit those libraries. Full-client/Mixin application, CJK, multiplayer and manual performance checks are SKIPPED (MANUAL, requested by the user; unverified). See the [support matrix and evidence limits](tools/porting/README.md).
+This branch targets Minecraft 1.20.1 with Forge-family variants. Run the game on Java 17; use JDK 21 for Gradle with an installed JDK 17 toolchain. Select historical NeoForge with `-PnativeLoader=neoforge`, sharing `forge/`. Full-client/Mixin application, CJK, multiplayer and manual performance checks are SKIPPED (MANUAL, requested by the user; unverified).
 
 | Component | Version |
 | --- | --- |
 | Minecraft Java | 1.20.1 |
 | Mod loader | Forge 47.1.3 / NeoForge 47.1.106 |
 | Java | 17 |
-| Mod version | 1.0.0-alpha.7 |
+| Mod version | 1.0.0-alpha.8 |
 
 Build dependency versions are listed in [gradle.properties](gradle.properties). This is a client mod; multiplayer resource distribution and state synchronization require a compatible backend.
 
@@ -79,7 +78,7 @@ if ($buildExitCode -ne 0) {
 
 The final artifact is in `forge/build/libs/`, named `omni-morph-...-minecraftforge-mc.jar`.
 
-A standard Forge 47.1.3 / NeoForge 47.1.106 build does not require a C++ toolchain. See [native/README.md](native/README.md) for local SIMD library builds and [protocol/README.md](protocol/README.md) for the protocol specification.
+[Protocol specification](protocol/README.md).
 
 ## Credits
 
@@ -88,7 +87,6 @@ Thanks to these projects and their contributors:
 - [Figura](https://github.com/FiguraMC/Figura): the code foundation for Avatars, Lua, permissions, and the interface.
 - [YesSteveModel](https://github.com/YesSteveModel/YesSteveModel) and [YesSteveModel-Native](https://github.com/YesSteveModel/YesSteveModel-Native): the YSM model ecosystem and implementation references.
 - [Sparkle-Morpher](https://github.com/sdf123098/Sparkle-Morpher) and [OpenYSM / YSMParser](https://github.com/OpenYSM/YSMParser): references for model runtime behavior and format parsing.
-- [openysm.cpp](https://github.com/OpenYSMDev/openysm.cpp): reference comparisons for SIMD/native algorithms.
 - [Sculptor](https://github.com/MrXiaoM/sculptor) and [spm-cloud](https://github.com/sdf123098/spm-cloud): references for backend and protocol design.
 - [FiguraMC/Assets](https://github.com/FiguraMC/Assets): some Simplified Chinese interface translations.
 

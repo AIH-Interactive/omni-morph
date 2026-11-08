@@ -1,4 +1,4 @@
-package top.aihmc.omnimorph.render.acceleration;
+package top.aihmc.omnimorph.model.rendering;
 
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.SharedConstants;
@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.function.Function;
 
 /** Exercises the production deferred Figura emitter, without a graphics device. */
-public final class FiguraAccelerationReplay {
+public final class FiguraOrdinaryReplay {
     public static void main(String[] args) throws Exception {
         replay(null);
     }
@@ -41,14 +41,6 @@ public final class FiguraAccelerationReplay {
         Field avatarField = FiguraRenderer.class.getDeclaredField("avatar");
         avatarField.setAccessible(true);
         avatarField.set(renderer, owner);
-        // allocateInstance skips field initializers; install the renderer-owned static mesh cache.
-        var cacheType = Class.forName("top.aihmc.omnimorph.model.rendering.FiguraStaticMeshCache");
-        var cacheConstructor = cacheType.getDeclaredConstructor();
-        cacheConstructor.setAccessible(true);
-        Field cacheField = ImmediateFiguraRenderer.class.getDeclaredField("staticMeshes");
-        cacheField.setAccessible(true);
-        cacheField.set(renderer, cacheConstructor.newInstance());
-
         Class<?> dataType = Class.forName(ImmediateFiguraRenderer.class.getName() + "$VertexData");
         var constructor = dataType.getDeclaredConstructor();
         constructor.setAccessible(true);

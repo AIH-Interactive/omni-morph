@@ -46,14 +46,14 @@ public final class YsmMaterialNativeSmokeTest {
         run(args, null);
     }
 
-    /** Reuses the real loader/runtime/native-image scope for acceleration renderer contract tests. */
-    public static void replayAcceleration(Path path, java.util.function.Consumer<YsmModelRuntime> replay) throws Exception {
-        run(new String[]{"--acceleration", path.toString()}, replay);
+    /** Reuses the real loader/runtime/native-image scope for ordinary renderer contract tests. */
+    public static void replayModel(Path path, java.util.function.Consumer<YsmModelRuntime> replay) throws Exception {
+        run(new String[]{"--model-replay", path.toString()}, replay);
     }
 
     /** Loads an actual Figura model through formal compilation into a detached preview Avatar. */
-    public static void replayFiguraAcceleration(Path path, java.util.function.Consumer<Avatar> replay) throws Exception {
-        run(new String[]{"--figura-acceleration", path.toString()}, null, replay);
+    public static void replayFiguraModel(Path path, java.util.function.Consumer<Avatar> replay) throws Exception {
+        run(new String[]{"--figura-model", path.toString()}, null, replay);
     }
 
     /** Native uploads require a real context on 1.21.1; nested scopes borrow the current context. */
@@ -177,7 +177,7 @@ public final class YsmMaterialNativeSmokeTest {
                 AvatarAsyncLoadSmokeTest.run(unsafe, client, client::drain);
                 return;
             }
-            if (args.length == 2 && args[0].equals("--acceleration")) {
+            if (args.length == 2 && args[0].equals("--model-replay")) {
                 client.sounds = YsmStabilitySmokeTest.soundManager(unsafe);
                 try {
                     Avatar avatar = owner(unsafe, 918);
@@ -192,7 +192,7 @@ public final class YsmMaterialNativeSmokeTest {
                 }
                 return;
             }
-            if (args.length == 2 && args[0].equals("--figura-acceleration")) {
+            if (args.length == 2 && args[0].equals("--figura-model")) {
                 client.sounds = YsmStabilitySmokeTest.soundManager(unsafe, true);
                 Avatar avatar = null;
                 try {
@@ -1282,18 +1282,10 @@ public final class YsmMaterialNativeSmokeTest {
                 ]}]}
                 """);
         var runtime = fixture.runtime;
-        var service = top.aihmc.omnimorph.render.acceleration.AccelerationService.INSTANCE;
-        Field backend = service.getClass().getDeclaredField("preferredBackend");
-        backend.setAccessible(true);
-        Object previousBackend = backend.get(service);
         boolean previousPaperdoll = org.figuramc.figura.utils.ui.UIHelper.paperdoll;
         try {
-            for (boolean accelerated : new boolean[]{false, true}) {
-                // A distinct Java backend exercises production accelerated capture and fallback emission.
-                if (accelerated) {
-                    backend.set(service, new top.aihmc.omnimorph.render.acceleration.JavaAccelerationBackend());
-                }
-                top.aihmc.omnimorph.render.acceleration.FiguraAccelerationReplay.replay(null);
+            {
+                top.aihmc.omnimorph.model.rendering.FiguraOrdinaryReplay.replay(null);
                 var alphas = new ArrayList<Float>();
                 var currentMaterial = new java.util.concurrent.atomic.AtomicReference<net.minecraft.client.renderer.RenderType>();
                 var consumer = (com.mojang.blaze3d.vertex.VertexConsumer) java.lang.reflect.Proxy.newProxyInstance(
@@ -1347,9 +1339,8 @@ public final class YsmMaterialNativeSmokeTest {
                 require(runtime.getPart("root").visibleRaw() && runtime.getPart("selected").visibleRaw(),
                         "preview feedback never edits source visibility");
             }
-            System.out.println("PASS Figura/YSM bone fade: Java and accelerated emitters, selected subtree, deferred alpha and world isolation");
+            System.out.println("PASS Figura/YSM bone fade: ordinary emitters, selected subtree, deferred alpha and world isolation");
         } finally {
-            backend.set(service, previousBackend);
             top.aihmc.omnimorph.model.library.PreviewBoneHighlight.finishFrame();
             org.figuramc.figura.utils.ui.UIHelper.paperdoll = previousPaperdoll;
             runtime.close();
@@ -1589,7 +1580,7 @@ public final class YsmMaterialNativeSmokeTest {
             var nativeBlended = net.minecraft.client.renderer.RenderType.entityTranslucent(runtime.texture().getLocation());
             require(blended == net.minecraft.client.renderer.RenderType.entityTranslucentCull(runtime.texture().getLocation())
                             && hasBlending(blended), "all_cutout preserves translucent alpha blending");
-            require(renderStateField(blended, "outputState") == renderStateField(nativeBlended, "outputState") && blended.sortOnUpload,
+            require(renderStateField(blended, "outputState") == renderStateField(nativeBlended, "outputState") && YsmPreviewLightingSmokeTest.sortsOnUpload(blended),
                     "culled translucent models retain the world output target and transparency sorting");
             require(renderType.invoke(renderer) == blended, "repeated render passes reuse the model-owned render type");
             require(runtime.setTexture("c"), "skin switch succeeds under all_cutout");

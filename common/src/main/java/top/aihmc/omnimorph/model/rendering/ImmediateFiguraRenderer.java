@@ -262,7 +262,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
             updateCameraToWorldMatrix();
         }
 
-        // The native traversal clips faces before either ordinary or accelerated submission.
+        // The native traversal clips faces before ordinary vertex submission.
         avatar.prepareComplexityFrame();
         var outfitBudget = OutfitInstructionBudget.currentFaces(avatar);
         int allowance = outfitBudget == null ? avatar.complexity.remaining

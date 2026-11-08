@@ -21,7 +21,6 @@ import org.figuramc.figura.lua.FiguraLuaPrinter;
 import org.figuramc.figura.lua.docs.FiguraDocsManager;
 import org.figuramc.figura.permissions.PermissionManager;
 import org.figuramc.figura.resources.FiguraRuntimeResources;
-import top.aihmc.omnimorph.render.acceleration.HardwareAcceleration;
 import top.aihmc.omnimorph.model.ysm.YsmInputState;
 import org.figuramc.figura.utils.ColorUtils;
 import org.figuramc.figura.utils.FiguraIdentifier;
@@ -99,7 +98,6 @@ public class FiguraMod {
 
 
     public static void tick() {
-        HardwareAcceleration.flushChat();
         YsmInputState.device().tick(Minecraft.getInstance());
         pushProfiler("network");
         NetworkStuff.tick();

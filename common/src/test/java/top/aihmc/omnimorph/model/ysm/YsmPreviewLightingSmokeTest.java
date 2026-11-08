@@ -42,7 +42,7 @@ public final class YsmPreviewLightingSmokeTest {
     public static void verifyMaterial(RenderType material, boolean cull, boolean translucent) throws Exception {
         var state = field(material, "state");
         require(material.format() == DefaultVertexFormat.NEW_ENTITY, "unlit material retains native entity format");
-        require(material.sortOnUpload == translucent, "only blended materials sort on upload");
+        require(sortsOnUpload(material) == translucent, "only blended materials sort on upload");
         require(field(state, "cullState") == shard(cull ? "CULL" : "NO_CULL"), "native face-culling policy");
         require(field(state, "transparencyState") == shard(translucent ? "TRANSLUCENT_TRANSPARENCY" : "NO_TRANSPARENCY"),
                 "native alpha-blending policy");
@@ -188,6 +188,12 @@ public final class YsmPreviewLightingSmokeTest {
         var field = RenderStateShard.class.getDeclaredField(name);
         field.setAccessible(true);
         return field.get(null);
+    }
+
+    public static boolean sortsOnUpload(RenderType material) throws Exception {
+        var field = RenderType.class.getDeclaredField("sortOnUpload");
+        field.setAccessible(true);
+        return field.getBoolean(material);
     }
 
     private static Object field(Object value, String name) throws Exception {

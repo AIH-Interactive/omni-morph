@@ -13,7 +13,6 @@ import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.backend2.NetworkStuff;
-import top.aihmc.omnimorph.render.acceleration.HardwareAcceleration;
 import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.gui.ActionWheel;
 import org.figuramc.figura.gui.FiguraToast;
@@ -159,11 +158,6 @@ public abstract class MinecraftMixin {
         FiguraMod.tick();
         top.aihmc.omnimorph.lua.api.particle.ParticleDynamicLights.updateFrame(1);
         FiguraMod.popProfiler();
-    }
-
-    @Inject(at = @At("HEAD"), method = "close")
-    private void figura$closeAcceleration(CallbackInfo ci) {
-        HardwareAcceleration.shutdown();
     }
 
     @Inject(at = @At("HEAD"), method = "tick")

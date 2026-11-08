@@ -9,4 +9,4 @@
 
 每阶段自动验证→额度→diff/status/check→独立提交推送并核对→下一阶段。人工实机全部SKIPPED（用户决定，未执行），不启动游戏。不得误删粒子acceleration、OutfitNativeRenderer、蒙皮/预算/挂点显隐/法线UV、缓存加密、云协议、音频等业务。参考1.21.1 c73c5f0c/9de3ab64/7d59c3c2/74f64875、26.1.2 fce9c5b5/d9efc440/3735d7b0/5a45a5ac/85df3159，按本版1.20.1接口适配。
 
-进度：阶段一01cad40d已推送；阶段二RED/GREEN完成，准备独立提交，详见docs/acceleration-revert/stage-1.md等记录。
+进度：阶段一01cad40d、阶段二c66b722e已推送；阶段三设置RED/GREEN及双JAR审计完成，准备独立提交，详见docs/acceleration-revert/stage-1.md等记录。

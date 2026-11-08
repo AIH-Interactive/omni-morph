@@ -202,83 +202,14 @@ tasks.withType(Test).configureEach {
     failOnNoDiscoveredTests = false
 }
 
-tasks.register('accelerationGpuRouteProbe', JavaExec) {
-    group = 'verification'
-    description = 'H0 only: opens a real window and exercises Minecraft matrix uniform and indexed draw APIs.'
-    dependsOn testClasses
-    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = 'top.aihmc.omnimorph.render.acceleration.AccelerationGpuRouteProbe'
-    jvmArgs '--enable-native-access=ALL-UNNAMED'
-    args rootProject.file('build/reports/acceleration/h0-gpu-route.txt').path
-}
 
-tasks.register('accelerationContractSmokeTest', JavaExec) {
-    group = 'verification'
-    description = 'Checks immutable transform batches, numeric conventions and stale lifetime rejection.'
-    dependsOn testClasses
-    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = 'top.aihmc.omnimorph.render.acceleration.AccelerationContractSmokeTest'
-}
 
-tasks.named('compileJava', JavaCompile) {
-    options.headerOutputDirectory = layout.buildDirectory.dir('generated/jni')
-}
 
-tasks.register('nativeSmokeTest', JavaExec) {
-    group = 'verification'
-    description = 'Runs actual JNI numerical, memory boundary and renderer replay tests from the local JAR.'
-    dependsOn testClasses, ':packageLocalNative'
-    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = 'top.aihmc.omnimorph.render.acceleration.NativeAccelerationSmokeTest'
-    jvmArgs '--enable-native-access=ALL-UNNAMED', '-Xcheck:jni'
-    args rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-${rootProject.loaderArtifactClassifier}-windows-local.jar").path,
-            rootProject.file('build/reports/acceleration/h2-jni-timing.csv').path,
-            rootProject.file('refs/avatars/末影龙娘.ysm').path
-}
 
-tasks.register('nativeTimingTest', JavaExec) {
-    group = 'verification'
-    description = 'Measures JNI and complete packing/output cost without diagnostic JNI checking overhead.'
-    dependsOn testClasses, ':packageLocalNative'
-    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = 'top.aihmc.omnimorph.render.acceleration.NativeAccelerationSmokeTest'
-    jvmArgs '--enable-native-access=ALL-UNNAMED'
-    args rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-${rootProject.loaderArtifactClassifier}-windows-local.jar").path,
-            rootProject.file('build/reports/acceleration/h2-jni-timing-runtime.csv').path, '--timing-only'
-}
 
-tasks.register('hardwareAccelerationSmokeTest', JavaExec) {
-    group = 'verification'
-    description = 'Checks actual setting persistence/undo, frame activation, deferred chat and runtime Java fallback.'
-    dependsOn testClasses
-    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = 'top.aihmc.omnimorph.render.acceleration.HardwareAccelerationSmokeTest'
-}
 
-tasks.register('gpuAccelerationSmokeTest', JavaExec) {
-    group = 'verification'
-    description = 'Fast CPU tests of GPU batch layout, draw routing, budgets, failures and fence ownership; no window/pixel claim.'
-    dependsOn testClasses
-    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = 'top.aihmc.omnimorph.render.acceleration.GpuAccelerationSmokeTest'
-}
 
-tasks.register('gpuOpenGlSmokeTest', JavaExec) {
-    group = 'verification'
-    description = 'Exercises the shared production GPU backend in a visible desktop GL window.'
-    dependsOn testClasses
-    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = 'top.aihmc.omnimorph.render.acceleration.GpuOpenGlSmokeTest'
-}
 
-tasks.register('gpuAllocationRegression', JavaExec) {
-    group = 'verification'
-    description = 'Checks bounded allocation of warmed large-model production face sorting under a small heap.'
-    dependsOn testClasses
-    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = 'top.aihmc.omnimorph.render.acceleration.GpuAllocationRegression'
-    maxHeapSize = '256m'
-}
 
 tasks.register('commandSuggestionsMixinSmokeTest', JavaExec) {
     group = 'verification'
@@ -421,31 +352,8 @@ tasks.register('loaderArtifactSmokeTest', JavaExec) {
             rootProject.selectedLoaderCoordinate, providers.gradleProperty('artifactAuditVersion').getOrElse(project.jarVersion)
 }
 
-tasks.register('nativeBufferMemorySmokeTest', JavaExec) {
-    group = 'verification'
-    description = 'Checks actual 1.20.1 native allocations across repeated GPU fallback flushes.'
-    dependsOn testClasses
-    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = 'top.aihmc.omnimorph.render.acceleration.GpuSubmissionSmokeTest'
-    systemProperty 'omnimorph.memoryCycles', providers.gradleProperty('nativeMemoryCycles').getOrElse('1024')
-    args '--native-memory'
-}
 
-tasks.register('gpuSubmissionSmokeTest', JavaExec) {
-    group = 'verification'
-    description = 'Checks 1.21.1 GPU rejection and native Java BufferSource ordering, sorting and cleanup.'
-    dependsOn testClasses
-    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = 'top.aihmc.omnimorph.render.acceleration.GpuSubmissionSmokeTest'
-}
 
-tasks.register('gpuRigidDataSmokeTest', JavaExec) {
-    group = 'verification'
-    description = 'Checks sorted rigid palette packing, remap bounds and frame memory accounting.'
-    dependsOn testClasses
-    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = 'top.aihmc.omnimorph.render.acceleration.GpuRigidDataSmokeTest'
-}
 
 tasks.register('figuraTextureRegistrationSmokeTest', JavaExec) {
     group = 'verification'
@@ -464,142 +372,15 @@ tasks.register('ysmPreviewLightingSmokeTest', JavaExec) {
 }
 
 
-tasks.register('dualEngineGpuReplay', JavaExec) {
-    group = 'verification'
-    description = 'Replays production Figura/YSM emitters through the GPU wire layout using a CPU decoder.'
-    dependsOn testClasses
-    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = 'top.aihmc.omnimorph.render.acceleration.DualEngineGpuReplay'
-    args rootProject.file('refs/avatars/末影龙娘.ysm').path,
-            rootProject.file('refs/avatars/芙宁娜Lv.999-白v1.11.ysm').path
-}
-
-tasks.register('dualEngineGpuDriverReplay', JavaExec) {
-    group = 'verification'
-    description = 'Feeds actual YSM/Figura production batches to real GL indexed draws and the CPU layout oracle.'
-    dependsOn testClasses
-    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = 'top.aihmc.omnimorph.render.acceleration.DualEngineGpuReplay'
-    args '--gl', rootProject.file('refs/avatars/末影龙娘.ysm').path,
-            rootProject.file('refs/avatars/芙宁娜Lv.999-白v1.11.ysm').path
-}
-
-tasks.register('gpuLowHeapModelReplay', JavaExec) {
-    group = 'verification'
-    description = 'Replays real large YSM and Figura batches through GL under the reported 598 MiB heap limit.'
-    dependsOn testClasses
-    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = 'top.aihmc.omnimorph.render.acceleration.DualEngineGpuReplay'
-    maxHeapSize = '598m'
-    args '--gl', rootProject.file('refs/avatars/末影龙娘.ysm').path,
-            rootProject.file('refs/avatars/芙宁娜Lv.999-白v1.11.ysm').path,
-            rootProject.file('refs/avatars/芙宁娜v3.14中文配音.ysm').path
-}
-
-tasks.register('compileProductionNativeInterface', JavaCompile) {
-    group = 'build'
-    source files(
-            'src/main/java/top/aihmc/omnimorph/render/acceleration/NativeBindings.java',
-            'src/main/java/top/aihmc/omnimorph/render/acceleration/NativeLibraryLoader.java',
-            'src/main/java/top/aihmc/omnimorph/render/acceleration/FallbackReason.java')
-    classpath = files({ configurations.compileClasspath.findAll { it.name.startsWith('gson-') } })
-    destinationDirectory = rootProject.layout.buildDirectory.dir('native-interface/production-classes')
-    options.headerOutputDirectory = rootProject.layout.buildDirectory.dir('native-interface/headers')
-    doLast {
-        copy {
-            from classpath
-            into rootProject.layout.buildDirectory.dir('native-interface/lib')
-        }
-        copy {
-            from rootProject.file('native/include/acceleration.hpp')
-            into rootProject.layout.buildDirectory.dir('native-interface/spec')
-        }
-    }
-}
-
-tasks.register('compileNativeInterface', JavaCompile) {
-    group = 'build'
-    source files(
-            'src/main/java/top/aihmc/omnimorph/render/acceleration/NativeBindings.java',
-            'src/main/java/top/aihmc/omnimorph/render/acceleration/NativeLibraryLoader.java',
-            'src/main/java/top/aihmc/omnimorph/render/acceleration/FallbackReason.java',
-            'src/test/java/top/aihmc/omnimorph/render/acceleration/NativePlatformSmokeTest.java')
-    classpath = files({ configurations.compileClasspath.findAll { it.name.startsWith('gson-') } })
-    destinationDirectory = rootProject.layout.buildDirectory.dir('native-interface/classes')
-    options.headerOutputDirectory = rootProject.layout.buildDirectory.dir('native-interface/headers')
-    doLast {
-        copy {
-            from classpath
-            into rootProject.layout.buildDirectory.dir('native-interface/lib')
-        }
-        copy {
-            from rootProject.file('native/include/acceleration.hpp')
-            into rootProject.layout.buildDirectory.dir('native-interface/spec')
-        }
-    }
-}
-
-tasks.register('nativePlatformSmokeTest', JavaExec) {
-    group = 'verification'
-    dependsOn compileNativeInterface, ':packageLocalNative'
-    classpath = files(rootProject.layout.buildDirectory.dir('native-interface/classes')) +
-            fileTree(rootProject.layout.buildDirectory.dir('native-interface/lib')) +
-            files(rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-${rootProject.loaderArtifactClassifier}-windows-local.jar"))
-    mainClass = 'top.aihmc.omnimorph.render.acceleration.NativePlatformSmokeTest'
-    jvmArgs '--enable-native-access=ALL-UNNAMED', '-Xcheck:jni'
-}
-
-tasks.register('accelerationPreparationBenchmark', JavaExec) {
-    group = 'verification'
-    description = 'Diagnoses actual renderer CPU preparation; command-recorded draws are not GPU/whole-frame performance evidence.'
-    dependsOn testClasses, ':packageLocalNative'
-    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = 'top.aihmc.omnimorph.render.acceleration.AccelerationPreparationBenchmark'
-    systemProperty 'omnimorph.preparation.quick', providers.gradleProperty('preparationQuick').isPresent()
-    maxHeapSize = '2g'
-    jvmArgs '--enable-native-access=ALL-UNNAMED'
-    if (providers.gradleProperty('preparationJfr').isPresent()) {
-        jvmArgs "-XX:StartFlightRecording=filename=${rootProject.file('build/reports/acceleration/h7-preparation.jfr').path},settings=profile,dumponexit=true"
-    }
-    args rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-${rootProject.loaderArtifactClassifier}-windows-local.jar").path,
-            rootProject.file('refs/avatars').path,
-            rootProject.file('build/reports/acceleration/h7-preparation.csv').path
-    if (providers.gradleProperty('preparationSample').isPresent()) {
-        // Semicolon-separated so sample names may contain spaces.
-        providers.gradleProperty('preparationSample').get().split(';').each { sample ->
-            args rootProject.file(sample.trim()).path
-        }
-    }
-}
-
-['nativeActivationSmokeTest': 'allow', 'nativeAccessDeniedSmokeTest': 'deny'].each { taskName, policy ->
-    tasks.register(taskName, JavaExec) {
-        group = 'verification'
-        description = "Checks packaged native activation under actual JDK access policy: $policy"
-        dependsOn testClasses, ':packageLocalNative'
-        def nativeJar = rootProject.file("build/local-native/omni-morph-${rootProject.mod_version}+${rootProject.minecraft_version}-${rootProject.loaderArtifactClassifier}-windows-local.jar")
-        classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath + files(nativeJar)
-        mainClass = 'top.aihmc.omnimorph.render.acceleration.NativeActivationSmokeTest'
-        if (policy == 'allow') {
-            jvmArgs '--enable-native-access=ALL-UNNAMED', '-Xcheck:jni'
-        } else {
-            javaLauncher = javaToolchains.launcherFor {
-                languageVersion = JavaLanguageVersion.of(25)
-            }
-            jvmArgs '--illegal-native-access=deny'
-        }
-        args nativeJar.path, policy
-    }
-}
 
 
-tasks.register('figuraAccelerationReplay', JavaExec) {
-    group = 'verification'
-    description = 'Checks actual deferred Figura vertex output and stale Avatar rejection.'
-    dependsOn testClasses
-    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
-    mainClass = 'top.aihmc.omnimorph.render.acceleration.FiguraAccelerationReplay'
-}
+
+
+
+
+
+
+
 
 tasks.register("scanYsmModels", JavaExec) {
     group = "verification"
@@ -1505,4 +1286,18 @@ tasks.register('omniMorphIdentitySmokeTest', JavaExec) {
 
 tasks.named('test') {
     dependsOn 'omniMorphIdentitySmokeTest'
+}
+
+tasks.register('renderLifetimeSmokeTest', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.render.RenderLifetimeSmokeTest'
+}
+
+tasks.register('figuraOrdinaryReplay', JavaExec) {
+    group = 'verification'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.rendering.FiguraOrdinaryReplay'
 }

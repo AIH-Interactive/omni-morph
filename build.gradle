@@ -3,7 +3,21 @@ plugins {
 	id "dev.architectury.loom" version "1.14.476" apply false
 }
 
-apply from: 'native/packaging.gradle'
+def coordinateOverride = providers.gradleProperty('loaderCoordinate').orNull
+def defaultLoader = coordinateOverride?.startsWith('net.neoforged:') ? 'neoforge' : 'forge'
+def nativeLoader = providers.gradleProperty('nativeLoader').getOrElse(defaultLoader)
+if (!(nativeLoader in ['forge', 'neoforge'])) {
+    throw new GradleException('nativeLoader must be forge or neoforge for Minecraft 1.20.1')
+}
+def loaderCoordinates = [forge: "net.minecraftforge:forge:${rootProject.forge_version}",
+                         neoforge: 'net.neoforged:forge:1.20.1-47.1.106']
+def selectedCoordinate = coordinateOverride ?: loaderCoordinates[nativeLoader]
+def expectedGroup = nativeLoader == 'forge' ? 'net.minecraftforge:forge:' : 'net.neoforged:forge:'
+if (!selectedCoordinate.startsWith(expectedGroup)) {
+    throw new GradleException('nativeLoader and loaderCoordinate select different loader families')
+}
+rootProject.ext.selectedLoaderCoordinate = selectedCoordinate
+rootProject.ext.loaderArtifactClassifier = nativeLoader == 'forge' ? 'minecraftforge-mc' : 'neoforge-mc'
 
 architectury {
 	minecraft = rootProject.minecraft_version
