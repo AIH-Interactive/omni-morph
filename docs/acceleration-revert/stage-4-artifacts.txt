@@ -1,0 +1,2 @@
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\fabric\build\libs\omni-morph-1.0.0-alpha.8+26.1.2-fabric-mc.jar SHA256=5D95A46C9284896DE1C4BC7416420EF22DFF6DC68F700BA6F22ABDBF7A0F24D7
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\neoforge\build\libs\omni-morph-1.0.0-alpha.8+26.1.2-neoforge-mc.jar SHA256=EA44624DB02BC92FC126073DB0565DB94F09E00E30EE862EF06B92531EF88CAE

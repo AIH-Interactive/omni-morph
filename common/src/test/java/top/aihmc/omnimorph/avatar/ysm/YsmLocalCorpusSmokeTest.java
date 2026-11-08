@@ -143,7 +143,7 @@ public final class YsmLocalCorpusSmokeTest {
         require(nbt.contains("models") && !nbt.contains("ysm"), "Figura formal compilation");
         require(nbt.contains("textures") || nbt.contains("scripts"), "Figura assets retained");
         try (var files = Files.walk(path)) {
-            for (Path model : files.filter(file -> file.getFileName().toString().endsWith(".bbmodel")).toList()) {
+            for (Path model : files.filter(file -> file.getFileName() != null && file.getFileName().toString().endsWith(".bbmodel")).toList()) {
                 String name = model.getFileName().toString();
                 name = name.substring(0, name.length() - ".bbmodel".length());
                 require(hasModel(nbt.getCompoundOrEmpty("models"), name), "every Figura model retained: " + name);
