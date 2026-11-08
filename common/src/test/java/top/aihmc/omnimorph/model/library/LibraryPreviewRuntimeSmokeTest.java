@@ -45,6 +45,20 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /** Uses the existing native-loader harness; no GUI/rendered-pixel assertions. */
 public final class LibraryPreviewRuntimeSmokeTest {
     public static void run(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+        var renderLifetime = new top.aihmc.omnimorph.render.RenderLifetime();
+        var renderOwner = new top.aihmc.omnimorph.render.RenderOwner();
+        var currentLease = renderLifetime.capture(renderOwner, "library");
+        require(renderLifetime.isCurrent(currentLease), "current library pose remains valid");
+        renderLifetime.invalidateResources();
+        require(!renderLifetime.isCurrent(currentLease), "resource reload rejects captured library pose");
+        var retiredLease = renderLifetime.capture(renderOwner, "library");
+        renderOwner.retire();
+        require(!renderLifetime.isCurrent(retiredLease), "retired model rejects captured library pose");
+        require(Configs.WARDROBE_AUTO_CACHE.parent == Configs.MISC,
+                "ordinary cache preference remains registered");
+        require(org.figuramc.figura.config.ConfigManager.CATEGORIES_REGISTRY.keySet().stream()
+                        .noneMatch(name -> name.contains("hardware_acceleration")),
+                "removed hardware acceleration category must not appear in settings");
         Object users = field(AvatarManager.class, "LOADED_USERS").get(null);
         int userCount = ((Map<?, ?>) users).size();
         int permissions = ((Map<?, ?>) field(PermissionManager.class, "PLAYERS").get(null)).size();

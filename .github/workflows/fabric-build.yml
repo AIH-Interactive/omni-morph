@@ -16,7 +16,7 @@ defaults:
 
 jobs:
   build-mod:
-    name: Linux ${{ matrix.loader }} base and JNI interface
+    name: Build ${{ matrix.loader }} production JAR
     strategy:
       fail-fast: false
       matrix:
@@ -32,226 +32,29 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: gradle
-      - name: Build production loader base JAR and JNI headers
+      - name: Build production loader JAR
         run: |
-          & bash ./gradlew stageNativeBase '-PnativeLoader=${{ matrix.loader }}' '-PnativeBaseDir=build/native-base/${{ matrix.loader }}' --no-daemon --console=plain 2>&1 | Tee-Object -FilePath build.log
+          & bash ./gradlew ':${{ matrix.loader }}:remapJar' --no-daemon --console=plain 2>&1 | Tee-Object -FilePath build.log
           $buildExitCode = $LASTEXITCODE
-          Get-Content -LiteralPath build.log -Tail 40
+          Get-Content -LiteralPath build.log -Tail 60
           if ($buildExitCode -ne 0) { exit $buildExitCode }
-      - uses: actions/upload-artifact@v7
-        with:
-          name: internal-base-${{ matrix.loader }}
-          path: build/native-base/${{ matrix.loader }}/
-          if-no-files-found: error
-          retention-days: 7
-      - uses: actions/upload-artifact@v7
-        if: matrix.loader == 'fabric'
-        with:
-          name: internal-native-interface
-          path: build/native-production-interface/
-          if-no-files-found: error
-          retention-days: 7
-      - uses: actions/upload-artifact@v7
-        if: failure()
-        with:
-          name: build-mod-failure-logs-${{ matrix.loader }}
-          path: build.log
-          retention-days: 14
-
-  build-native:
-    name: Native ${{ matrix.platform }}
-    needs: build-mod
-    continue-on-error: true
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: windows-x86_64
-            runner: windows-2025
-          - platform: linux-x86_64
-            runner: ubuntu-24.04
-          - platform: linux-aarch64
-            runner: ubuntu-24.04-arm
-          - platform: android-aarch64
-            runner: ubuntu-24.04
-          - platform: macos-x86_64
-            runner: macos-15-intel
-          - platform: macos-aarch64
-            runner: macos-15
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-      - name: Verify PowerShell on the native runner
+      - name: Select distribution JAR
         run: |
-          $PSVersionTable | Out-String | Write-Output
-          if ($PSVersionTable.PSVersion.Major -lt 7) { throw 'PowerShell 7 is required on every native runner.' }
-      - uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: '25'
-      - uses: actions/download-artifact@v8
-        with:
-          name: internal-native-interface
-          path: build/native-interface
-      - name: Install pinned Android NDK
-        if: matrix.platform == 'android-aarch64'
-        run: |
-          & "$env:ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install 'ndk;28.2.13676358' 2>&1 | Tee-Object -FilePath build.log
-          $buildExitCode = $LASTEXITCODE
-          Get-Content -LiteralPath build.log -Tail 40
-          if ($buildExitCode -ne 0) { exit $buildExitCode }
-      - name: Build production native libraries
-        run: |
-          $script = if ('${{ matrix.platform }}' -eq 'android-aarch64') { './tools/build-native-android-ci.ps1' } else { './tools/build-native-ci.ps1' }
-          $arguments = if ('${{ matrix.platform }}' -eq 'android-aarch64') { @{} } else { @{ Platform = '${{ matrix.platform }}' } }
-          & $script @arguments 2>&1 | Tee-Object -FilePath build.log
-          $buildExitCode = $LASTEXITCODE
-          Get-Content -LiteralPath build.log -Tail 40
-          if ($buildExitCode -ne 0) { exit $buildExitCode }
+          $artifacts = @(Get-ChildItem -LiteralPath '${{ matrix.loader }}/build/libs' -Filter '*.jar' | Where-Object { $_.Name -notmatch '-(dev|sources|shadow)\.jar$' })
+          if ($artifacts.Count -ne 1) { throw "Expected one distribution JAR, found $($artifacts.Count)" }
+          New-Item -ItemType Directory -Force -Path build/final | Out-Null
+          Copy-Item -LiteralPath $artifacts[0].FullName -Destination build/final
+          Get-FileHash -Algorithm SHA256 -LiteralPath $artifacts[0].FullName | Format-List | Out-String | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@v7
         with:
-          name: internal-native-${{ matrix.platform }}
-          path: build/native-artifact/${{ matrix.platform }}/
-          if-no-files-found: error
-          retention-days: 7
-      - uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: native-logs-${{ matrix.platform }}
-          path: |
-            build.log
-            build/native/**/build.log
-            build/native/**/*.txt
-          if-no-files-found: ignore
-          retention-days: 14
-
-  assemble:
-    name: Assemble ${{ matrix.loader }} JAR with available natives
-    needs: [build-mod, build-native]
-    if: ${{ !cancelled() && needs.build-mod.result == 'success' }}
-    strategy:
-      fail-fast: false
-      matrix:
-        loader: [fabric, neoforge]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-      - uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: '25'
-          cache: gradle
-      - uses: actions/download-artifact@v8
-        with:
-          name: internal-base-${{ matrix.loader }}
-          path: build/native-base
-      - name: Prepare optional native inputs
-        run: New-Item -ItemType Directory -Force -Path build/native-inputs | Out-Null
-      - uses: actions/download-artifact@v8
-        id: native-download
-        continue-on-error: true
-        with:
-          pattern: internal-native-*-*
-          path: build/native-inputs
-      - name: Report unavailable native downloads
-        if: steps.native-download.outcome == 'failure'
-        run: Write-Warning 'Native artifact download failed; packaging only verified native inputs that are available.'
-      # Keep the repository's strict local packaging defaults. This CI-only overlay
-      # permits missing platforms while retaining all checks on artifacts that exist.
-      - name: Configure optional native packaging for this run
-        run: |
-          $packagingPath = 'native/packaging.gradle'
-          $packaging = Get-Content -LiteralPath $packagingPath -Raw
-          $requiredGuard = 'throw new GradleException("Missing native platforms: ${required.keySet() - seenPlatforms}")'
-          if (-not $packaging.Contains($requiredGuard)) { throw 'Native platform completeness guard changed; review the CI overlay.' }
-          $packaging = $packaging.Replace($requiredGuard, 'logger.warn("Packaging without native platforms: ${required.keySet() - seenPlatforms}")')
-          [IO.File]::WriteAllText((Join-Path $PWD $packagingPath), $packaging)
-          $verifierPath = 'tools/verify-acceleration-artifact.ps1'
-          $verifier = Get-Content -LiteralPath $verifierPath -Raw
-          $requiredGuard = "throw 'The final JAR must contain exactly six native platforms.'"
-          if (-not $verifier.Contains($requiredGuard)) { throw 'Native verifier completeness guard changed; review the CI overlay.' }
-          $verifier = $verifier.Replace($requiredGuard, 'Write-Warning "Missing native platforms: $(@($platforms.Keys | Where-Object { -not $seenPlatforms.Contains($_) } | Sort-Object) -join '', '')"')
-          $verifier = $verifier.Replace('metadata: six platforms,', 'metadata: available platforms,')
-          [IO.File]::WriteAllText((Join-Path $PWD $verifierPath), $verifier)
-      - name: Verify available platforms, commit/run, ABI, hashes, notices and unchanged base entries
-        run: |
-          $properties = @{}
-          foreach ($line in Get-Content -LiteralPath gradle.properties) {
-            if ($line -match '^\s*(archives_base_name|mod_version|minecraft_version)\s*=\s*(\S+)\s*$') {
-              $properties[$Matches[1]] = $Matches[2]
-            }
-          }
-          foreach ($key in 'archives_base_name', 'mod_version', 'minecraft_version') {
-            if (-not $properties.ContainsKey($key)) {
-              throw "Missing $key in gradle.properties"
-            }
-          }
-          $finalJar = 'build/final/{0}-{1}+{2}-${{ matrix.loader }}-mc.jar' -f $properties.archives_base_name, $properties.mod_version, $properties.minecraft_version
-          & bash ./gradlew assembleNativeJar '-PnativeLoader=${{ matrix.loader }}' '-PnativeBaseDir=build/native-base' '-PnativeArtifactsDir=build/native-inputs' "-PnativeOutput=$finalJar" "-PnativeCommit=$env:GITHUB_SHA" "-PnativeRun=$env:GITHUB_RUN_ID" "-PnativeAttempt=$env:GITHUB_RUN_ATTEMPT" --no-daemon --console=plain 2>&1 | Tee-Object -FilePath build.log
-          $buildExitCode = $LASTEXITCODE
-          Get-Content -LiteralPath build.log -Tail 40
-          if ($buildExitCode -ne 0) { exit $buildExitCode }
-          $archive = [IO.Compression.ZipFile]::OpenRead((Resolve-Path -LiteralPath $finalJar))
-          try {
-            $reader = [IO.StreamReader]::new($archive.GetEntry('natives/manifest.json').Open())
-            try { $nativeManifest = $reader.ReadToEnd() | ConvertFrom-Json } finally { $reader.Dispose() }
-            $included = @($nativeManifest.libraries | ForEach-Object { $_.platform })
-            $expected = @('windows-x86_64', 'linux-x86_64', 'linux-aarch64', 'android-aarch64', 'macos-x86_64', 'macos-aarch64')
-            $missing = @($expected | Where-Object { $_ -notin $included })
-            "${{ matrix.loader }} native platforms included: $($included -join ', '); missing: $($missing -join ', ')" | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
-          } finally {
-            $archive.Dispose()
-          }
-          Get-FileHash -Algorithm SHA256 -LiteralPath $finalJar | Format-List | Out-String | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
-      - uses: actions/upload-artifact@v7
-        with:
-          name: internal-final-native-jar-${{ matrix.loader }}
-          path: build/final/*-${{ matrix.loader }}-mc.jar
-          if-no-files-found: error
-          retention-days: 7
-      - uses: actions/upload-artifact@v7
-        if: failure()
-        with:
-          name: assemble-failure-logs-${{ matrix.loader }}
-          path: build.log
-          retention-days: 14
-
-  publish-artifact:
-    name: Downloadable ${{ matrix.label }} JAR
-    needs: assemble
-    if: ${{ !cancelled() && needs.assemble.result == 'success' }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - loader: fabric
-            label: Fabric
-          - loader: neoforge
-            label: NeoForge
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/download-artifact@v8
-        with:
-          name: internal-final-native-jar-${{ matrix.loader }}
-          path: build/final
-      - name: Upload downloadable ${{ matrix.label }} JAR
-        id: artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: OmniMorph-${{ matrix.label }}-26.3
-          path: build/final/*-${{ matrix.loader }}-mc.jar
+          name: OmniMorph-${{ matrix.loader }}-26.3
+          path: build/final/*.jar
           archive: false
           if-no-files-found: error
           retention-days: 30
-      - name: Add download link
-        env:
-          ARTIFACT_URL: ${{ steps.artifact.outputs.artifact-url }}
-        run: |
-          "### Minecraft 26.3 / ${{ matrix.label }} — available production natives; missing platforms listed in assembly summary; runtime tests are not run in Actions" | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
-          "[Download OmniMorph JAR]($env:ARTIFACT_URL)" | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: build-failure-logs-${{ matrix.loader }}
+          path: build.log
+          retention-days: 14

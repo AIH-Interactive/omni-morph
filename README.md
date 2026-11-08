@@ -16,7 +16,6 @@ OmniMorph 是基于 [Figura](https://github.com/FiguraMC/Figura) 的 Minecraft J
 - **模型库**：上传、分类、搜索、收藏、下载、装备和基础信息编辑。
 - **访问与管理**：公开或私有模型、授权管理、举报、申诉、模型屏蔽和回收站恢复。
 - **多人共享**：通过兼容后端进行模型资源分发和动态状态同步，支持 Figura Cloud 与 Protobuf 协议。
-- **可选硬件加速**：提供 SIMD、GPU 和自动模式，默认关闭；不可用时回退至 Java 路径。
 - **界面语言**：内置简体中文与英文界面。
 
 ## 运行环境
@@ -77,7 +76,7 @@ if ($buildExitCode -ne 0) {
 
 成品位于 `fabric/build/libs/`，文件名为 `omni-morph-...-fabric-mc.jar`。
 
-普通 Fabric 构建不需要 C++ 工具链。本地 SIMD 库的构建方法见 [native/README.md](native/README.md)；协议规范见 [protocol/README.md](protocol/README.md)。
+协议规范见 [protocol/README.md](protocol/README.md)。
 
 ### NeoForge
 
@@ -94,9 +93,9 @@ if ($buildExitCode -ne 0) {
 
 正式产物为 `neoforge/build/libs/omni-morph-1.0.0-alpha.7+26.1.2-neoforge-mc.jar`。`build` 包含 `verifyNeoForgeJar`：检查元数据、Mixin 类、运行依赖和平台桥接。`:neoforge:remapJar` 保留为打包入口名称，26.1.2 无需名称重映射；`-Prelease` 省略元数据中的 Git 提交后缀。仅安装与实例加载器匹配的一个 JAR。
 
-[统一构建流水线](https://github.com/AIH-Interactive/omni-morph/actions/workflows/fabric-build.yml) 支持手动运行。Fabric/NeoForge 共用六个平台的 native 构建，各自组装并上传完整 JAR。Actions 仅生产编译、打包和发布，不编译或执行任何测试代码。NeoForge 加载器 ID 为 `omni_morph`；资源命名空间、模型目录和配置文件沿用现有名称。
+[统一构建流水线](https://github.com/AIH-Interactive/omni-morph/actions/workflows/fabric-build.yml) 支持手动运行。Fabric/NeoForge 分别编译并上传普通发行 JAR。Actions 仅生产编译、打包和发布，不编译或执行任何测试代码。NeoForge 加载器 ID 为 `omni_morph`；资源命名空间、模型目录和配置文件沿用现有名称。
 
-上面的本地命令生成不需要 C++ 工具链的 Java 基础包。统一流水线提供包含 Windows x86_64、Linux x86_64/aarch64、Android aarch64、macOS x86_64/aarch64 native 库的正式包，沿用现有硬件加速开关和 Java 回退。真实客户端、GUI/GPU、Android 设备和完整可选模组兼容矩阵仍为 `MANUAL/PENDING`，不阻塞编译交付。
+统一流水线构建并发布 Fabric 和 NeoForge 的普通 Java 发行包。
 
 ## 致谢
 

@@ -1966,74 +1966,62 @@ public final class YsmMaterialNativeSmokeTest {
                 ]}]}
                 """);
         var runtime = fixture.runtime;
-        var service = top.aihmc.omnimorph.render.acceleration.AccelerationService.INSTANCE;
-        Field backend = service.getClass().getDeclaredField("preferredBackend");
-        backend.setAccessible(true);
-        Object previousBackend = backend.get(service);
         boolean previousPaperdoll = org.figuramc.figura.utils.ui.UIHelper.paperdoll;
         try {
-            for (boolean accelerated : new boolean[]{false, true}) {
-                // A distinct Java backend exercises production accelerated capture and fallback emission.
-                if (accelerated) {
-                    backend.set(service, new top.aihmc.omnimorph.render.acceleration.JavaAccelerationBackend());
+            var alphas = new ArrayList<Float>();
+            var currentMaterial = new java.util.concurrent.atomic.AtomicReference<net.minecraft.client.renderer.rendertype.RenderType>();
+            var consumer = (com.mojang.blaze3d.vertex.VertexConsumer) java.lang.reflect.Proxy.newProxyInstance(
+                    YsmMaterialNativeSmokeTest.class.getClassLoader(),
+                    new Class<?>[]{com.mojang.blaze3d.vertex.VertexConsumer.class}, (proxy, method, args) -> {
+                if (method.isDefault()) {
+                    return java.lang.reflect.InvocationHandler.invokeDefault(proxy, method, args);
                 }
-                top.aihmc.omnimorph.render.acceleration.FiguraAccelerationReplay.replay(null, () -> {});
-                var alphas = new ArrayList<Float>();
-                var currentMaterial = new java.util.concurrent.atomic.AtomicReference<net.minecraft.client.renderer.rendertype.RenderType>();
-                var consumer = (com.mojang.blaze3d.vertex.VertexConsumer) java.lang.reflect.Proxy.newProxyInstance(
-                        YsmMaterialNativeSmokeTest.class.getClassLoader(),
-                        new Class<?>[]{com.mojang.blaze3d.vertex.VertexConsumer.class}, (proxy, method, args) -> {
-                    if (method.isDefault()) {
-                        return java.lang.reflect.InvocationHandler.invokeDefault(proxy, method, args);
-                    }
-                    if (method.getName().equals("setColor")) {
-                        float alpha = ((Number) args[3]).floatValue();
-                        require(alpha == 255 || currentMaterial.get().hasBlending(),
-                                "faded preview geometry uses an alpha-capable material");
-                        alphas.add(alpha);
-                    }
-                    return method.getReturnType() == void.class ? null : proxy;
-                });
-                com.mojang.blaze3d.vertex.VertexConsumer ignored = vertexRecorder(new ArrayList<>());
-                top.aihmc.omnimorph.model.rendering.FiguraVertexSource source = material -> {
-                    if (material.primitiveTopology() == com.mojang.renderpearl.api.pipeline.PrimitiveTopology.LINES) {
-                        return ignored;
-                    }
-                    currentMaterial.set(material);
-                    return consumer;
-                };
-                org.figuramc.figura.utils.ui.UIHelper.paperdoll = true;
-                top.aihmc.omnimorph.model.library.PreviewBoneHighlight.capture(runtime.owner(), runtime.getPart("selected"));
-                runtime.renderer().render(new com.mojang.blaze3d.vertex.PoseStack(), source, 0, null,
-                        runtime.captureRenderPose(false));
-                require(alphas.stream().filter(alpha -> alpha == 76).count() == 24
-                                && alphas.stream().filter(alpha -> alpha == 255).count() == 48,
-                        "YSM parent fades while selected bone and child retain opacity, including deferred pose copies");
-                alphas.clear();
-                runtime.owner().renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI;
-                var detached = runtime.forRenderPass();
-                require(detached != runtime && detached.owner() != runtime.owner(),
-                        "bone selection regression exercises the actual detached GUI runtime");
-                detached.renderer().render(new com.mojang.blaze3d.vertex.PoseStack(), source, 0, null,
-                        detached.captureRenderPose(false));
-                require(alphas.stream().filter(alpha -> alpha == 76).count() == 24
-                                && alphas.stream().filter(alpha -> alpha == 255).count() == 48,
-                        "the tree's source selection highlights the detached preview and fades other bones");
-                alphas.clear();
-                org.figuramc.figura.utils.ui.UIHelper.paperdoll = false;
-                runtime.renderer().render(new com.mojang.blaze3d.vertex.PoseStack(), source, 0, null);
-                require(alphas.size() == 72 && alphas.stream().allMatch(alpha -> alpha == 255),
-                        "world rendering remains fully opaque while a GUI selection exists");
-                top.aihmc.omnimorph.model.library.PreviewBoneHighlight.finishFrame();
-                org.figuramc.figura.utils.ui.UIHelper.paperdoll = true;
-                require(top.aihmc.omnimorph.model.library.PreviewBoneHighlight.opacity(runtime.owner(), runtime.getPart("root")) == 1f,
-                        "cleared selections restore the original material opacity");
-                require(runtime.getPart("root").visibleRaw() && runtime.getPart("selected").visibleRaw(),
-                        "preview feedback never edits source visibility");
-            }
-            System.out.println("PASS Figura/YSM bone fade: Java and accelerated emitters, selected subtree, deferred alpha and world isolation");
+                if (method.getName().equals("setColor")) {
+                    float alpha = ((Number) args[3]).floatValue();
+                    require(alpha == 255 || currentMaterial.get().hasBlending(),
+                            "faded preview geometry uses an alpha-capable material");
+                    alphas.add(alpha);
+                }
+                return method.getReturnType() == void.class ? null : proxy;
+            });
+            com.mojang.blaze3d.vertex.VertexConsumer ignored = vertexRecorder(new ArrayList<>());
+            top.aihmc.omnimorph.model.rendering.FiguraVertexSource source = material -> {
+                if (material.primitiveTopology() == com.mojang.renderpearl.api.pipeline.PrimitiveTopology.LINES) {
+                    return ignored;
+                }
+                currentMaterial.set(material);
+                return consumer;
+            };
+            org.figuramc.figura.utils.ui.UIHelper.paperdoll = true;
+            top.aihmc.omnimorph.model.library.PreviewBoneHighlight.capture(runtime.owner(), runtime.getPart("selected"));
+            runtime.renderer().render(new com.mojang.blaze3d.vertex.PoseStack(), source, 0, null,
+                    runtime.captureRenderPose(false));
+            require(alphas.stream().filter(alpha -> alpha == 76).count() == 24
+                            && alphas.stream().filter(alpha -> alpha == 255).count() == 48,
+                    "YSM parent fades while selected bone and child retain opacity, including deferred pose copies");
+            alphas.clear();
+            runtime.owner().renderMode = org.figuramc.figura.model.rendering.EntityRenderMode.FIGURA_GUI;
+            var detached = runtime.forRenderPass();
+            require(detached != runtime && detached.owner() != runtime.owner(),
+                    "bone selection regression exercises the actual detached GUI runtime");
+            detached.renderer().render(new com.mojang.blaze3d.vertex.PoseStack(), source, 0, null,
+                    detached.captureRenderPose(false));
+            require(alphas.stream().filter(alpha -> alpha == 76).count() == 24
+                            && alphas.stream().filter(alpha -> alpha == 255).count() == 48,
+                    "the tree's source selection highlights the detached preview and fades other bones");
+            alphas.clear();
+            org.figuramc.figura.utils.ui.UIHelper.paperdoll = false;
+            runtime.renderer().render(new com.mojang.blaze3d.vertex.PoseStack(), source, 0, null);
+            require(alphas.size() == 72 && alphas.stream().allMatch(alpha -> alpha == 255),
+                    "world rendering remains fully opaque while a GUI selection exists");
+            top.aihmc.omnimorph.model.library.PreviewBoneHighlight.finishFrame();
+            org.figuramc.figura.utils.ui.UIHelper.paperdoll = true;
+            require(top.aihmc.omnimorph.model.library.PreviewBoneHighlight.opacity(runtime.owner(), runtime.getPart("root")) == 1f,
+                    "cleared selections restore the original material opacity");
+            require(runtime.getPart("root").visibleRaw() && runtime.getPart("selected").visibleRaw(),
+                    "preview feedback never edits source visibility");
+            System.out.println("PASS YSM bone fade: ordinary emitter, selected subtree, deferred alpha and world isolation");
         } finally {
-            backend.set(service, previousBackend);
             top.aihmc.omnimorph.model.library.PreviewBoneHighlight.finishFrame();
             org.figuramc.figura.utils.ui.UIHelper.paperdoll = previousPaperdoll;
             runtime.close();

@@ -29,7 +29,7 @@ public abstract class ModelFeatureRendererMixin extends RenderTypeFeatureRendere
     private void figura$withGroupCallbacks(FeatureFrameContext context, List<ModelFeatureRenderer.Submit<?>> submits,
                                            Operation<Void> original) {
         var previousVertices = figura$vertices;
-        figura$vertices = FiguraVertexSource.nativePreparation(this::getVertexBuilder);
+        figura$vertices = this::getVertexBuilder;
         try {
             original.call(context, submits);
         } finally {
