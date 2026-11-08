@@ -4,6 +4,7 @@ import top.aihmc.omnimorph.gui.widgets.library.ModelLibraryLayout;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryActionBar;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryRowList;
+import top.aihmc.omnimorph.gui.widgets.library.LibrarySectionLayout;
 import top.aihmc.omnimorph.utils.FileSizeFormatter;
 
 public final class ModelLibraryLayoutSmokeTest {
@@ -86,6 +87,23 @@ public final class ModelLibraryLayoutSmokeTest {
         var tallerViewport = ModelLibraryLayout.of(398, 100, 8);
         require(tallerViewport.hit(0, 92, 0) == -1, "vertical gaps are not card hits");
         require(ModelLibraryLayout.of(128, 116, 0).hit(0, 0, 0) == -1, "empty grid");
+        // Reference 480x252 GUI: a 22-wide vertical tab column beside the content, 60-tall tabs, 4 apart.
+        var sections = new LibrarySectionLayout(4, 28, 30, 192, 5);
+        require(sections.tabX(0) == 4 && sections.tabX(4) == 4 && sections.tabWidth(0) == 22,
+                "section tabs stack in one narrow column instead of a horizontal row");
+        require(sections.tabHeight() == 60 && sections.tabY(0, 0) == 28 && sections.tabY(1, 0) == 92
+                        && sections.tabY(4, 0) == 284,
+                "section tabs keep their reference height and spacing");
+        require(sections.maximumScroll() == 124,
+                "tabs below the available height are reachable by scrolling the column");
+        require(sections.hit(10, 30, 0) == 0 && sections.hit(10, 89, 0) == -1
+                        && sections.hit(28, 30, 0) == -1 && sections.hit(10, 230, 0) == -1,
+                "tab gaps, the scrollbar and clipped tabs are not section hits");
+        require(sections.hit(10, 170, 124) == 4 && sections.tabY(4, 124) == 160,
+                "scrolling moves the last section into view and onto its hit target");
+        var tall = new LibrarySectionLayout(4, 28, 30, 400, 4);
+        require(tall.maximumScroll() == 0 && tall.hit(10, 28 + 3 * 64, 0) == 3,
+                "a tall window shows every section without scrolling");
         System.out.println("PASS model library layout: responsive columns, scroll anchors, virtualization and clipped hit tests");
     }
 

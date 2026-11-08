@@ -13,6 +13,7 @@ import org.figuramc.figura.gui.widgets.EntityPreview;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryLabels;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryRowList;
+import top.aihmc.omnimorph.gui.widgets.library.LibrarySectionLayout;
 import top.aihmc.omnimorph.gui.widgets.library.LibrarySectionTabs;
 import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
 import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
@@ -89,9 +90,10 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
         retainingChild = false;
         building = true;
         var layout = new LibraryWorkspaceLayout(width, height);
-        int area = layout.contentWidth();
+        // Only make room for the shared vertical section column; the management body is unchanged.
+        int area = layout.contentWidth() - LibrarySectionLayout.WIDTH;
         int previewX = layout.previewX();
-        int contentX = layout.left();
+        int contentX = layout.left() + LibrarySectionLayout.WIDTH;
         var entity = addRenderableWidget(new EntityPreview(previewX, 52, layout.previewWidth(),
                 height - 80, Math.max(12, layout.previewWidth() / 3), -15, 30, preview.entity(), this));
         entity.setLibraryPreview(preview);
@@ -103,7 +105,7 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
             Component hint = FiguraText.of("gui.library.preview." + state.stage().name().toLowerCase(java.util.Locale.ROOT));
             UIHelper.renderScrollingText(gui, hint, previewX, height - 20, layout.previewWidth(), 0xffbac6d8);
         });
-        addRenderableWidget(new LibrarySectionTabs(contentX, 28, area, 4, true, section -> {
+        addRenderableWidget(new LibrarySectionTabs(4, 28, height - 60, 4, true, section -> {
             if (!busy() && parentScreen instanceof ModelLibraryScreen catalog) {
                 minecraft.setScreen(catalog);
                 catalog.openSection(section);

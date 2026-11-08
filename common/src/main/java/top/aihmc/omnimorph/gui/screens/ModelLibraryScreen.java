@@ -15,6 +15,7 @@ import org.figuramc.figura.gui.widgets.SearchBar;
 import org.figuramc.figura.gui.widgets.SwitchButton;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryActionBar;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryIconButton;
+import top.aihmc.omnimorph.gui.widgets.library.LibrarySectionLayout;
 import top.aihmc.omnimorph.gui.widgets.library.LibrarySectionTabs;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
 import top.aihmc.omnimorph.gui.widgets.library.ModelLibraryLayout;
@@ -92,6 +93,9 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
     private int actionsY;
     private LibrarySectionTabs sections;
     private boolean filtersExpanded;
+    /** Content starts right of the vertical section column; the preview column keeps its position. */
+    private static final int CONTENT_X = 4 + LibrarySectionLayout.WIDTH + 4;
+    private static final int CONTENT_INSET = CONTENT_X - 8;
 
     public ModelLibraryScreen(Screen parentScreen) {
         super(parentScreen, FiguraText.of("gui.panels.title.library"));
@@ -112,19 +116,19 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
             return;
         }
         var layout = new LibraryWorkspaceLayout(width, height);
-        leftWidth = layout.contentWidth();
+        leftWidth = layout.contentWidth() - CONTENT_INSET;
         int rightX = layout.previewX();
         int rightWidth = layout.previewWidth();
         int actionsHeight = LibraryActionBar.heightFor(rightWidth, 7);
         actionsY = height - 28 - actionsHeight;
-        sections = addRenderableWidget(new LibrarySectionTabs(8, 28, leftWidth, scope,
+        sections = addRenderableWidget(new LibrarySectionTabs(4, 28, height - 60, scope,
                 capabilities != null && capabilities.adminLoginAvailable(), this::openSection));
         uploadEntry = sections.button(3);
         adminEntry = sections.button(4);
         addRenderableWidget(new Button(rightX, 28, (rightWidth - 4) / 2, 20, FiguraText.of("gui.library.refresh"),
                 null, button -> reconnectOrRefresh()));
         int searchWidth = Math.max(80, leftWidth - 112);
-        var search = new SearchBar(8, 52, searchWidth, 20, value -> {
+        var search = new SearchBar(CONTENT_X, 28, searchWidth, 20, value -> {
             if (!building && !value.equals(query)) {
                 query = value;
                 searchChangedAt = System.nanoTime();
@@ -133,29 +137,29 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         search.getField().setMaxLength(256);
         search.getField().setValue(query);
         addRenderableWidget(search);
-        addRenderableWidget(new Button(12 + searchWidth, 52, 20, 20, Component.literal("+"),
+        addRenderableWidget(new Button(CONTENT_X + 4 + searchWidth, 28, 20, 20, Component.literal("+"),
                 FiguraText.of("gui.library.filters"), ignored -> {
                     filtersExpanded = !filtersExpanded;
                     rebuildWidgets();
                 }));
-        addRenderableWidget(new LibraryDropdown(36 + searchWidth, 52, 76,
+        addRenderableWidget(new LibraryDropdown(CONTENT_X + 28 + searchWidth, 28, 76,
                 () -> SORTS.stream().map(value -> filterText("sort", value)).toList(), () -> sort, selected -> {
                     sort = selected;
                     filterChanged();
                 }));
         int filterWidth = (leftWidth - 8) / 3;
         if (filtersExpanded) {
-            addRenderableWidget(new LibraryDropdown(8, 76, filterWidth,
+            addRenderableWidget(new LibraryDropdown(CONTENT_X, 52, filterWidth,
                     () -> categories().stream().map(value -> filterText("category", value)).toList(), () -> category, selected -> {
                         category = selected;
                         filterChanged();
                     }));
-            addRenderableWidget(new LibraryDropdown(12 + filterWidth, 76, filterWidth,
+            addRenderableWidget(new LibraryDropdown(CONTENT_X + 4 + filterWidth, 52, filterWidth,
                     () -> TYPES.stream().map(value -> filterText("type", value)).toList(), () -> type, selected -> {
                         type = selected;
                         filterChanged();
                     }));
-            addRenderableWidget(new LibraryDropdown(16 + filterWidth * 2, 76, filterWidth,
+            addRenderableWidget(new LibraryDropdown(CONTENT_X + 8 + filterWidth * 2, 52, filterWidth,
                     () -> AUTHORIZATION.stream().map(value -> filterText("authorization", value)).toList(),
                     () -> authorization, selected -> {
                         authorization = selected;
@@ -166,8 +170,8 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
             connect();
         }
         if (client != null && grid == null) {
-            int gridY = filtersExpanded ? 100 : 76;
-            grid = new ModelLibraryGrid(8, gridY, leftWidth, height - gridY - 28, thumbnails,
+            int gridY = gridTop();
+            grid = new ModelLibraryGrid(CONTENT_X, gridY, leftWidth, height - gridY - 28, thumbnails,
                     this::select, this::favorite, model -> {
                         preview.clear();
                         retainingChild = true;
@@ -175,8 +179,8 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                     });
         }
         if (grid != null) {
-            grid.setX(8);
-            grid.setY(filtersExpanded ? 100 : 76);
+            grid.setX(CONTENT_X);
+            grid.setY(gridTop());
             grid.setWidth(leftWidth);
             grid.setHeight(height - grid.getY() - 28);
             addRenderableWidget(grid);
@@ -232,9 +236,9 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                 FiguraText.of("gui.library.visibility"), null, button -> toggleVisibility()));
         delete = actions.action(new LibraryIconButton("library_delete", 1, () -> 0, FiguraText.of("gui.library.delete"),
                 FiguraText.of("gui.library.delete_confirm"), button -> delete()));
-        previous = new Button(8, height - 24, 24, 20, Component.literal("<"),
+        previous = new Button(CONTENT_X, height - 24, 24, 20, Component.literal("<"),
                 FiguraText.of("gui.library.previous"), button -> changePage(-1));
-        next = new Button(leftWidth - 16, height - 24, 24, 20, Component.literal(">"),
+        next = new Button(CONTENT_X + leftWidth - 24, height - 24, 24, 20, Component.literal(">"),
                 FiguraText.of("gui.library.next"), button -> changePage(1));
         addRenderableWidget(previous);
         addRenderableWidget(next);
@@ -409,11 +413,15 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         updateButtons();
     }
 
+    private int gridTop() {
+        return filtersExpanded ? 76 : 52;
+    }
+
     private int pageCapacity() {
         var layout = new LibraryWorkspaceLayout(width, height);
-        int top = filtersExpanded ? 100 : 76;
+        int top = gridTop();
         // Match ModelLibraryGrid's scrollbar and inner padding exactly.
-        return ModelLibraryLayout.of(layout.contentWidth() - 18, height - top - 32, 0)
+        return ModelLibraryLayout.of(layout.contentWidth() - CONTENT_INSET - 18, height - top - 32, 0)
                 .pageCapacity(capabilities.maxPageSize());
     }
 
@@ -544,11 +552,11 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
     private void renderStatus(GuiGraphicsExtractor gui) {
         if (!state.equals("ready")) {
             UIHelper.renderCenteredScrollingText(gui, FiguraText.of("gui.library.state." + state),
-                    8, 110, leftWidth - 8, 24, 0xffeeeeee);
+                    CONTENT_X, 86, leftWidth - 8, 24, 0xffeeeeee);
         }
         long pages = results == null ? 0 : Math.max(1, (results.total() + results.pageSize() - 1) / results.pageSize());
         UIHelper.renderCenteredScrollingText(gui, FiguraText.of("gui.library.page", page, pages,
-                results == null ? 0 : results.total()), 34, height - 24, leftWidth - 64, 20, 0xffeeeeee);
+                results == null ? 0 : results.total()), CONTENT_X + 26, height - 24, leftWidth - 52, 20, 0xffeeeeee);
         Component message = actionMessage;
         if (addition != null && !addition.request().future().isDone()) {
             message = FiguraText.of("gui.library.collection_downloading");
@@ -557,8 +565,8 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         } else if (preview != null && preview.status().stage() == LibraryPreviewSession.Stage.FAILED) {
             message = FiguraText.of("gui.library.failure", preview.status().errorCode());
         }
-        UIHelper.renderScrollingText(gui, message, leftWidth + 12, actionsY - 12,
-                width - leftWidth - 16, 0xffd3e7e1);
+        UIHelper.renderScrollingText(gui, message, CONTENT_X + leftWidth + 4, actionsY - 12,
+                width - CONTENT_X - leftWidth - 8, 0xffd3e7e1);
     }
 
     private Component error(Throwable failure) {
