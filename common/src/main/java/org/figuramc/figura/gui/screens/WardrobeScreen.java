@@ -43,7 +43,6 @@ import top.aihmc.omnimorph.gui.widgets.wardrobe.BoneTreeWidget;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCloudList;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid;
-import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobePreviewStatus;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeEditorPanel;
 import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
 import top.aihmc.omnimorph.model.library.LibraryModelEdits;
@@ -690,7 +689,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         previewWidget.setSelectedBone(previewBoneSelection());
         addRenderableWidget(previewWidget);
         int statusBottom = layout.top() + size;
-        addRenderableOnly((gui, mouseX, mouseY, delta) -> renderPreviewStatus(gui, x, statusBottom, mouseX, mouseY));
+        addRenderableOnly((gui, mouseX, mouseY, delta) -> renderPreviewVisibility(gui, x, statusBottom, mouseX, mouseY));
         var statusFont = Minecraft.getInstance().font;
         if (statusFont != null) {
             int statusHeight = statusFont.lineHeight + 5;
@@ -987,40 +986,39 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     /** State of the model in the preview; null for drafts, the equipped avatar and local resources. */
-    public WardrobePreviewStatus previewStatus() {
-        if (draftPreviewActive) {
-            return null;
+    /** Equipment visibility of the previewed model; null when the preview has no such state. */
+    public Boolean previewVisibility() {
+        if (draftPreviewActive || selected == null) {
+            // Drafts and the current-equipment preview show the player's own equipment.
+            if (!draftPreviewActive && tab != Tab.OUTFIT) {
+                return null;
+            }
+            if (libraryVisibility != null) {
+                return libraryVisibility.showing();
+            }
+            return localVisibility == null ? null : localVisibility.showing();
         }
-        return WardrobePreviewStatus.of(selectedCollectionModel());
+        if (selected.cloud() != null && libraryVisibility != null && selected.cloud().equals(libraryVisibility.model())) {
+            return libraryVisibility.showing();
+        }
+        return null;
     }
 
-    /** Draws the three status indicators in the bottom-left corner of the wardrobe preview. */
-    private void renderPreviewStatus(GuiGraphicsExtractor gui, int x, int bottom, int mouseX, int mouseY) {
-        var status = previewStatus();
+    /** Draws the visibility indicator in the bottom-left corner of the wardrobe preview. */
+    private void renderPreviewVisibility(GuiGraphicsExtractor gui, int x, int bottom, int mouseX, int mouseY) {
+        Boolean showing = previewVisibility();
         int iconX = x + 4;
         int iconY = bottom - 18;
-        boolean known = status != null;
-        ModelCardWidget.drawPreviewStatus(gui, iconX, iconY, known,
-                known && status.blocked(), known && status.requiresAuthorization(), known && status.privateVisibility());
-        if (!UIHelper.isMouseOver(iconX, iconY, ModelCardWidget.PREVIEW_STATUS_WIDTH, 14, mouseX, mouseY)) {
+        ModelCardWidget.drawPreviewVisibility(gui, iconX, iconY, showing);
+        if (!UIHelper.isMouseOver(iconX, iconY, 14, 14, mouseX, mouseY)) {
             return;
         }
-        if (!known) {
+        if (showing == null) {
             UIHelper.setTooltip(text("preview_status_unavailable"));
-            return;
+        } else {
+            UIHelper.setTooltip(text("show_others").copy().append(": ")
+                    .append(FiguraText.of(showing ? "gui.yes" : "gui.no")));
         }
-        var model = selectedCollectionModel();
-        Component tooltip = Component.empty().copy()
-                .append(FiguraText.of("gui.library.filter.authorization",
-                        FiguraText.of(status.requiresAuthorization() ? "gui.yes" : "gui.no")))
-                .append("\n")
-                .append(FiguraText.of("gui.library.card_visibility",
-                        FiguraText.of(status.privateVisibility() ? "gui.library.private" : "gui.library.public")));
-        if (status.blocked() && model != null) {
-            tooltip = tooltip.copy().append("\n")
-                    .append(top.aihmc.omnimorph.gui.widgets.library.LibraryLabels.status(model.moderationStatus()));
-        }
-        UIHelper.setTooltip(tooltip);
     }
 
     private LibraryModels.Model selectedCollectionModel() {

@@ -4604,44 +4604,39 @@ public final class LibraryPreviewRuntimeSmokeTest {
         }
     }
 
-    /** Preview status icons follow the previewed collection model: A, then B, then nothing. */
+    /** The wardrobe preview shows only the equipment visibility of the previewed model. */
     private static void testPreviewStatus(org.figuramc.figura.gui.screens.WardrobeScreen screen,
                                           LibraryCollectionService collection,
                                           java.lang.reflect.Constructor<?> selection, UUID first,
                                           com.google.gson.JsonObject firstJson, com.google.gson.Gson gson) throws Exception {
-        var originalEntries = field(collection.getClass(), "entries").get(collection);
         var originalSelection = field(screen.getClass(), "selected").get(screen);
-        UUID second = UUID.randomUUID();
-        var secondJson = firstJson.deepCopy();
-        secondJson.addProperty("model_id", second.toString());
-        secondJson.addProperty("visibility", "PUBLIC");
-        secondJson.addProperty("requires_authorization", false);
-        secondJson.addProperty("moderation_status", "BLOCKED");
-        var secondModel = gson.fromJson(secondJson, top.aihmc.omnimorph.backend2.library.LibraryModels.Model.class);
-        var entries = new java.util.ArrayList<Object>((java.util.List<?>) originalEntries);
-        entries.add(new top.aihmc.omnimorph.backend2.library.LibraryModels.CollectionEntry(
-                second, 1, "DOWNLOAD", false, secondModel));
-        field(collection.getClass(), "entries").set(collection, java.util.List.copyOf(entries));
+        var originalVisibility = field(screen.getClass(), "libraryVisibility").get(screen);
+        var visibilityField = field(screen.getClass(), "libraryVisibility");
         try {
-            var status = screen.previewStatus();
-            require(status != null && status.requiresAuthorization() && status.privateVisibility() && !status.blocked(),
-                    "the preview status shows the selected private, authorization-gated model");
+            visibilityField.set(screen, new top.aihmc.omnimorph.backend2.library.LibraryEquipmentVisibility.State(
+                    first, 1, 7, true, true));
+            require(Boolean.TRUE.equals(screen.previewVisibility()),
+                    "the equipped cloud model shows that it is visible to others");
+            visibilityField.set(screen, new top.aihmc.omnimorph.backend2.library.LibraryEquipmentVisibility.State(
+                    first, 1, 8, true, false));
+            require(Boolean.FALSE.equals(screen.previewVisibility()),
+                    "hiding the equipment from others switches the indicator");
+            UUID second = UUID.randomUUID();
             field(screen.getClass(), "selected").set(screen,
                     selection.newInstance(null, null, false, second, net.minecraft.network.chat.Component.literal("second")));
-            status = screen.previewStatus();
-            require(status != null && status.blocked() && !status.requiresAuthorization() && !status.privateVisibility(),
-                    "selecting another model replaces the status instead of keeping the previous one");
+            require(screen.previewVisibility() == null,
+                    "a selected model that is not equipped has no visibility and keeps no previous state");
             field(screen.getClass(), "selected").set(screen, null);
-            require(screen.previewStatus() == null, "no selection leaves no stale status");
-            field(screen.getClass(), "selected").set(screen, originalSelection);
-            field(screen.getClass(), "draftPreviewActive").setBoolean(screen, true);
-            require(screen.previewStatus() == null, "a draft preview does not borrow the selected model status");
+            require(Boolean.FALSE.equals(screen.previewVisibility()),
+                    "the current equipment preview uses the equipment visibility");
+            visibilityField.set(screen, null);
+            require(screen.previewVisibility() == null || field(screen.getClass(), "localVisibility").get(screen) != null,
+                    "without cloud or local equipment state the indicator is unknown");
         } finally {
-            field(screen.getClass(), "draftPreviewActive").setBoolean(screen, false);
             field(screen.getClass(), "selected").set(screen, originalSelection);
-            field(collection.getClass(), "entries").set(collection, originalEntries);
+            visibilityField.set(screen, originalVisibility);
         }
-        System.out.println("PASS wardrobe preview status: selected model, replacement, empty selection and draft; GUI MANUAL/PENDING");
+        System.out.println("PASS wardrobe preview visibility: equipped state, toggling, unequipped selection and current equipment; GUI MANUAL/PENDING");
     }
 
     private static void testCollectionActions(LibraryClient client) throws Exception {

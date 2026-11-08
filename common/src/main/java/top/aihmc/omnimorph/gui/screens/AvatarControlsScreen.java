@@ -51,6 +51,7 @@ public class AvatarControlsScreen extends Screen {
     private static final int SECTION_HEADER_HEIGHT = 22;
     private static final int WHEEL_ROW_HEIGHT = 42;
     private static final int HEADER_HEIGHT = 52;
+    private static final int COMPACT_HEADER_HEIGHT = 42;
     private static final int TAB_HEIGHT = 28;
     private static final int TAB_SCROLLBAR_SPACE = 14;
     private static final int FOOTER_HEIGHT = 42;
@@ -162,8 +163,8 @@ public class AvatarControlsScreen extends Screen {
             AvatarControlDefinition control = row.control();
             if (control != null && rowWidgetsVisible(y, rowHeight(row))) {
                 Avatar owner = row.owner();
-                int widgetX = controlsX + controlsWidth - 238;
-                int widgetWidth = 180;
+                int widgetWidth = paneLayout().rowWidgetWidth();
+                int widgetX = controlsX + controlsWidth - paneLayout().rowWidgetOffset();
                 addControlWidget(widgetX, y + 3, widgetWidth, owner, control);
                 if (canReset(control))
                     this.addRenderableWidget(new Button(widgetX + widgetWidth + 8, y + 3, 42, 20, FiguraText.of("gui.controls.reset"), null, button -> {
@@ -224,7 +225,32 @@ public class AvatarControlsScreen extends Screen {
     }
 
     private int headerTop() {
-        return HEADER_HEIGHT + topInset();
+        // The compact column only needs room for its title line above the rows.
+        return (paneLayout().compact() ? COMPACT_HEADER_HEIGHT : HEADER_HEIGHT) + topInset();
+    }
+
+    /**
+     * Compact framed rows are only drawn when they fit completely, so align the scroll position with
+     * a row start; otherwise a partly hidden row leaves an empty band below the header.
+     */
+    private int snapScroll(int value) {
+        if (!paneLayout().compact() || !framedLayout() || isWheelPage()) {
+            return value;
+        }
+        int max = maxScroll();
+        if (value >= max) {
+            return max;
+        }
+        int start = 0;
+        int snapped = 0;
+        for (ControlRow row : rows) {
+            if (start > value) {
+                break;
+            }
+            snapped = start;
+            start += rowHeight(row);
+        }
+        return snapped;
     }
 
     private int panelY() {
@@ -260,7 +286,7 @@ public class AvatarControlsScreen extends Screen {
         ScrollBarWidget scrollbar = new ScrollBarWidget(controlsX() + controlsWidth() - 4, top,
                 CONTENT_SCROLLBAR_WIDTH, scrollbarHeight, (double) scroll / max, true);
         scrollbar.setAction(bar -> {
-            int next = (int) Math.round(bar.getScrollProgress() * max);
+            int next = snapScroll((int) Math.round(bar.getScrollProgress() * max));
             if (next != scroll) {
                 scroll = next;
                 contentScrollDirty = true;
@@ -530,7 +556,7 @@ public class AvatarControlsScreen extends Screen {
             return true;
         }
         int max = maxScroll();
-        int next = Mth.clamp(scroll + (int) Math.signum(-amount - horizontalAmount) * scrollStep(), 0, max);
+        int next = snapScroll(Mth.clamp(scroll + (int) Math.signum(-amount - horizontalAmount) * scrollStep(), 0, max));
         if (next == scroll)
             return false;
         scroll = next;
@@ -579,7 +605,7 @@ public class AvatarControlsScreen extends Screen {
                     gui.setTooltipForNextFrame(minecraft.font, Component.literal(description), mouseX, mouseY);
                 }
                 if (control.type() == AvatarControlType.COLOR)
-                    renderColorPreview(gui, controlsX + controlsWidth - 214, y + 5, valueText(control));
+                    renderColorPreview(gui, controlsX + controlsWidth - paneLayout().rowWidgetOffset() + 24, y + 5, valueText(control));
             }
             y += rowHeight(row);
         }
@@ -605,6 +631,12 @@ public class AvatarControlsScreen extends Screen {
             return;
         }
         int titleColor = control.type() == AvatarControlType.LABEL ? 0xFFD0D0D0 : 0xFFFFFFFF;
+        if (paneLayout().compact()) {
+            // A narrow column keeps the title clear of the control and omits the type caption.
+            UIHelper.renderScrollingText(gui, Component.literal(control.getTitle()), x, y + 7,
+                    paneLayout().rowLabelWidth(), titleColor);
+            return;
+        }
         UIHelper.renderOutlineText(gui, minecraft.font, Component.literal(control.getTitle()), x, y + 7, titleColor, 0);
         Component meta = FiguraText.of("gui.controls.type." + control.getType());
         gui.text(minecraft.font, meta, x + Math.min(190, controlsWidth() / 2), y + 7, 0xFF888888);

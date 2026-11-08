@@ -1,0 +1,423 @@
+gradlew.bat : Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+所在位置 行:1 字符: 1
++ & .\gradlew.bat :common:libraryPreviewRuntimeSmokeTest --no-daemon -- ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Picked up JAVA_....encoding=UTF-8:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnam
+ed module (file:/C:/Users/eryth/.gradle/wrapper/dists/gradle-9.4.1-bin/arn2x92ynaizyzdaamcbpbhtj/gradle-9.4.1/lib/nativ
+e-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Architect Plugin: 3.5.168
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+> Task :common:compileJava
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes
+> Task :common:extractIncludeTestProto UP-TO-DATE
+> Task :common:extractTestProto UP-TO-DATE
+> Task :common:generateTestProto NO-SOURCE
+
+> Task :common:compileTestJava
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:32: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest
+.java:33: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:22: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:46: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    public static void run(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                           ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:311: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testOtherPlayerRouting(Unsafe unsafe, LibraryClient library) throws Exception {
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:379: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testOtherPlayerDraft(Unsafe unsafe, Runnable drain) throws Exception {
+                                             ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:419: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testCatalogOutfitPreview(Unsafe unsafe, Runnable drain) throws Exception {
+                                                 ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:701: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testCollectionOutfitImport(Unsafe unsafe, Runnable drain, LibraryClient client,
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:829: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testProvidedCosmetics(Unsafe unsafe, Runnable drain) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:912: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testPackagedYsmDraftBases(Unsafe unsafe, Runnable drain) throws Exception {
+                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:978: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testPackagedFiguraDraftAccessory(Unsafe unsafe, Runnable drain) throws Exception {
+                                                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:1072: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testReportedAccessoryOnLocalBase(Unsafe unsafe, Runnable drain) throws Exception {
+                                                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:1285: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testVanillaSelection(Unsafe unsafe, Runnable drain) throws Exception {
+                                             ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:1422: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testOutfitTabShowsLoadedOutfit(Unsafe unsafe, Runnable drain) throws Exception {
+                                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:1574: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testWardrobeDraftActions(Unsafe unsafe, Runnable drain) throws Exception {
+                                                 ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:1846: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testLocalDraftPreview(Unsafe unsafe, Runnable drain, Object editor,
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:1929: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testWardrobeCloudCosmetic(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:2123: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testLocalPresetScreen(Unsafe unsafe, Runnable drain, LibraryClient client) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:2547: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testInstanceTransformFields(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen scree
+n,
+                                                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:2712: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testTreeAttachmentActions(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:3217: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        var unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                          ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:3219: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        var viewport = (com.mojang.blaze3d.platform.Window) ((Unsafe) unsafeField.get(null))
+                                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:3422: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testBoneOverrideEditor(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:3539: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testBoneHelperControls(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:3787: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testCurrentPlayerFigura(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                                                ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:3952: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testIndependentFigura(Unsafe unsafe, Runnable drain) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:4232: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testPreviewAppearance(Unsafe unsafe) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:4301: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testWardrobeDefaultPreview(Unsafe unsafe) throws Exception {
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:4459: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testWardrobeVisibilityTicks(Unsafe unsafe) throws Exception {
+                                                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:5075: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:5075: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:5075: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:5581: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testHiddenFormalParticleEmitter(Unsafe unsafe, LibraryPreviewSession preview,
+                                                        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitApplyServiceSmo
+keTest.java:297: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        var unsafeField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitApplyServiceSmo
+keTest.java:299: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        var unsafe = (sun.misc.Unsafe) unsafeField.get(null);
+                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitApplyServiceSmo
+keTest.java:804: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        var unsafeField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\OutfitApplyServiceSmo
+keTest.java:806: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        var unsafe = (sun.misc.Unsafe) unsafeField.get(null);
+                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest
+.java:304: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                            ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest
+.java:306: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        Unsafe unsafe = (Unsafe) unsafeField.get(null);
+        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest
+.java:306: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        Unsafe unsafe = (Unsafe) unsafeField.get(null);
+                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest
+.java:496: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+            Field field = Unsafe.class.getDeclaredField("theUnsafe");
+                          ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest
+.java:498: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+            Unsafe unsafe = (Unsafe) field.get(null);
+            ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeTest
+.java:498: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+            Unsafe unsafe = (Unsafe) field.get(null);
+                             ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:65: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    public static AutoCloseable recordingSoundManager(Unsafe unsafe) throws Exception {
+                                                      ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:87: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                            ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:89: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        Unsafe unsafe = (Unsafe) unsafeField.get(null);
+        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:89: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        Unsafe unsafe = (Unsafe) unsafeField.get(null);
+                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:337: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testControlledBasePlayback(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:389: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testControllerChannelOwnership(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:442: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testRunningControllerPhase(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:492: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testWalkingUsesAvailableLocomotion(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                           ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:593: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testControlledBaseGeometry(Unsafe unsafe, RecordingClient client, Path path) throws Exception {
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:768: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testTexturePublication(Unsafe unsafe, RecordingClient client) throws Exception {
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:811: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testLateTextureBindings(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:872: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testTextureUploadLifetime(Unsafe unsafe, RecordingClient client, PublicationDevice device) thro
+ws Exception {
+                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:1084: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testScaleAndDefaultTexture(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:1111: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testPreviewDefaultPose(Unsafe unsafe, RecordingClient client) throws Exception {
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:1246: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testPreviewLighting(Unsafe unsafe, RecordingClient client) throws Exception {
+                                            ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:1299: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testGuiResources(Unsafe unsafe, RecordingClient client) throws Exception {
+                                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:1343: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testLayerOrder(Unsafe unsafe, RecordingClient client) throws Exception {
+                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:1395: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static boolean testCorpusHeldItems(Unsafe unsafe, RecordingClient client, Path path, int index) throws Exce
+ption {
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:1428: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testAttachmentGeometry(Unsafe unsafe, RecordingClient client) throws Exception {
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:1502: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testBakedPreviewGeometry(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                 ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:1518: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testPreviewBoneFade(Unsafe unsafe, RecordingClient client) throws Exception {
+                                            ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:1593: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testStandingPreviewVertices(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:1653: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testYsmComplexity(Unsafe unsafe, RecordingClient client) throws Exception {
+                                          ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:1690: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testHandLocators(Unsafe unsafe, RecordingClient client) throws Exception {
+                                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:1735: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testHandLocatorChains(Unsafe unsafe, RecordingClient client) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:1765: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testSubEntityInstances(Unsafe unsafe, RecordingClient client) throws Exception {
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:1775: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testSyncModel(Unsafe unsafe, RecordingClient client) throws Exception {
+                                      ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:1788: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testSyncConnection(Unsafe unsafe, RecordingClient client) throws Exception {
+                                           ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:1806: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testCullingProperty(Unsafe unsafe, RecordingClient client) throws Exception {
+                                            ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:1842: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testModelSelection(Unsafe unsafe, RecordingClient client) throws Exception {
+                                           ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:1893: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testOwnershipAndDeferredClose(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                      ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:1913: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testSelectionRestore(Unsafe unsafe, RecordingClient client, Path directory) throws Exception {
+                                             ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:1951: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        private Fixture(Unsafe unsafe, int id) throws Exception {
+                        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:1955: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        private Fixture(Unsafe unsafe, int id, Path selectionPath) throws Exception {
+                        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:1959: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        private Fixture(Unsafe unsafe, int id, Path selectionPath, String geometry) throws Exception {
+                        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:1963: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        private Fixture(Unsafe unsafe, int id, Path selectionPath, String geometry, boolean bakedOnly) throws Exception
+ {
+                        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTes
+t.java:2019: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static Avatar owner(Unsafe unsafe, int id) throws Exception {
+                                ^
+娉? D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmActionRuntimeSmokeT
+est.java浣跨敤鎴栬鐩栦簡宸茶繃鏃剁殑 API銆?
+娉? 鏈夊叧璇︾粏淇℃伅, 璇蜂娇鐢?-Xlint:deprecation 閲嶆柊缂栬瘧銆?
+80 涓鍛?
+
+> Task :common:processTestResources UP-TO-DATE
+> Task :common:testClasses
+
+> Task :common:libraryPreviewRuntimeSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.joml.MemUtil$MemUtilUnsafe (file:/C:/Users/eryth/.gr
+adle/caches/modules-2/files-2.1/org.joml/joml/1.10.8/fc0a71dad90a2cf41d82a76156a0e700af8e4f8d/joml-1.10.8.jar)
+WARNING: Please consider reporting this to the maintainers of class org.joml.MemUtil$MemUtilUnsafe
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[00:09:52] [main/INFO]: [STDOUT]: PASS model picker: configured avatars root, fixed navigation, real file filtering and external drag acceptance
+[00:09:52] [main/INFO]: [STDOUT]: PASS report input: actual screen click/release, CJK text, newline/backspace, disabled state and outside focus
+[00:09:52] [main/INFO]: [STDOUT]: PASS collection card pointer/keyboard/filter routing and conditional horizontal bone scrolling; GUI MANUAL/PENDING
+[00:09:52] [main/INFO]: [STDOUT]: PASS wardrobe plus panels: all resource selectors, independent values, bounded geometry and parts-mode access; GUI MANUAL/PENDING
+[00:09:52] [main/INFO]: [STDOUT]: PASS All source/use defaults: actual accessory inventory, independent Avatar/accessory filters, collection cards and candidate-only rows; GUI MANUAL/PENDING
+[00:09:52] [main/ERROR]: Avatar creation failed
+java.io.IOException: Expected creation failure fixture
+	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.testCreationMenuAndForm(LibraryPreviewRuntimeSmokeTest.java:5278)
+	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.testWardrobeActionMenus(LibraryPreviewRuntimeSmokeTest.java:5101)
+	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.testReportInput(LibraryPreviewRuntimeSmokeTest.java:4452)
+	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.run(LibraryPreviewRuntimeSmokeTest.java:78)
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:149)
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:73)
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.main(YsmMaterialNativeSmokeTest.java:42)
+[00:09:52] [main/INFO]: [STDOUT]: PASS creation menu/YSM form: actual native fields, metadata-only options, no files before Create, duplicate/close guards and failed-job retry state; GUI MANUAL/PENDING
+[00:09:52] [main/INFO]: [STDOUT]: PASS wardrobe action groups, native local/cloud removal menus, taller rows, tree refresh and type text; GUI MANUAL/PENDING
+[00:09:52] [main/INFO]: [STDERR]: java.lang.AssertionError: the equipped cloud model shows that it is visible to others
+[00:09:52] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.require(LibraryPreviewRuntimeSmokeTest.java:5739)
+[00:09:52] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.testPreviewStatus(LibraryPreviewRuntimeSmokeTest.java:4618)
+[00:09:52] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.testCollectionActions(LibraryPreviewRuntimeSmokeTest.java:4679)
+[00:09:52] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.run(LibraryPreviewRuntimeSmokeTest.java:79)
+[00:09:52] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:149)
+[00:09:52] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:73)
+[00:09:52] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.main(YsmMaterialNativeSmokeTest.java:42)
+
+> Task :common:libraryPreviewRuntimeSmokeTest FAILED
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_26.1.2/build/reports/problems/problems-report.html
+Exception in thread "main" 
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:libraryPreviewRuntimeSmokeTest'.
+> Process 'command 'D:\Program Files\Java\25\bin\java.exe'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 38s
+10 actionable tasks: 3 executed, 7 up-to-date
+EXIT=1
