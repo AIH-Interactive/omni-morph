@@ -19,6 +19,7 @@ import top.aihmc.omnimorph.gui.widgets.library.LibraryRadioGroup;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryMultilineField;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryTagField;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown;
+import top.aihmc.omnimorph.gui.widgets.library.LibrarySectionLayout;
 import top.aihmc.omnimorph.gui.widgets.library.LibrarySectionTabs;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryUploadSource;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
@@ -136,18 +137,20 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         editableButtons.clear();
         editableFields.clear();
         var layout = new LibraryWorkspaceLayout(width, height);
-        int left = layout.contentWidth();
+        // The form starts right of the vertical section column and takes over the former tab row.
+        int contentX = layout.left() + LibrarySectionLayout.WIDTH;
+        int left = layout.contentWidth() - LibrarySectionLayout.WIDTH;
         int rightX = layout.previewX();
         int right = layout.previewWidth();
-        sectionTabs = addRenderableWidget(new LibrarySectionTabs(layout.left(), layout.top(), left, 3,
+        sectionTabs = addRenderableWidget(new LibrarySectionTabs(4, layout.top(), height - layout.top() - 8, 3,
                 limits.adminLoginAvailable(), section -> {
                     if (!busy() && parentScreen instanceof ModelLibraryScreen catalog) {
                         minecraft.setScreen(catalog);
                         catalog.openSection(section);
                     }
                 }));
-        var body = addRenderableWidget(new LibraryFormBody(layout.left(), layout.bodyY(), left,
-                height - layout.bodyY() - 8));
+        var body = addRenderableWidget(new LibraryFormBody(contentX, layout.top(), left,
+                height - layout.top() - 8));
         int labelWidth = Math.min(72, Math.max(48, left / 5));
         int fieldWidth = left - labelWidth - 22;
         var purpose = new LibraryDropdown(0, 0, fieldWidth,

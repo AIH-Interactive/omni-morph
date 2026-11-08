@@ -6,7 +6,7 @@ import org.figuramc.figura.gui.widgets.Button;
 import org.figuramc.figura.utils.ui.UIHelper;
 
 /** Rotates the complete label while keeping the native rectangular focus and hit target. */
-public final class VerticalWardrobeTab extends Button {
+public class VerticalWardrobeTab extends Button {
     public VerticalWardrobeTab(int x, int y, int height, Component label, OnPress action) {
         super(x, y, 22, height, label, label, action);
     }
