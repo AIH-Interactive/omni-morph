@@ -4,7 +4,6 @@ import top.aihmc.omnimorph.render.RenderLifetime;
 
 import org.figuramc.figura.utils.NbtDefaults;
 
-import top.aihmc.omnimorph.render.acceleration.AccelerationService;
 import org.joml.Matrix4f;
 
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -1748,7 +1747,6 @@ public class YsmModelRuntime implements AutoCloseable {
     public synchronized void close() {
         closed = true;
         owner.renderOwner().retire();
-        renderer.clearAccelerationMeshes();
         subEntityInstances.close();
         for (Tag value : functionInput) {
             if (value instanceof CompoundTag entry) {
