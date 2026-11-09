@@ -64,6 +64,7 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
                     String.join("\n", model.authors()), model.uploader().name(), model.uploader().uuid().toString());
             tooltip.append("\n").append(ModelResourceBadges.typeTooltip(model.modelType()));
             tooltip.append("\n").append(statusTooltip(model));
+            tooltip.append("\n").append(FiguraText.of("gui.library.counts", model.downloads(), model.favorites()));
             if (thumbnail != null && thumbnail.ready().isCompletedExceptionally()) {
                 tooltip.append("\n").append(FiguraText.of("gui.library.image_retry"));
             }
