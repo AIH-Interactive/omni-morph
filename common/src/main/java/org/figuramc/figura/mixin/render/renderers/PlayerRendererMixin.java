@@ -357,10 +357,14 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
                 Runnable drawArm = () -> playerAvatar.firstPersonRender(copy, bufferSource,
                         Minecraft.getInstance().player, playerModel, arm, light, delta);
                 var outfit = figuraArmBase ? OutfitRenderBinding.composition(state) : null;
-                if (outfit == null) {
+                // First-person renderers of other mods (for example TaCZ) may pass a collapsed arm pose;
+                // it has no inverse and no skeleton to capture, so that frame only draws the native arm.
+                var nativeToEntity = outfit == null ? null
+                        : top.aihmc.omnimorph.model.outfit.SkeletonPose.nativeToEntity(copy.last().pose()).orElse(null);
+                if (nativeToEntity == null) {
                     drawArm.run();
                 } else {
-                    var pose = outfit.captureFiguraArm(playerAvatar, new Matrix4f(copy.last().pose()).invert(),
+                    var pose = outfit.captureFiguraArm(playerAvatar, nativeToEntity,
                             arm == playerModel.leftArm, drawArm);
                     OutfitNativeRenderer.draw(outfit, pose, state, delta,
                             copy.last().pose(), bufferSource, EntityRenderMode.FIRST_PERSON);
