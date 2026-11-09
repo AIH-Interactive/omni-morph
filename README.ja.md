@@ -25,7 +25,7 @@ Lua と Molang の両ランタイムに対応しています。Lua はスクリ�
 | Minecraft Java | 26.1.2 |
 | Mod ローダー | Fabric / NeoForge 26.1.2.126 |
 | Java | 25 |
-| Mod バージョン | 1.0.0-alpha.9 |
+| Mod バージョン | 1.0.0-alpha.10 |
 
 ビルド依存関係のバージョンは [gradle.properties](gradle.properties) を参照してください。本 Mod はクライアント用です。マルチプレイでのリソース配信と状態同期には、対応バックエンドが必要です。
 
@@ -78,7 +78,7 @@ if ($buildExitCode -ne 0) {
 
 ### NeoForge
 
-JDK 25 を使用し、上の PowerShell コマンドの `:fabric:build` を `:neoforge:build -Prelease --no-daemon` に置き換えてください。Minecraft 26.1.2 / NeoForge 26.1.2.126 用の成果物は `neoforge/build/libs/omni-morph-1.0.0-alpha.9+26.1.2-neoforge-mc.jar` です。ローダーに合う JAR を一つだけ導入してください。`build` は `verifyNeoForgeJar` による内容検証を含みます。
+JDK 25 を使用し、上の PowerShell コマンドの `:fabric:build` を `:neoforge:build -Prelease --no-daemon` に置き換えてください。Minecraft 26.1.2 / NeoForge 26.1.2.126 用の成果物は `neoforge/build/libs/omni-morph-1.0.0-alpha.10+26.1.2-neoforge-mc.jar` です。ローダーに合う JAR を一つだけ導入してください。`build` は `verifyNeoForgeJar` による内容検証を含みます。
 
 統合ワークフローは Fabric と NeoForge の通常の Java 配布 JAR をビルドし、公開します。
 
