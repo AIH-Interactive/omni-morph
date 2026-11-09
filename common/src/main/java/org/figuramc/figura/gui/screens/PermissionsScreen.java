@@ -35,6 +35,7 @@ import org.figuramc.figura.utils.ui.UIHelper;
 import org.joml.Matrix3x2fStack;
 
 import java.util.UUID;
+import top.aihmc.omnimorph.gui.widgets.navigation.NavigationLayout;
 
 public class PermissionsScreen extends AbstractPanelScreen {
 
@@ -66,11 +67,17 @@ public class PermissionsScreen extends AbstractPanelScreen {
     }
 
     @Override
+    protected boolean usesSideNavigation() {
+        return true;
+    }
+
+    @Override
     protected void init() {
         super.init();
 
         int middle = this.width / 2;
-        int listWidth = Math.min(middle - 6, 208);
+        // Penpot 05 keeps the window centre; the player list only narrows to stay right of the rail.
+        int listWidth = Math.min(middle - NavigationLayout.RAIL_WIDTH - 4, 208);
         int lineHeight =  font.lineHeight;
 
         int entitySize = (int) Math.min(height - 95 - lineHeight * 1.5 - (FiguraMod.debugModeEnabled() ? 24 : 0), listWidth);

@@ -51,6 +51,11 @@ public final class ModelFilePickerScreen extends AbstractPanelScreen {
     }
 
     @Override
+    protected boolean usesSideNavigation() {
+        return true;
+    }
+
+    @Override
     protected void init() {
         super.init();
         if (width < 300 || height < 220) {
@@ -62,9 +67,9 @@ public final class ModelFilePickerScreen extends AbstractPanelScreen {
         }
         if (kind == Kind.MODEL) {
             addRenderableOnly((gui, x, y, delta) -> UIHelper.renderScrollingText(gui,
-                    Component.literal(directory.toString()), 8, 36, width - 16, 0xffbac6d8));
+                    Component.literal(directory.toString()), SIDE_MARGIN + 8, 36, width - SIDE_MARGIN - 16, 0xffbac6d8));
         } else {
-            var path = addRenderableWidget(new TextField(8, 30, Math.max(80, width - 104), 20,
+            var path = addRenderableWidget(new TextField(SIDE_MARGIN + 8, 30, Math.max(80, width - SIDE_MARGIN - 104), 20,
                     TextField.HintType.FOLDER_PATH, ignored -> {}));
             path.getField().setValue(directory.toString());
             addRenderableWidget(new Button(width - 92, 30, 40, 20, FiguraText.of("gui.library.open"), null, button -> {
@@ -80,9 +85,9 @@ public final class ModelFilePickerScreen extends AbstractPanelScreen {
                 }
             }));
         }
-        rows = addRenderableWidget(new LibraryRowList(8, 54, width - 16, Math.max(32, height - 104)));
+        rows = addRenderableWidget(new LibraryRowList(SIDE_MARGIN + 8, 54, width - SIDE_MARGIN - 16, Math.max(32, height - 104)));
         addRenderableOnly((gui, x, y, delta) -> UIHelper.renderScrollingText(gui, status,
-                8, height - 46, width - 16, 0xffeeeeee));
+                SIDE_MARGIN + 8, height - 46, width - SIDE_MARGIN - 16, 0xffeeeeee));
         addRenderableWidget(new Button(width - 84, height - 24, 80, 20, FiguraText.of("gui.done"),
                 null, button -> onClose()));
         if (listing == null) {

@@ -19,10 +19,9 @@ import top.aihmc.omnimorph.gui.widgets.library.LibraryRadioGroup;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryMultilineField;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryTagField;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown;
-import top.aihmc.omnimorph.gui.widgets.library.LibrarySectionLayout;
-import top.aihmc.omnimorph.gui.widgets.library.LibrarySectionTabs;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryUploadSource;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
+import top.aihmc.omnimorph.gui.widgets.navigation.NavigationRoute;
 import top.aihmc.omnimorph.model.library.LibraryPackagePreparation;
 import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
 import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
@@ -48,6 +47,9 @@ import java.util.concurrent.CompletionException;
 
 /** Local source preparation and isolated previews never equip or broadcast the draft. */
 public final class ModelUploadScreen extends AbstractPanelScreen {
+    /** Width reserved beyond the left inset for the navigation rail. */
+    private static final int NAVIGATION_INSET = 30;
+
     private final LibraryClient client;
     private final LibraryUploadDraft draft;
     private final LibraryUploadService uploads;
@@ -75,7 +77,6 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
     private LibraryRadioGroup authorization;
     private LibraryRadioGroup visibility;
     private LibraryTagField tagField;
-    private LibrarySectionTabs sectionTabs;
     private Path source;
     private boolean accessorySource;
     private boolean outfitSource;
@@ -138,17 +139,10 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         editableFields.clear();
         var layout = new LibraryWorkspaceLayout(width, height);
         // The form starts right of the vertical section column and takes over the former tab row.
-        int contentX = layout.left() + LibrarySectionLayout.WIDTH;
-        int left = layout.contentWidth() - LibrarySectionLayout.WIDTH;
+        int contentX = layout.left() + NAVIGATION_INSET;
+        int left = layout.contentWidth() - NAVIGATION_INSET;
         int rightX = layout.previewX();
         int right = layout.previewWidth();
-        sectionTabs = addRenderableWidget(new LibrarySectionTabs(4, layout.top(), height - layout.top() - 8, 3,
-                limits.adminLoginAvailable(), section -> {
-                    if (!busy() && parentScreen instanceof ModelLibraryScreen catalog) {
-                        minecraft.setScreen(catalog);
-                        catalog.openSection(section);
-                    }
-                }));
         var body = addRenderableWidget(new LibraryFormBody(contentX, layout.top(), left,
                 height - layout.top() - 8));
         int labelWidth = Math.min(72, Math.max(48, left / 5));
@@ -329,6 +323,30 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         widget.getField().setValue(value);
         editableFields.add(widget);
         return widget;
+    }
+
+    @Override
+    protected boolean usesSideNavigation() {
+        return true;
+    }
+
+    @Override
+    protected NavigationRoute navigationRoute() {
+        return NavigationRoute.UPLOAD;
+    }
+
+    /** Navigation returns through the retained catalog, and waits while an upload request runs. */
+    @Override
+    public void navigate(NavigationRoute route) {
+        if (busy()) {
+            return;
+        }
+        if (parentScreen instanceof ModelLibraryScreen catalog) {
+            minecraft.setScreen(catalog);
+            catalog.navigate(route);
+        } else {
+            super.navigate(route);
+        }
     }
 
     private boolean busy() {
@@ -885,7 +903,6 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
             return;
         }
         boolean editable = !closed && client.current() && !busy() && operation == null;
-        sectionTabs.setEnabled(!closed && client.current() && !busy());
         editableButtons.forEach(button -> button.setActive(editable));
         editableFields.forEach(field -> field.setEnabled(editable));
         visibility.setActive(editable);

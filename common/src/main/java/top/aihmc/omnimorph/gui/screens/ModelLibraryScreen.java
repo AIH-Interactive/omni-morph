@@ -16,8 +16,9 @@ import org.figuramc.figura.gui.widgets.SwitchButton;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryActionBar;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryIconButton;
 import top.aihmc.omnimorph.gui.widgets.library.CompactMode;
-import top.aihmc.omnimorph.gui.widgets.library.LibrarySectionLayout;
-import top.aihmc.omnimorph.gui.widgets.library.LibrarySectionTabs;
+import top.aihmc.omnimorph.gui.widgets.navigation.NavigationLayout;
+import top.aihmc.omnimorph.gui.widgets.navigation.NavigationRoute;
+import top.aihmc.omnimorph.gui.widgets.navigation.SideNavigationWidget;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
 import top.aihmc.omnimorph.gui.widgets.library.ModelLibraryLayout;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown;
@@ -84,18 +85,17 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
     private Button visibility;
     private Button edit;
     private Button delete;
-    private Button uploadEntry;
-    private Button adminEntry;
+    /** Upload or management requested before the service capabilities arrived; -1 when none. */
+    private int pendingSection = -1;
     private Button grants;
     private Button authorizationToggle;
     private LibraryAdminSession admin;
     private LibraryClient.Request<Boolean> adminRestore;
     private int leftWidth;
     private int actionsY;
-    private LibrarySectionTabs sections;
     private boolean filtersExpanded;
-    /** Content starts right of the vertical section column; the preview column keeps its position. */
-    private static final int CONTENT_X = 4 + LibrarySectionLayout.WIDTH + 4;
+    /** Content starts right of the navigation rail; the preview column keeps its position. */
+    private static final int CONTENT_X = NavigationLayout.RAIL_WIDTH + 10;
     private static final int CONTENT_INSET = CONTENT_X - 8;
 
     public ModelLibraryScreen(Screen parentScreen) {
@@ -123,10 +123,6 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         // Compact windows keep one action row so the preview uses the remaining height.
         int actionsHeight = compact() ? LibraryActionBar.budgetedHeight(false) : LibraryActionBar.heightFor(rightWidth, 7);
         actionsY = height - 28 - actionsHeight;
-        sections = addRenderableWidget(new LibrarySectionTabs(4, 28, height - 60, scope,
-                capabilities != null && capabilities.adminLoginAvailable(), this::openSection));
-        uploadEntry = sections.button(3);
-        adminEntry = sections.button(4);
         addRenderableWidget(new Button(rightX, 28, (rightWidth - 4) / 2, 20, FiguraText.of("gui.library.refresh"),
                 null, button -> reconnectOrRefresh()));
         int searchWidth = Math.max(80, leftWidth - 112);
@@ -284,10 +280,13 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                     state = "unsupported";
                 } else {
                     capabilities = value;
+                    // The service reports whether this player's UUID is a configured administrator.
+                    SideNavigationWidget.tree().setAdministratorVisible(value.adminLoginAvailable());
                     if (value.adminLoginAvailable()) {
                         adminRestore = admin.restore();
                     }
                     refresh();
+                    openPendingSection();
                 }
             });
         } catch (java.io.IOException unavailable) {
@@ -297,6 +296,66 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
     }
 
     /** Shared reference navigation, also used when returning from an upload form. */
+    @Override
+    protected boolean usesSideNavigation() {
+        return true;
+    }
+
+    @Override
+    protected NavigationRoute navigationRoute() {
+        return switch (scope) {
+            case 0 -> NavigationRoute.MINE;
+            case 1 -> NavigationRoute.FAVORITES;
+            default -> NavigationRoute.PUBLIC;
+        };
+    }
+
+    /** Library section index of a navigation entry, or -1 for entries owned by other pages. */
+    private static int sectionOf(NavigationRoute route) {
+        return switch (route) {
+            case MINE -> 0;
+            case FAVORITES -> 1;
+            case LIBRARY, PUBLIC -> 2;
+            case UPLOAD -> 3;
+            case ADMIN -> 4;
+            default -> -1;
+        };
+    }
+
+    /** Preselects a library entry before the screen opens; upload and management wait for the service. */
+    public void selectNavigationRoute(NavigationRoute route) {
+        int section = sectionOf(route);
+        if (section >= 0 && section < SCOPES.size()) {
+            scope = section;
+        } else if (section >= 0) {
+            pendingSection = section;
+        }
+    }
+
+    @Override
+    protected boolean openNavigationRoute(NavigationRoute route) {
+        int section = sectionOf(route);
+        if (section < 0) {
+            return false;
+        }
+        openSection(section);
+        return true;
+    }
+
+    /** Upload and management stay closed while a model change of this page is still running. */
+    private boolean mutationBusy() {
+        return mutation != null && !mutation.future().isDone()
+                || addition != null && !addition.request().future().isDone();
+    }
+
+    private void openPendingSection() {
+        int section = pendingSection;
+        pendingSection = -1;
+        if (section >= 0 && minecraft != null && minecraft.screen == this) {
+            openSection(section);
+        }
+    }
+
     public void openSection(int section) {
         if (section < 0 || section > 4 || closed) {
             return;
@@ -306,7 +365,10 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
             page = 1;
             rebuildWidgets();
             refresh();
-        } else if (client != null && client.current() && capabilities != null && capabilities.enabled()) {
+        } else if (client == null || capabilities == null) {
+            // Opened from another page: continue once the service capabilities are known.
+            pendingSection = section;
+        } else if (client.current() && capabilities.enabled() && !mutationBusy()) {
             if (section == 3) {
                 preview.clear();
                 retainingChild = true;
@@ -520,21 +582,12 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         boolean busy = mutation != null && !mutation.future().isDone()
                 || addition != null && !addition.request().future().isDone();
         boolean available = !closed && client != null && client.current() && state.equals("ready") && !busy;
-        sections.administrator(capabilities != null && capabilities.adminLoginAvailable());
-        adminEntry.setActive(!closed && client != null && client.current() && capabilities != null && !busy
-                && (adminRestore == null || adminRestore.future().isDone()));
-        adminEntry.setMessage(FiguraText.of("gui.library.manage"));
-        adminEntry.setTooltip(FiguraText.of(admin != null && admin.active() ? "gui.library.manage" : "gui.library.admin_login"));
         grants.setVisible(LibraryAuthorization.available(selected));
         grants.setActive(available && LibraryAuthorization.available(selected));
         authorizationToggle.setVisible(selected != null && selected.allows("patch"));
         authorizationToggle.setActive(available && selected != null && selected.allows("patch"));
         authorizationToggle.setMessage(FiguraText.of(selected != null && selected.requiresAuthorization()
                 ? "gui.library.needs_authorization" : "gui.library.value.free"));
-        if (uploadEntry != null) {
-            uploadEntry.setActive(!closed && client != null && client.current() && capabilities != null
-                    && capabilities.enabled() && !busy);
-        }
         boolean joined = selected != null && collection != null && collection.entries().stream()
                 .anyMatch(entry -> entry.modelId().equals(selected.modelId()));
         use.setActive(available && collection != null && collection.available() && selected != null && selected.allows("download")

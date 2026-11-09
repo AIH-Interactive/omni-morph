@@ -23,6 +23,7 @@ import org.figuramc.figura.utils.ui.UIHelper;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import top.aihmc.omnimorph.gui.widgets.navigation.NavigationLayout;
 
 public class ConfigScreen extends AbstractPanelScreen {
 
@@ -43,6 +44,11 @@ public class ConfigScreen extends AbstractPanelScreen {
     }
 
     @Override
+    protected boolean usesSideNavigation() {
+        return hasPanels;
+    }
+
+    @Override
     protected void init() {
         super.init();
         loadNbt();
@@ -56,23 +62,26 @@ public class ConfigScreen extends AbstractPanelScreen {
 
         // -- middle -- // 
 
-        int width = Math.min(this.width - 8, 420);
-        list = new ConfigList((this.width - width) / 2, 52, width, height - 80, this);
+        int middle = this.width / 2;
+        // Centred on the window; the list only narrows to stay right of the rail.
+        int margin = usesSideNavigation() ? NavigationLayout.RAIL_WIDTH + 2 : 4;
+        int width = Math.min(this.width - margin * 2, 420);
+        list = new ConfigList(middle - width / 2, 52, width, height - 80, this);
 
-        this.addRenderableWidget(new SearchBar(this.width / 2 - 122, 28, 244, 20, query -> list.updateSearch(query.toLowerCase(Locale.US))));
+        this.addRenderableWidget(new SearchBar(middle - 122, 28, 244, 20, query -> list.updateSearch(query.toLowerCase(Locale.US))));
         this.addRenderableWidget(list);
 
         // -- bottom buttons -- // 
 
         // cancel
-        this.addRenderableWidget(cancel = new Button(this.width / 2 - 122, height - 24, 120, 20, FiguraText.of("gui.cancel"), null, button -> {
+        this.addRenderableWidget(cancel = new Button(middle - 122, height - 24, 120, 20, FiguraText.of("gui.cancel"), null, button -> {
             ConfigManager.discardConfig();
             list.updateList();
         }));
         cancel.setActive(false);
 
         // done
-        addRenderableWidget(new Button(this.width / 2 + 2, height - 24, 120, 20, FiguraText.of("gui.done"), null, button -> onClose()));
+        addRenderableWidget(new Button(middle + 2, height - 24, 120, 20, FiguraText.of("gui.done"), null, button -> onClose()));
     }
 
     @Override

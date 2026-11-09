@@ -10,7 +10,7 @@ public record WardrobeLayout(int leftX, int leftWidth, int previewX, int preview
         if (width < 300) {
             return of(width, height);
         }
-        // The vertical wardrobe tabs consume 22 GUI units; the remaining workspace is the catalog's 70/30 layout.
+        // The navigation rail and its margin consume 22 GUI units beyond the left inset; the remaining workspace is the catalog's 70/30 layout.
         var workspace = new LibraryWorkspaceLayout(width - 22, height);
         int previewX = workspace.previewX() + 22;
         return new WardrobeLayout(workspace.left() + 22, workspace.contentWidth(),
@@ -18,18 +18,11 @@ public record WardrobeLayout(int leftX, int leftWidth, int previewX, int preview
                 52, Math.max(24, height - 160), false);
     }
 
-    public static final int RIGHT_TAB_HEIGHT = 52;
+    /** Below this width the outfit shows its list beside one pane instead of three columns. */
+    public static final int WIDE_WIDTH = 560;
     /** Compact outfit panes start on the top row, which no longer holds pane-switch buttons. */
     private static final int COMPACT_TOP = 28;
-
-    public static int rightTabY(int index) {
-        return COMPACT_TOP + index * (RIGHT_TAB_HEIGHT + 4);
-    }
-
-    /** X of the compact right-side pane tabs. */
-    public static int rightTabX(int width) {
-        return width - 28;
-    }
+    private static final int COMPACT_RIGHT_MARGIN = 28;
 
     /**
      * Compact outfit under the automatic GUI scale: a narrow list beside one wide pane, which shows
@@ -56,15 +49,18 @@ public record WardrobeLayout(int leftX, int leftWidth, int previewX, int preview
         return Math.max(24, height - 160 + (54 - COMPACT_TOP));
     }
 
-    /** Content width between the left wardrobe tabs and the right pane tabs. */
+    /**
+     * Content width right of the navigation rail. Penpot 01/37 keep a 28 unit right margin where the
+     * pane tabs used to be; the pane entries themselves now live in the navigation.
+     */
     private static int compactAvailable(int width) {
-        return Math.max(1, rightTabX(width) - 4 - 30);
+        return Math.max(1, width - COMPACT_RIGHT_MARGIN - 4 - 30);
     }
 
     public static WardrobeLayout of(int width, int height) {
         int available = Math.max(1, width - 36);
         int contentHeight = Math.max(24, height - 160);
-        if (width < 560) {
+        if (width < WIDE_WIDTH) {
             return new WardrobeLayout(30, available, 30, available, 30, available,
                     54, contentHeight, true);
         }

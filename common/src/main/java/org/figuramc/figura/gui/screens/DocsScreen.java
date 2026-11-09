@@ -24,6 +24,11 @@ public class DocsScreen extends AbstractPanelScreen {
     }
 
     @Override
+    protected boolean usesSideNavigation() {
+        return true;
+    }
+
+    @Override
     protected void init() {
         super.init();
         this.addRenderableWidget(new Label(Component.empty().append("Still not finished :s"), width / 2, height / 2, 3f, 200, true, TextUtils.Alignment.CENTER, ColorUtils.Colors.AWESOME_BLUE.hex));
