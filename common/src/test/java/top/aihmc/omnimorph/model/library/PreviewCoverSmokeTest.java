@@ -20,6 +20,18 @@ public final class PreviewCoverSmokeTest {
                 "an entity moved out of the preview gives no cover");
         require(PreviewCover.upperBody(100, 120, 2, 40, 40, 160, 160) == null, "a tiny region gives no cover");
 
+        // Framing: a drag spans a square from its start corner, in any direction, inside the preview frame.
+        var framed = PreviewCover.framed(60, 60, 100, 90, 40, 40, 160, 160);
+        require(framed != null && framed.x() == 60 && framed.y() == 60 && framed.side() == 40,
+                "a drag right and down frames a square of its longer side: " + framed);
+        var backwards = PreviewCover.framed(150, 150, 120, 140, 40, 40, 160, 160);
+        require(backwards != null && backwards.x() == 120 && backwards.y() == 120 && backwards.side() == 30,
+                "a drag up and left frames toward the start corner: " + backwards);
+        var edge = PreviewCover.framed(180, 60, 260, 70, 40, 40, 160, 160);
+        require(edge != null && edge.x() + edge.side() <= 199 && edge.side() == 19,
+                "a drag past the frame is clipped to a square inside it: " + edge);
+        require(PreviewCover.framed(60, 60, 62, 61, 40, 40, 160, 160) == null, "a click without a drag frames nothing");
+
         // A 200x100 screenshot: red left half, blue right half. GUI scale 2 doubles the region in pixels.
         int width = 200;
         int height = 100;
