@@ -1099,3 +1099,11 @@ tasks.register('navigationTreeSmokeTest', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = 'top.aihmc.omnimorph.gui.navigation.NavigationTreeSmokeTest'
 }
+
+tasks.register('firstPersonArmPoseSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Reproduces the first-person arm crash with a non-invertible native pose and checks the guard.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.outfit.FirstPersonArmPoseSmokeTest'
+}
