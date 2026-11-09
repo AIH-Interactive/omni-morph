@@ -180,7 +180,6 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
             grid.setX(CONTENT_X);
             grid.setY(gridTop());
             grid.setWidth(leftWidth);
-            grid.compact(compact());
             grid.setHeight(height - grid.getY() - 28);
             addRenderableWidget(grid);
         }
@@ -250,7 +249,8 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         building = false;
         if (capabilities != null && (resuming || requestedPageSize != pageCapacity())) {
             if (requestedPageSize != pageCapacity()) {
-                page = 1;
+                // Keep the first model of the current page on screen when the capacity changes.
+                page = ModelLibraryLayout.pageKeepingFirst(page, requestedPageSize, pageCapacity());
             }
             refresh();
         }
@@ -493,9 +493,8 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         var layout = new LibraryWorkspaceLayout(width, height);
         int top = gridTop();
         // Match ModelLibraryGrid's scrollbar and inner padding exactly.
-        int area = ModelLibraryGrid.cardAreaWidth(layout.contentWidth() - CONTENT_INSET, compact());
-        var cards = compact() ? ModelLibraryLayout.compact(area, height - top - 32, 0)
-                : ModelLibraryLayout.of(area, height - top - 32, 0);
+        int area = ModelLibraryGrid.cardAreaWidth(layout.contentWidth() - CONTENT_INSET);
+        var cards = ModelLibraryLayout.of(area, height - top - 32, 0);
         return cards.pageCapacity(capabilities.maxPageSize());
     }
 
