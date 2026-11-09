@@ -81,7 +81,8 @@ public final class LibraryEquipmentSmokeTest {
                 require(equipped.equipmentRevision() == 1 && server.commits == 1 && server.files == 1
                                 && user.getMainAvatar().name.equals("source model") && AvatarManager.localUploaded,
                         "verified formal data prepares, commits and becomes the actual resident avatar");
-                require(!server.lastInput.get("show_private_equipment").getAsBoolean(), "private rendering defaults closed");
+                require(!server.lastInput.has("show_private_equipment") && equipped.showPrivateEquipment(),
+                        "an equip without a choice sends none, and the server shows the private model by default");
                 var provenance = user.getMainAvatar().outfitSource();
                 require(provenance != null && provenance.source()
                                 == top.aihmc.omnimorph.model.outfit.OutfitConfig.Source.CLOUD
@@ -333,7 +334,8 @@ public final class LibraryEquipmentSmokeTest {
                             revision++;
                             response = object("{\"model_id\":\"" + model + "\",\"model_revision\":1,\"equipment_revision\":" + revision
                                     + ",\"owner\":\"" + player + "\",\"asset_id\":\"" + alias() + "\",\"asset_revision\":1,"
-                                    + "\"show_private_equipment\":" + input.get("show_private_equipment").getAsBoolean() + "}");
+                                    + "\"show_private_equipment\":" + (!input.has("show_private_equipment")
+                                    || input.get("show_private_equipment").getAsBoolean()) + "}");
                             inputs.put(operation, input.deepCopy());
                             results.put(operation, response.deepCopy());
                             if (loseResponse) {

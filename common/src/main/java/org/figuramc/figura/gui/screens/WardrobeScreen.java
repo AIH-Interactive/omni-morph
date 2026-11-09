@@ -3725,8 +3725,10 @@ public class WardrobeScreen extends AbstractPanelScreen {
             AvatarList.selectedEntry = selected.reference();
             message = text("enabling");
         } else if (equipment != null && client.current()) {
-            boolean showing = libraryVisibility != null && selected.cloud().equals(libraryVisibility.model())
-                    && libraryVisibility.showing();
+            // Only a known choice for this model is sent; otherwise the server keeps the saved one,
+            // and shows a private model to other players by default.
+            Boolean showing = libraryVisibility != null && libraryVisibility.equipped()
+                    && selected.cloud().equals(libraryVisibility.model()) ? libraryVisibility.showing() : null;
             enabling = equipment.enable(selected.cloud(), showing);
             enabling.future().whenComplete((result, failure) -> {
                 if (!removed) {

@@ -28,11 +28,13 @@ public final class LibraryEquipmentService implements AutoCloseable {
         this.transfers = transfers;
     }
 
+    /** Equips without a display choice: the server keeps a saved choice, or shows private models by default. */
     public Operation enable(UUID model) {
-        return enable(model, false);
+        return enable(model, null);
     }
 
-    public Operation enable(UUID model, boolean showPrivateEquipment) {
+    /** {@code showPrivateEquipment} is the explicit display choice, or null to keep the saved one. */
+    public Operation enable(UUID model, Boolean showPrivateEquipment) {
         if (active != null) {
             active.close();
         }
@@ -53,7 +55,7 @@ public final class LibraryEquipmentService implements AutoCloseable {
     /** Lifecycle methods run on the client thread. Retry retains the exact equip operation and CAS input. */
     public final class Operation implements AutoCloseable {
         private final UUID model;
-        private final boolean showPrivateEquipment;
+        private final Boolean showPrivateEquipment;
         private final UUID operationId = UUID.randomUUID();
         private final AvatarLoadProgress progress = new AvatarLoadProgress();
         private volatile long attempt;
@@ -68,7 +70,7 @@ public final class LibraryEquipmentService implements AutoCloseable {
         private Avatar candidate;
         private CompletableFuture<LibraryModels.Equipment> future;
 
-        private Operation(UUID model, boolean showPrivateEquipment) {
+        private Operation(UUID model, Boolean showPrivateEquipment) {
             this.model = model;
             this.showPrivateEquipment = showPrivateEquipment;
         }
@@ -200,9 +202,11 @@ public final class LibraryEquipmentService implements AutoCloseable {
             progress.stage(progressGeneration, AvatarLoadProgress.Stage.EQUIPPING);
             var source = data;
             var guard = selection;
-            Map<String, Object> input = Map.of("operation_id", operationId.toString(),
-                    "model_revision", source.model().revision(), "expected_equipment_revision", expectedRevision,
-                    "show_private_equipment", showPrivateEquipment);
+            Map<String, Object> input = new java.util.HashMap<>(Map.of("operation_id", operationId.toString(),
+                    "model_revision", source.model().revision(), "expected_equipment_revision", expectedRevision));
+            if (showPrivateEquipment != null) {
+                input.put("show_private_equipment", showPrivateEquipment);
+            }
             var request = client.submit(LibraryClient.Lane.CONTROL, exchange -> {
                 requireCurrent(generation);
                 commitAttempted = true;
@@ -212,7 +216,7 @@ public final class LibraryEquipmentService implements AutoCloseable {
                 if (!equipped.modelId().equals(model) || equipped.modelRevision() != source.model().revision()
                         || !equipped.owner().equals(client.session().player()) || !alias.equals(equipped.assetId())
                         || equipped.assetRevision() != 1 || equipped.equipmentRevision() != expectedRevision + 1
-                        || equipped.showPrivateEquipment() != showPrivateEquipment) {
+                        || showPrivateEquipment != null && equipped.showPrivateEquipment() != showPrivateEquipment) {
                     throw new LibraryClient.Failure(409, "EQUIPMENT_CHANGED");
                 }
                 requireCurrent(generation);
@@ -225,7 +229,7 @@ public final class LibraryEquipmentService implements AutoCloseable {
                 CacheAvatarLoader.saveLibrary(cacheKey, source.nbt(), new CacheAvatarLoader.LibrarySource(
                         client.session().instance(), equipped.owner(), model, equipped.modelRevision(),
                         source.model().policyRevision(), equipped.assetId(), equipped.assetRevision(),
-                        source.model().visibility(), source.model().requiresAuthorization(), showPrivateEquipment));
+                        source.model().visibility(), source.model().requiresAuthorization(), equipped.showPrivateEquipment()));
                 requireCurrent(generation);
                 return equipped;
             });
