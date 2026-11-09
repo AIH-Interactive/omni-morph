@@ -16,6 +16,7 @@ import org.figuramc.figura.gui.widgets.EntityPreview;
 import org.figuramc.figura.gui.widgets.FiguraRemovable;
 import org.figuramc.figura.gui.widgets.FiguraTickable;
 import top.aihmc.omnimorph.gui.screens.NavigationScreens;
+import top.aihmc.omnimorph.gui.widgets.navigation.NavigationLayout;
 import top.aihmc.omnimorph.gui.widgets.navigation.NavigationRoute;
 import top.aihmc.omnimorph.gui.widgets.navigation.SideNavigationWidget;
 import org.figuramc.figura.lua.api.ClientAPI;
@@ -33,6 +34,9 @@ public abstract class AbstractPanelScreen extends Screen {
             new FiguraIdentifier("textures/gui/background/background_1.png"),
             new FiguraIdentifier("textures/gui/background/background_2.png")
     );
+
+    /** Horizontal margin that keeps centred content right of the navigation rail. */
+    protected static final int SIDE_MARGIN = NavigationLayout.RAIL_WIDTH + 2;
 
     // variables
     protected final Screen parentScreen;

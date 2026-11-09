@@ -1,0 +1,18 @@
+{
+  "fileBytes": 67108864,
+  "singleResourceBytes": 33554432,
+  "totalResourceBytes": 268435456,
+  "resourceCount": 4096,
+  "headerBytes": 65536,
+  "stringBytes": 1048576,
+  "varIntBytes": 5,
+  "texturePixels": 16777216,
+  "totalTexturePixels": 67108864,
+  "bones": 4096,
+  "quads": 262144,
+  "nestingDepth": 128,
+  "decodeMilliseconds": 10000,
+  "floatTolerance": 0.00001,
+  "switchIterations": 100,
+  "switchBatchSize": 10
+}
