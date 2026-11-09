@@ -49,6 +49,32 @@ public final class PreviewCover {
     }
 
     /**
+     * The square framed by dragging from {@code start} to {@code end}: its side is the longer drag
+     * distance, it grows from the start corner toward the pointer, and it is clipped to a square inside
+     * the preview frame's inner area. Returns null for a click or a drag that is too short.
+     */
+    public static Region framed(int startX, int startY, int endX, int endY,
+                                int frameX, int frameY, int frameWidth, int frameHeight) {
+        int deltaX = endX - startX;
+        int deltaY = endY - startY;
+        int side = Math.max(Math.abs(deltaX), Math.abs(deltaY));
+        int left = deltaX < 0 ? startX - side : startX;
+        int top = deltaY < 0 ? startY - side : startY;
+        int clippedLeft = Math.max(left, frameX + 1);
+        int clippedTop = Math.max(top, frameY + 1);
+        int clippedRight = Math.min(left + side, frameX + frameWidth - 1);
+        int clippedBottom = Math.min(top + side, frameY + frameHeight - 1);
+        int square = Math.min(clippedRight - clippedLeft, clippedBottom - clippedTop);
+        if (square < MIN_SIDE) {
+            return null;
+        }
+        // Keep the corner where the drag started.
+        int x = deltaX < 0 ? clippedRight - square : clippedLeft;
+        int y = deltaY < 0 ? clippedBottom - square : clippedTop;
+        return new Region(x, y, square);
+    }
+
+    /**
      * Samples the region of an ARGB screenshot (row-major, top row first) into an {@code size}-square ARGB
      * image. {@code guiScale} converts GUI units to screenshot pixels. Returns null outside the screenshot.
      */

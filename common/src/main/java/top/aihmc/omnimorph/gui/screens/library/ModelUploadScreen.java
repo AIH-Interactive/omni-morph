@@ -67,6 +67,15 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
     private boolean automaticCoverTried;
     private boolean capturingCover;
     private EntityPreview previewWidget;
+    /** Cover framing: the next drag on the preview selects the square to cut as the cover. */
+    private boolean framingCover;
+    private boolean framingDrag;
+    private int frameStartX;
+    private int frameStartY;
+    private int frameEndX;
+    private int frameEndY;
+    private PreviewCover.Region pendingFrame;
+    private int framesBeforeCapture;
     private LibraryThumbnailService.Handle cover;
     private LibraryClient.Request<?> sourceRequest;
     private LibraryClient.Request<?> imageRequest;
@@ -271,6 +280,13 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
                 Math.max(12, right / 3), -15, 30, preview.entity(), this));
         entity.setLibraryPreview(preview);
         previewWidget = entity;
+        framingCover = false;
+        framingDrag = false;
+        addRenderableWidget(new Button(rightX + right - 72, layout.footerY() - 24, 72, 12,
+                FiguraText.of("gui.library.cover_frame"), FiguraText.of("gui.library.cover_frame_hint"), ignored -> {
+                    framingCover = !framingCover;
+                    framingDrag = false;
+                }));
         int actionWidth = (right - 4) / 2;
         upload = addRenderableWidget(new Button(rightX + actionWidth + 4, layout.footerY(), actionWidth, 20,
                 FiguraText.of("gui.library.publish"), null, ignored -> submit()));
@@ -292,6 +308,8 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
             }
             UIHelper.renderScrollingText(gui, status, rightX, layout.footerY() - 12, right, 0xffd3e7e1);
         });
+        // Drawn last, above the preview, so the framing hint and square stay visible.
+        addRenderableOnly((gui, x, y, delta) -> renderCoverFrame(gui));
         updateSourceFields();
         building = false;
         if (sessionRequest == null) {
@@ -812,32 +830,128 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         automaticCover = null;
         var region = previewWidget == null || preview.status().stage() != LibraryPreviewSession.Stage.READY
                 ? null : previewWidget.upperBodyRegion();
-        int size = Math.min(PreviewCover.SIZE, Math.min(limits.maxImageWidth(), limits.maxImageHeight()));
-        if (region == null || size < 1) {
+        if (region == null) {
             submit();
+            return;
+        }
+        captureCover(region, captured -> {
+            automaticCover = captured;
+            if (!closed) {
+                submit();
+            }
+        });
+    }
+
+    /**
+     * Cuts a GUI region from the last rendered frame into a PNG cover within the server's image limits.
+     * {@code done} receives the cover, or null when it could not be made.
+     */
+    private void captureCover(PreviewCover.Region region, java.util.function.Consumer<LibraryUploadService.Image> done) {
+        int size = Math.min(PreviewCover.SIZE, Math.min(limits.maxImageWidth(), limits.maxImageHeight()));
+        if (size < 1) {
+            done.accept(null);
             return;
         }
         int guiScale = minecraft.getWindow().getGuiScale();
         capturingCover = true;
         Screenshot.takeScreenshot(minecraft.getMainRenderTarget(), screenshot -> {
+            LibraryUploadService.Image captured = null;
             try (screenshot) {
                 int[] square = PreviewCover.crop(screenshot.getPixels(), screenshot.getWidth(), screenshot.getHeight(),
                         region, guiScale, size);
                 if (square != null) {
                     byte[] png = PreviewCover.png(square, size);
                     if (png.length <= limits.maxImageBytes()) {
-                        automaticCover = new LibraryUploadService.Image(png, "image/png");
+                        captured = new LibraryUploadService.Image(png, "image/png");
                     }
                 }
             } catch (RuntimeException failure) {
-                FiguraMod.LOGGER.warn("Automatic library cover failed", failure);
+                FiguraMod.LOGGER.warn("Library cover capture failed", failure);
             } finally {
                 capturingCover = false;
             }
-            if (!closed) {
-                submit();
-            }
+            done.accept(captured);
         });
+    }
+
+    /** Draws the framing hint and the square being dragged, and captures a framed square once it is gone. */
+    private void renderCoverFrame(net.minecraft.client.gui.GuiGraphicsExtractor gui) {
+        if (previewWidget == null) {
+            return;
+        }
+        if (framingCover) {
+            int accent = FiguraMod.getAccentColor().getColor().getValue() | 0xff000000;
+            UIHelper.fillOutline(gui, previewWidget.getX(), previewWidget.getY(), previewWidget.getWidth(),
+                    previewWidget.getHeight(), accent);
+            var square = framingDrag ? PreviewCover.framed(frameStartX, frameStartY, frameEndX, frameEndY,
+                    previewWidget.getX(), previewWidget.getY(), previewWidget.getWidth(), previewWidget.getHeight()) : null;
+            if (square != null) {
+                UIHelper.fillOutline(gui, square.x() - 1, square.y() - 1, square.side() + 2, square.side() + 2, accent);
+            }
+        }
+        // The frame outline must be gone from the image: wait until a frame without it has been drawn.
+        if (pendingFrame != null && --framesBeforeCapture <= 0) {
+            var region = pendingFrame;
+            pendingFrame = null;
+            captureCover(region, captured -> {
+                if (closed) {
+                    return;
+                }
+                if (captured == null) {
+                    message = FiguraText.of("gui.library.image_retry");
+                    return;
+                }
+                clearImage();
+                image = captured;
+                cover = thumbnails.acquireLocal(captured.bytes());
+                if (imageButton != null) {
+                    imageButton.setMessage(FiguraText.of("gui.library.cover_framed"));
+                }
+            });
+        }
+    }
+
+    private boolean onPreview(double x, double y) {
+        return previewWidget != null && previewWidget.isMouseOver(x, y);
+    }
+
+    @Override
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        if (framingCover && event.button() == 0 && onPreview(event.x(), event.y())) {
+            framingDrag = true;
+            frameStartX = (int) event.x();
+            frameStartY = (int) event.y();
+            frameEndX = frameStartX;
+            frameEndY = frameStartY;
+            return true;
+        }
+        return super.mouseClicked(event, doubleClick);
+    }
+
+    @Override
+    public boolean mouseDragged(net.minecraft.client.input.MouseButtonEvent event, double deltaX, double deltaY) {
+        if (framingDrag) {
+            frameEndX = (int) event.x();
+            frameEndY = (int) event.y();
+            return true;
+        }
+        return super.mouseDragged(event, deltaX, deltaY);
+    }
+
+    @Override
+    public boolean mouseReleased(net.minecraft.client.input.MouseButtonEvent event) {
+        if (framingDrag) {
+            framingDrag = false;
+            framingCover = false;
+            var region = PreviewCover.framed(frameStartX, frameStartY, (int) event.x(), (int) event.y(),
+                    previewWidget.getX(), previewWidget.getY(), previewWidget.getWidth(), previewWidget.getHeight());
+            if (region != null) {
+                pendingFrame = region;
+                framesBeforeCapture = 2;
+            }
+            return true;
+        }
+        return super.mouseReleased(event);
     }
 
     private void submit() {
