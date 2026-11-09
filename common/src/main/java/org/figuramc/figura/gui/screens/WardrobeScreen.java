@@ -33,12 +33,12 @@ import org.figuramc.figura.gui.widgets.StatusWidget;
 import org.figuramc.figura.gui.widgets.SwitchButton;
 import org.figuramc.figura.gui.widgets.TextField;
 import top.aihmc.omnimorph.gui.widgets.library.CompactMode;
+import top.aihmc.omnimorph.gui.widgets.navigation.NavigationRoute;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryActionBar;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryIconButton;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
 import org.figuramc.figura.gui.widgets.lists.AvatarList;
-import top.aihmc.omnimorph.gui.widgets.wardrobe.VerticalWardrobeTab;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.BoneTreeWidget;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCloudList;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout;
@@ -331,10 +331,10 @@ public class WardrobeScreen extends AbstractPanelScreen {
         } else {
             layout = WardrobeLayout.of(width, height);
         }
-        addRenderableWidget(new VerticalWardrobeTab(4, 28, 66, text("outfit"), button -> switchTab(Tab.OUTFIT)));
-        addRenderableWidget(new VerticalWardrobeTab(4, 98, 100, text("collection"), button -> switchTab(Tab.COLLECTION)));
+        // Outfit, collection and the outfit panes are entries of the shared left navigation;
+        // the compact outfit shows its list beside the pane chosen there, without a pane-switch row.
         if (compactOutfit()) {
-            buildCompactPaneTabs();
+            buildCompactOutfitPanes();
         } else if (layout.compact()) {
             var panes = tab == Tab.COLLECTION ? List.of(Pane.RESOURCES, Pane.PREVIEW) : List.of(Pane.values());
             int sectionWidth = Math.max(1, (width - 36) / panes.size());
@@ -351,17 +351,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
         } else {
             addRenderableOnly((gui, x, y, delta) -> gui.text(font,
                     tab == Tab.OUTFIT ? text("outfit") : text("collection"), 32, 32, 0xffffffff));
-            if (tab == Tab.OUTFIT) {
-                int half = layout.treeWidth() / 2;
-                addRenderableWidget(new Button(layout.treeX(), 28, half - 2, 20, text("default_panel"), null,
-                        button -> switchRightPane(false))).setActive(bonesShown || editingInstance);
-                addRenderableWidget(new Button(layout.treeX() + half, 28, layout.treeWidth() - half, 20,
-                        text("tree"), null, button -> switchRightPane(true))).setActive(!bonesShown);
-            }
         }
-        if (compactOutfit()) {
-            buildCompactOutfitPanes();
-        } else {
+        if (!compactOutfit()) {
             buildPanes();
         }
         buildToolbar();
@@ -369,25 +360,57 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     private boolean compactOutfit() {
-        return tab == Tab.OUTFIT && CompactMode.active(width);
+        return tab == Tab.OUTFIT && width < WardrobeLayout.WIDE_WIDTH;
     }
 
-    /** Right-side vertical tabs of the compact outfit: preview, default information and bone tree. */
-    private void buildCompactPaneTabs() {
-        int x = WardrobeLayout.rightTabX(width);
-        boolean information = !bonesShown && pane == Pane.INFO;
-        int tabHeight = WardrobeLayout.RIGHT_TAB_HEIGHT;
-        addRenderableWidget(new VerticalWardrobeTab(x, WardrobeLayout.rightTabY(0), tabHeight, text("preview"), button -> {
-            if (bonesShown) {
-                switchRightPane(false);
+    @Override
+    protected boolean usesSideNavigation() {
+        return true;
+    }
+
+    @Override
+    protected NavigationRoute navigationRoute() {
+        if (tab == Tab.COLLECTION) {
+            return NavigationRoute.COLLECTION;
+        }
+        if (bonesShown) {
+            return NavigationRoute.BONES;
+        }
+        return pane == Pane.INFO ? NavigationRoute.INFORMATION : NavigationRoute.PREVIEW;
+    }
+
+    /** Preselects a wardrobe entry before the screen opens. */
+    public void selectNavigationRoute(NavigationRoute route) {
+        tab = route == NavigationRoute.COLLECTION ? Tab.COLLECTION : Tab.OUTFIT;
+        bonesShown = route == NavigationRoute.BONES;
+        pane = switch (route) {
+            case BONES -> Pane.TREE;
+            case INFORMATION -> Pane.INFO;
+            default -> Pane.PREVIEW;
+        };
+    }
+
+    @Override
+    protected boolean openNavigationRoute(NavigationRoute route) {
+        switch (route) {
+            case COLLECTION -> switchTab(Tab.COLLECTION);
+            case PREVIEW, INFORMATION, BONES -> {
+                switchTab(Tab.OUTFIT);
+                if (route == NavigationRoute.PREVIEW) {
+                    if (bonesShown) {
+                        switchRightPane(false);
+                    }
+                    pane = Pane.PREVIEW;
+                    rebuild();
+                } else {
+                    switchRightPane(route == NavigationRoute.BONES);
+                }
             }
-            pane = Pane.PREVIEW;
-            rebuild();
-        })).setActive(bonesShown || information);
-        addRenderableWidget(new VerticalWardrobeTab(x, WardrobeLayout.rightTabY(1), tabHeight, text("default_panel"),
-                button -> switchRightPane(false))).setActive(!information);
-        addRenderableWidget(new VerticalWardrobeTab(x, WardrobeLayout.rightTabY(2), tabHeight, text("tree"),
-                button -> switchRightPane(true))).setActive(!bonesShown);
+            default -> {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** The list stays beside the preview or default information; bone editing replaces the list. */

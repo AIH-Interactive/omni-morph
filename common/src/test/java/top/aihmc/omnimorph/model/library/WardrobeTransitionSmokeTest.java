@@ -36,25 +36,22 @@ public final class WardrobeTransitionSmokeTest {
                 }
             }
         }
-        // Reference 480x252 GUI: wardrobe tabs end at 26, the right pane tabs start at 452.
+        // Reference 480x252 GUI: content starts right of the 28 wide navigation rail.
         var outfit = WardrobeLayout.compactOf(480, 252);
         require(outfit.compact() && outfit.leftX() == 30 && outfit.leftWidth() == 132,
                 "compact outfit keeps a narrow resource list instead of a full-width single pane");
         require(outfit.previewX() == 168 && outfit.previewWidth() == 280
                         && outfit.treeX() == 168 && outfit.treeWidth() == 280,
                 "compact preview and default information share the wide pane beside the list");
-        require(WardrobeLayout.rightTabX(480) == 452 && outfit.previewX() + outfit.previewWidth() <= 448,
-                "the right vertical tabs stay clear of the content");
+        require(outfit.previewX() + outfit.previewWidth() == 448,
+                "the preview ends where Penpot 01 ends it, keeping the right margin");
         var bones = WardrobeLayout.bonesOf(480, 252);
         require(bones.compact() && bones.leftWidth() == 0 && bones.previewX() == 30 && bones.previewWidth() == 206
                         && bones.treeX() == 242 && bones.treeWidth() == 206,
                 "compact bone editing hides the list and splits preview and tree into equal panes");
-        // Penpot 01/37/40: panes start at the top row, right tabs are 22x52 at y 28, 84 and 140.
+        // Penpot 01/37/40: panes start at the top row; preview, information and bones are navigation entries.
         require(outfit.top() == 28 && bones.top() == 28,
                 "compact outfit panes take over the former pane-switch row");
-        require(WardrobeLayout.rightTabY(0) == 28 && WardrobeLayout.rightTabY(1) == 84
-                        && WardrobeLayout.rightTabY(2) == 140 && WardrobeLayout.RIGHT_TAB_HEIGHT == 52,
-                "right pane tabs follow the reference size and spacing");
         require(top.aihmc.omnimorph.gui.widgets.library.CompactMode.active(480, 0)
                         && !top.aihmc.omnimorph.gui.widgets.library.CompactMode.active(560, 0),
                 "the automatic GUI scale uses compact layouts only below 560 GUI units");
