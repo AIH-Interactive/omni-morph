@@ -4,6 +4,31 @@
 
 [Project overview](../README.en.md)
 
+## 1.0.0-alpha.10
+
+- UI: every main screen uses a persistent left navigation: Wardrobe (Outfit: Preview, Model info & notices, Bone tree; My Collection), Model library (My models, My favorites, Model library, Upload model, Admin console), Permissions, Settings and Help. It is collapsed to an icon rail and expands over the content on hover; the duplicate section and pane tabs are removed. Only players listed as server administrators see the Admin console (requires the matching backend).
+- Model cards: fixed size with a square cover, icon-only status badges (blocked, requires authorization, private or public) and a three-dot "Report / Favorite" menu. The models per page follow the available area, and resizing keeps the first model of the current page.
+- In-world avatars: other players see an authorized wearer's model without a grant of their own; private models are shown to others by default but still stay out of their model library; an explicit "hide from others" choice is kept (requires the matching backend).
+- Fix: the `INVALID_OUTFIT_CONFIGURATION` crash on NeoForge when mods such as TaCZ render the first-person arm with a non-invertible pose.
+- Real game rendering, multiplayer and modpack acceptance remain `MANUAL/PENDING`.
+
+## 1.0.0-alpha.9
+
+- Compact screens (Minecraft GUI scale "Auto" and narrower than 560): two-column small cards with a three-action menu in the library and collection; a two-pane outfit layout with right-side tabs, equal-width bone panes and up to five actions; control screens keep the preview.
+- The wardrobe preview shows the previewed model's status icons; the visibility icon shows whether the equipment is shown to others.
+- Real game rendering remains `MANUAL/PENDING`.
+
+## 1.0.0-alpha.8
+
+- Reverted the alpha.6 dual-engine render acceleration: removed the acceleration backends, their settings and the native build pipeline; render lifetime no longer depends on acceleration routing. Checked against a real model corpus.
+- Model library sections moved into a vertical side column.
+
+## 1.0.0-alpha.7
+
+- New NeoForge 26.1.2 build: ported platform and renderer adapters, packaged and verified the NeoForge distribution; the pipeline publishes both Fabric and NeoForge.
+- Preview: external mod preview backends with independent model scenes, preview scenery and original player skin integration.
+- Fixes: detached local outfit preview animations stopped updating; YSM cancellation and limits were lost behind ImageIO; NeoForge picture-in-picture registration and signature, player head hooks and a `LivingEntity` accessor collision.
+
 ## 1.0.0-alpha.6
 
 - Development milestone: prioritize shared YSM and Figura rendering performance. Stage validation and real-game performance acceptance are pending.
