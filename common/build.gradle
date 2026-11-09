@@ -1107,3 +1107,11 @@ tasks.register('firstPersonArmPoseSmokeTest', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = 'top.aihmc.omnimorph.model.outfit.FirstPersonArmPoseSmokeTest'
 }
+
+tasks.register('previewCoverSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks the automatic upload cover cut from the preview: region, clipping, crop and PNG.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.library.PreviewCoverSmokeTest'
+}

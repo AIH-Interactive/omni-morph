@@ -1,5 +1,6 @@
 package top.aihmc.omnimorph.gui.screens.library;
 
+import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import org.figuramc.figura.FiguraMod;
@@ -24,6 +25,7 @@ import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
 import top.aihmc.omnimorph.gui.widgets.navigation.NavigationRoute;
 import top.aihmc.omnimorph.model.library.LibraryPackagePreparation;
 import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
+import top.aihmc.omnimorph.model.library.PreviewCover;
 import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
 import top.aihmc.omnimorph.model.library.LibraryUploadDraft;
 import top.aihmc.omnimorph.model.library.LibraryUploadService;
@@ -60,6 +62,11 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
     private LibraryPackagePreparation.Prepared prepared;
     private LibraryUploadService.Operation operation;
     private LibraryUploadService.Image image;
+    /** Cover cut from the preview for an upload without a chosen image; used by the next new upload only. */
+    private LibraryUploadService.Image automaticCover;
+    private boolean automaticCoverTried;
+    private boolean capturingCover;
+    private EntityPreview previewWidget;
     private LibraryThumbnailService.Handle cover;
     private LibraryClient.Request<?> sourceRequest;
     private LibraryClient.Request<?> imageRequest;
@@ -263,6 +270,7 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         var entity = addRenderableWidget(new EntityPreview(rightX, layout.top(), right, layout.previewHeight() - 16,
                 Math.max(12, right / 3), -15, 30, preview.entity(), this));
         entity.setLibraryPreview(preview);
+        previewWidget = entity;
         int actionWidth = (right - 4) / 2;
         upload = addRenderableWidget(new Button(rightX + actionWidth + 4, layout.footerY(), actionWidth, 20,
                 FiguraText.of("gui.library.publish"), null, ignored -> submit()));
@@ -795,8 +803,45 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         building = previous;
     }
 
+    /**
+     * Cuts the upper body of the previewed model from the last rendered frame as the cover. Any failure,
+     * or a preview without a visible model, continues the upload without a cover as before.
+     */
+    private void captureAutomaticCover() {
+        automaticCoverTried = true;
+        automaticCover = null;
+        var region = previewWidget == null || preview.status().stage() != LibraryPreviewSession.Stage.READY
+                ? null : previewWidget.upperBodyRegion();
+        int size = Math.min(PreviewCover.SIZE, Math.min(limits.maxImageWidth(), limits.maxImageHeight()));
+        if (region == null || size < 1) {
+            submit();
+            return;
+        }
+        int guiScale = minecraft.getWindow().getGuiScale();
+        capturingCover = true;
+        Screenshot.takeScreenshot(minecraft.getMainRenderTarget(), screenshot -> {
+            try (screenshot) {
+                int[] square = PreviewCover.crop(screenshot.getPixels(), screenshot.getWidth(), screenshot.getHeight(),
+                        region, guiScale, size);
+                if (square != null) {
+                    byte[] png = PreviewCover.png(square, size);
+                    if (png.length <= limits.maxImageBytes()) {
+                        automaticCover = new LibraryUploadService.Image(png, "image/png");
+                    }
+                }
+            } catch (RuntimeException failure) {
+                FiguraMod.LOGGER.warn("Automatic library cover failed", failure);
+            } finally {
+                capturingCover = false;
+            }
+            if (!closed) {
+                submit();
+            }
+        });
+    }
+
     private void submit() {
-        if (busy() || prepared == null && outfitPrepared == null || closed
+        if (capturingCover || busy() || prepared == null && outfitPrepared == null || closed
                 || outfitSource && !outfitReady
                 || draftPreview != null && !draftPreview.isDone()
                 || preview.status().stage() == LibraryPreviewSession.Stage.LOADING
@@ -824,15 +869,23 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
             if (operation != null && operation.future().isCompletedExceptionally()) {
                 operation.retry();
             } else if (operation == null) {
+                if (image == null && !automaticCoverTried) {
+                    // No chosen cover: cut the upper body from the preview first, then submit again.
+                    captureAutomaticCover();
+                    return;
+                }
+                var uploadImage = image != null ? image : automaticCover;
+                automaticCover = null;
+                automaticCoverTried = false;
                 if (outfitSource) {
                     operation = uploads.uploadOutfit(OutfitUploadDraft.snapshot(outfitPrepared, draft.displayName(),
                             draft.description(), draft.category(), LibraryUploadDraft.normalizeTags(tags), draft.isPublic(),
-                            draft.requiresAuthorization(), limits, client.origin(), outfitLocalConfirmed), image);
+                            draft.requiresAuthorization(), limits, client.origin(), outfitLocalConfirmed), uploadImage);
                 } else {
                     if (accessorySource) {
                         draft.resourceKind("ACCESSORY", accessoryDeclaration());
                     }
-                    operation = uploads.upload(draft.snapshot(limits), image);
+                    operation = uploads.upload(draft.snapshot(limits), uploadImage);
                 }
             } else {
                 return;

@@ -454,6 +454,18 @@ public class EntityPreview extends AbstractContainerElement {
         }
     }
 
+    /**
+     * The upper-body square of the entity as currently drawn, in GUI units, including the user's pan and
+     * zoom; null when no entity is drawn or too little of it is visible.
+     */
+    public top.aihmc.omnimorph.model.library.PreviewCover.Region upperBodyRegion() {
+        if (entity == null || !isVisible()) {
+            return null;
+        }
+        return top.aihmc.omnimorph.model.library.PreviewCover.upperBody(getX() + modelX, getY() + modelY,
+                scale + scaledValue, getX(), getY(), getWidth(), getHeight());
+    }
+
     public void setLibraryPreview(LibraryPreviewSession preview) {
         closeLocalPreview();
         libraryPreview = preview;
