@@ -111,8 +111,9 @@ public final class ModelLibraryCatalogSmokeTest {
             await(() -> get(screen, "results") != null, drain);
             var page = (LibraryModels.Page) get(screen, "results");
             require(page.items().getFirst().displayName().equals("new"), "new search owns visible results");
+            // 960x540: a 618 wide, 456 tall card area fits 6 columns and 4 rows of fixed 90x108 cards.
             require(query.get().contains("scope=mine") && query.get().contains("sort=name")
-                    && query.get().contains("page_size=12") && query.get().contains("%E6%96%B0"),
+                    && query.get().contains("page_size=24") && query.get().contains("%E6%96%B0"),
                     "server query owns filtering, page budget and sort");
             release.countDown();
             drain.run();

@@ -633,7 +633,12 @@ public class WardrobeScreen extends AbstractPanelScreen {
                     selectCloud(entry.cloud());
                 }
             }, id -> client == null ? FiguraText.of("gui.library.state.offline") : text(collection.cacheState(id))));
-            collectionGrid.compact(compactCollection());
+            collectionGrid.cardActions(model -> {
+                if (client != null) {
+                    minecraft.setScreen(new top.aihmc.omnimorph.gui.screens.library.ModelReportScreen(this, client,
+                            model.modelId()));
+                }
+            }, this::toggleCloudFavorite);
             collectionGrid.setResourceFilters(sourceFilter, modeFilter, resourceFiltersExpanded,
                     expanded -> resourceFiltersExpanded = expanded);
             refreshCollectionCards();
@@ -684,6 +689,22 @@ public class WardrobeScreen extends AbstractPanelScreen {
         }
         return collection.failure().isEmpty() ? text("cloud")
                 : FiguraText.of("gui.library.failure", collection.failure());
+    }
+
+    /** Favorite or unfavorite a cloud collection model with the catalog's existing request. */
+    private void toggleCloudFavorite(LibraryModels.Model model) {
+        if (client == null || !client.current() || !model.allows("favorite")) {
+            return;
+        }
+        String method = model.favorited() ? "DELETE" : "PUT";
+        var request = client.submit(LibraryClient.Lane.CONTROL, exchange -> exchange.json(method,
+                "/api/library/v1/models/" + model.modelId() + "/favorite",
+                Map.of("operation_id", UUID.randomUUID().toString()), Map.class));
+        request.future().whenComplete((result, failure) -> minecraft.execute(() -> {
+            if (!removed && collection != null) {
+                collection.refresh();
+            }
+        }));
     }
 
     private boolean compactCollection() {

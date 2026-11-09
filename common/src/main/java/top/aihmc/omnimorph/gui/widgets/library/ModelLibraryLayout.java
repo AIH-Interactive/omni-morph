@@ -1,50 +1,43 @@
 package top.aihmc.omnimorph.gui.widgets.library;
 
-/** Logical-pixel geometry shared by card rendering, clipping and pointer hit tests. */
+/**
+ * Logical-pixel geometry shared by card rendering, clipping and pointer hit tests.
+ * Cards have a fixed size (Penpot 54: 180x216 board units at 2x GUI); the available area only decides
+ * how many columns, rows and models per page fit.
+ */
 public record ModelLibraryLayout(int width, int height, int count, int columns, int cardWidth,
                                  int cardHeight, int imageSize) {
     public static final int GAP = 6;
-    public static final int CARD_HEIGHT = 92;
-    public static final int MIN_CARD_WIDTH = 196;
-    public static final int COMPACT_CARD_HEIGHT = 68;
-    public static final int COMPACT_IMAGE_SIZE = 32;
-    public static final int COLLECTION_CARD_HEIGHT = 54;
-    public static final int COLLECTION_IMAGE_SIZE = 24;
+    public static final int CARD_WIDTH = 90;
+    public static final int COVER_SIZE = 90;
+    public static final int NAME_ROW_HEIGHT = 18;
+    public static final int CARD_HEIGHT = COVER_SIZE + NAME_ROW_HEIGHT;
 
-    public static int imageSize(int cardWidth) {
-        return Math.max(1, Math.min(CARD_HEIGHT - 8, (cardWidth - 16) / 2));
-    }
-
-    /** The wide, responsive card grid. */
+    /** The card grid: columns = floor((available + gap) / (card + gap)), at least one. */
     public static ModelLibraryLayout of(int width, int height, int count) {
         int available = Math.max(1, width);
-        int columns = Math.max(1, (available + GAP) / (MIN_CARD_WIDTH + GAP));
-        int cardWidth = Math.max(1, (available - (columns - 1) * GAP) / columns);
+        int columns = Math.max(1, (available + GAP) / (CARD_WIDTH + GAP));
         return new ModelLibraryLayout(available, Math.max(1, height), Math.max(0, count), columns,
-                cardWidth, CARD_HEIGHT, imageSize(cardWidth));
+                CARD_WIDTH, CARD_HEIGHT, COVER_SIZE);
     }
 
-    /** Compact model library catalog: always two small cards per row. */
-    public static ModelLibraryLayout compact(int width, int height, int count) {
-        return twoColumns(width, height, count, COMPACT_CARD_HEIGHT, COMPACT_IMAGE_SIZE);
-    }
-
-    /** Compact wardrobe collection: always two short cards per row. */
-    public static ModelLibraryLayout compactCollection(int width, int height, int count) {
-        return twoColumns(width, height, count, COLLECTION_CARD_HEIGHT, COLLECTION_IMAGE_SIZE);
-    }
-
-    private static ModelLibraryLayout twoColumns(int width, int height, int count, int cardHeight, int imageSize) {
-        int available = Math.max(1, width);
-        int cardWidth = Math.max(1, (available - GAP) / 2);
-        return new ModelLibraryLayout(available, Math.max(1, height), Math.max(0, count), 2,
-                cardWidth, cardHeight, imageSize);
+    /**
+     * The page that still contains the first model of the current page after the page size changed.
+     * An unknown previous size starts again at the first page.
+     */
+    public static int pageKeepingFirst(int page, int previousSize, int nextSize) {
+        if (previousSize <= 0 || nextSize <= 0) {
+            return 1;
+        }
+        long firstIndex = (long) (Math.max(1, page) - 1) * previousSize;
+        return (int) Math.min(Integer.MAX_VALUE, firstIndex / nextSize + 1);
     }
 
     public int rows() {
         return (count + columns - 1) / columns;
     }
 
+    /** Complete rows that fit the viewport, at least one, times the columns, within the server maximum. */
     public int pageCapacity(int maximum) {
         int visibleRows = Math.max(1, (height + GAP) / (cardHeight + GAP));
         return (int) Math.min(Math.max(1, maximum), (long) columns * visibleRows);
