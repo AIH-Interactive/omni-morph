@@ -1,3 +1,0 @@
-t.phase_4_1_temp = 1;
-v.phase_4_1_pre_main = t.phase_4_1_temp;
-return ctrl.state_continue;
