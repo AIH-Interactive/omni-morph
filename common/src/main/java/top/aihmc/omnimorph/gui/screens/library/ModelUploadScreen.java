@@ -14,6 +14,7 @@ import top.aihmc.omnimorph.gui.screens.ModelLibraryScreen;
 import org.figuramc.figura.gui.widgets.Button;
 import org.figuramc.figura.gui.widgets.EntityPreview;
 import org.figuramc.figura.gui.widgets.TextField;
+import top.aihmc.omnimorph.gui.widgets.library.CompactMode;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryFormBody;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryLabels;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryRadioGroup;
@@ -277,7 +278,9 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
                 previewDraft();
             }
         }), 24, labelWidth);
-        var entity = addRenderableWidget(new EntityPreview(rightX, layout.top(), right, layout.previewHeight() - 16,
+        int progressHeight = CompactMode.active(width) ? 20 : 40;
+        var entity = addRenderableWidget(new EntityPreview(rightX, layout.top() + progressHeight, right,
+                layout.previewHeight() - 16 - progressHeight,
                 Math.max(12, right / 3), -15, 30, preview.entity(), this));
         entity.setLibraryPreview(preview);
         previewWidget = entity;
@@ -291,18 +294,14 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         int actionWidth = (right - 4) / 2;
         upload = addRenderableWidget(new Button(rightX + actionWidth + 4, layout.footerY(), actionWidth, 20,
                 FiguraText.of("gui.library.publish"), null, ignored -> submit()));
-        addRenderableWidget(new Button(rightX + right - 20, layout.top(), 20, 20,
+        addRenderableWidget(new Button(rightX + right - 20, layout.top() + progressHeight, 20, 20,
                 Component.literal("×"), FiguraText.of("gui.done"), ignored -> onClose()));
         addRenderableWidget(new Button(rightX, layout.footerY(), actionWidth, 20,
                 FiguraText.of("gui.library.cancel"), null, ignored -> cancelUpload()));
         addRenderableOnly((gui, x, y, delta) -> {
             Component status = message;
             if (operation != null && !operation.future().isDone() && operation.progress() != null) {
-                var progress = operation.progress();
-                var stage = operation.publicationProgress().stage();
-                status = stage == LibraryUploadProgress.Stage.UPLOADING && progress.total() > 0 ? FiguraText.of("gui.library.sent",
-                        LibraryLabels.fileSize(progress.received()), LibraryLabels.fileSize(progress.total()))
-                        : FiguraText.of("gui.library.upload_stage." + stage.name().toLowerCase(java.util.Locale.ROOT));
+                status = Component.empty();
             } else if (sourceRequest != null && !sourceRequest.future().isDone()) {
                 status = FiguraText.of("gui.library.phase." + preparationPhase.name().toLowerCase(java.util.Locale.ROOT));
             } else if (preview.status().stage() == LibraryPreviewSession.Stage.FAILED) {
@@ -312,7 +311,7 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         });
         // Drawn last, above the preview, so the framing hint and square stay visible.
         addRenderableOnly((gui, x, y, delta) -> renderCoverFrame(gui));
-        addRenderableOnly((gui, x, y, delta) -> renderUploadProgress(gui, layout));
+        addRenderableOnly((gui, x, y, delta) -> renderUploadProgress(gui, layout, x, y));
         updateSourceFields();
         building = false;
         if (sessionRequest == null) {
@@ -1046,53 +1045,117 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
                 ? "gui.library.upload_result_public" : "gui.library.upload_result_private");
     }
 
-    private void renderUploadProgress(net.minecraft.client.gui.GuiGraphicsExtractor gui, LibraryWorkspaceLayout layout) {
+    /** The progress header leaves the model preview visible throughout publication. */
+    private void renderUploadProgress(net.minecraft.client.gui.GuiGraphicsExtractor gui, LibraryWorkspaceLayout layout,
+                                      int mouseX, int mouseY) {
         if (operation == null) {
             return;
         }
         int x = layout.previewX();
         int y = layout.top();
-        int width = layout.previewWidth();
-        int bottom = y + layout.previewHeight();
-        gui.fill(x, y, x + width, bottom, 0xff0f1a2b);
-        UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.upload_progress"), x + 6, y + 6, width - 12, 0xffeeeeee);
+        int headerWidth = layout.previewWidth();
         var state = operation.publicationProgress();
+        boolean reviewBlocked = uploadReviewBlocked();
+        if (CompactMode.active(width)) {
+            Component status = currentUploadStatus(state);
+            int color = 0xfff5cd72;
+            if (state.failed() || reviewBlocked) {
+                color = 0xffff6666;
+            } else if (state.stage() == LibraryUploadProgress.Stage.RESULT) {
+                color = 0xff79d9b1;
+            }
+            UIHelper.renderScrollingText(gui, status, x + 2, y + 5, headerWidth - 4, color);
+            return;
+        }
         var stages = List.of(LibraryUploadProgress.Stage.UPLOADING, LibraryUploadProgress.Stage.VALIDATING,
                 LibraryUploadProgress.Stage.REVIEWING, LibraryUploadProgress.Stage.RESULT);
-        for (int index = 0; index < stages.size(); index++) {
-            var stage = stages.get(index);
-            boolean completed = state.completed().contains(stage)
-                    || stage == LibraryUploadProgress.Stage.RESULT && state.stage() == stage && !state.failed();
-            boolean active = state.stage() == stage
-                    || stage == LibraryUploadProgress.Stage.RESULT && state.stage() == LibraryUploadProgress.Stage.FINALIZING;
-            String status = "waiting";
-            if (completed) {
-                status = "complete";
+        var names = List.of("upload", "validate", "review", "done");
+        int current = switch (state.stage()) {
+            case PREPARING, UPLOADING, SUBMITTING -> 0;
+            case VALIDATING -> 1;
+            case REVIEWING -> 2;
+            case FINALIZING, RESULT -> 3;
+        };
+        int dotY = y + 12;
+        for (int index = 0; index < 4; index++) {
+            int dotX = x + 10 + (headerWidth - 20) * index / 3;
+            boolean completed = state.completed().contains(stages.get(index))
+                    || index == 3 && state.stage() == LibraryUploadProgress.Stage.RESULT && !state.failed();
+            boolean active = index == current;
+            int color = 0xff92a5ad;
+            if ((active && state.failed()) || (index == 2 && reviewBlocked)) {
+                color = 0xffff6666;
+            } else if (completed) {
+                color = 0xff79d9b1;
             } else if (active) {
-                status = state.failed() ? "failed" : "active";
+                color = 0xfff5cd72;
             }
-            if (stage == LibraryUploadProgress.Stage.RESULT && state.failed()) {
-                status = "failed";
+            if (index < 3) {
+                int nextX = x + 10 + (headerWidth - 20) * (index + 1) / 3;
+                gui.fill(dotX + 4, dotY, nextX - 4, dotY + 1, completed ? 0xff79d9b1 : 0xff384c54);
             }
-            int color = status.equals("failed") ? 0xffff6666 : completed ? 0xff88ddaa : active ? 0xffffdd88 : 0xff94a3b8;
-            int rowY = y + 24 + index * 24;
-            var label = Component.literal((index + 1) + ". ").append(FiguraText.of(
-                    "gui.library.upload_stage." + stage.name().toLowerCase(java.util.Locale.ROOT)));
-            UIHelper.renderScrollingText(gui, label, x + 6, rowY, width - 12, color);
-            UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.upload_step." + status),
-                    x + 12, rowY + 11, width - 18, color);
+            if (active && !completed) {
+                drawProgressDot(gui, dotX, dotY, 7, 0xff665637);
+            }
+            drawProgressDot(gui, dotX, dotY, 4, color);
+            if (!completed && !active) {
+                drawProgressDot(gui, dotX, dotY, 2, 0xff020c10);
+            }
+            int labelWidth = headerWidth / 4;
+            int labelX = Math.clamp(dotX - labelWidth / 2, x, x + headerWidth - labelWidth);
+            var label = FiguraText.of("gui.library.upload_node." + names.get(index));
+            UIHelper.renderCenteredScrollingText(gui, label, labelX, y + 22, labelWidth, 12, color);
+            if (Math.abs(mouseX - dotX) <= 8 && Math.abs(mouseY - dotY) <= 8) {
+                String status = "waiting";
+                if ((active && state.failed()) || (index == 2 && reviewBlocked)) {
+                    status = "failed";
+                } else if (completed) {
+                    status = "complete";
+                } else if (active) {
+                    status = "active";
+                }
+                tooltip = label.copy().append(" · ").append(FiguraText.of("gui.library.upload_step." + status))
+                        .append("\n").append(FiguraText.of("gui.library.upload_node_description." + names.get(index)));
+                if (active) {
+                    tooltip = tooltip.copy().append("\n").append(currentUploadStatus(state));
+                }
+                if (index == 2 && reviewBlocked) {
+                    tooltip = tooltip.copy().append("\n").append(message);
+                }
+                if (index == 3 && state.stage() == LibraryUploadProgress.Stage.RESULT) {
+                    tooltip = tooltip.copy().append("\n").append(message);
+                }
+            }
         }
-        Component detail = state.stage() == LibraryUploadProgress.Stage.PREPARING
-                || state.stage() == LibraryUploadProgress.Stage.SUBMITTING
-                || state.stage() == LibraryUploadProgress.Stage.FINALIZING
-                ? FiguraText.of("gui.library.upload_stage." + state.stage().name().toLowerCase(java.util.Locale.ROOT)) : message;
-        int detailY = y + 124;
-        for (var line : font.split(detail, Math.max(1, width - 12))) {
-            if (detailY + font.lineHeight > bottom - 4) {
-                break;
-            }
-            gui.text(font, line, x + 6, detailY, state.failed() ? 0xffff6666 : 0xffeeeeee, false);
-            detailY += font.lineHeight + 2;
+    }
+
+    private Component currentUploadStatus(LibraryUploadProgress.Snapshot state) {
+        if (state.failed() || uploadReviewBlocked()) {
+            return message;
+        }
+        Component status = FiguraText.of("gui.library.upload_stage."
+                + state.stage().name().toLowerCase(java.util.Locale.ROOT));
+        var bytes = operation.progress();
+        if (state.stage() == LibraryUploadProgress.Stage.UPLOADING && bytes.total() > 0) {
+            status = status.copy().append(" · ").append(FiguraText.of("gui.library.sent",
+                    LibraryLabels.fileSize(bytes.received()), LibraryLabels.fileSize(bytes.total())));
+        }
+        return status;
+    }
+
+    private boolean uploadReviewBlocked() {
+        if (!operation.future().isDone() || operation.future().isCompletedExceptionally()) {
+            return false;
+        }
+        var result = operation.future().getNow(null);
+        return result != null && result.moderationStatus() != null && !result.moderationStatus().equals("ACTIVE");
+    }
+
+    private static void drawProgressDot(net.minecraft.client.gui.GuiGraphicsExtractor gui, int x, int y,
+                                        int radius, int color) {
+        for (int row = -radius; row <= radius; row++) {
+            int halfWidth = (int) Math.sqrt(radius * radius - row * row);
+            gui.fill(x - halfWidth, y + row, x + halfWidth + 1, y + row + 1, color);
         }
     }
 

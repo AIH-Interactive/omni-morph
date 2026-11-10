@@ -28,3 +28,11 @@
 - 游戏内像素显示、重复预览断连复测及生产上传界面验收：MANUAL/PENDING。未启动游戏，未将 HTTP/CPU 测试当作实机界面截图。
 - 后端 release 构建 PASS：cargo build --release，2m10s，退出码0；仅有现存未使用代码警告。两端 git diff --check 通过。
 - 发布构建输出：客户端在 fabric/build/libs、neoforge/build/libs；后端发布程序在其仓库 target/release/sculptor.exe。建议先更新后端，再更新客户端；构建结果与提交状态以最终交接节记录为准。
+
+## 2026-11-10 已验收进度条设计实装
+
+- 用户已验收 Penpot 静态稿并授权实装。普通模式在预览上方显示四个圆点与连接线：上传、校验、自动审核、完成；悬停圆点显示步骤描述、当前状态及实际结果/错误。已完成绿色、当前金色、待处理灰色、失败红色。
+- 紧凑模式沿用 CompactMode：自动 GUI 缩放且逻辑宽度小于560。仅在预览上方显示当前状态单行文案，上传阶段带已有字节计数；完成后显示完成，失败显示原因。移除覆盖整个预览的旧纵向列表，保留模型预览和框选封面入口。
+- 仅修改客户端页面、中英文文案和既有预览布局回归；复用现有真实阶段事件，本轮无后端修改。
+- PASS：libraryUploadProgressSmokeTest、libraryUploadSmokeTest；首轮 Fabric/NeoForge release 构建及其 libraryPreviewRuntimeSmokeTest 通过（1m13s，退出码0），新增断言验证真实投稿预览位于进度标题下方、操作按钮上方。失败配色整理后重新构建最终产物及预览回归通过，BUILD SUCCESSFUL in 1m，退出码0。git diff --check 通过。
+- 游戏内像素、悬停气泡和自动缩放紧凑模式实机验收 MANUAL/PENDING；未启动游戏。无剩余已授权实施项。
