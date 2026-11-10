@@ -15,7 +15,7 @@ public final class NavigationScreens {
     /** Creates the page for a destination, preselecting the entry inside pages that own several. */
     public static Screen open(NavigationRoute route, Screen parent) {
         return switch (route) {
-            case WARDROBE, OUTFIT, PREVIEW, INFORMATION, BONES, COLLECTION -> {
+            case WARDROBE, OUTFIT, PREVIEW, INFORMATION, ANNOUNCEMENTS, BONES, COLLECTION -> {
                 var wardrobe = new WardrobeScreen(parent);
                 wardrobe.selectNavigationRoute(route);
                 yield wardrobe;

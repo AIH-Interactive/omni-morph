@@ -59,6 +59,10 @@ dependencies {
 sourceSets.main.proto.srcDir rootProject.file('protocol')
 
 processResources {
+    from('src/main/resources/icon.png') {
+        into 'assets/omni-morph/textures/gui'
+        rename { 'navigation_logo.png' }
+    }
     from(rootProject.file('protocol/outfit-v1/template-manifest.json')) {
         into 'assets/omni-morph/wizard'
         rename { 'ysm-template-manifest.json' }
@@ -1114,4 +1118,20 @@ tasks.register('previewCoverSmokeTest', JavaExec) {
     dependsOn testClasses
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = 'top.aihmc.omnimorph.model.library.PreviewCoverSmokeTest'
+}
+
+tasks.register('libraryModelEditSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks submitted model metadata and cover saves, explicit clear and retry sequencing over HTTP.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.library.LibraryModelEditSmokeTest'
+}
+
+tasks.register('libraryCollectionBurstSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Reproduces collection cover bursts against the backend message-rate budget.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.library.LibraryCollectionBurstSmokeTest'
 }

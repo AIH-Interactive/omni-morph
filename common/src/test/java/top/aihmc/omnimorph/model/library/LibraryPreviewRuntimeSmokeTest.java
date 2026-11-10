@@ -2184,6 +2184,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
              var parentPreview = new LibraryPreviewSession()) {
             testAccessoryUploadScreen(client, player, drain);
             testOutfitUploadScreen(client, player, drain);
+            testSeparateInformationAndNotices();
+            testCollectionSelectionPreservesGrid();
             Files.writeString(root.resolve("avatar.json"), "{\"name\":\"Original preset base\"}");
             var base = new top.aihmc.omnimorph.avatar.local.LocalAvatarSource(data).describe(root, () -> false);
             equipped.load(new top.aihmc.omnimorph.avatar.local.LocalAvatarSource(data).prepare(base, owner, () -> false));
@@ -3087,6 +3089,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     tabRow.add(tabScrollbar);
                 }
                 require(footer.size() == 2 && !tabRow.isEmpty(), "framed settings expose a tab row and two footer buttons");
+                int tabBottom = tabRow.stream().mapToInt(widget -> widget.getY() + widget.getHeight()).max().orElseThrow();
+                require(panel[1] == tabBottom + 4,
+                        "panel follows the actual tab row with only a four-unit gap at " + size[0] + "x" + size[1]);
                 for (var widget : tabRow) {
                     require(widget.getY() + widget.getHeight() <= panel[1],
                             "tab row stays above the panel at " + size[0] + "x" + size[1]);
@@ -5285,6 +5290,101 @@ public final class LibraryPreviewRuntimeSmokeTest {
         }
         System.out.println("PASS creation menu/YSM form: actual native fields, metadata-only options, no files before Create, "
                 + "duplicate/close guards and failed-job retry state; GUI MANUAL/PENDING");
+    }
+
+    private static void testSeparateInformationAndNotices() throws Exception {
+        var type = org.figuramc.figura.gui.screens.WardrobeScreen.class;
+        var buildInformation = type.getDeclaredMethod("buildInformation");
+        var updateNotices = type.getDeclaredMethod("updateMotdWidget");
+        var currentRoute = type.getDeclaredMethod("navigationRoute");
+        for (var method : java.util.List.of(buildInformation, updateNotices, currentRoute)) {
+            method.setAccessible(true);
+        }
+        var previous = org.figuramc.figura.backend2.NetworkStuff.motd;
+        try {
+            org.figuramc.figura.backend2.NetworkStuff.motd = net.minecraft.network.chat.Component.literal("Notice fixture");
+            for (var route : java.util.List.of(
+                    top.aihmc.omnimorph.gui.widgets.navigation.NavigationRoute.INFORMATION,
+                    top.aihmc.omnimorph.gui.widgets.navigation.NavigationRoute.ANNOUNCEMENTS)) {
+                var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
+                screen.width = 480;
+                screen.height = 270;
+                field(net.minecraft.client.gui.screens.Screen.class, "font").set(screen, Minecraft.getInstance().font);
+                field(type, "layout").set(screen,
+                        top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout.compactOf(480, 270));
+                screen.selectNavigationRoute(route);
+                require(currentRoute.invoke(screen) == route, "information and notices have distinct current routes");
+                boolean information = route == top.aihmc.omnimorph.gui.widgets.navigation.NavigationRoute.INFORMATION;
+                if (information) {
+                    buildInformation.invoke(screen);
+                }
+                updateNotices.invoke(screen);
+                require((field(type, "infoWidget").get(screen) != null) == information,
+                        "only the information page builds the model information widget");
+                require((field(type, "motdWidget").get(screen) != null) == !information,
+                        "only the notices page builds the announcement widget, including periodic updates");
+            }
+        } finally {
+            org.figuramc.figura.backend2.NetworkStuff.motd = previous;
+        }
+        System.out.println("PASS compact information/notices: separate routes and mutually exclusive widgets; GUI MANUAL/PENDING");
+    }
+
+    private static void testCollectionSelectionPreservesGrid() throws Exception {
+        var input = field(Minecraft.class, "lastInputType");
+        var previousInput = input.get(Minecraft.getInstance());
+        input.set(Minecraft.getInstance(), net.minecraft.client.InputType.MOUSE);
+        var type = org.figuramc.figura.gui.screens.WardrobeScreen.class;
+        var build = type.getDeclaredMethod("buildResources");
+        build.setAccessible(true);
+        // Run the real clear/build path without unrelated connection setup or GPU rendering.
+        var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null) {
+            @Override
+            protected void init() {
+                clearWidgets();
+                try {
+                    build.invoke(this);
+                } catch (ReflectiveOperationException failure) {
+                    throw new AssertionError(failure);
+                }
+            }
+        };
+        var root = Files.createTempDirectory("collection-selection-");
+        var session = new LibraryPreviewSession();
+        try (var catalog = new LocalCosmeticCatalog(root, Runnable::run)) {
+            field(net.minecraft.client.gui.screens.Screen.class, "minecraft").set(screen, Minecraft.getInstance());
+            field(net.minecraft.client.gui.screens.Screen.class, "font").set(screen, Minecraft.getInstance().font);
+            screen.width = 640;
+            screen.height = 360;
+            field(type, "tab").set(screen, field(type, "tab").getType().getEnumConstants()[1]);
+            field(type, "layout").set(screen,
+                    top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout.collectionOf(640, 360));
+            field(type, "cosmetics").set(screen, catalog);
+            field(type, "localCandidates").set(screen, LocalOutfitCandidates.forDirectory(root));
+            field(type, "preview").set(screen, session);
+            var entry = new top.aihmc.omnimorph.backend2.library.LibraryModels.CollectionEntry(
+                    UUID.randomUUID(), 1, "DOWNLOAD", false, null);
+            field(type, "offlineEntries").set(screen, java.util.List.of(entry));
+            build.invoke(screen);
+            var original = field(type, "collectionGrid").get(screen);
+            var select = type.getDeclaredMethod("selectCloud", entry.getClass());
+            select.setAccessible(true);
+            for (int index = 0; index < 3; index++) {
+                select.invoke(screen, entry);
+                require(field(type, "collectionGrid").get(screen) == original,
+                        "preview selection must preserve the collection grid and its cover handles");
+            }
+            ((AutoCloseable) original).close();
+        } finally {
+            input.set(Minecraft.getInstance(), previousInput);
+            session.close();
+            try (var paths = Files.walk(root)) {
+                for (var path : paths.sorted(java.util.Comparator.reverseOrder()).toList()) {
+                    Files.deleteIfExists(path);
+                }
+            }
+        }
+        System.out.println("PASS collection preview selection: grid and cover ownership survive repeated clicks; GUI MANUAL/PENDING");
     }
 
     private static void testOutfitUploadScreen(LibraryClient client, CurrentPreviewPlayer player, Runnable drain) throws Exception {

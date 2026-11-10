@@ -142,3 +142,76 @@
 - 验证：各阶段自动测试通过；`:fabric:build` 与 `:neoforge:build -Prelease` 退出码 0，产物版本为 1.0.0-alpha.10；后端 `cargo test` 204 个通过。实机 GUI、多人、NeoForge + TaCZ 整合包为 MANUAL/PENDING。
 - 注意：`86bd6bbf` 误提交了构建产物，已由 `760b3922` 移除，但仍留在历史中。是否改写历史需要用户决定。
 - 剩余事项：只有汇总文档“未完成与待确认”一节列出的后续事项，均未授权，不得自行实施。
+
+## Penpot 连接复查
+
+- 本次只读 MCP 测试通过：文件“新建文件 1”，当前页“Page 1”，共 56 个页面。
+- 未修改设计或代码，未执行构建、测试、提交或推送；本次未核验 Git 状态。连接检查已完成，无剩余操作。
+
+## 18. 2026-11-10 Penpot 本轮静态设计（待用户验收）
+
+- 用户要求先依据代码确认当前需求相关页面，只在 Penpot 修改；提供截图，验收通过后才允许改代码。
+- 已只读核对导航映射、ModelUploadScreen、LibraryUploadSource、ModelLibraryEditScreen，以及管理员打开编辑页的入口。普通用户和管理员共用 ModelLibraryEditScreen。
+- 导航中的“模型信息&公告”标记为仅紧凑模式显示；06 宽窗口展开稿不显示该项。相关已有展开导航与第 53 页静态说明同步更新。
+- 10 投稿模型（含展开导航稿）、12 投稿配件、13 投稿配装：文件上传框左侧，180×180 方形封面右侧，上传框同步为 180 高，保留选择/清除封面；后续字段按滚动表单显示。
+- 14 编辑模型增加方形当前封面及选择/更换、清除按钮。52 管理员后台新增“模型投稿信息编辑 · 封面设置”静态画板，沿用相同字段与封面设置。
+- 已导出查看投稿模型、配件、配装、普通编辑、管理员编辑，以及紧凑/宽窗口导航。中文正常；已发现并修正 SVG 导航移动造成的间距异常，宽窗口导航改用原生可编辑文字，复用原有图标。
+- 当前状态：静态设计等待用户验收（MANUAL/PENDING）；禁止在用户通过验收前改代码。未修改生产代码，未运行构建、测试、提交或推送；本轮未核验 Git 分支和远端状态。
+- 下一步：展示最终截图；按用户反馈调整静态稿，只有用户明确验收通过后才开始代码实施。
+
+## 19. 2026-11-10 本轮代码实施完成（覆盖第 18 节等待验收状态）
+
+- 用户已明确授权按当前 Penpot 实施，并追加普通/管理员已投稿编辑也要支持框选预览。
+- 已实现：导航信息公告入口仅紧凑布局显示；投稿封面正方形、上传框等高；普通与管理员共用编辑页展示现有封面、选择更换、清除，以及框选预览生成封面。Penpot 第 14/52 页也已同步框选入口。
+- 后端已存在图片 PUT/DELETE 接口，本次仅只读核对，未修改后端；客户端保存保留元数据与封面各自的操作身份、修订顺序和失败重试状态。
+- 修改与移植清单、范围和验证边界：docs/ui-cover-edit/record.md。
+- 验证 PASS：navigationTreeSmokeTest、previewCoverSmokeTest、libraryModelEditSmokeTest、libraryPreviewRuntimeSmokeTest；Fabric 与 NeoForge release 构建（最终 BUILD SUCCESSFUL，退出码 0）；NeoForge 分发包检查通过。
+- 游戏内实际显示、普通/管理员框选截图及正式后端保存端到端验收为 MANUAL/PENDING。未启动游戏，未使用 Qt offscreen，未将协议测试或 CPU 生命周期测试冒充实机 GUI 验收。
+- 最终分支 main；本轮修改保留在工作区，未提交、未推送，未核验远端同步状态。原有未跟踪文档、refs、.omc/ 和崩溃日志均保留。
+- 额度安全检查点：可靠 Codex 接口返回 planType=prolite，周窗口已用 13%，剩余 87%；未触发交接阈值，未委派 Luna，未消耗额度重置。
+- 无剩余已授权实施任务。后续仅需实机验收；如发现实际问题，按日志继续最小修复。
+
+## 20. 2026-11-10 控件页面顶部空白收紧（最新任务）
+
+- 用户截图圈出资源标签行与控件面板之间的空白，授权直接修改此页面。
+- 根因：CosmeticControlsScreen 的 framed 布局沿用固定 40 GUI 单位顶部预留，未按资源标签行是否具有横向滚动条调整。
+- 已修改 AvatarControlsScreen 提供顶部预留高度钩子；CosmeticControlsScreen 按实际标签宽度计算溢出，使面板始终距标签/滚动条底部 4 GUI 单位。其他控件页保持原有默认值。
+- 已在既有 LibraryPreviewRuntimeSmokeTest 的四尺寸、普通/多标签用例中加入实际组件边界断言；测试通过。
+- Fabric 与 NeoForge release 构建均通过，最终 BUILD SUCCESSFUL in 47s，退出码 0，JAR 已覆盖更新至原 build/libs 路径。build.log 为本次日志。
+- git diff --check 通过；main 分支，保留前轮修改，无提交、无推送。游戏内新版像素显示 MANUAL/PENDING，未启动游戏。无需继续实施。
+- 可靠额度检查仍为周窗口已用 13%，未达到交接阈值。
+
+## 21. 2026-11-10 紧凑模式公告高度（最新任务）
+
+- 用户要求调整截图中紧凑模式的公告高度，按利用下方空白处理。
+- 仅修改 WardrobeScreen.updateMotdWidget：紧凑配装模式公告下边界改为 height - 34，距“完成”按钮顶部保留 8 GUI 单位；普通模式沿用原内容区边界。模型信息区域高度不变。
+- Fabric、NeoForge release 构建及构建依赖的预览运行时回归通过，最终 BUILD SUCCESSFUL in 36s，退出码 0；分发包检查通过。JAR 覆盖原 build/libs 路径。git diff --check 通过。
+- 实机新版公告高度验收为 MANUAL/PENDING，未启动游戏，无剩余实施工作。
+- 分支 main；保留全部前轮修改，本轮未提交、未推送。
+
+## 22. 2026-11-10 紧凑配装拆分模型信息与公告（最新任务）
+
+- 用户授权将紧凑模式配装子菜单拆为“模型信息”和“公告”，点击后仅展示对应内容。
+- 新增 NavigationRoute.ANNOUNCEMENTS 与 WardrobeScreen 的 NOTICES 面板；导航顺序为预览、模型信息、公告、骨骼树。两个入口都仅紧凑模式显示，标题路径及高亮独立；中英文文案已更新。
+- 紧凑模型信息页只构建既有当前化身信息控件；公告页不构建模型信息，从右侧区域顶部展示公告，下边界仍避开底部完成按钮。宽窗口原有组合展示保持原样。
+- 修改范围：NavigationRoute、NavigationTree、NavigationScreens、WardrobeScreen，中英文语言文件及既有导航/预览运行时测试。保留此前所有工作区修改。
+- 已验证：navigationTreeSmokeTest 与 libraryPreviewRuntimeSmokeTest 通过；新增实际控件构建测试确认两种路由的控件互斥，周期公告更新不会在模型信息页补建公告。Fabric/NeoForge release 构建及 NeoForge 分发检查通过，最终 BUILD SUCCESSFUL in 49s，退出码 0。git diff --check 通过。
+- JAR 已更新至原 build/libs 路径。游戏内点击、内容和像素验收 MANUAL/PENDING；未启动游戏。无剩余已授权实施任务。
+- main 分支，未提交、未推送。build.log 为本次构建日志。
+
+## 23. 2026-11-10 导航顶部模组 Logo（最新任务）
+
+- 已按用户指定的 common/src/main/resources/icon.png 替换导航顶部 Logo。
+- common/build.gradle 的 processResources 将源图片原样打包到 assets/omni-morph/textures/gui/navigation_logo.png；SideNavigationWidget 引用该纹理并绘制完整图片，保持原图标位置和显示尺寸，不再使用旧图集裁切。
+- Fabric、NeoForge release 构建及其依赖回归通过，BUILD SUCCESSFUL in 41s，退出码 0。已逐一打开两个最终 JAR，确认导航纹理字节与用户指定 icon.png 完全一致。git diff --check 通过。
+- 真实游戏显示 MANUAL/PENDING，未启动游戏。新版 JAR 覆盖原 build/libs 路径。
+- main 分支，保留所有此前修改，未提交、未推送；无剩余实施任务。
+
+## 24. 2026-11-10 两阶段任务：限流修复后上传状态展示
+
+- 用户授权阶段一修复“我的形象集”偶发断连/RATE_LIMITED，并提供“点击预览整页刷新”的线索；阶段二在修复后实现上传中→校验中→自动审核中→结果，可配合后端准确实现。
+- 当前阶段一实施和自动验证完成。双 RED：集合加12封面请求触发3次 RATE_LIMITED；真实选择重建路径销毁网格的断言失败。修复后均 GREEN。
+- LibraryAccess 模型库所有 HTTP 通道按50ms间隔发送，给32次/秒共享额度留余量；WardrobeScreen 在预览选择重建控件时保留集合网格及封面句柄。
+- 封面权限/缓存修订、客户端取消及预览生命周期回归通过，Fabric/NeoForge release 构建通过（55s，退出码0）。实机断连复测 MANUAL/PENDING，未冒称已验证游戏连接。
+- 两阶段进度与证据：docs/collection-rate-upload-progress/record.md。阶段一待提交推送检查点，阶段二尚未开始实施。main分支；保留此前会话 UI 修改及原有未跟踪参考资料。
+- 可靠额度接口：周额度已用14%，未触发交接阈值。

@@ -6,6 +6,7 @@ public enum NavigationRoute {
     OUTFIT,
     PREVIEW,
     INFORMATION,
+    ANNOUNCEMENTS,
     BONES,
     COLLECTION,
     LIBRARY,

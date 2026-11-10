@@ -21,7 +21,25 @@ public final class NavigationTreeSmokeTest {
         checkFolding();
         checkBreadcrumbs();
         checkGeometry();
+        checkCompactInformation();
         System.out.println("NavigationTreeSmokeTest passed");
+    }
+
+    private static void checkCompactInformation() {
+        var tree = new NavigationTree();
+        tree.setCompact(false);
+        require(!tree.visibleRoutes().contains(NavigationRoute.INFORMATION)
+                        && !tree.visibleRoutes().contains(NavigationRoute.ANNOUNCEMENTS),
+                "wide navigation hides model information and announcements");
+        require(tree.visibleRoutes().contains(NavigationRoute.BONES)
+                        && tree.visibleRoutes().contains(NavigationRoute.PREVIEW),
+                "wide navigation retains the other outfit destinations");
+        int wideRows = tree.visibleRows().size();
+        tree.setCompact(true);
+        require(tree.visibleRoutes().contains(NavigationRoute.INFORMATION)
+                        && tree.visibleRoutes().contains(NavigationRoute.ANNOUNCEMENTS)
+                        && tree.visibleRows().size() == wideRows + 2,
+                "returning to compact restores the information row without changing folding");
     }
 
     private static void checkMenuTree() {
@@ -30,7 +48,7 @@ public final class NavigationTreeSmokeTest {
                 "the management entry is hidden until the player is confirmed as an administrator");
         tree.setAdministratorVisible(true);
         List<String> expected = List.of(
-                "0 衣柜", "1 配装", "2 预览", "2 模型信息&公告", "2 骨骼树", "1 我的形象集",
+                "0 衣柜", "1 配装", "2 预览", "2 模型信息", "2 公告", "2 骨骼树", "1 我的形象集",
                 "0 模型库", "1 我的模型", "1 我的收藏", "1 模型库", "1 上传模型", "1 管理员后台",
                 "0 权限", "0 设置", "0 帮助");
         List<String> actual = tree.visibleRows().stream()
