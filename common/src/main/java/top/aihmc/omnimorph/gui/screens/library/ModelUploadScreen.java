@@ -29,6 +29,7 @@ import top.aihmc.omnimorph.model.library.PreviewCover;
 import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
 import top.aihmc.omnimorph.model.library.LibraryUploadDraft;
 import top.aihmc.omnimorph.model.library.LibraryUploadService;
+import top.aihmc.omnimorph.model.library.LibraryUploadProgress;
 import top.aihmc.omnimorph.model.library.OutfitUploadDraft;
 import top.aihmc.omnimorph.model.library.OutfitPresetResources;
 import top.aihmc.omnimorph.model.library.LibraryTransferService;
@@ -298,9 +299,10 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
             Component status = message;
             if (operation != null && !operation.future().isDone() && operation.progress() != null) {
                 var progress = operation.progress();
-                status = progress.total() > 0 ? FiguraText.of("gui.library.sent",
+                var stage = operation.publicationProgress().stage();
+                status = stage == LibraryUploadProgress.Stage.UPLOADING && progress.total() > 0 ? FiguraText.of("gui.library.sent",
                         LibraryLabels.fileSize(progress.received()), LibraryLabels.fileSize(progress.total()))
-                        : FiguraText.of("gui.library.phase." + progress.stage().name().toLowerCase(java.util.Locale.ROOT));
+                        : FiguraText.of("gui.library.upload_stage." + stage.name().toLowerCase(java.util.Locale.ROOT));
             } else if (sourceRequest != null && !sourceRequest.future().isDone()) {
                 status = FiguraText.of("gui.library.phase." + preparationPhase.name().toLowerCase(java.util.Locale.ROOT));
             } else if (preview.status().stage() == LibraryPreviewSession.Stage.FAILED) {
@@ -310,6 +312,7 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         });
         // Drawn last, above the preview, so the framing hint and square stay visible.
         addRenderableOnly((gui, x, y, delta) -> renderCoverFrame(gui));
+        addRenderableOnly((gui, x, y, delta) -> renderUploadProgress(gui, layout));
         updateSourceFields();
         building = false;
         if (sessionRequest == null) {
@@ -981,8 +984,10 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
                 return;
             }
             if (operation != null && operation.future().isCompletedExceptionally()) {
+                message = Component.empty();
                 operation.retry();
             } else if (operation == null) {
+                message = Component.empty();
                 if (image == null && !automaticCoverTried) {
                     // No chosen cover: cut the upper body from the preview first, then submit again.
                     captureAutomaticCover();
@@ -1034,8 +1039,61 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         if (result.visibility() == null || result.moderationStatus() == null) {
             return FiguraText.of("gui.library.upload_success");
         }
-        return FiguraText.of("gui.library.upload_status", result.visibility(), result.published(),
-                LibraryLabels.status(result.moderationStatus()));
+        if (!result.moderationStatus().equals("ACTIVE")) {
+            return FiguraText.of("gui.library.upload_result_blocked", LibraryLabels.status(result.moderationStatus()));
+        }
+        return FiguraText.of(result.visibility().equals("PUBLIC")
+                ? "gui.library.upload_result_public" : "gui.library.upload_result_private");
+    }
+
+    private void renderUploadProgress(net.minecraft.client.gui.GuiGraphicsExtractor gui, LibraryWorkspaceLayout layout) {
+        if (operation == null) {
+            return;
+        }
+        int x = layout.previewX();
+        int y = layout.top();
+        int width = layout.previewWidth();
+        int bottom = y + layout.previewHeight();
+        gui.fill(x, y, x + width, bottom, 0xff0f1a2b);
+        UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.upload_progress"), x + 6, y + 6, width - 12, 0xffeeeeee);
+        var state = operation.publicationProgress();
+        var stages = List.of(LibraryUploadProgress.Stage.UPLOADING, LibraryUploadProgress.Stage.VALIDATING,
+                LibraryUploadProgress.Stage.REVIEWING, LibraryUploadProgress.Stage.RESULT);
+        for (int index = 0; index < stages.size(); index++) {
+            var stage = stages.get(index);
+            boolean completed = state.completed().contains(stage)
+                    || stage == LibraryUploadProgress.Stage.RESULT && state.stage() == stage && !state.failed();
+            boolean active = state.stage() == stage
+                    || stage == LibraryUploadProgress.Stage.RESULT && state.stage() == LibraryUploadProgress.Stage.FINALIZING;
+            String status = "waiting";
+            if (completed) {
+                status = "complete";
+            } else if (active) {
+                status = state.failed() ? "failed" : "active";
+            }
+            if (stage == LibraryUploadProgress.Stage.RESULT && state.failed()) {
+                status = "failed";
+            }
+            int color = status.equals("failed") ? 0xffff6666 : completed ? 0xff88ddaa : active ? 0xffffdd88 : 0xff94a3b8;
+            int rowY = y + 24 + index * 24;
+            var label = Component.literal((index + 1) + ". ").append(FiguraText.of(
+                    "gui.library.upload_stage." + stage.name().toLowerCase(java.util.Locale.ROOT)));
+            UIHelper.renderScrollingText(gui, label, x + 6, rowY, width - 12, color);
+            UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.upload_step." + status),
+                    x + 12, rowY + 11, width - 18, color);
+        }
+        Component detail = state.stage() == LibraryUploadProgress.Stage.PREPARING
+                || state.stage() == LibraryUploadProgress.Stage.SUBMITTING
+                || state.stage() == LibraryUploadProgress.Stage.FINALIZING
+                ? FiguraText.of("gui.library.upload_stage." + state.stage().name().toLowerCase(java.util.Locale.ROOT)) : message;
+        int detailY = y + 124;
+        for (var line : font.split(detail, Math.max(1, width - 12))) {
+            if (detailY + font.lineHeight > bottom - 4) {
+                break;
+            }
+            gui.text(font, line, x + 6, detailY, state.failed() ? 0xffff6666 : 0xffeeeeee, false);
+            detailY += font.lineHeight + 2;
+        }
     }
 
     private void cancelUpload() {

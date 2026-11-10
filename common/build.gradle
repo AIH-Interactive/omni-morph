@@ -1135,3 +1135,11 @@ tasks.register('libraryCollectionBurstSmokeTest', JavaExec) {
     classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
     mainClass = 'top.aihmc.omnimorph.model.library.LibraryCollectionBurstSmokeTest'
 }
+
+tasks.register('libraryUploadProgressSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks actual streamed validation/review events, visible history, failures and result policy.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.library.LibraryUploadProgressSmokeTest'
+}

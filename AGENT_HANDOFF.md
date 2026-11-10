@@ -215,3 +215,14 @@
 - 封面权限/缓存修订、客户端取消及预览生命周期回归通过，Fabric/NeoForge release 构建通过（55s，退出码0）。实机断连复测 MANUAL/PENDING，未冒称已验证游戏连接。
 - 两阶段进度与证据：docs/collection-rate-upload-progress/record.md。阶段一待提交推送检查点，阶段二尚未开始实施。main分支；保留此前会话 UI 修改及原有未跟踪参考资料。
 - 可靠额度接口：周额度已用14%，未触发交接阈值。
+
+## 25. 2026-11-10 两阶段实施完成（覆盖第24节待提交/待实施状态）
+
+- 阶段一已提交 `5b9d4ee9` 并推送 origin/main，核验同步后才开始阶段二。该检查点同时包含此前本会话已授权、已验证的界面修改。
+- 阶段二已实现：投稿页面显示上传中→校验中→自动审核中→结果，保留快速阶段的完成记录，展示实际失败阶段、公开/私有/封禁结果；等待服务端和配装封面保存显示独立说明。重试保留既有幂等操作身份并清除旧错误。
+- 后端确有修改，用户要求交付时明确说明。仓库 D:/UserData/Desktop/Project/sculptor-for-omni-morph，分支 master，提交 `d772a05` 已推送 origin/master 并核验一致。通过现有提交/配装投稿接口协商 NDJSON，回传真实校验/审核事件与最终结果/错误；未修改审核规则、权限、限流阈值，无数据库迁移。旧客户端保留 JSON；新客户端兼容旧 JSON 后端，但完整实时阶段须更新后端。未部署生产或重启服务。
+- 验证 PASS：客户端 libraryUploadProgressSmokeTest、libraryUploadSmokeTest、libraryCollectionBurstSmokeTest；Fabric/NeoForge release 构建及其预览生命周期回归（58s，退出码0）。后端启用当前 Java classpath 的完整 cargo test：206通过、0失败、1原有压力项忽略；真实 Java→Rust 配装投稿与分发通过。后端 cargo build --release（2m10s，退出码0）。两端 git diff --check 通过。
+- 产物：fabric/build/libs/omni-morph-1.0.0-alpha.10+26.1.2-fabric-mc.jar；neoforge/build/libs/omni-morph-1.0.0-alpha.10+26.1.2-neoforge-mc.jar；后端 target/release/sculptor.exe。建议先更新后端，再更新客户端。
+- 游戏内像素、重复点击预览后的连接表现及生产环境上传流程实机验收：MANUAL/PENDING；未启动游戏，未生成实机截图。没有剩余已授权实施任务，后续按真实验收反馈处理。
+- 客户端 main；本节、进度记录及阶段二代码在同一交付提交内，交付前执行提交/推送并核验 HEAD=origin/main。原有未跟踪参考资料、refs、.omc/、崩溃日志保留；后端只有未跟踪 build.log，未加入版本库。不得清理这些文件。
+- 进度及证据：docs/collection-rate-upload-progress/record.md；客户端 build.log 为最终 Gradle 日志，后端 build.log 为最终 release 构建日志。可靠额度查询周窗口已用14%，未触发交接阈值；未委派 Luna。
