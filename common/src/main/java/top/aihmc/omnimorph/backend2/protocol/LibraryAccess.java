@@ -39,6 +39,9 @@ public final class LibraryAccess implements AutoCloseable {
     private final Authorizer authorizer;
     private final Set<Call> calls = new HashSet<>();
     private final Set<OutfitConnection> outfitConnections = new HashSet<>();
+    /** HTTP shares the backend's 32 messages/second budget with live connection traffic. */
+    private static final long REQUEST_INTERVAL_NANOS = TimeUnit.MILLISECONDS.toNanos(50);
+    private long nextRequestAt;
     private boolean closed;
 
     public LibraryAccess(CloudEndpoint endpoint, HttpClient client, Authorizer authorizer) {
@@ -184,6 +187,7 @@ public final class LibraryAccess implements AutoCloseable {
                     || !Set.of("GET", "HEAD", "POST", "PUT", "PATCH", "DELETE").contains(method)) {
                 throw new IOException("INVALID_LIBRARY_ROUTE");
             }
+            awaitRequestSlot();
             HttpRequest.Builder request = HttpRequest.newBuilder(endpoint.http(path))
                     .timeout(Duration.ofSeconds(60))
                     .header("Accept", "application/json")
@@ -226,6 +230,26 @@ public final class LibraryAccess implements AutoCloseable {
             return http.send(request.build());
         }
 
+        /** Wait only on workers, across all lanes, leaving headroom for the live protocol connection. */
+        private void awaitRequestSlot() throws IOException, InterruptedException {
+            synchronized (LibraryAccess.this) {
+                while (true) {
+                    synchronized (this) {
+                        if (finished || closed) {
+                            throw new IOException("LIBRARY_RETIRED");
+                        }
+                    }
+                    long now = System.nanoTime();
+                    long remaining = nextRequestAt - now;
+                    if (remaining <= 0) {
+                        nextRequestAt = now + REQUEST_INTERVAL_NANOS;
+                        return;
+                    }
+                    TimeUnit.NANOSECONDS.timedWait(LibraryAccess.this, remaining);
+                }
+            }
+        }
+
         @Override
         public void close() {
             synchronized (this) {
@@ -240,6 +264,7 @@ public final class LibraryAccess implements AutoCloseable {
             http.close();
             synchronized (LibraryAccess.this) {
                 calls.remove(this);
+                LibraryAccess.this.notifyAll();
             }
         }
     }

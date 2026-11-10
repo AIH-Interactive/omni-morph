@@ -19,6 +19,7 @@ public final class NavigationTree {
             node(NavigationRoute.OUTFIT, NavigationRoute.WARDROBE, 1, "outfit"),
             node(NavigationRoute.PREVIEW, NavigationRoute.OUTFIT, 2, "preview"),
             node(NavigationRoute.INFORMATION, NavigationRoute.OUTFIT, 2, "information"),
+            node(NavigationRoute.ANNOUNCEMENTS, NavigationRoute.OUTFIT, 2, "announcements"),
             node(NavigationRoute.BONES, NavigationRoute.OUTFIT, 2, "bones"),
             node(NavigationRoute.COLLECTION, NavigationRoute.WARDROBE, 1, "collection"),
             node(NavigationRoute.LIBRARY, null, 0, "library"),
@@ -35,6 +36,7 @@ public final class NavigationTree {
     private final Set<NavigationRoute> collapsed = EnumSet.noneOf(NavigationRoute.class);
     /** The management entry stays hidden until the service confirms this player is an administrator. */
     private boolean administratorVisible;
+    private boolean compact = true;
 
     private static Node node(NavigationRoute route, NavigationRoute parent, int depth, String key) {
         return new Node(route, parent, depth, "gui.navigation." + key);
@@ -59,6 +61,10 @@ public final class NavigationTree {
         administratorVisible = visible;
     }
 
+    public void setCompact(boolean compact) {
+        this.compact = compact;
+    }
+
     public boolean isCollapsed(NavigationRoute route) {
         return collapsed.contains(route);
     }
@@ -78,7 +84,9 @@ public final class NavigationTree {
         List<Node> rows = new ArrayList<>();
         for (Node node : NODES) {
             boolean hiddenAdministrator = node.route() == NavigationRoute.ADMIN && !administratorVisible;
-            if (!hiddenAdministrator && ancestorsExpanded(node)) {
+            boolean hiddenInformation = (node.route() == NavigationRoute.INFORMATION
+                    || node.route() == NavigationRoute.ANNOUNCEMENTS) && !compact;
+            if (!hiddenAdministrator && !hiddenInformation && ancestorsExpanded(node)) {
                 rows.add(node);
             }
         }

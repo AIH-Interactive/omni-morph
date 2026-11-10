@@ -12,6 +12,7 @@ import org.figuramc.figura.gui.widgets.AbstractContainerElement;
 import org.figuramc.figura.utils.FiguraIdentifier;
 import org.figuramc.figura.utils.FiguraText;
 import org.figuramc.figura.utils.IOUtils;
+import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -38,7 +39,7 @@ public final class SideNavigationWidget extends AbstractContainerElement {
 
     private static final Identifier PANEL_ICONS = new FiguraIdentifier("textures/gui/panels.png");
     private static final Identifier LIBRARY_ICON = new FiguraIdentifier("textures/gui/library.png");
-    private static final Identifier LOGO_ICON = new FiguraIdentifier("textures/gui/icon.png");
+    private static final Identifier LOGO_ICON = new FiguraIdentifier("textures/gui/navigation_logo.png");
 
     /** Folding is kept for the session, so every page shows the same tree. */
     private static final NavigationTree TREE = new NavigationTree();
@@ -68,6 +69,7 @@ public final class SideNavigationWidget extends AbstractContainerElement {
     }
 
     private NavigationLayout layout() {
+        TREE.setCompact(getWidth() < WardrobeLayout.WIDE_WIDTH);
         return NavigationLayout.of(TREE, getWidth(), getHeight(), key -> font.width(FiguraText.of(key)));
     }
 
@@ -129,7 +131,7 @@ public final class SideNavigationWidget extends AbstractContainerElement {
     private void renderRail(GuiGraphicsExtractor gui) {
         var layout = layout();
         gui.fill(0, 0, NavigationLayout.RAIL_WIDTH, getHeight(), RAIL_COLOR);
-        gui.blit(RenderPipelines.GUI_TEXTURED, LOGO_ICON, 7, 6, 0, 0, 14, 14, 20, 20, 60, 20);
+        gui.blit(RenderPipelines.GUI_TEXTURED, LOGO_ICON, 7, 6, 0, 0, 14, 14, 14, 14);
         NavigationRoute selected = TREE.topLevelOf(current);
         List<NavigationRoute> parents = TREE.topLevel();
         for (int index = 0; index < parents.size(); index++) {

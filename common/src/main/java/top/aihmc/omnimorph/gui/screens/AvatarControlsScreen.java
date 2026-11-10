@@ -221,7 +221,11 @@ public class AvatarControlsScreen extends Screen {
     }
 
     private int topInset() {
-        return framedLayout() ? FRAMED_TOP_ROW_HEIGHT : 0;
+        return framedLayout() ? framedTopRowHeight() : 0;
+    }
+
+    protected int framedTopRowHeight() {
+        return FRAMED_TOP_ROW_HEIGHT;
     }
 
     private int headerTop() {

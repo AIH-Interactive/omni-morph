@@ -23,6 +23,7 @@ public final class LibraryManagementPreview extends AbstractContainerElement imp
     private final LibraryTransferService transfers;
     private final LibraryWardrobePreviewService wardrobe;
     private Component title = FiguraText.of("gui.library.select_model");
+    private EntityPreview entity;
 
     public LibraryManagementPreview(LibraryClient client, Supplier<String> administrator) {
         super(0, 0, 1, 1);
@@ -37,7 +38,7 @@ public final class LibraryManagementPreview extends AbstractContainerElement imp
         setWidth(width);
         setHeight(height);
         children.clear();
-        var entity = new EntityPreview(x, y + 20, width, Math.max(24, height - 36),
+        entity = new EntityPreview(x, y + 20, width, Math.max(24, height - 36),
                 Math.max(12, width / 3), -15, 30, session.entity(), parent);
         entity.setLibraryPreview(session);
         children.add(entity);
@@ -83,6 +84,14 @@ public final class LibraryManagementPreview extends AbstractContainerElement imp
 
     public boolean isExpanded() {
         return session.isExpanded();
+    }
+
+    public EntityPreview entityPreview() {
+        return entity;
+    }
+
+    public boolean ready() {
+        return session.status().stage() == LibraryPreviewSession.Stage.READY;
     }
 
     @Override
