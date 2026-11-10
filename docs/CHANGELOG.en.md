@@ -6,10 +6,16 @@
 
 ## 1.0.0-alpha.10
 
-- UI: every main screen uses a persistent left navigation: Wardrobe (Outfit: Preview, Model info & notices, Bone tree; My Collection), Model library (My models, My favorites, Model library, Upload model, Admin console), Permissions, Settings and Help. It is collapsed to an icon rail and expands over the content on hover; the duplicate section and pane tabs are removed. Only players listed as server administrators see the Admin console (requires the matching backend).
+- UI: every main screen uses a persistent left navigation: Wardrobe (Outfit: Preview, Model info, Notices, Bone tree; My Collection), Model library (My models, My favorites, Model library, Upload model, Admin console), Permissions, Settings and Help. It is collapsed to an icon rail and expands over the content on hover; the duplicate section and pane tabs are removed. Only players listed as server administrators see the Admin console (requires the matching backend).
 - Model cards: fixed size with a square cover, icon-only status badges (blocked, requires authorization, private or public) and a three-dot "Report / Favorite" menu. The models per page follow the available area, and resizing keeps the first model of the current page.
 - In-world avatars: other players see an authorized wearer's model without a grant of their own; private models are shown to others by default but still stay out of their model library; an explicit "hide from others" choice is kept (requires the matching backend).
 - Fix: the `INVALID_OUTFIT_CONFIGURATION` crash on NeoForge when mods such as TaCZ render the first-person arm with a non-invertible pose.
+- Navigation and layout: use the mod logo; compact Outfit screens have separate Model info and Notices entries, each showing only its own content. These entries are hidden in wide mode. Notices use the remaining content height, and redundant space above model controls is removed.
+- Submission covers: model, accessory and outfit forms use square covers and equally tall file upload areas. Both owner and administrator editing support replacing/removing covers and capturing a framed model preview.
+- Collection request bursts: selecting a preview preserves the grid, filters, scroll and cover resources instead of rebuilding the page. Library requests share a paced sender to reduce `RATE_LIMITED` under the shared budget.
+- Publication progress: an always-visible Upload—Validate—Review—Done stepper sits above the preview, with hollow, unfilled idle nodes. Labels share their nodes' centers and a common scale/baseline. Hover shows descriptions and actual results/errors; the redundant area below the preview is removed. Compact mode updates only the current status text.
+- Matching backend: submission endpoints stream actual validation/review phases and public/private/blocked outcomes without changing review rules, permissions or rate limits. Update the backend for live phases; older backends still return final results without live events.
+
 - Real game rendering, multiplayer and modpack acceptance remain `MANUAL/PENDING`.
 
 ## 1.0.0-alpha.9

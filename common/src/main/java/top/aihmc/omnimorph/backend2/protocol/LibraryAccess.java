@@ -180,6 +180,12 @@ public final class LibraryAccess implements AutoCloseable {
         public HttpResponse<InputStream> send(String method, String path, HttpRequest.BodyPublisher body,
                                               String contentType, String adminToken,
                                               java.util.Map<String, String> mutationHeaders) throws Exception {
+            return send(method, path, body, contentType, adminToken, mutationHeaders, "application/json");
+        }
+
+        public HttpResponse<InputStream> send(String method, String path, HttpRequest.BodyPublisher body,
+                                              String contentType, String adminToken,
+                                              java.util.Map<String, String> mutationHeaders, String accept) throws Exception {
             URI relative = URI.create(path);
             if (path.length() > 8192 || relative.isAbsolute() || relative.getRawAuthority() != null
                     || relative.getRawFragment() != null || relative.getRawPath() == null
@@ -190,7 +196,7 @@ public final class LibraryAccess implements AutoCloseable {
             awaitRequestSlot();
             HttpRequest.Builder request = HttpRequest.newBuilder(endpoint.http(path))
                     .timeout(Duration.ofSeconds(60))
-                    .header("Accept", "application/json")
+                    .header("Accept", accept)
                     .header("Cache-Control", "no-store")
                     .method(method, body);
             authorizer.authorize(request);

@@ -5412,6 +5412,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var initialize = type.getDeclaredMethod("init");
             initialize.setAccessible(true);
             initialize.invoke(screen);
+            var uploadPreview = (org.figuramc.figura.gui.widgets.EntityPreview) field(type, "previewWidget").get(screen);
+            require(uploadPreview.getY() == 68, "upload progress reserves a header above the actual preview");
+            require(uploadPreview.getY() + uploadPreview.getHeight() < screen.height - 28,
+                    "upload preview remains inside the area above publication actions");
             var purpose = type.getDeclaredMethod("changePurpose", int.class);
             purpose.setAccessible(true);
             purpose.invoke(screen, 2);

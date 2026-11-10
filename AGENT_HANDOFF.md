@@ -215,3 +215,43 @@
 - 封面权限/缓存修订、客户端取消及预览生命周期回归通过，Fabric/NeoForge release 构建通过（55s，退出码0）。实机断连复测 MANUAL/PENDING，未冒称已验证游戏连接。
 - 两阶段进度与证据：docs/collection-rate-upload-progress/record.md。阶段一待提交推送检查点，阶段二尚未开始实施。main分支；保留此前会话 UI 修改及原有未跟踪参考资料。
 - 可靠额度接口：周额度已用14%，未触发交接阈值。
+
+## 25. 2026-11-10 两阶段实施完成（覆盖第24节待提交/待实施状态）
+
+- 阶段一已提交 `5b9d4ee9` 并推送 origin/main，核验同步后才开始阶段二。该检查点同时包含此前本会话已授权、已验证的界面修改。
+- 阶段二已实现：投稿页面显示上传中→校验中→自动审核中→结果，保留快速阶段的完成记录，展示实际失败阶段、公开/私有/封禁结果；等待服务端和配装封面保存显示独立说明。重试保留既有幂等操作身份并清除旧错误。
+- 后端确有修改，用户要求交付时明确说明。仓库 D:/UserData/Desktop/Project/sculptor-for-omni-morph，分支 master，提交 `d772a05` 已推送 origin/master 并核验一致。通过现有提交/配装投稿接口协商 NDJSON，回传真实校验/审核事件与最终结果/错误；未修改审核规则、权限、限流阈值，无数据库迁移。旧客户端保留 JSON；新客户端兼容旧 JSON 后端，但完整实时阶段须更新后端。未部署生产或重启服务。
+- 验证 PASS：客户端 libraryUploadProgressSmokeTest、libraryUploadSmokeTest、libraryCollectionBurstSmokeTest；Fabric/NeoForge release 构建及其预览生命周期回归（58s，退出码0）。后端启用当前 Java classpath 的完整 cargo test：206通过、0失败、1原有压力项忽略；真实 Java→Rust 配装投稿与分发通过。后端 cargo build --release（2m10s，退出码0）。两端 git diff --check 通过。
+- 产物：fabric/build/libs/omni-morph-1.0.0-alpha.10+26.1.2-fabric-mc.jar；neoforge/build/libs/omni-morph-1.0.0-alpha.10+26.1.2-neoforge-mc.jar；后端 target/release/sculptor.exe。建议先更新后端，再更新客户端。
+- 游戏内像素、重复点击预览后的连接表现及生产环境上传流程实机验收：MANUAL/PENDING；未启动游戏，未生成实机截图。没有剩余已授权实施任务，后续按真实验收反馈处理。
+- 客户端 main；本节、进度记录及阶段二代码在同一交付提交内，交付前执行提交/推送并核验 HEAD=origin/main。原有未跟踪参考资料、refs、.omc/、崩溃日志保留；后端只有未跟踪 build.log，未加入版本库。不得清理这些文件。
+- 进度及证据：docs/collection-rate-upload-progress/record.md；客户端 build.log 为最终 Gradle 日志，后端 build.log 为最终 release 构建日志。可靠额度查询周窗口已用14%，未触发交接阈值；未委派 Luna。
+
+## 26. 2026-11-10 上传进度重新设计（仅 Penpot，待验收）
+
+- 用户要求先构思 Penpot：普通视图在预览上方显示“点——点——点——点”，依次为上传、校验、自动审核、完成；圆点悬停显示步骤描述。追加要求：紧凑视图仅逐步刷新当前状态文案。
+- 在 Penpot“10 模型库 上传模型”页面新增三份静态画板：上传进度 · 四节点横向进度条；上传进度 · 悬停自动审核节点（静态）；上传进度 · 紧凑单行状态与悬停文案规范。保留原画板。
+- 普通稿保留模型预览，进度条放在其上方；已完成绿色、当前金色、等待灰色。独立静态悬停稿展示自动审核描述；规范稿列明四步描述，以及紧凑视图的四个独立文案状态。
+- 已导出并检查中文和布局；当前等待用户设计验收（MANUAL/PENDING），尚未修改客户端或后端代码，没有本轮构建、测试、提交或推送。最新客户端实现提交为5144430e，后端d772a05。
+- 后续只按用户对静态稿的反馈调整；通过设计验收后才实施本轮进度条/紧凑文案变更。本节为当前未提交交接记录。
+
+## 27. 2026-11-10 四点进度条已验收实装（覆盖第26节待验收状态）
+
+- 用户明确“验收通过，实装”。普通视图改为预览上方“上传—校验—自动审核—完成”四圆点连线，悬停显示描述、步骤状态及结果/错误。已完成绿色、当前金色、等待灰色、失败红色；封禁审核结果在审核节点标红。
+- 紧凑视图沿用项目 CompactMode（自动缩放且宽度<560），仅刷新预览上方一行当前状态文案；保留上传字节数、真实失败原因。旧的覆盖预览的纵向进度列表移除，模型预览及封面框选保留。
+- 本轮仅修改 ModelUploadScreen、中英文文案和既有 LibraryPreviewRuntimeSmokeTest 的实际预览边界断言；复用已提交后端 d772a05 的阶段事件，本轮未修改后端，无部署。
+- PASS：libraryUploadProgressSmokeTest、libraryUploadSmokeTest；Fabric/NeoForge release 构建及 libraryPreviewRuntimeSmokeTest 通过。最终失败配色整理后重新构建，BUILD SUCCESSFUL in 1m，退出码0；NeoForge 分发检查及 git diff --check 通过。日志 build.log。
+- 游戏内悬停、像素及紧凑缩放显示 MANUAL/PENDING；未启动游戏，未生成实机截图。无剩余已授权实施任务。
+- 客户端 main；本节和进度记录随本轮代码提交，交付前执行推送并核验 HEAD=origin/main。JAR 已覆盖原 fabric/build/libs 与 neoforge/build/libs 的 alpha.10+26.1.2 发布包。保留原有未跟踪文件，不加入构建产物。
+- 进度记录 docs/collection-rate-upload-progress/record.md。可靠额度查询周窗口已用14%，未触发交接阈值。
+
+## 28. 2026-11-10 进度对齐/空闲常驻/底部提示清理与Alpha.10汇总完成
+
+- 用户截图反馈首尾文字未对齐，要求始终对齐、移除预览下方提示区、未上传时进度条常驻未填充；追加要求完成后均汇总到Alpha.10更新内容。
+- 根因：圆点靠近区域边缘，而文案框被 clamp 移动，中心不一致。几何复现280宽偏移25 GUI单位、600宽偏移65。
+- 已改为四个等宽单元，节点/文字共用中心，四步使用按最长译文计算的共同缩放和基线。空闲普通模式显示灰色空心四节点及未填充连线；紧凑模式沿用单行，空闲显示“未上传”。移除底部状态渲染及其16单位预留，结果/错误在节点悬停查看，紧凑状态行支持悬停查看最终结果。
+- 本轮没有后端修改。已将本会话已完成的导航Logo、紧凑信息/公告拆分、布局、封面编辑与框选、集合突发修复、真实上传阶段及本轮进度细节汇总到 docs/CHANGELOG.md Alpha.10，并同步现有英文、日文、韩文更新日志。今后本轮任务完成项按用户要求归入Alpha.10更新内容。
+- PASS：626种宽度及短/CJK/长译文的几何中心、共同基线、单元内包含关系检查（build/progress-layout-check.log）；libraryUploadProgressSmokeTest；最终 Fabric/NeoForge release 构建及预览生命周期回归（38s，退出码0），NeoForge 分发检查；git diff --check。几何检查只证明计算，不等同实机字体/像素验收。
+- 游戏内像素、悬停、缩放验收 MANUAL/PENDING，未启动游戏。无剩余已授权实施任务。
+- main分支；本节、Alpha.10日志、进度记录及代码随本轮提交，交付前推送并核验 HEAD=origin/main。JAR已覆盖原fabric/build/libs和neoforge/build/libs发布路径。原有未跟踪文件保留，构建产物不提交。
+- 可靠额度查询周窗口已用15%，未触发交接阈值，未委派Luna。build.log为最终构建日志。

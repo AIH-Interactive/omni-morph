@@ -465,6 +465,76 @@ public final class LibraryClient implements AutoCloseable {
     }
 
     public final class Exchange {
+        /** Consumes real server phase events while preserving the existing JSON response on older servers. */
+        public <T> T uploadJson(String path, Object body, Class<T> type,
+                                java.util.function.Consumer<String> stage) throws Exception {
+            byte[] encoded = JSON.toJson(body).getBytes(StandardCharsets.UTF_8);
+            if (encoded.length > CloudHttp.CONTROL_BYTES) {
+                throw new Failure(0, "CONTROL_LIMIT");
+            }
+            request.requireCurrent();
+            var response = call.send("POST", path, HttpRequest.BodyPublishers.ofByteArray(encoded),
+                    "application/json", adminToken, Map.of(), "application/x-ndjson");
+            String media = response.headers().firstValue("content-type").orElse("").split(";", 2)[0].trim();
+            if (response.statusCode() != 200 || media.equals("application/json")) {
+                return readJson(response, type);
+            }
+            if (!media.equals("application/x-ndjson")) {
+                response.body().close();
+                throw new Failure(0, "INVALID_LIBRARY_RESPONSE");
+            }
+            T result = null;
+            int received = 0;
+            try (var input = new java.io.BufferedInputStream(response.body())) {
+                var line = new java.io.ByteArrayOutputStream();
+                while (true) {
+                    int value = input.read();
+                    requireCurrent();
+                    if (value >= 0 && ++received > CloudHttp.CONTROL_BYTES) {
+                        throw new Failure(0, "CONTROL_LIMIT");
+                    }
+                    if (value >= 0 && value != '\n') {
+                        line.write(value);
+                        continue;
+                    }
+                    if (line.size() > 0) {
+                        JsonObject event;
+                        try {
+                            event = JsonParser.parseString(line.toString(StandardCharsets.UTF_8)).getAsJsonObject();
+                        } catch (RuntimeException malformed) {
+                            throw new Failure(0, "INVALID_LIBRARY_RESPONSE");
+                        }
+                        line.reset();
+                        if (result != null) {
+                            throw new Failure(0, "INVALID_LIBRARY_RESPONSE");
+                        }
+                        if (event.has("error")) {
+                            var error = event.getAsJsonObject("error");
+                            throw responseFailure(error.get("status").getAsInt(),
+                                    JSON.toJson(error).getBytes(StandardCharsets.UTF_8));
+                        }
+                        if (event.has("stage")) {
+                            String next = event.get("stage").getAsString();
+                            if (!java.util.Set.of("VALIDATING", "REVIEWING").contains(next)) {
+                                throw new Failure(0, "INVALID_LIBRARY_RESPONSE");
+                            }
+                            stage.accept(next);
+                        } else if (event.has("result")) {
+                            result = JSON.fromJson(event.get("result"), type);
+                        } else {
+                            throw new Failure(0, "INVALID_LIBRARY_RESPONSE");
+                        }
+                    }
+                    if (value < 0) {
+                        break;
+                    }
+                }
+            }
+            if (result == null) {
+                throw new Failure(0, "INVALID_LIBRARY_RESPONSE");
+            }
+            return result;
+        }
         private final Request<?> request;
         private final LibraryAccess.Call call;
         private String adminToken = "";
