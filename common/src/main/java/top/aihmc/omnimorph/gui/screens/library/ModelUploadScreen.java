@@ -359,7 +359,7 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
             return;
         }
         if (parentScreen instanceof ModelLibraryScreen catalog) {
-            minecraft.setScreen(catalog);
+            minecraft.gui.setScreen(catalog);
             catalog.navigate(route);
         } else {
             super.navigate(route);
@@ -845,7 +845,7 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         }
         int guiScale = minecraft.getWindow().getGuiScale();
         capturingCover = true;
-        Screenshot.takeScreenshot(minecraft.getMainRenderTarget(), screenshot -> {
+        Screenshot.takeScreenshot(minecraft.gameRenderer.mainRenderTarget(), screenshot -> {
             LibraryUploadService.Image captured = null;
             try (screenshot) {
                 int[] square = PreviewCover.crop(screenshot.getPixels(), screenshot.getWidth(), screenshot.getHeight(),

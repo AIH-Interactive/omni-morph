@@ -78,7 +78,7 @@ public abstract class AbstractPanelScreen extends Screen {
         if (openNavigationRoute(route)) {
             return;
         }
-        this.minecraft.setScreen(NavigationScreens.open(route, parentScreen));
+        this.minecraft.gui.setScreen(NavigationScreens.open(route, parentScreen));
     }
 
     /** Shows a destination this page owns without replacing the screen; false when it is elsewhere. */

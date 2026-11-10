@@ -666,7 +666,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
             addRenderableWidget(collectionGrid);
             collectionGrid.cardActions(model -> {
                 if (client != null) {
-                    minecraft.setScreen(new top.aihmc.omnimorph.gui.screens.library.ModelReportScreen(this, client,
+                    minecraft.gui.setScreen(new top.aihmc.omnimorph.gui.screens.library.ModelReportScreen(this, client,
                             model.modelId()));
                 }
             }, this::toggleCloudFavorite);

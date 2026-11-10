@@ -287,7 +287,7 @@ public final class ModelLibraryEditScreen extends LibraryFormScreen {
             return;
         }
         retainingChild = true;
-        minecraft.setScreen(new ModelFilePickerScreen(this, client, FiguraMod.getFiguraDirectory(),
+        minecraft.gui.setScreen(new ModelFilePickerScreen(this, client, FiguraMod.getFiguraDirectory(),
                 ModelFilePickerScreen.Kind.IMAGE, this::selectImage));
     }
 
@@ -369,9 +369,9 @@ public final class ModelLibraryEditScreen extends LibraryFormScreen {
         }
         int guiScale = minecraft.getWindow().getGuiScale();
         capturingCover = true;
-        Screenshot.takeScreenshot(minecraft.getMainRenderTarget(), screenshot -> {
+        Screenshot.takeScreenshot(minecraft.gameRenderer.mainRenderTarget(), screenshot -> {
             try (screenshot) {
-                if (closed || minecraft.screen != this) {
+                if (closed || minecraft.gui.screen() != this) {
                     return;
                 }
                 int[] square = PreviewCover.crop(screenshot.getPixels(), screenshot.getWidth(), screenshot.getHeight(),

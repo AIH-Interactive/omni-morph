@@ -351,7 +351,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
     private void openPendingSection() {
         int section = pendingSection;
         pendingSection = -1;
-        if (section >= 0 && minecraft != null && minecraft.screen == this) {
+        if (section >= 0 && minecraft != null && minecraft.gui.screen() == this) {
             openSection(section);
         }
     }

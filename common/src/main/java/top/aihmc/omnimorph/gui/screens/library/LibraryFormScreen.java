@@ -51,7 +51,7 @@ abstract class LibraryFormScreen extends AbstractPanelScreen {
             return;
         }
         if (parentScreen instanceof ModelLibraryScreen catalog) {
-            minecraft.setScreen(catalog);
+            minecraft.gui.setScreen(catalog);
             catalog.navigate(route);
         } else {
             super.navigate(route);

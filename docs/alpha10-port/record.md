@@ -1,0 +1,15 @@
+# 26.3 Alpha.10 合并记录
+
+源8879d1218a56b9a6c4a265854371504f41b3d6dc，目标原681eeeeb9d6ca99766478c556222313d5a0af72a，分支26.3。接续协调端已开启并初步解决冲突的no-commit merge。已复核AUTO_MERGE差异：版本采用alpha.10，UI保留主线全行为；GameRenderer/ImmediateFiguraRenderer/YsmRenderer/AW/构建及Actions相对目标HEAD不变，OutfitComposition保留FiguraVertexSource/RenderLifetime；PlayerRenderer新增不可逆姿态保护。没有重做merge或改动其他版本。
+
+初始9处compileJava错误见initial-compile.log。新增API调用在6个文件适配minecraft.gui.setScreen、gui.screen()、gameRenderer.mainRenderTarget()，参照本版HostAPI/既有路由调用，不新增兼容层。33秒编译通过common:testClasses及双loader:compileJava，compile.log；新增测试无需额外旧API修复。
+
+本版regression.log：22个请求入口全部通过，1m35s退出0：navigationTree、firstPersonArmPose、previewCover、libraryModelEdit、libraryCollectionBurst、libraryUploadProgress、cloudUploadProgress、modelLibraryLayout、modelLibraryCatalog、wardrobeTransition、libraryPreviewRuntime、libraryEquipment、libraryUpload、modelCacheCodec、libraryPreviewCache、deferredMaterial、nativeFeaturePreparation、featurePreparationScope、pipRenderStateScope、nativePipFailure（均SmokeTest）及Fabric/NeoForge remapJar。原调用输出里accelerated preparation字样为历史夹具标签，专用加速后端仍删除，不冒称GPU测试。
+
+包预检通过：版本/loader/26.3、主ZIP/嵌套CRC、新class、业务保留、AVIF以及无测试/加速类。将从已提交merge重建最终发行JAR以正确标记SHA，再记录最终artifact摘要。生产Actions未改，远端未运行。
+
+所有新代码/文档diff --check通过（排除*.log）。源merge引入42份原样历史日志含上游行尾空格，完整git diff --check会报这些日志；为保留生成证据不格式化日志，详情build/alpha10-port/inherited-diff-check.txt。这些源日志只代表26.1.2历史证据，本版实际结果仅以docs/alpha10-port为准。没有把编译错误当行为RED，也未倒退源码制造RED。
+
+Alpha.10完整内容汇总于根Alpha.10更新内容.md及四语言CHANGELOG。实机与多人/截图画面/整合包MANUAL/PENDING；未启动游戏。额度remaining85%，无Luna交接，无子智能体。
+
+提交接续：首次git add在默认沙箱因index.lock权限失败，合并b86bcc729f6f0cb804b724fac50afddf3a3c42cf仅包含此前已暂存内容；6个已验证API适配及本记录/汇总当时仍在工作树。随后使用已授权提权入口补暂存并单独提交适配，再以该正确代码提交重建最终JAR。没有丢弃修改或重做合并。
