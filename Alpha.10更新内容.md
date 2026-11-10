@@ -13,3 +13,5 @@
 - 兼容旧后端的最终结果；实时校验/审核阶段依赖已完成的配套后端d772a05，本次不改后端、不改审核或限流规则。
 
 自动验证：全部生产/测试源码与双加载器编译通过，22个功能/既有渲染/打包入口通过。详见docs/alpha10-port/record.md及日志。真实GUI截图、多人、TaCZ/整合包和远端Actions为MANUAL/PENDING，未启动游戏。最终成品SHA和版本见docs/alpha10-port/artifacts.json。
+
+26.2最终代码合并提交：355cce3137e2736980c7f70945f55c38a20aa7e9。正式Fabric/NeoForge测试包均标记1.0.0-alpha.10+26.2-355cce31，已完成重建、依赖与内容校验；路径和SHA详见docs/alpha10-port/artifacts.json。

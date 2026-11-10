@@ -28,3 +28,5 @@ regression.log 22个请求入口全部通过，1分51秒退出0：navigationTree
 static-checks.txt资源JSON、workflow YAML与PowerShell AST通过。新改代码git diff --check通过；原样历史*.log的行尾/空行只按日志白名单检查，未格式化生成证据。构建既有Unsafe及preparePictureInPictureState/scaleWidth/scaleHeight remap警告保留，编译成功；不是运行时Mixin验收。
 
 用户要求的全部完成内容汇总于根Alpha.10更新内容.md和四语言CHANGELOG。真实GUI/截图、多人、TaCZ/整合包及远端Actions为MANUAL/PENDING，未启动游戏、不等待人工、不作为受阻。额度remaining85%，未触发Luna，无子Agent。最终提交和包校验在重建后补充。
+
+最终交付：merge代码355cce3137e2736980c7f70945f55c38a20aa7e9已推送核对，全部API适配已在该提交内；final-packaging.log双生产remapJar26秒成功，production-tasks.log15秒成功，无测试/JNI/探测任务。最终双包版本1.0.0-alpha.10+26.2-355cce31，完整SHA和校验在artifacts.json/txt。无剩余实施或自动检查；最终仅记录提交，不改变包的代码来源。额度remaining84%，未触发交接。
