@@ -2180,6 +2180,7 @@
   "omni-morph.gui.library.upload_node_description.validate": "Check file integrity, format and model data using the actual server result.",
   "omni-morph.gui.library.upload_node_description.review": "The server checks blocked hashes and publication permissions. Await the actual review result.",
   "omni-morph.gui.library.upload_node_description.done": "Processing has finished. Shows public/private publication or the rejection reason.",
+  "omni-morph.gui.library.upload_idle": "Not uploaded",
   "omni-morph.gui.library.upload_progress": "Publication progress",
   "omni-morph.gui.library.upload_stage.preparing": "Preparing",
   "omni-morph.gui.library.upload_stage.submitting": "Waiting for server processing",

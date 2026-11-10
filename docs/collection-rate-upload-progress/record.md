@@ -36,3 +36,12 @@
 - 仅修改客户端页面、中英文文案和既有预览布局回归；复用现有真实阶段事件，本轮无后端修改。
 - PASS：libraryUploadProgressSmokeTest、libraryUploadSmokeTest；首轮 Fabric/NeoForge release 构建及其 libraryPreviewRuntimeSmokeTest 通过（1m13s，退出码0），新增断言验证真实投稿预览位于进度标题下方、操作按钮上方。失败配色整理后重新构建最终产物及预览回归通过，BUILD SUCCESSFUL in 1m，退出码0。git diff --check 通过。
 - 游戏内像素、悬停气泡和自动缩放紧凑模式实机验收 MANUAL/PENDING；未启动游戏。无剩余已授权实施项。
+
+## 2026-11-10 进度文字对齐、空闲常驻与去除底部提示
+
+- 用户截图反馈首尾文案与节点未对齐。原实现边缘圆点与被 clamp 的文字框中心不同：280宽时首尾偏移25 GUI像素，600宽时偏移65；几何复现确认。
+- 改为四个等宽单元，圆点与文字共用中心轴；四步文字共用按最长译文计算的缩放比例和同一基线，避免滚动或长译文改变对齐。
+- 普通模式未上传时仍显示四个灰色空心节点和未填充连接线。紧凑模式保留单行状态，未上传显示“未上传”。预览下方提示渲染及其16单位预留移除，结果/错误通过节点悬停显示；紧凑单行也支持悬停查看完成结果。
+- 几何检查 PASS：626种宽度、多组短/CJK/长译文，中心、共同基线和单元内包含关系通过。仅证明几何计算，未冒充实机字体/像素验收。日志 build/progress-layout-check.log。
+- 本轮仅客户端页面与两种语言文案，无后端修改。libraryUploadProgressSmokeTest 通过；最终 Fabric/NeoForge release 构建及预览生命周期回归通过，BUILD SUCCESSFUL in 38s，退出码0，分发检查通过。游戏内像素/悬停验收 MANUAL/PENDING。
+- 按用户要求，将本会话导航、封面编辑、布局、限流修复及上传流程统一补入 docs/CHANGELOG.md 的 Alpha.10 更新内容，并同步现有英文、日文、韩文版本。

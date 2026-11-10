@@ -280,7 +280,7 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         }), 24, labelWidth);
         int progressHeight = CompactMode.active(width) ? 20 : 40;
         var entity = addRenderableWidget(new EntityPreview(rightX, layout.top() + progressHeight, right,
-                layout.previewHeight() - 16 - progressHeight,
+                layout.previewHeight() - progressHeight,
                 Math.max(12, right / 3), -15, 30, preview.entity(), this));
         entity.setLibraryPreview(preview);
         previewWidget = entity;
@@ -298,17 +298,6 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
                 Component.literal("×"), FiguraText.of("gui.done"), ignored -> onClose()));
         addRenderableWidget(new Button(rightX, layout.footerY(), actionWidth, 20,
                 FiguraText.of("gui.library.cancel"), null, ignored -> cancelUpload()));
-        addRenderableOnly((gui, x, y, delta) -> {
-            Component status = message;
-            if (operation != null && !operation.future().isDone() && operation.progress() != null) {
-                status = Component.empty();
-            } else if (sourceRequest != null && !sourceRequest.future().isDone()) {
-                status = FiguraText.of("gui.library.phase." + preparationPhase.name().toLowerCase(java.util.Locale.ROOT));
-            } else if (preview.status().stage() == LibraryPreviewSession.Stage.FAILED) {
-                status = FiguraText.of("gui.library.failure", preview.status().errorCode());
-            }
-            UIHelper.renderScrollingText(gui, status, rightX, layout.footerY() - 12, right, 0xffd3e7e1);
-        });
         // Drawn last, above the preview, so the framing hint and square stay visible.
         addRenderableOnly((gui, x, y, delta) -> renderCoverFrame(gui));
         addRenderableOnly((gui, x, y, delta) -> renderUploadProgress(gui, layout, x, y));
@@ -1048,28 +1037,36 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
     /** The progress header leaves the model preview visible throughout publication. */
     private void renderUploadProgress(net.minecraft.client.gui.GuiGraphicsExtractor gui, LibraryWorkspaceLayout layout,
                                       int mouseX, int mouseY) {
-        if (operation == null) {
-            return;
-        }
+        boolean started = operation != null;
         int x = layout.previewX();
         int y = layout.top();
         int headerWidth = layout.previewWidth();
-        var state = operation.publicationProgress();
-        boolean reviewBlocked = uploadReviewBlocked();
+        var state = started ? operation.publicationProgress()
+                : new LibraryUploadProgress.Snapshot(LibraryUploadProgress.Stage.PREPARING, java.util.Set.of(), false);
+        boolean reviewBlocked = started && uploadReviewBlocked();
         if (CompactMode.active(width)) {
             Component status = currentUploadStatus(state);
-            int color = 0xfff5cd72;
+            int color = started ? 0xfff5cd72 : 0xff92a5ad;
             if (state.failed() || reviewBlocked) {
                 color = 0xffff6666;
             } else if (state.stage() == LibraryUploadProgress.Stage.RESULT) {
                 color = 0xff79d9b1;
             }
             UIHelper.renderScrollingText(gui, status, x + 2, y + 5, headerWidth - 4, color);
+            if (mouseX >= x && mouseX < x + headerWidth && mouseY >= y && mouseY < y + 20) {
+                tooltip = status;
+                if (started && state.stage() == LibraryUploadProgress.Stage.RESULT) {
+                    tooltip = tooltip.copy().append("\n").append(message);
+                }
+            }
             return;
         }
         var stages = List.of(LibraryUploadProgress.Stage.UPLOADING, LibraryUploadProgress.Stage.VALIDATING,
                 LibraryUploadProgress.Stage.REVIEWING, LibraryUploadProgress.Stage.RESULT);
         var names = List.of("upload", "validate", "review", "done");
+        var labels = names.stream().map(name -> FiguraText.of("gui.library.upload_node." + name)).toList();
+        int longestLabel = labels.stream().mapToInt(label -> font.width(label)).max().orElse(1);
+        float labelScale = Math.min(1f, (headerWidth / 4 - 4f) / Math.max(1, longestLabel));
         int current = switch (state.stage()) {
             case PREPARING, UPLOADING, SUBMITTING -> 0;
             case VALIDATING -> 1;
@@ -1078,10 +1075,13 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         };
         int dotY = y + 12;
         for (int index = 0; index < 4; index++) {
-            int dotX = x + 10 + (headerWidth - 20) * index / 3;
+            int cellLeft = x + headerWidth * index / 4;
+            int cellRight = x + headerWidth * (index + 1) / 4;
+            int cellWidth = cellRight - cellLeft;
+            int dotX = cellLeft + cellWidth / 2;
             boolean completed = state.completed().contains(stages.get(index))
                     || index == 3 && state.stage() == LibraryUploadProgress.Stage.RESULT && !state.failed();
-            boolean active = index == current;
+            boolean active = started && index == current;
             int color = 0xff92a5ad;
             if ((active && state.failed()) || (index == 2 && reviewBlocked)) {
                 color = 0xffff6666;
@@ -1091,7 +1091,9 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
                 color = 0xfff5cd72;
             }
             if (index < 3) {
-                int nextX = x + 10 + (headerWidth - 20) * (index + 1) / 3;
+                int nextLeft = cellRight;
+                int nextRight = x + headerWidth * (index + 2) / 4;
+                int nextX = nextLeft + (nextRight - nextLeft) / 2;
                 gui.fill(dotX + 4, dotY, nextX - 4, dotY + 1, completed ? 0xff79d9b1 : 0xff384c54);
             }
             if (active && !completed) {
@@ -1101,10 +1103,8 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
             if (!completed && !active) {
                 drawProgressDot(gui, dotX, dotY, 2, 0xff020c10);
             }
-            int labelWidth = headerWidth / 4;
-            int labelX = Math.clamp(dotX - labelWidth / 2, x, x + headerWidth - labelWidth);
-            var label = FiguraText.of("gui.library.upload_node." + names.get(index));
-            UIHelper.renderCenteredScrollingText(gui, label, labelX, y + 22, labelWidth, 12, color);
+            var label = labels.get(index);
+            renderProgressLabel(gui, label, dotX, y + 22, labelScale, color);
             if (Math.abs(mouseX - dotX) <= 8 && Math.abs(mouseY - dotY) <= 8) {
                 String status = "waiting";
                 if ((active && state.failed()) || (index == 2 && reviewBlocked)) {
@@ -1122,7 +1122,8 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
                 if (index == 2 && reviewBlocked) {
                     tooltip = tooltip.copy().append("\n").append(message);
                 }
-                if (index == 3 && state.stage() == LibraryUploadProgress.Stage.RESULT) {
+                if ((index == 3 && state.stage() == LibraryUploadProgress.Stage.RESULT)
+                        || (index == 0 && !started && !message.getString().isBlank())) {
                     tooltip = tooltip.copy().append("\n").append(message);
                 }
             }
@@ -1130,6 +1131,9 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
     }
 
     private Component currentUploadStatus(LibraryUploadProgress.Snapshot state) {
+        if (operation == null) {
+            return message.getString().isBlank() ? FiguraText.of("gui.library.upload_idle") : message;
+        }
         if (state.failed() || uploadReviewBlocked()) {
             return message;
         }
@@ -1141,6 +1145,18 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
                     LibraryLabels.fileSize(bytes.received()), LibraryLabels.fileSize(bytes.total())));
         }
         return status;
+    }
+
+    /** Share a scale and baseline across labels while centering each label on its own dot. */
+    private void renderProgressLabel(net.minecraft.client.gui.GuiGraphicsExtractor gui, Component label,
+                                     int centerX, int y, float scale, int color) {
+        int textWidth = font.width(label);
+        var pose = gui.pose();
+        pose.pushMatrix();
+        pose.translate(centerX - textWidth * scale / 2f, y);
+        pose.scale(scale, scale);
+        gui.text(font, label, 0, 0, color, false);
+        pose.popMatrix();
     }
 
     private boolean uploadReviewBlocked() {

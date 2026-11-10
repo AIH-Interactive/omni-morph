@@ -270,6 +270,7 @@
   "omni-morph.gui.library.upload_node_description.validate": "检查文件完整性、格式与模型数据，以服务器实际校验结果为准。",
   "omni-morph.gui.library.upload_node_description.review": "服务端正在检查封禁记录与发布权限，等待实际审核结果。",
   "omni-morph.gui.library.upload_node_description.done": "上传处理结束，显示公开、私有或未通过原因。",
+  "omni-morph.gui.library.upload_idle": "未上传",
   "omni-morph.gui.library.upload_progress": "发布进度",
   "omni-morph.gui.library.upload_stage.preparing": "准备中",
   "omni-morph.gui.library.upload_stage.submitting": "等待服务端处理",
