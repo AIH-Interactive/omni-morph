@@ -41,6 +41,25 @@ public final class SkeletonPose {
         this.available = available;
     }
 
+    /**
+     * The inverse of a native render pose, used as nativeToEntity, or empty when the pose cannot be inverted.
+     * Other mods may hand over a collapsed pose (for example a first-person arm scaled to zero), whose
+     * inverse is not finite; such a frame has no skeleton to capture.
+     */
+    public static Optional<Matrix4f> nativeToEntity(Matrix4fc nativePose) {
+        float determinant = nativePose.determinant();
+        if (!Float.isFinite(determinant) || determinant == 0) {
+            return Optional.empty();
+        }
+        Matrix4f inverse = new Matrix4f(nativePose).invert();
+        for (float value : inverse.get(new float[16])) {
+            if (!Float.isFinite(value)) {
+                return Optional.empty();
+            }
+        }
+        return Optional.of(inverse);
+    }
+
     /** nativeToEntity maps the native render/root block space into entity-root block space. */
     public static <T> SkeletonPose fromNative(SkeletonIndex.Binding<T> binding, Map<T, Matrix4f> nativeMatrices,
                                               Matrix4fc nativeToEntity, NativeUnits inputUnits) {

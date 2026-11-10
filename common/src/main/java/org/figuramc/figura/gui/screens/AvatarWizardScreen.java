@@ -34,6 +34,11 @@ public class AvatarWizardScreen extends AbstractPanelScreen {
     }
 
     @Override
+    protected boolean usesSideNavigation() {
+        return true;
+    }
+
+    @Override
     protected void init() {
         super.init();
 
@@ -49,12 +54,12 @@ public class AvatarWizardScreen extends AbstractPanelScreen {
 
         // -- wizard -- // 
 
-        int width = Math.min(this.width - 8, 420) / 2;
+        int width = Math.min(this.width - SIDE_MARGIN * 2, 420) / 2;
         this.addRenderableWidget(new AvatarWizardList((this.width - width) / 2, formTop(), width,
                 height - formTop() - 48, wizard));
         addRenderableOnly((gui, mouseX, mouseY, delta) -> UIHelper.renderScrollingText(gui,
                 FiguraText.of("gui.avatar_wizard.target_directory", wizard.targetDirectory().toString()),
-                8, height - 42, this.width - 16, 0xffd3e7e1));
+                SIDE_MARGIN, height - 42, this.width - SIDE_MARGIN * 2, 0xffd3e7e1));
     }
 
     protected int formTop() {

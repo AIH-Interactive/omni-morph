@@ -4,19 +4,15 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.local.LocalAvatarFetcher;
 import top.aihmc.omnimorph.backend2.library.LibraryModels;
 import org.figuramc.figura.gui.widgets.Button;
 import org.figuramc.figura.gui.widgets.SearchBar;
 import top.aihmc.omnimorph.gui.widgets.library.ModelLibraryLayout;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown;
-import top.aihmc.omnimorph.gui.widgets.library.LibraryLabels;
 import top.aihmc.omnimorph.gui.widgets.library.ModelCardWidget;
-import top.aihmc.omnimorph.gui.widgets.ModelResourceBadges;
 import org.figuramc.figura.gui.widgets.lists.AbstractList;
 import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
 import top.aihmc.omnimorph.model.outfit.LocalCosmeticInventory;
@@ -110,6 +106,8 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
     private List<Entry> entries = List.of();
     private List<Entry> filtered = List.of();
     private ModelLibraryLayout layout;
+    private Consumer<LibraryModels.Model> report = ignored -> {};
+    private Consumer<LibraryModels.Model> favorite = ignored -> {};
     private String selected;
     private final LibraryDropdown formatFilter;
     private List<LibraryDropdown> resourceFilters = List.of();
@@ -217,10 +215,12 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
     }
 
     private void arrange() {
-        layout = ModelLibraryLayout.of(getWidth() - 18, getHeight() - contentTop() - 2, filtered.size());
+        int area = getWidth() - 18;
+        int viewport = getHeight() - contentTop() - 2;
+        layout = ModelLibraryLayout.of(area, viewport, filtered.size());
         scrollBar.setVisible(layout.maximumScroll() > 0);
         scrollBar.setActive(layout.maximumScroll() > 0);
-        scrollBar.setScrollRatio(ModelLibraryLayout.CARD_HEIGHT, Math.max(1, layout.maximumScroll()));
+        scrollBar.setScrollRatio(layout.cardHeight(), Math.max(1, layout.maximumScroll()));
         view.scroll = scrollBar.getScrollProgress();
         int first = layout.first(scroll());
         int end = layout.endWithPrefetch(scroll());
@@ -257,13 +257,8 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
 
     private void drawCard(GuiGraphicsExtractor gui, int index, int mouseX, int mouseY) {
         Entry entry = filtered.get(index);
-        int x = getX() + 2 + layout.x(index);
-        int y = getY() + contentTop() + layout.y(index, scroll());
-        int width = layout.cardWidth();
-        boolean active = entry.key().equals(selected);
-        gui.fill(x, y, x + width, y + ModelLibraryLayout.CARD_HEIGHT, active ? 0xc0335566 : 0xb51a202c);
-        UIHelper.fillOutline(gui, x, y, width, ModelLibraryLayout.CARD_HEIGHT,
-                UIHelper.adjustColor(active ? FiguraMod.getAccentColor().getColor().getValue() : 0x4b5569));
+        int x = cardX(index);
+        int y = cardY(index);
         Identifier image = null;
         if (entry.local() != null) {
             var icon = entry.local().getIcon();
@@ -271,32 +266,37 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
         } else if (images.containsKey(index)) {
             image = images.get(index).capture();
         }
-        int size = ModelLibraryLayout.imageSize(width);
-        gui.blit(RenderPipelines.GUI_TEXTURED, image == null ? PLACEHOLDER : image, x + 4, y + 4,
-                0, 0, size, size, size, size);
-        ModelResourceBadges.drawType(gui, x + 4, y + 4, entry.format(), 16);
-        int textX = x + size + 10;
-        int textWidth = Math.max(1, width - size - 16);
-        UIHelper.renderScrollingText(gui, entry.name(), textX, y + 8, textWidth, 0xffeeeeee);
-        Component detail = entry.cloud() == null ? entry.localDescription() : cacheState.apply(entry.cloud().modelId());
-        if (entry.cloud() != null && entry.cloud().model() != null) {
-            var model = entry.cloud().model();
-            ModelCardWidget.drawStatusIcons(gui, x, y, size, model);
-            UIHelper.renderScrollingText(gui, LibraryLabels.category(model.categoryId()), textX, y + 20, textWidth, 0xffbac6d8);
-            Component author = model.authors().isEmpty() ? FiguraText.of("gui.library.unknown_author")
-                    : Component.literal(model.authors().getFirst());
-            UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.card_authors", author),
-                    textX, y + 34, textWidth, 0xffbac6d8);
-            UIHelper.renderScrollingText(gui, FiguraText.of("gui.library.card_uploader", model.uploader().name()),
-                    textX, y + 46, textWidth, 0xffbac6d8);
-            UIHelper.renderScrollingText(gui, detail, textX, y + 58, textWidth, 0xffa9bbc9);
-        } else {
-            UIHelper.renderScrollingText(gui, Component.literal(entry.format()), textX, y + 20, textWidth, 0xffbac6d8);
-            UIHelper.renderScrollingText(gui, detail, textX, y + 34, textWidth, 0xffbac6d8);
+        LibraryModels.Model model = cloudModel(entry);
+        ModelCardWidget.drawFace(gui, x, y, image, entry.format(), model, entry.name(), entry.key().equals(selected),
+                mouseX, mouseY);
+        boolean hovered = isInsideScissors(mouseX, mouseY)
+                && layout.hit(mouseX - getX() - 2, mouseY - getY() - contentTop(), scroll()) == index;
+        if (hovered && (model == null || !ModelCardWidget.isOnMenu(x, y, mouseX, mouseY))) {
+            Component detail = entry.cloud() == null ? entry.localDescription() : cacheState.apply(entry.cloud().modelId());
+            var tooltip = entry.name().copy().append("\n").append(detail);
+            if (model != null) {
+                tooltip.append("\n").append(ModelCardWidget.statusTooltip(model));
+            }
+            UIHelper.setTooltip(tooltip);
         }
-        if (isInsideScissors(mouseX, mouseY) && layout.hit(mouseX - getX() - 2, mouseY - getY() - contentTop(), scroll()) == index) {
-            UIHelper.setTooltip(entry.name().copy().append("\n").append(detail));
-        }
+    }
+
+    private int cardX(int index) {
+        return getX() + 2 + layout.x(index);
+    }
+
+    private int cardY(int index) {
+        return getY() + contentTop() + layout.y(index, scroll());
+    }
+
+    private static LibraryModels.Model cloudModel(Entry entry) {
+        return entry.cloud() == null ? null : entry.cloud().model();
+    }
+
+    /** Report and favorite actions of the cloud cards' three-dot menu. */
+    public void cardActions(Consumer<LibraryModels.Model> report, Consumer<LibraryModels.Model> favorite) {
+        this.report = report;
+        this.favorite = favorite;
     }
 
     private void choose(int index) {
@@ -311,7 +311,12 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
             arrange();
             int index = layout.hit(event.x() - getX() - 2, event.y() - getY() - contentTop(), scroll());
             if (index >= 0) {
-                choose(index);
+                LibraryModels.Model model = cloudModel(filtered.get(index));
+                if (model != null && ModelCardWidget.isOnMenu(cardX(index), cardY(index), event.x(), event.y())) {
+                    ModelCardWidget.openMenu(cardX(index), cardY(index), model, report, favorite);
+                } else {
+                    choose(index);
+                }
                 return true;
             }
         }

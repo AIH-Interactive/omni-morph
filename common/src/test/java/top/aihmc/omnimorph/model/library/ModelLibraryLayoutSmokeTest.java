@@ -43,20 +43,31 @@ public final class ModelLibraryLayoutSmokeTest {
                         "icon actions and the visibility option leave a separate preview and footer");
             }
         }
-        require(ModelLibraryLayout.of(196, 100, 8).columns() == 1, "one compact card column");
-        require(ModelLibraryLayout.of(398, 100, 8).columns() == 2, "two columns");
-        require(ModelLibraryLayout.of(600, 100, 8).columns() == 3, "three compact columns in the former two-column area");
-        require(ModelLibraryLayout.of(600, 430, 0).pageCapacity(64) == 12,
-                "three columns and four complete rows request twelve models");
-        require(ModelLibraryLayout.of(600, 430, 0).pageCapacity(8) == 8,
-                "older backend maximum is respected");
-        require(ModelLibraryLayout.of(398, 190, 0).pageCapacity(64) == 4,
-                "smaller viewport requests only the rows it can display");
-        require(ModelLibraryLayout.of(10000, 10000, 0).pageCapacity(64) == 64,
-                "large screens remain within the server bound");
-        require(ModelLibraryLayout.of(1206, 100, 8).columns() == 6, "more than three columns");
-        for (int width : new int[]{1, 128, 170, 240, 486, 732, 1470}) {
-            for (int height : new int[]{1, 92, 116, 230, 800}) {
+        // Fixed cards (Penpot 54): 90x108 logical units, a square 90 cover and an 18 tall name row.
+        for (int width : new int[]{1, 89, 90, 200, 282, 394, 1000}) {
+            for (int height : new int[]{1, 108, 400}) {
+                var fixed = ModelLibraryLayout.of(width, height, 8);
+                require(fixed.cardWidth() == 90 && fixed.cardHeight() == 108 && fixed.imageSize() == 90,
+                        "card size never follows the available area: " + width + "x" + height);
+            }
+        }
+        // Columns and rows: floor((A + G) / (W + G)) and floor((A + G) / (H + G)) with a gap of 6.
+        int[][] capacities = {
+                {282, 168, 3, 1}, {282, 276, 3, 2}, {394, 276, 4, 2}, // Penpot 55 examples
+                {281, 168, 2, 1}, {186, 107, 2, 1}, {185, 222, 1, 2}, // just below a column or row boundary
+                {500, 500, 5, 4}, {731, 333, 7, 2}, {1000, 600, 10, 5}}; // sizes not shown in the prototype
+        for (int[] example : capacities) {
+            var grid = ModelLibraryLayout.of(example[0], example[1], 0);
+            require(grid.columns() == example[2] && grid.pageCapacity(64) == example[2] * example[3],
+                    "capacity of " + example[0] + "x" + example[1] + ": " + grid.columns() + " columns, "
+                            + grid.pageCapacity(64) + " models");
+        }
+        require(ModelLibraryLayout.of(1000, 900, 0).pageCapacity(8) == 8, "older backend maximum is respected");
+        require(ModelLibraryLayout.of(10000, 10000, 0).pageCapacity(64) == 64, "large screens stay within the server bound");
+        require(ModelLibraryLayout.of(60, 60, 0).columns() == 1 && ModelLibraryLayout.of(60, 60, 0).pageCapacity(64) == 1,
+                "an area smaller than one card still shows one unscaled card");
+        for (int width : new int[]{90, 128, 282, 486, 732, 1470}) {
+            for (int height : new int[]{1, 108, 116, 230, 800}) {
                 var layout = ModelLibraryLayout.of(width, height, 8);
                 for (int scroll : new int[]{0, layout.maximumScroll() / 2, layout.maximumScroll()}) {
                     require(layout.hit(-1, 0, scroll) == -1 && layout.hit(0, -1, scroll) == -1
@@ -76,16 +87,19 @@ public final class ModelLibraryLayoutSmokeTest {
                 }
             }
         }
-        var old = ModelLibraryLayout.of(398, 92, 8);
-        int anchor = old.first(196);
-        var resized = ModelLibraryLayout.of(196, 92, 8);
+        var old = ModelLibraryLayout.of(394, 108, 8);
+        int anchor = old.first(114);
+        var resized = ModelLibraryLayout.of(186, 108, 8);
         require(resized.first(resized.scrollTo(anchor)) == anchor, "resize retains first visible model index");
-        var row = ModelLibraryLayout.of(398, 92, 8);
-        require(row.endWithPrefetch(0) == 4, "one prefetch row after a fully visible row");
-        require(row.hit(196, 0, 0) == -1, "horizontal gaps are not card hits");
-        var tallerViewport = ModelLibraryLayout.of(398, 100, 8);
-        require(tallerViewport.hit(0, 92, 0) == -1, "vertical gaps are not card hits");
-        require(ModelLibraryLayout.of(128, 116, 0).hit(0, 0, 0) == -1, "empty grid");
+        var row = ModelLibraryLayout.of(282, 108, 8);
+        require(row.endWithPrefetch(0) == 6, "one prefetch row after a fully visible row");
+        require(row.hit(92, 10, 0) == -1 && row.hit(10, 110, 0) == -1, "gaps are not card hits");
+        require(ModelLibraryLayout.of(282, 116, 0).hit(0, 0, 0) == -1, "empty grid");
+        // A changed capacity keeps the first model of the current page on screen.
+        require(ModelLibraryLayout.pageKeepingFirst(3, 6, 3) == 5, "smaller pages move forward to the same model");
+        require(ModelLibraryLayout.pageKeepingFirst(5, 3, 8) == 2, "larger pages move back to the same model");
+        require(ModelLibraryLayout.pageKeepingFirst(1, 8, 3) == 1 && ModelLibraryLayout.pageKeepingFirst(4, 0, 3) == 1,
+                "the first page and unknown previous sizes stay valid");
         System.out.println("PASS model library layout: responsive columns, scroll anchors, virtualization and clipped hit tests");
     }
 

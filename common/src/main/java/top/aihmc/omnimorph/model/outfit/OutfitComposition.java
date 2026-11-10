@@ -1,6 +1,7 @@
 package top.aihmc.omnimorph.model.outfit;
 
 import top.aihmc.omnimorph.model.rendering.FiguraVertexSource;
+import top.aihmc.omnimorph.render.RenderLifetime;
 
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.nbt.ListTag;

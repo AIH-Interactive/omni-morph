@@ -13,6 +13,11 @@ public class BrowserScreen extends AbstractPanelScreen {
     }
 
     @Override
+    protected boolean usesSideNavigation() {
+        return true;
+    }
+
+    @Override
     public void init() {
         super.init();
 

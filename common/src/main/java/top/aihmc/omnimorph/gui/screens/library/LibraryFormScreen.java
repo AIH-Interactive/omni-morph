@@ -6,9 +6,14 @@ import org.figuramc.figura.gui.screens.AbstractPanelScreen;
 import org.figuramc.figura.gui.widgets.Button;
 import org.figuramc.figura.utils.FiguraText;
 import org.figuramc.figura.utils.ui.UIHelper;
+import top.aihmc.omnimorph.gui.screens.ModelLibraryScreen;
+import top.aihmc.omnimorph.gui.widgets.navigation.NavigationRoute;
 
 /** Forms keep an explicit return path and use the same supported minimum logical size. */
 abstract class LibraryFormScreen extends AbstractPanelScreen {
+    /** Width reserved beyond the left inset for the navigation rail on pages that show it. */
+    protected static final int NAVIGATION_INSET = 30;
+
     protected boolean formReady;
 
     protected LibraryFormScreen(Screen parent, Component title) {
@@ -17,11 +22,13 @@ abstract class LibraryFormScreen extends AbstractPanelScreen {
 
     protected boolean initForm() {
         super.init();
-        // Finish or cancel the form before changing panels, preserving its parent's lifecycle.
-        removeWidget(panels);
-        // Modal forms keep the reference header visible without abandoning a
-        // retained parent and its preview/network resources through another tab.
-        addRenderableOnly(panels);
+        if (!usesSideNavigation()) {
+            // Finish or cancel the form before changing panels, preserving its parent's lifecycle.
+            // Modal forms keep the reference header visible without abandoning a
+            // retained parent and its preview/network resources through another tab.
+            removeWidget(panels);
+            addRenderableOnly(panels);
+        }
         formReady = width >= 300 && height >= 220;
         if (!formReady) {
             addRenderableOnly((gui, x, y, delta) -> UIHelper.renderCenteredScrollingText(gui,
@@ -30,5 +37,24 @@ abstract class LibraryFormScreen extends AbstractPanelScreen {
                     FiguraText.of("gui.done"), null, ignored -> onClose()));
         }
         return formReady;
+    }
+
+    /** Forms with navigation ignore it while their own request is still running. */
+    protected boolean navigationAllowed() {
+        return false;
+    }
+
+    /** Navigation returns through the retained catalog, which then opens the destination. */
+    @Override
+    public void navigate(NavigationRoute route) {
+        if (!navigationAllowed()) {
+            return;
+        }
+        if (parentScreen instanceof ModelLibraryScreen catalog) {
+            minecraft.setScreen(catalog);
+            catalog.navigate(route);
+        } else {
+            super.navigate(route);
+        }
     }
 }

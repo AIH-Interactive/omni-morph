@@ -27,13 +27,18 @@ public class SoundScreen extends AbstractPanelScreen {
     }
 
     @Override
+    protected boolean usesSideNavigation() {
+        return true;
+    }
+
+    @Override
     protected void init() {
         super.init();
 
         Avatar owner = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
 
         // list
-        int listWidth = Math.min(this.width - 8, 420);
+        int listWidth = Math.min(this.width - SIDE_MARGIN * 2, 420);
         int listX = (this.width - listWidth) / 2;
         SoundsList list;
         addRenderableWidget(list = new SoundsList(listX, 28, listWidth, height - 120, owner));

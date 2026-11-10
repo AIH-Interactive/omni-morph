@@ -25,7 +25,7 @@ Lua와 Molang 런타임을 함께 지원합니다. Lua는 스크립트와 상호
 | Minecraft Java | 26.1.2 |
 | 모드 로더 | Fabric / NeoForge 26.1.2.126 |
 | Java | 25 |
-| 모드 버전 | 1.0.0-alpha.7 |
+| 모드 버전 | 1.0.0-alpha.10 |
 
 빌드 의존성 버전은 [gradle.properties](gradle.properties)를 참고하세요. 클라이언트용 모드이며, 멀티플레이 리소스 배포와 상태 동기화에는 호환 백엔드가 필요합니다.
 
@@ -78,7 +78,7 @@ if ($buildExitCode -ne 0) {
 
 ### NeoForge
 
-JDK 25를 사용하고 위 PowerShell 명령의 `:fabric:build`를 `:neoforge:build -Prelease --no-daemon`으로 바꾸세요. Minecraft 26.1.2 / NeoForge 26.1.2.126용 결과물은 `neoforge/build/libs/omni-morph-1.0.0-alpha.7+26.1.2-neoforge-mc.jar`입니다. 로더에 맞는 JAR 하나만 설치하세요. `build`에는 `verifyNeoForgeJar` 패키지 검증이 포함됩니다.
+JDK 25를 사용하고 위 PowerShell 명령의 `:fabric:build`를 `:neoforge:build -Prelease --no-daemon`으로 바꾸세요. Minecraft 26.1.2 / NeoForge 26.1.2.126용 결과물은 `neoforge/build/libs/omni-morph-1.0.0-alpha.10+26.1.2-neoforge-mc.jar`입니다. 로더에 맞는 JAR 하나만 설치하세요. `build`에는 `verifyNeoForgeJar` 패키지 검증이 포함됩니다.
 
 통합 워크플로는 Fabric과 NeoForge의 일반 Java 배포 JAR를 빌드하고 게시합니다.
 
