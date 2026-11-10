@@ -13,3 +13,5 @@
 Alpha.10完整内容汇总于根Alpha.10更新内容.md及四语言CHANGELOG。实机与多人/截图画面/整合包MANUAL/PENDING；未启动游戏。额度remaining85%，无Luna交接，无子智能体。
 
 提交接续：首次git add在默认沙箱因index.lock权限失败，合并b86bcc729f6f0cb804b724fac50afddf3a3c42cf仅包含此前已暂存内容；6个已验证API适配及本记录/汇总当时仍在工作树。随后使用已授权提权入口补暂存并单独提交适配，再以该正确代码提交重建最终JAR。没有丢弃修改或重做合并。
+
+最终交付完成：merge b86bcc729f6f0cb804b724fac50afddf3a3c42cf，代码适配0f55e2b3cf2ea92f2ff3fd04417ff281758ac20c均已推送核对。final-packaging.log双remapJar16秒退出0，production-tasks.log dry-run3秒退出0，无test/JNI/探测任务；资源JSON和本版workflow静态检查通过。artifacts.json/txt记录两个最终alpha.10+26.3-0f55e2b3包和SHA。没有剩余实施或自动检查，真实GUI/截图/多人/TaCZ与远端Actions未执行，MANUAL/PENDING。

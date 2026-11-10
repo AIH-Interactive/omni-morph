@@ -19,6 +19,8 @@
 
 本版common testClasses及双loader compileJava通过；22项回归/打包入口通过（20项功能/渲染回归+双loader remapJar），日志docs/alpha10-port/compile.log和regression.log。覆盖导航、封面、编辑HTTP、集合12封面限流、真实流式阶段/JSON兼容、上传重试、布局/卡片/衣柜、实际预览、装备上传、缓存认证、普通材质/feature/PIP。全部离线或本地fixture，不是实机GUI像素证明。
 
-本版JAR：fabric/build/libs/omni-morph-1.0.0-alpha.10+26.3-fabric-mc.jar、neoforge/build/libs/omni-morph-1.0.0-alpha.10+26.3-neoforge-mc.jar。合并提交后重新生成带正确提交版本的最终包，SHA见docs/alpha10-port/artifacts.txt。分发检查包含主ZIP/嵌套依赖CRC、alpha.10/26.3元数据、新功能class、无测试类/已撤后端、保留AVIF和业务类型。
+本版JAR：fabric/build/libs/omni-morph-1.0.0-alpha.10+26.3-fabric-mc.jar、neoforge/build/libs/omni-morph-1.0.0-alpha.10+26.3-neoforge-mc.jar。已从正确代码提交0f55e2b3重新生成最终包，包内版本与该SHA一致；SHA256见docs/alpha10-port/artifacts.txt。分发检查包含主ZIP/嵌套依赖CRC、alpha.10/26.3元数据、新功能class、无测试类/已撤后端、保留AVIF和业务类型。
 
 实机GUI、截图实际框选画面、多人及NeoForge+TaCZ整合包：MANUAL/PENDING，未启动游戏。远端Actions未执行；本版Actions保持仅生产发行构建。没有启动其他版本任务。
+
+合并已推送b86bcc729f6f0cb804b724fac50afddf3a3c42cf；26.3 API适配已推送0f55e2b3cf2ea92f2ff3fd04417ff281758ac20c。最终打包16秒退出0，生产任务图3秒退出0，无测试/JNI依赖。交付记录提交不改变生产源码或成品。
