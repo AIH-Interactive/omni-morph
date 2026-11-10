@@ -1,0 +1,194 @@
+gradlew.bat : Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+所在位置 行:1 字符: 1
++ & .\gradlew.bat :common:modelLibraryLayoutSmokeTest --no-daemon --con ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Picked up JAVA_....encoding=UTF-8:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnam
+ed module (file:/C:/Users/eryth/.gradle/wrapper/dists/gradle-9.4.1-bin/arn2x92ynaizyzdaamcbpbhtj/gradle-9.4.1/lib/nativ
+e-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Architect Plugin: 3.5.168
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+> Task :common:compileJava
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes
+> Task :common:extractIncludeTestProto UP-TO-DATE
+> Task :common:extractTestProto UP-TO-DATE
+> Task :common:generateTestProto NO-SOURCE
+
+> Task :common:compileTestJava
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:32: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:46: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    public static void run(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                           ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:311: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testOtherPlayerRouting(Unsafe unsafe, LibraryClient library) throws Exception {
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:379: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testOtherPlayerDraft(Unsafe unsafe, Runnable drain) throws Exception {
+                                             ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:419: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testCatalogOutfitPreview(Unsafe unsafe, Runnable drain) throws Exception {
+                                                 ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:701: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testCollectionOutfitImport(Unsafe unsafe, Runnable drain, LibraryClient client,
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:829: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testProvidedCosmetics(Unsafe unsafe, Runnable drain) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:912: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testPackagedYsmDraftBases(Unsafe unsafe, Runnable drain) throws Exception {
+                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:978: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testPackagedFiguraDraftAccessory(Unsafe unsafe, Runnable drain) throws Exception {
+                                                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:1072: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testReportedAccessoryOnLocalBase(Unsafe unsafe, Runnable drain) throws Exception {
+                                                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:1285: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testVanillaSelection(Unsafe unsafe, Runnable drain) throws Exception {
+                                             ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:1422: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testOutfitTabShowsLoadedOutfit(Unsafe unsafe, Runnable drain) throws Exception {
+                                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:1574: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testWardrobeDraftActions(Unsafe unsafe, Runnable drain) throws Exception {
+                                                 ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:1846: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testLocalDraftPreview(Unsafe unsafe, Runnable drain, Object editor,
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:1929: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testWardrobeCloudCosmetic(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:2123: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testLocalPresetScreen(Unsafe unsafe, Runnable drain, LibraryClient client) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:2547: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testInstanceTransformFields(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen scree
+n,
+                                                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:2712: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testTreeAttachmentActions(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:3217: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        var unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                          ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:3219: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        var viewport = (com.mojang.blaze3d.platform.Window) ((Unsafe) unsafeField.get(null))
+                                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:3422: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testBoneOverrideEditor(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:3539: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testBoneHelperControls(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:3787: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testCurrentPlayerFigura(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                                                ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:3952: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testIndependentFigura(Unsafe unsafe, Runnable drain) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:4232: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testPreviewAppearance(Unsafe unsafe) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:4301: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testWardrobeDefaultPreview(Unsafe unsafe) throws Exception {
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:4459: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testWardrobeVisibilityTicks(Unsafe unsafe) throws Exception {
+                                                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:5039: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:5039: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:5039: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:5545: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testHiddenFormalParticleEmitter(Unsafe unsafe, LibraryPreviewSession preview,
+                                                        ^
+31 涓鍛?
+
+> Task :common:processTestResources UP-TO-DATE
+> Task :common:testClasses
+
+> Task :common:modelLibraryLayoutSmokeTest FAILED
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+Exception in thread "main" java.lang.AssertionError: compact catalog keeps two small cards per row instead of one large
+ card
+	at top.aihmc.omnimorph.model.library.ModelLibraryLayoutSmokeTest.require(ModelLibraryLayoutSmokeTest.java:131)
+	at top.aihmc.omnimorph.model.library.ModelLibraryLayoutSmokeTest.main(ModelLibraryLayoutSmokeTest.java:92)
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_26.1.2/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:modelLibraryLayoutSmokeTest'.
+> Process 'command 'D:\Program Files\Java\25\bin\java.exe'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+BUILD FAILED in 20s
+10 actionable tasks: 3 executed, 7 up-to-date
+EXIT=1

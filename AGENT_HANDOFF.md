@@ -1,37 +1,23 @@
-# 26.2 撤销 SPM 式硬件加速：最终交接
+# 当前交接：26.2 Alpha.10 完整合并
 
-2026-11-08，Asia/Seoul。当前任务四阶段实施和规定自动验收完成，无剩余实施。本聊天仅负责OMP_26.2；协调端独立核验后才启动1.21.1，本聊天不得启动其他版本、联系其他聊天或改Wiki。
+2026-11-10，Asia/Seoul。仅负责OMP_26.2，分支26.2跟踪origin/26.2；不新开分支、不处理后续版本/后端。起点91aa421e；源26.1.2 main8879d121已通过直接merge合入全部Alpha.10与缺少的Alpha.9前置，冲突按本版API处理。原未跟踪.codex/保留，不暂存/清理。
 
-## Git 与检查点
+## 已完成、已验证
 
-分支26.2，上游origin/26.2，不新开或切换分支。起点f3d6e354。阶段一61ded160、阶段二32dd22d7、阶段三25560dd2均独立提交推送并核对远端。阶段四为本文件所在最终检查点提交，最终SHA及推送以git log/ls-remote核对为准；所有实施记录随最终提交保存。原未跟踪.codex/保留，不暂存、删除或清理。无活动构建、无未提交生产代码。
+共享Logo左导航/管理员权限、紧凑信息公告独立/控件留白、方形封面卡/状态菜单/分页、授权穿戴展示选择、不可逆持枪姿态保护、三类投稿封面及普通/管理员编辑框选/清除、集合预览资源保留与请求节流、真实上传审核事件和最终四点进度布局全部合入。26.2依赖、普通feature/PIP及加速撤销保持。汇总Alpha.10更新内容.md，逐项对照docs/alpha10-port/record.md。
 
-## 完成内容
+初始9处新增API编译失败已最小适配，compile.log 40秒全部生产/测试源码与双loader编译GREEN。regression.log 22个请求入口1分51秒全部通过，含导航、封面、编辑、上传阶段、集合节流、预览生命周期、缓存、实际普通渲染和双remapJar。包预检CRC/元数据/依赖/新功能类/保留业务/AVIF/无测试加速类通过。资源JSON和workflow YAML/PowerShell静态通过。源码diff --check通过，原样历史日志白名单检查。
 
-生命周期迁为RenderOwner/RenderLifetime，保留模型退役、资源重载和帧失效保护。恢复Figura/YSM普通CPU顶点提交；删除自建GPU/JNI/SIMD、SSBO/UBO、整模/刚性合批、网格缓存、fence/probe、硬件设置/通知/状态控件、专用Mixin/AW、native/CMake/测试/Gradle和发行链，删除tools。alpha.8。普通Minecraft GPU/OpenGL/Vulkan、feature/PIP、YSM、衣装、蒙皮、预算、挂点、粒子音频、模型库、缓存认证、云协议和AVIF保留。生产解析器/协议/缓存格式无变化。
+## 检查点及剩余操作
 
-## 已验证与失败项
+当前合并待提交推送，须确认全部六个API适配及其他冲突解决文件均已暂存；提交推送核对后，从该提交重建Fabric/NeoForge最终alpha.10+26.2 JAR，使包内SHA对应正确代码，再跑生产任务图和最终包检查，记录artifacts.json/txt并更新本手册，最后仅文档提交推送。premerge-artifacts.txt的91aa421e后缀是提交前预检，不能作为最终包来源。无活动构建。
 
-阶段一基线与迁移后八项GREEN。阶段二实际混合衣装后端禁止调用RED→GREEN，六项通过。阶段三设置分类RED→GREEN，九项初验及七项最终复验通过，旧硬件配置键忽略、普通配置保留；Actions YAML/PowerShell和资源JSON静态校验通过。
+## 失败记录与边界
 
-阶段四首轮20入口中19通过，唯一失败为语料测试ZIP根getFileName为空。仅修测试内部.bbmodel遍历过滤，重跑语料及双remapJar 46秒GREEN：Figura8、普通YSM35、加密YSM18正式加载/重建。fs2000.png外部文件缺失后嵌入回退的实际纹理字节非空通过。未重复与失败无关的19项。覆盖模型库HTTP传输/装备/上传/CAS/取消、认证/授权/撤权竞争、实际混合顶点/预算/蒙皮、延迟姿态、feature/PIP异常清理和粒子。20入口最终全部通过。
+initial-compile.log是初始编译失败，不作行为RED。initial-artifact-check.txt是检查器误期望Minecraft范围，实际既有元数据精确[26.2]，检查器已纠正而生产元数据未改。旧严格scanner兼容限制和此前渲染remap警告未扩大范围处理。源历史日志仅代表26.1.2历史，不代表本版通过。
 
-严格scanner独立失败，不能记PASS：53候选47valid/6invalid，另有扩展ctrl绑定、缺失状态引用及加密诊断门禁。本次保留生产解析器；如将来处理兼容限制，需新的授权范围。既有remap警告preparePictureInPictureState/scaleWidth/scaleHeight仍存在，生产构建成功；未验证真实运行时Mixin和GPU像素。
+真实GUI截图、多人、TaCZ/整合包和远端Actions MANUAL/PENDING；未启动游戏，不等待人工，不作为受阻。Actions仅生产remapJar打包，未接入测试。后端d772a05已由协调端完成，不修改。
 
-实机/GUI/GPU人工验收SKIPPED（用户决定，未执行），未启动游戏，不等待人工，不作为受阻。远端Actions未运行，仅本地生产任务图核验无测试/JNI/探测链。
+Java/Gradle每新PowerShell先加载现有profile并usejdk25/java -version，前台2>&1 | Tee-Object -FilePath build.log、立即检查退出码读日志，不并发Gradle。CodeGraph优先；不得恢复自定义GPU/JNI/SIMD或tools。相关详细约束见AGENTS.md和全局AGENTS。
 
-## 本地交付
-
-普通alpha.8测试JAR，不使用旧build/local-native加速包：
-- D:/UserData/Desktop/Project/OMP/OMP_26.2/fabric/build/libs/omni-morph-1.0.0-alpha.8+26.2-fabric-mc.jar，SHA256 84d6a929d984c640482149929760cc996056a59754bfb32cdab929d6d34cbdd8。
-- D:/UserData/Desktop/Project/OMP/OMP_26.2/neoforge/build/libs/omni-morph-1.0.0-alpha.8+26.2-neoforge-mc.jar，SHA256 4f0924de27e61a8522bca1e62d932a895fc9ae28aa3b232ebd59eff21a60d0a6。
-
-双包主ZIP/嵌套依赖CRC、loader alpha.8元数据、无专用加速/native/测试/加速Mixin、保留业务和AVIF通过。生产内容为阶段三25560dd2；本阶段只有测试与记录。普通AVIF的Fabric嵌套/NeoForge shadow native结构保留。
-
-## 记录与接续约束
-
-根目录撤销SPM式硬件加速计划.md；docs/acceleration-revert/stage-1.md～stage-4.md和同名前缀日志。stage-4-final.log是首轮语料失败，不是整体PASS；stage-4-corpus-green.log为修复后PASS；stage-4-scan.log为严格门禁失败；stage-4-production-tasks.log与stage-4-artifacts.txt为生产任务图和最终校验。
-
-无下一实施阶段。协调端下一步只读核验本版HEAD/远端、工作区、日志和成品，再按其串行计划决定后续版本。所有Java/Gradle新PowerShell先usejdk25确认，前台2>&1 | Tee-Object -FilePath build.log，立即保存退出码读日志，不并发Gradle；CodeGraph优先。minecraft-dev-mcp本会话不可用，需要原版事实时查既有26.2反编译缓存。Qt offscreen禁止；未经许可不启动游戏。
-
-可靠额度最后used8%/remaining92%，10080分钟窗口、reset1794697473、planType原值prolite，不推断订阅。未触发额度交接，未调用Luna；正常完成由当前Agent更新本手册。
+可靠额度used15%/remaining85%，10080分钟窗口reset1794697473，planType原值prolite，不推断订阅；未达阈值，未调用Luna。正常完成由当前Agent整理手册。

@@ -11,9 +11,9 @@ import org.figuramc.figura.gui.widgets.Button;
 import org.figuramc.figura.gui.widgets.SearchBar;
 import org.figuramc.figura.gui.widgets.EntityPreview;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
+import top.aihmc.omnimorph.gui.widgets.navigation.NavigationRoute;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryLabels;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryRowList;
-import top.aihmc.omnimorph.gui.widgets.library.LibrarySectionTabs;
 import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
 import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
 import top.aihmc.omnimorph.model.library.LibraryTransferService;
@@ -89,9 +89,10 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
         retainingChild = false;
         building = true;
         var layout = new LibraryWorkspaceLayout(width, height);
-        int area = layout.contentWidth();
+        // Only make room for the navigation rail; the management body is unchanged.
+        int area = layout.contentWidth() - NAVIGATION_INSET;
         int previewX = layout.previewX();
-        int contentX = layout.left();
+        int contentX = layout.left() + NAVIGATION_INSET;
         var entity = addRenderableWidget(new EntityPreview(previewX, 52, layout.previewWidth(),
                 height - 80, Math.max(12, layout.previewWidth() / 3), -15, 30, preview.entity(), this));
         entity.setLibraryPreview(preview);
@@ -103,12 +104,6 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
             Component hint = FiguraText.of("gui.library.preview." + state.stage().name().toLowerCase(java.util.Locale.ROOT));
             UIHelper.renderScrollingText(gui, hint, previewX, height - 20, layout.previewWidth(), 0xffbac6d8);
         });
-        addRenderableWidget(new LibrarySectionTabs(contentX, 28, area, 4, true, section -> {
-            if (!busy() && parentScreen instanceof ModelLibraryScreen catalog) {
-                minecraft.gui.setScreen(catalog);
-                catalog.openSection(section);
-            }
-        }));
         int searchWidth = Math.max(80, area / 2 - 4);
         var search = addRenderableWidget(new SearchBar(contentX, 52, searchWidth, 20, value -> {
             if (!building && !query.equals(value)) {
@@ -221,6 +216,21 @@ public final class ModelLibraryAdminScreen extends LibraryFormScreen {
                 : FiguraText.of("gui.library.value." + value.toLowerCase(java.util.Locale.ROOT));
         return FiguraText.of("gui.library.filter." + label,
                 selectedValue);
+    }
+
+    @Override
+    protected boolean usesSideNavigation() {
+        return true;
+    }
+
+    @Override
+    protected NavigationRoute navigationRoute() {
+        return NavigationRoute.ADMIN;
+    }
+
+    @Override
+    protected boolean navigationAllowed() {
+        return !busy();
     }
 
     private boolean busy() {

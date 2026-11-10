@@ -32,12 +32,13 @@ import org.figuramc.figura.gui.widgets.LoadingErrorWidget;
 import org.figuramc.figura.gui.widgets.StatusWidget;
 import org.figuramc.figura.gui.widgets.SwitchButton;
 import org.figuramc.figura.gui.widgets.TextField;
+import top.aihmc.omnimorph.gui.widgets.library.CompactMode;
+import top.aihmc.omnimorph.gui.widgets.navigation.NavigationRoute;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryActionBar;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryIconButton;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
 import org.figuramc.figura.gui.widgets.lists.AvatarList;
-import top.aihmc.omnimorph.gui.widgets.wardrobe.VerticalWardrobeTab;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.BoneTreeWidget;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCloudList;
 import top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout;
@@ -74,6 +75,8 @@ import org.figuramc.figura.utils.FiguraText;
 import org.figuramc.figura.utils.IOUtils;
 import org.figuramc.figura.utils.TextUtils;
 import org.figuramc.figura.utils.ui.UIHelper;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import top.aihmc.omnimorph.gui.widgets.library.ModelCardWidget;
 
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -94,7 +97,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private enum Tab { OUTFIT, COLLECTION }
     private enum Source { ALL, LOCAL, CLOUD }
     private enum Mode { ALL, AVATAR, COSMETIC }
-    private enum Pane { RESOURCES, PREVIEW, TREE, INFO }
+    private enum Pane { RESOURCES, PREVIEW, TREE, INFO, NOTICES }
 
     private record Selection(Path path, Path reference, boolean ysm, UUID cloud, Component name,
                              LocalCosmeticInventory.Entry cosmetic) {
@@ -177,6 +180,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
     private EntityPreview previewWidget;
     private Tab previewTab;
     private WardrobeCollectionGrid collectionGrid;
+    private boolean retainingCollectionGrid;
     private LibraryThumbnailService thumbnails;
     private LibraryClient client;
     private LibraryCollectionService collection;
@@ -265,6 +269,16 @@ public class WardrobeScreen extends AbstractPanelScreen {
         rebuildWidgets();
     }
 
+    /** Preview actions change with the selection; the collection and its cover requests do not. */
+    private void rebuildCollectionPreview() {
+        retainingCollectionGrid = true;
+        try {
+            rebuild();
+        } finally {
+            retainingCollectionGrid = false;
+        }
+    }
+
     @Override
     protected void init() {
         boolean returning = removed;
@@ -321,11 +335,20 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 showLoadedOutfitDraft();
             }
         }
-        layout = tab == Tab.COLLECTION ? WardrobeLayout.collectionOf(width, height) : WardrobeLayout.of(width, height);
-        addRenderableWidget(new VerticalWardrobeTab(4, 28, 66, text("outfit"), button -> switchTab(Tab.OUTFIT)));
-        addRenderableWidget(new VerticalWardrobeTab(4, 98, 100, text("collection"), button -> switchTab(Tab.COLLECTION)));
-        if (layout.compact()) {
-            var panes = tab == Tab.COLLECTION ? List.of(Pane.RESOURCES, Pane.PREVIEW) : List.of(Pane.values());
+        if (tab == Tab.COLLECTION) {
+            layout = WardrobeLayout.collectionOf(width, height);
+        } else if (compactOutfit()) {
+            layout = bonesShown ? WardrobeLayout.bonesOf(width, height) : WardrobeLayout.compactOf(width, height);
+        } else {
+            layout = WardrobeLayout.of(width, height);
+        }
+        // Outfit, collection and the outfit panes are entries of the shared left navigation;
+        // the compact outfit shows its list beside the pane chosen there, without a pane-switch row.
+        if (compactOutfit()) {
+            buildCompactOutfitPanes();
+        } else if (layout.compact()) {
+            var panes = tab == Tab.COLLECTION ? List.of(Pane.RESOURCES, Pane.PREVIEW)
+                    : List.of(Pane.RESOURCES, Pane.PREVIEW, Pane.TREE, Pane.INFO);
             int sectionWidth = Math.max(1, (width - 36) / panes.size());
             for (Pane target : panes) {
                 addRenderableWidget(new Button(30 + target.ordinal() * sectionWidth, 28, sectionWidth - 2, 20,
@@ -340,14 +363,95 @@ public class WardrobeScreen extends AbstractPanelScreen {
         } else {
             addRenderableOnly((gui, x, y, delta) -> gui.text(font,
                     tab == Tab.OUTFIT ? text("outfit") : text("collection"), 32, 32, 0xffffffff));
-            if (tab == Tab.OUTFIT) {
-                int half = layout.treeWidth() / 2;
-                addRenderableWidget(new Button(layout.treeX(), 28, half - 2, 20, text("default_panel"), null,
-                        button -> switchRightPane(false))).setActive(bonesShown || editingInstance);
-                addRenderableWidget(new Button(layout.treeX() + half, 28, layout.treeWidth() - half, 20,
-                        text("tree"), null, button -> switchRightPane(true))).setActive(!bonesShown);
+        }
+        if (!compactOutfit()) {
+            buildPanes();
+        }
+        buildToolbar();
+        refreshVisibility();
+    }
+
+    private boolean compactOutfit() {
+        return tab == Tab.OUTFIT && width < WardrobeLayout.WIDE_WIDTH;
+    }
+
+    @Override
+    protected boolean usesSideNavigation() {
+        return true;
+    }
+
+    @Override
+    protected NavigationRoute navigationRoute() {
+        if (tab == Tab.COLLECTION) {
+            return NavigationRoute.COLLECTION;
+        }
+        if (bonesShown) {
+            return NavigationRoute.BONES;
+        }
+        return switch (pane) {
+            case INFO -> NavigationRoute.INFORMATION;
+            case NOTICES -> NavigationRoute.ANNOUNCEMENTS;
+            default -> NavigationRoute.PREVIEW;
+        };
+    }
+
+    /** Preselects a wardrobe entry before the screen opens. */
+    public void selectNavigationRoute(NavigationRoute route) {
+        tab = route == NavigationRoute.COLLECTION ? Tab.COLLECTION : Tab.OUTFIT;
+        bonesShown = route == NavigationRoute.BONES;
+        pane = switch (route) {
+            case BONES -> Pane.TREE;
+            case INFORMATION -> Pane.INFO;
+            case ANNOUNCEMENTS -> Pane.NOTICES;
+            default -> Pane.PREVIEW;
+        };
+    }
+
+    @Override
+    protected boolean openNavigationRoute(NavigationRoute route) {
+        switch (route) {
+            case COLLECTION -> switchTab(Tab.COLLECTION);
+            case PREVIEW, INFORMATION, ANNOUNCEMENTS, BONES -> {
+                switchTab(Tab.OUTFIT);
+                if (route == NavigationRoute.PREVIEW) {
+                    if (bonesShown) {
+                        switchRightPane(false);
+                    }
+                    pane = Pane.PREVIEW;
+                    rebuild();
+                } else {
+                    switchRightPane(switch (route) {
+                        case BONES -> Pane.TREE;
+                        case ANNOUNCEMENTS -> Pane.NOTICES;
+                        default -> Pane.INFO;
+                    });
+                }
+            }
+            default -> {
+                return false;
             }
         }
+        return true;
+    }
+
+    /** The list stays beside the preview or default information; bone editing replaces the list. */
+    private void buildCompactOutfitPanes() {
+        if (bonesShown) {
+            buildPreview();
+            buildRightPane();
+            return;
+        }
+        buildResources();
+        if (pane == Pane.INFO) {
+            buildInformation();
+        } else if (pane == Pane.NOTICES) {
+            updateMotdWidget();
+        } else {
+            buildPreview();
+        }
+    }
+
+    private void buildPanes() {
         if (!layout.compact() || pane == Pane.RESOURCES) {
             buildResources();
         }
@@ -361,8 +465,6 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 buildRightPane();
             }
         }
-        buildToolbar();
-        refreshVisibility();
     }
 
     private static Component text(String key) {
@@ -370,6 +472,11 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     private void switchRightPane(boolean bones) {
+        switchRightPane(bones ? Pane.TREE : Pane.INFO);
+    }
+
+    private void switchRightPane(Pane next) {
+        boolean bones = next == Pane.TREE;
         if (!bones) {
             clearAnchorSelection();
         }
@@ -377,7 +484,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         editingVirtualAnchor = null;
         editingBone = null;
         bonesShown = bones;
-        pane = bones ? Pane.TREE : Pane.INFO;
+        pane = next;
         rebuild();
     }
 
@@ -538,19 +645,31 @@ public class WardrobeScreen extends AbstractPanelScreen {
             rebuild();
         });
         int listHeight = Math.max(88, height - 88);
+        // The compact outfit list starts on the top row beside the preview, which no longer holds pane buttons.
+        int listY = compactOutfit() ? layout.top() : 54;
+        listHeight += 54 - listY;
         if (tab == Tab.COLLECTION) {
             var view = cardViews.computeIfAbsent(context(), ignored -> new WardrobeCollectionGrid.View());
-            collectionGrid = addRenderableWidget(new WardrobeCollectionGrid(x, 54, w,
-                    source != Source.LOCAL ? listHeight - 14 : listHeight, view,
-                    client == null ? null : thumbnails, entry -> {
-                if (entry.cosmetic() != null) {
-                    selectCosmetic(entry.cosmetic());
-                } else if (entry.local() != null) {
-                    selectLocal(entry.local());
-                } else {
-                    selectCloud(entry.cloud());
+            if (!retainingCollectionGrid || collectionGrid == null) {
+                collectionGrid = new WardrobeCollectionGrid(x, 54, w,
+                        source != Source.LOCAL ? listHeight - 14 : listHeight, view,
+                        client == null ? null : thumbnails, entry -> {
+                    if (entry.cosmetic() != null) {
+                        selectCosmetic(entry.cosmetic());
+                    } else if (entry.local() != null) {
+                        selectLocal(entry.local());
+                    } else {
+                        selectCloud(entry.cloud());
+                    }
+                }, id -> client == null ? FiguraText.of("gui.library.state.offline") : text(collection.cacheState(id)));
+            }
+            addRenderableWidget(collectionGrid);
+            collectionGrid.cardActions(model -> {
+                if (client != null) {
+                    minecraft.gui.setScreen(new top.aihmc.omnimorph.gui.screens.library.ModelReportScreen(this, client,
+                            model.modelId()));
                 }
-            }, id -> client == null ? FiguraText.of("gui.library.state.offline") : text(collection.cacheState(id))));
+            }, this::toggleCloudFavorite);
             collectionGrid.setResourceFilters(sourceFilter, modeFilter, resourceFiltersExpanded,
                     expanded -> resourceFiltersExpanded = expanded);
             refreshCollectionCards();
@@ -563,7 +682,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
             }
         } else if (source == Source.LOCAL && mode != Mode.COSMETIC
                 && (mode == Mode.AVATAR || localCosmetics(true).isEmpty())) {
-            localList = new AvatarList(x, 54, w, listHeight, this, this::selectLocal,
+            localList = new AvatarList(x, listY, w, listHeight, this, this::selectLocal,
                     avatar -> tab == Tab.COLLECTION || localCandidates.contains(avatar.getTheActualPathForThis()));
             localList.showSourceBadge(true);
             localList.setOutfitRemoval(this::removeLocalOutfit);
@@ -576,7 +695,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
             addRenderableWidget(localList);
         } else {
             var view = cloudViews.computeIfAbsent(context(), ignored -> new WardrobeCloudList.View());
-            cloudList = addRenderableWidget(new WardrobeCloudList(x, 54, w, Math.max(72, listHeight - 14), view,
+            cloudList = addRenderableWidget(new WardrobeCloudList(x, listY, w, Math.max(72, listHeight - 14), view,
                     this::selectCloud, id -> client == null ? FiguraText.of("gui.library.state.offline")
                     : text(collection.cacheState(id))));
             cloudList.setResourceFilters(sourceFilter, modeFilter, resourceFiltersExpanded,
@@ -603,12 +722,34 @@ public class WardrobeScreen extends AbstractPanelScreen {
                 : FiguraText.of("gui.library.failure", collection.failure());
     }
 
+    /** Favorite or unfavorite a cloud collection model with the catalog's existing request. */
+    private void toggleCloudFavorite(LibraryModels.Model model) {
+        if (client == null || !client.current() || !model.allows("favorite")) {
+            return;
+        }
+        String method = model.favorited() ? "DELETE" : "PUT";
+        var request = client.submit(LibraryClient.Lane.CONTROL, exchange -> exchange.json(method,
+                "/api/library/v1/models/" + model.modelId() + "/favorite",
+                Map.of("operation_id", UUID.randomUUID().toString()), Map.class));
+        request.future().whenComplete((result, failure) -> minecraft.execute(() -> {
+            if (!removed && collection != null) {
+                collection.refresh();
+            }
+        }));
+    }
+
+    private boolean compactCollection() {
+        return tab == Tab.COLLECTION && CompactMode.active(width);
+    }
+
     private void buildPreview() {
         int x = layout.previewX();
         int w = layout.previewWidth();
         boolean cloudActions = source == Source.CLOUD || source == Source.ALL && selected != null && selected.cloud() != null;
         int actionCount = tab == Tab.OUTFIT ? 16 : cloudActions ? 8 : 5;
-        int actionsHeight = LibraryActionBar.heightFor(w, actionCount);
+        // The compact collection keeps one action row so the preview uses the remaining height.
+        int actionsHeight = compactCollection() || compactOutfit() ? LibraryActionBar.budgetedHeight(false)
+                : LibraryActionBar.heightFor(w, actionCount);
         int actionsY = height - 28 - actionsHeight;
         int size = LibraryWorkspaceLayout.previewHeightBeforeActions(layout.top(), actionsY);
         float scale = tab == Tab.COLLECTION ? Math.max(12f, w / 3f) : Math.min(w, size) * 0.38f;
@@ -622,6 +763,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
         previewWidget.setDependencyIssues(tab == Tab.OUTFIT ? outfitIssues : List.of());
         previewWidget.setSelectedBone(previewBoneSelection());
         addRenderableWidget(previewWidget);
+        int statusBottom = layout.top() + size;
+        addRenderableOnly((gui, mouseX, mouseY, delta) -> renderPreviewVisibility(gui, x, statusBottom, mouseX, mouseY));
         var statusFont = Minecraft.getInstance().font;
         if (statusFont != null) {
             int statusHeight = statusFont.lineHeight + 5;
@@ -663,6 +806,11 @@ public class WardrobeScreen extends AbstractPanelScreen {
             }
         });
         var actions = addRenderableWidget(new LibraryActionBar(x, actionsY, w, actionsHeight));
+        if (compactCollection()) {
+            actions.budget(3);
+        } else if (compactOutfit()) {
+            actions.budget(5);
+        }
         if (tab == Tab.COLLECTION) {
             candidateButton = actions.action(new LibraryIconButton("wardrobe_outfit", 2,
                     () -> candidate() ? 1 : 0, text("add_outfit"), null, button -> changeCandidate()));
@@ -909,6 +1057,42 @@ public class WardrobeScreen extends AbstractPanelScreen {
         cosmeticAnimationsOpen = false;
         if (!returning) {
             removed();
+        }
+    }
+
+    /** State of the model in the preview; null for drafts, the equipped avatar and local resources. */
+    /** Equipment visibility of the previewed model; null when the preview has no such state. */
+    public Boolean previewVisibility() {
+        if (draftPreviewActive || selected == null) {
+            // Drafts and the current-equipment preview show the player's own equipment.
+            if (!draftPreviewActive && tab != Tab.OUTFIT) {
+                return null;
+            }
+            if (libraryVisibility != null) {
+                return libraryVisibility.showing();
+            }
+            return localVisibility == null ? null : localVisibility.showing();
+        }
+        if (selected.cloud() != null && libraryVisibility != null && selected.cloud().equals(libraryVisibility.model())) {
+            return libraryVisibility.showing();
+        }
+        return null;
+    }
+
+    /** Draws the visibility indicator in the bottom-left corner of the wardrobe preview. */
+    private void renderPreviewVisibility(GuiGraphicsExtractor gui, int x, int bottom, int mouseX, int mouseY) {
+        Boolean showing = previewVisibility();
+        int iconX = x + 4;
+        int iconY = bottom - 18;
+        ModelCardWidget.drawPreviewVisibility(gui, iconX, iconY, showing);
+        if (!UIHelper.isMouseOver(iconX, iconY, 14, 14, mouseX, mouseY)) {
+            return;
+        }
+        if (showing == null) {
+            UIHelper.setTooltip(text("preview_status_unavailable"));
+        } else {
+            UIHelper.setTooltip(text("show_others").copy().append(": ")
+                    .append(FiguraText.of(showing ? "gui.yes" : "gui.no")));
         }
     }
 
@@ -1167,7 +1351,9 @@ public class WardrobeScreen extends AbstractPanelScreen {
                     }, index -> bones.view(choices.get(index).view()), 6));
             treeTop += 24;
         }
-        addRenderableWidget(new BoneTreeWidget(x, treeTop, w, Math.max(40, height - 140 - (treeTop - layout.top())), bones,
+        // Compact bone editing extends the tree down to its action button.
+        int treeHeight = compactOutfit() ? height - 64 - treeTop : height - 140 - (treeTop - layout.top());
+        addRenderableWidget(new BoneTreeWidget(x, treeTop, w, Math.max(40, treeHeight), bones,
                 this::refreshBones, this::selectTreeTarget)).setContextAction(
                         (target, event) -> openBoneContext(target, event.x(), event.y()));
         if (outfitDraft != null && draftPreviewActive) {
@@ -1269,7 +1455,8 @@ public class WardrobeScreen extends AbstractPanelScreen {
         }
         int x = layout.treeX();
         int w = layout.treeWidth();
-        int infoHeight = Math.min(Math.max(108, layout.height() / 2), Math.max(40, layout.height() - 56));
+        int infoHeight = compactOutfit() ? Math.max(40, height - 34 - layout.top())
+                : Math.min(Math.max(108, layout.height() / 2), Math.max(40, layout.height() - 56));
         infoWidget = addRenderableOnly(new AvatarInfoWidget(x, layout.top(), w, infoHeight));
         updateMotdWidget();
     }
@@ -1855,11 +2042,13 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     private void updateMotdWidget() {
-        if (infoWidget == null) {
+        boolean noticesOnly = compactOutfit() && pane == Pane.NOTICES;
+        if ((compactOutfit() && !noticesOnly) || (!noticesOnly && infoWidget == null)) {
             return;
         }
-        int y = infoWidget.getY() + infoWidget.getHeight() + 4;
-        int available = Math.max(0, layout.top() + layout.height() - y);
+        int y = noticesOnly ? layout.top() : infoWidget.getY() + infoWidget.getHeight() + 4;
+        int bottom = compactOutfit() ? height - 34 : layout.top() + layout.height();
+        int available = Math.max(0, bottom - y);
         if (NetworkStuff.motd == null) {
             if (motdWidget != null) {
                 removeWidget(motdWidget);
@@ -1931,7 +2120,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         selections.put(context(), selected);
         previewSelection();
         if (source == Source.ALL && tab == Tab.COLLECTION) {
-            rebuild();
+            rebuildCollectionPreview();
         }
         updateCollectionButtons();
     }
@@ -1944,7 +2133,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         selections.put(context(), selected);
         previewSelection();
         if (source == Source.ALL && tab == Tab.COLLECTION) {
-            rebuild();
+            rebuildCollectionPreview();
         }
         updateCollectionButtons();
     }
@@ -1966,7 +2155,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
             syncHierarchy();
             refreshVisibility();
             if (source == Source.ALL && tab == Tab.COLLECTION) {
-                rebuild();
+                rebuildCollectionPreview();
             }
             return;
         }
@@ -1974,7 +2163,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         selections.put(context(), selected);
         previewSelection();
         if (source == Source.ALL && tab == Tab.COLLECTION) {
-            rebuild();
+            rebuildCollectionPreview();
         }
     }
 
@@ -3570,8 +3759,10 @@ public class WardrobeScreen extends AbstractPanelScreen {
             AvatarList.selectedEntry = selected.reference();
             message = text("enabling");
         } else if (equipment != null && client.current()) {
-            boolean showing = libraryVisibility != null && selected.cloud().equals(libraryVisibility.model())
-                    && libraryVisibility.showing();
+            // Only a known choice for this model is sent; otherwise the server keeps the saved one,
+            // and shows a private model to other players by default.
+            Boolean showing = libraryVisibility != null && libraryVisibility.equipped()
+                    && selected.cloud().equals(libraryVisibility.model()) ? libraryVisibility.showing() : null;
             enabling = equipment.enable(selected.cloud(), showing);
             enabling.future().whenComplete((result, failure) -> {
                 if (!removed) {
@@ -3999,7 +4190,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
     @Override
     protected void clearWidgets() {
         saveView();
-        if (collectionGrid != null) {
+        if (collectionGrid != null && !retainingCollectionGrid) {
             collectionGrid.close();
             collectionGrid = null;
         }

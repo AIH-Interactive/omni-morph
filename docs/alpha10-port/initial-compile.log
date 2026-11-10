@@ -1,0 +1,155 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/eryth/.gradle/wrapper/dists/gradle-9.4.1-bin/arn2x92ynaizyzdaamcbpbhtj/gradle-9.4.1/lib/native-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Architect Plugin: 3.5.168
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Configure project :neoforge
+:found 1 forge source jars
+:extracted 0 forge source classes
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+
+> Task :common:compileJava
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\local\LocalAvatarLoader.java:423: 警告: ExtendedWatchEventModifier是内部专用 API, 可能会在未来发行版中删除
+            WatchKey key = IS_WINDOWS ? path.register(watcher, events, com.sun.nio.file.ExtendedWatchEventModifier.FILE_TREE) : path.register(watcher, events);
+                                                                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\AbstractPanelScreen.java:80: 错误: 找不到符号
+        this.minecraft.setScreen(NavigationScreens.open(route, parentScreen));
+                      ^
+  符号:   方法 setScreen(Screen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:669: 错误: 找不到符号
+                    minecraft.setScreen(new top.aihmc.omnimorph.gui.screens.library.ModelReportScreen(this, client,
+                             ^
+  符号:   方法 setScreen(ModelReportScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\LibraryFormScreen.java:54: 错误: 找不到符号
+            minecraft.setScreen(catalog);
+                     ^
+  符号:   方法 setScreen(ModelLibraryScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryEditScreen.java:290: 错误: 找不到符号
+        minecraft.setScreen(new ModelFilePickerScreen(this, client, FiguraMod.getFiguraDirectory(),
+                 ^
+  符号:   方法 setScreen(ModelFilePickerScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryEditScreen.java:372: 错误: 找不到符号
+        Screenshot.takeScreenshot(minecraft.getMainRenderTarget(), screenshot -> {
+                                           ^
+  符号:   方法 getMainRenderTarget()
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryEditScreen.java:374: 错误: 找不到符号
+                if (closed || minecraft.screen != this) {
+                                       ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelUploadScreen.java:362: 错误: 找不到符号
+            minecraft.setScreen(catalog);
+                     ^
+  符号:   方法 setScreen(ModelLibraryScreen)
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelUploadScreen.java:848: 错误: 找不到符号
+        Screenshot.takeScreenshot(minecraft.getMainRenderTarget(), screenshot -> {
+                                           ^
+  符号:   方法 getMainRenderTarget()
+  位置: 类型为Minecraft的变量 minecraft
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\ModelLibraryScreen.java:354: 错误: 找不到符号
+        if (section >= 0 && minecraft != null && minecraft.screen == this) {
+                                                          ^
+  符号:   变量 screen
+  位置: 类型为Minecraft的变量 minecraft
+注: 某些输入文件使用或覆盖了已过时的 API。
+注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+注: 某些输入文件使用了未经检查或不安全的操作。
+注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+9 个错误
+1 个警告
+
+> Task :common:compileJava FAILED
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_26.2/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:compileJava'.
+> Compilation failed; see the compiler output below.
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\local\LocalAvatarLoader.java:423: 警告: ExtendedWatchEventModifier是内部专用 API, 可能会在未来发行版中删除
+              WatchKey key = IS_WINDOWS ? path.register(watcher, events, com.sun.nio.file.ExtendedWatchEventModifier.FILE_TREE) : path.register(watcher, events);
+                                                                                         ^
+  注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryEditScreen.java:374: 错误: 找不到符号
+                  if (closed || minecraft.screen != this) {
+                                         ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\ModelLibraryScreen.java:354: 错误: 找不到符号
+          if (section >= 0 && minecraft != null && minecraft.screen == this) {
+                                                            ^
+    符号:   变量 screen
+    位置: 类型为Minecraft的变量 minecraft
+  注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+  注: 某些输入文件使用或覆盖了已过时的 API。
+  注: 某些输入文件使用了未经检查或不安全的操作。
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\AbstractPanelScreen.java:80: 错误: 找不到符号
+          this.minecraft.setScreen(NavigationScreens.open(route, parentScreen));
+                        ^
+    符号:   方法 setScreen(Screen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\gui\screens\WardrobeScreen.java:669: 错误: 找不到符号
+                      minecraft.setScreen(new top.aihmc.omnimorph.gui.screens.library.ModelReportScreen(this, client,
+                               ^
+    符号:   方法 setScreen(ModelReportScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\LibraryFormScreen.java:54: 错误: 找不到符号
+              minecraft.setScreen(catalog);
+                       ^
+    符号:   方法 setScreen(ModelLibraryScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryEditScreen.java:290: 错误: 找不到符号
+          minecraft.setScreen(new ModelFilePickerScreen(this, client, FiguraMod.getFiguraDirectory(),
+                   ^
+    符号:   方法 setScreen(ModelFilePickerScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelLibraryEditScreen.java:372: 错误: 找不到符号
+          Screenshot.takeScreenshot(minecraft.getMainRenderTarget(), screenshot -> {
+                                             ^
+    符号:   方法 getMainRenderTarget()
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelUploadScreen.java:362: 错误: 找不到符号
+              minecraft.setScreen(catalog);
+                       ^
+    符号:   方法 setScreen(ModelLibraryScreen)
+    位置: 类型为Minecraft的变量 minecraft
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\gui\screens\library\ModelUploadScreen.java:848: 错误: 找不到符号
+          Screenshot.takeScreenshot(minecraft.getMainRenderTarget(), screenshot -> {
+                                             ^
+    符号:   方法 getMainRenderTarget()
+    位置: 类型为Minecraft的变量 minecraft
+  9 个错误
+  1 个警告
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 36s
+4 actionable tasks: 1 executed, 3 up-to-date

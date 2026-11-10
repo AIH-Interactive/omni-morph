@@ -1,0 +1,6 @@
+PASS {"loader": "fabric", "path": "D:\\UserData\\Desktop\\Project\\OMP\\OMP_26.2\\fabric\\build\\libs\\omni-morph-1.0.0-alpha.10+26.2-fabric-mc.jar", "version": "1.0.0-alpha.10+26.2-91aa421e", "sourceCommit": null, "sha256": "3eff2695d795708f942f6d1948123b2773770cde446add4775f51e8fffaf9adc", "bytes": 19089231}
+Traceback (most recent call last):
+  File "D:\UserData\Desktop\Project\OMP\OMP_26.2\.gradle\alpha10-artifacts.py", line 27, in <module>
+    assert deps['neoforge']=='[26.2.0.93,26.3)' and deps['minecraft']=='[26.2,26.3)',deps
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'neoforge': '[26.2.0.93,26.3)', 'minecraft': '[26.2]'}

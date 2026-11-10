@@ -1,0 +1,3 @@
+PASS {"loader": "fabric", "path": "D:\\UserData\\Desktop\\Project\\OMP\\OMP_26.2\\fabric\\build\\libs\\omni-morph-1.0.0-alpha.10+26.2-fabric-mc.jar", "version": "1.0.0-alpha.10+26.2-91aa421e", "sourceCommit": null, "sha256": "3eff2695d795708f942f6d1948123b2773770cde446add4775f51e8fffaf9adc", "bytes": 19089231}
+PASS {"loader": "neoforge", "path": "D:\\UserData\\Desktop\\Project\\OMP\\OMP_26.2\\neoforge\\build\\libs\\omni-morph-1.0.0-alpha.10+26.2-neoforge-mc.jar", "version": "1.0.0-alpha.10+26.2-91aa421e", "sourceCommit": null, "sha256": "19c8f92e947dea88ae18c73aaa0908f5764eaccb8ac9e5f54a390e413c852ae1", "bytes": 18701007}
+PASS CRC, nested dependencies, alpha.10/26.2 loader metadata, new feature classes, retained business/AVIF, no tests/custom acceleration
