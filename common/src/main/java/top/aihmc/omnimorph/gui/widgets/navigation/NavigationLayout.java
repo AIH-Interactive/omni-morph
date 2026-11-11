@@ -18,6 +18,7 @@ public record NavigationLayout(int screenHeight, List<Boolean> branchRows, int c
     public static final int RAIL_ITEMS = 5;
     public static final int ARROW_WIDTH = 14;
     public static final int SCROLLBAR = 4;
+    public static final int FOOTER_HEIGHT = 24;
     private static final int TEXT_GAP = 4;
     private static final int RIGHT_PADDING = 6;
 
@@ -58,7 +59,7 @@ public record NavigationLayout(int screenHeight, List<Boolean> branchRows, int c
 
     /** Bottom of the row viewport, above the horizontal scrollbar when one is shown. */
     public int rowsBottom() {
-        return screenHeight - (maximumScrollX() > 0 ? SCROLLBAR : 0);
+        return screenHeight - FOOTER_HEIGHT - (maximumScrollX() > 0 ? SCROLLBAR : 0);
     }
 
     public int maximumScrollY() {
