@@ -49,4 +49,20 @@
 
 ## 提交与最终产物
 
-待全部自动检查完成后记录代码合并 SHA、远端核对、从代码提交重建的双加载器 JAR 路径/版本/CRC/依赖/Java17与哈希；后续文档提交不改变生产代码。
+完整代码与最终产物结果见下节；后续文档提交不改变生产代码。
+
+## 最终交付记录
+
+代码合并 `9fa3196d97f8819de52ae083f23198c058c41f60` 已推送当前 `1.20.1` 分支，核对远端相同。两个父提交为本版 `e4a1c49daaaffac7a6566cb5f140b94bd256f970` 和源 `8879d1218a56b9a6c4a265854371504f41b3d6dc`。没有重新merge/reset/abort，没有修改其他工作区或后端。
+
+从该代码提交重建 final-forge.log（10秒退出0，含全部测试源码增量编译）与 final-neoforge.log（7秒退出0）。生产包版本均为 `1.0.0-alpha.10+1.20.1-9fa3196d`，只包含生产代码，后续文档提交不改变包的代码来源。
+
+final-artifact-audit.log / audit-artifacts.py / artifacts.json 保存完整检查与追溯：外包CRC、实际META-INF/jars下14个嵌套包CRC与jarjar清单一致、模组/MC版本、业务类Java17、新界面/进度/封面类、许可证、Windows AMD64 AVIF DLL的PE x86_64架构、无测试或专用加速类全部通过。预检查器最初只遍历META-INF/jarjar下的JAR，最终检查器已按实际META-INF/jars和清单遍历全部14包；该检查修正没有改动生产包。
+
+产物位于本项目 `build/distributions/alpha10-port/`：
+- `omni-morph-1.0.0-alpha.10+1.20.1-minecraftforge-mc.jar`：Forge47.1.3。
+- `omni-morph-1.0.0-alpha.10+1.20.1-neoforge-mc.jar`：历史NeoForge47.1.106。
+
+两包SHA256均为 `3c34c5ca931831e9cb355d3b8be5056f8bbbf214338b1e05a1e8ab2de02dc29f`；本版两个Forge家族加载器使用相同生产桥接与FML元数据，分别编译成功，字节相同符合当前实现。Windows native为保留的AVIF业务依赖，没有恢复已撤销的专用GPU/JNI/SIMD。
+
+本轮全部授权实施和自动验证完成；没有剩余开发阶段。实机项目按上述SKIPPED记录，不计PASS。Actions未触发。最终仅补充文档和交接提交，并核对远端；`.codex/`保留未跟踪。额度安全检查点显示周额度已用17%、剩余83%，未触发Luna交接阈值，由当前Agent整理交接。

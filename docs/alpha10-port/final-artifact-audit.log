@@ -1,0 +1,4 @@
+PASS final forge: version/MC/Java17, CRC, 14 nested CRC/manifest entries, features/licenses, Windows native, no tests/custom acceleration
+PASS final neoforge: version/MC/Java17, CRC, 14 nested CRC/manifest entries, features/licenses, Windows native, no tests/custom acceleration
+forge 3c34c5ca931831e9cb355d3b8be5056f8bbbf214338b1e05a1e8ab2de02dc29f D:\UserData\Desktop\Project\OMP\OMP_1.20.1\build\distributions\alpha10-port\omni-morph-1.0.0-alpha.10+1.20.1-minecraftforge-mc.jar
+neoforge 3c34c5ca931831e9cb355d3b8be5056f8bbbf214338b1e05a1e8ab2de02dc29f D:\UserData\Desktop\Project\OMP\OMP_1.20.1\build\distributions\alpha10-port\omni-morph-1.0.0-alpha.10+1.20.1-neoforge-mc.jar
