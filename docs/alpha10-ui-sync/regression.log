@@ -1,0 +1,260 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/eryth/.gradle/wrapper/dists/gradle-9.4.1-bin/arn2x92ynaizyzdaamcbpbhtj/gradle-9.4.1/lib/native-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Architect Plugin: 3.5.168
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+> Task :common:compileJava UP-TO-DATE
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes UP-TO-DATE
+> Task :common:extractIncludeTestProto UP-TO-DATE
+> Task :common:extractTestProto UP-TO-DATE
+> Task :common:generateTestProto NO-SOURCE
+> Task :common:compileTestJava UP-TO-DATE
+> Task :common:processTestResources UP-TO-DATE
+> Task :common:testClasses UP-TO-DATE
+
+> Task :common:navigationTreeSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+NavigationTreeSmokeTest passed
+
+> Task :common:modelLibraryLayoutSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+PASS model library layout: responsive columns, scroll anchors, virtualization and clipped hit tests
+
+> Task :common:modelLibraryCatalogSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.joml.MemUtil$MemUtilUnsafe (file:/C:/Users/eryth/.gradle/caches/modules-2/files-2.1/org.joml/joml/1.10.8/fc0a71dad90a2cf41d82a76156a0e700af8e4f8d/joml-1.10.8.jar)
+WARNING: Please consider reporting this to the maintainers of class org.joml.MemUtil$MemUtilUnsafe
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[23:06:23] [main/INFO]: [STDOUT]: PASS actual catalog callbacks: query generation, filtering, policy CAS, favorite and hidden selection cleanup
+
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+> Task :common:libraryPreviewRuntimeSmokeTest
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.joml.MemUtil$MemUtilUnsafe (file:/C:/Users/eryth/.gradle/caches/modules-2/files-2.1/org.joml/joml/1.10.8/fc0a71dad90a2cf41d82a76156a0e700af8e4f8d/joml-1.10.8.jar)
+WARNING: Please consider reporting this to the maintainers of class org.joml.MemUtil$MemUtilUnsafe
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[23:06:28] [main/INFO]: [STDOUT]: PASS model picker: configured avatars root, fixed navigation, real file filtering and external drag acceptance
+[23:06:28] [main/INFO]: [STDOUT]: PASS report input: actual screen click/release, CJK text, newline/backspace, disabled state and outside focus
+[23:06:28] [main/INFO]: [STDOUT]: PASS collection card pointer/keyboard/filter routing and conditional horizontal bone scrolling; GUI MANUAL/PENDING
+[23:06:28] [main/INFO]: [STDOUT]: PASS wardrobe plus panels: all resource selectors, independent values, bounded geometry and parts-mode access; GUI MANUAL/PENDING
+[23:06:28] [main/INFO]: [STDOUT]: PASS All source/use defaults: actual accessory inventory, independent Avatar/accessory filters, collection cards and candidate-only rows; GUI MANUAL/PENDING
+[23:06:28] [main/INFO]: [STDOUT]: PASS outfit destinations: fixed resource types, separate views, preview and unchanged information route; GUI MANUAL/PENDING
+[23:06:28] [main/INFO]: [STDOUT]: PASS collection resource tabs: fixed resource kinds, independent list contexts and compact/wide tab callbacks; GUI MANUAL/PENDING
+[23:06:29] [main/INFO]: [STDOUT]: PASS compact accessory tabs: actual Select/Mount callbacks, right-side bounds and no redundant Bones button; GUI MANUAL/PENDING
+[23:06:29] [main/ERROR]: Avatar creation failed
+java.io.IOException: Expected creation failure fixture
+	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.testCreationMenuAndForm(LibraryPreviewRuntimeSmokeTest.java:5435)
+	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.testWardrobeActionMenus(LibraryPreviewRuntimeSmokeTest.java:5258)
+	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.testReportInput(LibraryPreviewRuntimeSmokeTest.java:4462)
+	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.run(LibraryPreviewRuntimeSmokeTest.java:78)
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:169)
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:73)
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.main(YsmMaterialNativeSmokeTest.java:42)
+[23:06:29] [main/INFO]: [STDOUT]: PASS creation menu/YSM form: actual native fields, metadata-only options, no files before Create, duplicate/close guards and failed-job retry state; GUI MANUAL/PENDING
+[23:06:29] [main/INFO]: [STDOUT]: PASS wardrobe action groups, native local/cloud removal menus, taller rows, tree refresh and type text; GUI MANUAL/PENDING
+[23:06:29] [main/INFO]: [STDOUT]: PASS wardrobe preview visibility: equipped state, toggling, unequipped selection and current equipment; GUI MANUAL/PENDING
+[23:06:29] [main/INFO]: [STDOUT]: PASS collection preview actions: ownership, permissions, confirmation, offline state and one global cache preference
+[23:06:29] [main/INFO]: [STDOUT]: PASS wardrobe visibility lifecycle: selected preview, multiple ticks, public/private HTTP saves and equipment reload
+[23:06:29] [main/INFO]: [STDOUT]: PASS wardrobe and model settings preview: ordinary/expanded widgets retain the live player without copies
+[23:06:29] [main/INFO]: [STDOUT]: PASS constructed preview entity IDs: assigned, distinct and stable
+[23:06:29] [main/INFO]: [STDOUT]: PASS isolated player appearance: native skin, live loading/model type, skin layers and fallback
+[23:06:29] [main/INFO]: [STDOUT]: PASS management/permissions player routing: online entity, missing entity, offline, cancellation and borrowed lifetime; GUI MANUAL/PENDING
+[23:06:30] [main/INFO]: [STDOUT]: PASS offline permissions copy: native load, private identity, refreshed NBT and cleanup; GUI MANUAL/PENDING
+[23:06:30] [main/INFO]: [STDOUT]: PASS wardrobe accessory selection: actual cosmetic source, private async composition, no base load/publication, deferred retirement and unavailable entry; GUI MANUAL/PENDING
+[23:06:30] [main/INFO]: [STDOUT]: PASS vanilla composition preview: no placeholder Avatar, scoped equipment masking, async accessory preparation and deferred cleanup; GUI MANUAL/PENDING
+[23:06:31] [main/INFO]: [STDOUT]: PASS collection Outfit workflow: authorized selection, explicit draft import, editor routing and cancellation; GUI MANUAL/PENDING
+[23:06:32] [main/INFO]: [STDOUT]: PASS catalog Outfit preview: HTTP JSON selection, independent composition, dependency issues and generation retirement; GUI MANUAL/PENDING
+[23:06:32] [main/INFO]: [STDOUT]: PASS local world animation preparation: detached, once per frame, GUI dedup and borrowed base
+[23:06:32] [main/INFO]: [STDOUT]: PASS first-person draft hands: actual Figura submission hook, both arms and matching captured base/composition; real game rendering MANUAL/PENDING
+[23:06:32] [main/INFO]: [STDOUT]: PASS virtual anchor native editor: create, name/transform fields, shared dependents, invalid input, generation-fenced confirmation and explicit unbinding; GUI MANUAL/PENDING
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.lwjgl.system.Library$$Lambda/0x000000002fe29180 in an unnamed module (file:/C:/Users/eryth/.gradle/caches/modules-2/files-2.1/org.lwjgl/lwjgl/3.4.1/129e06a04f93992cb2a45172435b21fc4b60dd7d/lwjgl-3.4.1-unsafe.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[23:06:32] [main/INFO]: [STDOUT]: PASS native tree views: actual selector, per-instance search/scroll, widget restoration and unchanged preparation/binding; GUI MANUAL/PENDING
+[23:06:32] [main/INFO]: [STDOUT]: PASS helper visibility menu: native Show/Hide callbacks, widget/binding cleanup, retained selection, disabled guard and unchanged draft/preparation; GUI MANUAL/PENDING
+[23:06:32] [main/INFO]: [STDOUT]: PASS internal bone editor: native generated package, independent instances, actual fields, authored bounds, reset, disabled/removed/stale controls and unchanged sources; GUI MANUAL/PENDING
+[23:06:32] [main/INFO]: [STDOUT]: PASS automatic GUI focus: generated Trail, actual controller target, owned tree selection, unchanged preparation and disabled cleanup; controlled pose, GUI MANUAL/PENDING
+[23:06:32] [main/INFO]: [STDOUT]: PASS cosmetic settings layout: tab row/panel/footer separation at four sizes, horizontal tab scrolling to the last tab and vertical content scrollbar; GUI MANUAL/PENDING
+[23:06:33] [main/INFO]: [STDOUT]: PASS wheel preview/native controls: actual menu, pointer/key/repeat/release/scroll routing, private preview, per-copy draft values, nested settings return and closed-scope rejection; screen dispatch fixture, real GUI/GPU MANUAL/PENDING
+[23:06:33] [main/INFO]: [STDOUT]: PASS cosmetic wheel/real Lua: generated packages, typed page registration, exact author actions, duplicate sandbox ownership, global/scroll callbacks and original subpage navigation; HUD/input/GPU MANUAL/PENDING
+[23:06:33] [main/INFO]: [STDOUT]: PASS cosmetic settings: native reused controls/resource tabs with ordinal separators, two-copy values, draft persistence, retained preview, definition versions and stale/disabled/closed callback rejection; GUI MANUAL/PENDING
+[23:06:33] [main/INFO]: [STDOUT]: PASS tree attachment menus: actual picker/socket actions, duplicate ownership, native preparation, cycle/self/private/disabled/stale rejection, cancel and unchanged source; GUI MANUAL/PENDING
+[23:06:33] [main/INFO]: Wardrobe selectLocal name=Selected outfit base path=D:\Temp\User\figura-native-material-6953638911159551719\selected-avatar-8936776875269170696 reference=D:\Temp\User\figura-native-material-6953638911159551719\selected-avatar-8936776875269170696 tab=OUTFIT source=ALL
+[23:06:33] [main/INFO]: Wardrobe selectOutfitBase path=D:\Temp\User\figura-native-material-6953638911159551719\selected-avatar-8936776875269170696 cloud=null selection=literal{Selected outfit base} draft=null draftStartDone=null
+[23:06:33] [main/INFO]: Wardrobe selectOutfitBase ready base=ResourceRef[source=LOCAL, localId=606ad7ab-de9d-4dc2-930f-241e0e94a4ee, origin=null, resourceId=null, revision=null, contentHash=2657cfc351e8e817c01a769adaf8b3e768143cb1e0de8b53be12fb5453de2cd2, format=FIGURA] instances=0
+[23:06:33] [main/INFO]: Wardrobe selectLocal name=Other outfit base path=D:\Temp\User\figura-native-material-6953638911159551719\other-avatar-971156363787277479 reference=D:\Temp\User\figura-native-material-6953638911159551719\other-avatar-971156363787277479 tab=OUTFIT source=ALL
+[23:06:33] [main/INFO]: Wardrobe selectOutfitBase path=D:\Temp\User\figura-native-material-6953638911159551719\other-avatar-971156363787277479 cloud=null selection=literal{Other outfit base} draft=top.aihmc.omnimorph.model.outfit.OutfitDraft@1f24cad6 draftStartDone=true
+[23:06:33] [main/INFO]: Wardrobe selectOutfitBase ready base=ResourceRef[source=LOCAL, localId=a8e196ed-9b08-4095-ac51-da811107dc71, origin=null, resourceId=null, revision=null, contentHash=64e6363520ec22297a8a72bede97f84c5e59164a200b76694f82d6dea241cd5f, format=FIGURA] instances=0
+[23:06:33] [main/INFO]: Wardrobe selectLocal name=Selected outfit base path=D:\Temp\User\figura-native-material-6953638911159551719\selected-avatar-8936776875269170696 reference=D:\Temp\User\figura-native-material-6953638911159551719\selected-avatar-8936776875269170696 tab=OUTFIT source=ALL
+[23:06:33] [main/INFO]: Wardrobe selectOutfitBase path=D:\Temp\User\figura-native-material-6953638911159551719\selected-avatar-8936776875269170696 cloud=null selection=literal{Selected outfit base} draft=top.aihmc.omnimorph.model.outfit.OutfitDraft@1f24cad6 draftStartDone=true
+[23:06:33] [main/INFO]: Wardrobe selectOutfitBase ready base=ResourceRef[source=LOCAL, localId=606ad7ab-de9d-4dc2-930f-241e0e94a4ee, origin=null, resourceId=null, revision=null, contentHash=2657cfc351e8e817c01a769adaf8b3e768143cb1e0de8b53be12fb5453de2cd2, format=FIGURA] instances=0
+[23:06:33] [main/INFO]: [STDOUT]: PASS wardrobe draft actions: actual base snapshot/source loading, independent copies, author transform, stable suffixes, remove/reset/cancel and unchanged equipment; GUI MANUAL/PENDING
+[23:06:33] [main/INFO]: [STDOUT]: PASS outfit tab opens on the restored outfit: draft, bone tree instance, retained Lua toggle, single tick owner and borrowed cleanup; GUI MANUAL/PENDING
+[23:06:34] [main/INFO]: [STDOUT]: PASS wardrobe cloud accessories: actual HTTP/portable Figura and encrypted YSM, scoped selection/Add, fixed references, shared cached body, revocation and stale selection cleanup; GUI MANUAL/PENDING
+[23:06:34] [main/INFO]: [STDOUT]: PASS preset dependencies: actual local Figura/encrypted YSM and authorized HTTP/cache, exact refs, all affected copies, no implicit upgrades, cancellation and retired results; GUI separate
+[23:06:34] [main/INFO]: [STDOUT]: PASS accessory upload native form: purpose, metadata prefill/edit, isolated composition, source preservation and stale guards; GUI MANUAL/PENDING
+[23:06:34] [main/INFO]: [STDOUT]: PASS Outfit upload native form: negotiated JSON purpose, metadata, isolated composition, dependency failure and source retirement; GUI MANUAL/PENDING
+[23:06:34] [main/INFO]: [STDOUT]: PASS compact information/notices: separate routes and mutually exclusive widgets; GUI MANUAL/PENDING
+[23:06:34] [main/INFO]: [STDOUT]: PASS collection preview selection: grid and cover ownership survive repeated clicks; GUI MANUAL/PENDING
+[23:06:35] [main/INFO]: [STDOUT]: PASS personal cloud preset controls: actual storage selector/authenticated HTTP, lost-response retry with frozen intent, update/private preview/import, separate local files and retired callbacks; real GUI/GPU MANUAL/PENDING
+[23:06:35] [main/INFO]: [STDOUT]: PASS local preset screen: native entry/name/save/update/conflict/dropdown/private composition/import/cancel, source guards and visible per-copy failures; recording screen dispatch, real GUI/GPU MANUAL/PENDING
+[23:06:35] [main/INFO]: [STDOUT]: PASS Figura native skeleton: draw callbacks, visible/hidden empty pivots, stale-world exclusion and bounded capture cleanup
+[23:06:35] [main/WARN]: Outfit accessory allowance exhausted: permission=COMPLEXITY, accessoryMax=1, accessoryRemaining=1, basePermission=-1, baseCounter=-1/-1, sharedUsed=1, observedBase=0
+[23:06:35] [main/WARN]: Outfit accessory allowance exhausted: permission=COMPLEXITY, accessoryMax=1, accessoryRemaining=1, basePermission=-1, baseCounter=-1/-1, sharedUsed=1, observedBase=0
+[23:06:35] [main/INFO]: [STDOUT]: PASS composed native Figura vertices: two copies, mount matrices, interleaved frame poses, native callbacks and failure cleanup; GUI/GPU MANUAL/PENDING
+[23:06:35] [main/INFO]: [STDOUT]: PASS native vanilla arm composition: separate left/right frames, slim pivots and no body leakage; real first-person GUI/GPU MANUAL/PENDING
+[23:06:35] [main/INFO]: [STDOUT]: PASS retained Figura base: full Lua/native callback scope, matching accessory vertices and interleaved-frame restoration; GUI/GPU MANUAL/PENDING
+[23:06:35] [main/INFO]: [STDOUT]: PASS native accessory sockets: reversed dependency chain, shared virtual parent, draw callbacks, private paths and policy/hash rejection; authorized=true, stale=false
+[23:06:35] [main/INFO]: [STDOUT]: PASS native accessory sockets: reversed dependency chain, shared virtual parent, draw callbacks, private paths and policy/hash rejection; authorized=false, stale=false
+[23:06:35] [main/INFO]: [STDOUT]: PASS native accessory sockets: reversed dependency chain, shared virtual parent, draw callbacks, private paths and policy/hash rejection; authorized=true, stale=true
+[23:06:35] [main/INFO]: [YSM Validation] main_model: 2 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[23:06:35] [main/INFO]: [STDOUT]: PASS native YSM exported empty pivot: signed axes, parent animation, nonuniform scale, mixed Figura child and retained failure replay; GUI/GPU MANUAL/PENDING
+[23:06:35] [main/INFO]: [STDOUT]: PASS native preview bone helpers: instance scope, opaque selection, nested/interleaved frames, frozen native pivots and submitted helper lines; YSM=false; GUI/GPU MANUAL/PENDING
+[23:06:35] [main/INFO]: [STDOUT]: PASS internal native overlays: local pivot T/R/S, child sockets, two-copy isolation, immutable source and retained pose; YSM=false, accelerated preparation=false; GUI/GPU MANUAL/PENDING
+[23:06:36] [main/INFO]: [STDOUT]: PASS native preview bone helpers: instance scope, opaque selection, nested/interleaved frames, frozen native pivots and submitted helper lines; YSM=false; GUI/GPU MANUAL/PENDING
+[23:06:36] [main/INFO]: [STDOUT]: PASS internal native overlays: local pivot T/R/S, child sockets, two-copy isolation, immutable source and retained pose; YSM=false, accelerated preparation=true; GUI/GPU MANUAL/PENDING
+[23:06:36] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[23:06:36] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[23:06:36] [main/INFO]: [STDOUT]: PASS native preview bone helpers: instance scope, opaque selection, nested/interleaved frames, frozen native pivots and submitted helper lines; YSM=true; GUI/GPU MANUAL/PENDING
+[23:06:36] [main/INFO]: [STDOUT]: PASS internal native overlays: local pivot T/R/S, child sockets, two-copy isolation, immutable source and retained pose; YSM=true, accelerated preparation=false; GUI/GPU MANUAL/PENDING
+[23:06:36] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[23:06:36] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[23:06:36] [main/INFO]: [STDOUT]: PASS native preview bone helpers: instance scope, opaque selection, nested/interleaved frames, frozen native pivots and submitted helper lines; YSM=true; GUI/GPU MANUAL/PENDING
+[23:06:36] [main/INFO]: [STDOUT]: PASS internal native overlays: local pivot T/R/S, child sockets, two-copy isolation, immutable source and retained pose; YSM=true, accelerated preparation=true; GUI/GPU MANUAL/PENDING
+[23:06:36] [main/INFO]: [STDOUT]: PASS weighted Figura internal bone overlay: native joint pivot, rotation and scale; accelerated preparation=false; GUI/GPU MANUAL/PENDING
+[23:06:36] [main/INFO]: [STDOUT]: PASS weighted Figura internal bone overlay: native joint pivot, rotation and scale; accelerated preparation=true; GUI/GPU MANUAL/PENDING
+[23:06:36] [main/INFO]: [STDOUT]: PASS internal edit gates: author flag/range, user policy and runtime revision, with authorized rebind
+[23:06:36] [main/INFO]: [STDOUT]: PASS typed anchor helpers: virtual T/R/S, standard offsets, animated vanilla pivots, actual native line submission and unavailable target rejection; GUI/GPU MANUAL/PENDING
+[23:06:36] [main/WARN]: Outfit accessory not drawn: accessory script error during prepare: <no error text>
+[23:06:36] [main/INFO]: [STDOUT]: PASS automatic native tail selection: DEFAULT; GUI/GPU MANUAL/PENDING
+[23:06:36] [main/INFO]: [STDOUT]: PASS automatic native tail selection: PREFERRED; GUI/GPU MANUAL/PENDING
+[23:06:36] [main/INFO]: [STDOUT]: PASS automatic native tail selection: DISABLED; GUI/GPU MANUAL/PENDING
+[23:06:36] [main/INFO]: [STDOUT]: PASS automatic native tail selection: INVALID; GUI/GPU MANUAL/PENDING
+[23:06:36] [main/INFO]: [STDOUT]: PASS automatic native tail selection: AMBIGUOUS; GUI/GPU MANUAL/PENDING
+[23:06:36] [main/INFO]: [STDOUT]: PASS automatic native tail selection: MANUAL_INVALID; GUI/GPU MANUAL/PENDING
+[23:06:36] [main/INFO]: [STDOUT]: PASS automatic native tail selection: CYCLE; GUI/GPU MANUAL/PENDING
+[23:06:36] [main/INFO]: [STDOUT]: PASS automatic base fallback: tailtip/hip/Body/native root/entity root and ambiguous-name rejection; CPU matrices only
+[23:06:36] [main/INFO]: [STDOUT]: PASS preview controller trails: native GUI frame/Lua sampling, private slot budget, readonly linked source, replay and retirement; pixels MANUAL/PENDING
+[23:06:36] [main/INFO]: [STDOUT]: PASS world trail sampling: actual Lua/frame bridge, interpolated extraction pose, no replay/GUI effects, target/teleport/world/expiry/retirement cleanup; pixels MANUAL/PENDING
+[23:06:36] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[23:06:36] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[23:06:36] [main/WARN]: Outfit accessory allowance exhausted: permission=COMPLEXITY, accessoryMax=8, accessoryRemaining=7, basePermission=8, baseCounter=2/8, sharedUsed=8, observedBase=6
+[23:06:36] [main/WARN]: Outfit accessory allowance exhausted: permission=COMPLEXITY, accessoryMax=8, accessoryRemaining=8, basePermission=8, baseCounter=2/8, sharedUsed=8, observedBase=6
+[23:06:36] [main/INFO]: [STDOUT]: PASS composed YSM base/Figura/YSM face allowance; CPU vertices only, GUI/GPU MANUAL/PENDING
+[23:06:36] [main/INFO]: [STDOUT]: PASS asynchronous outfit preview: purpose validation, atomic replacement, newest draft, retained native frames and cleanup
+[23:06:36] [main/INFO]: [STDOUT]: PASS independent Figura drawing: real Lua render, native body vertices, script visibility and no entity layers
+[23:06:36] [main/INFO]: [STDOUT]: PASS detached library preview: actual async Avatar loading, newest selection, restricted permissions, frame lifetime and encrypted runtime; GUI MANUAL/PENDING
+[23:06:36] [main/INFO]: Wardrobe selectLocal name=selected outfit fixture path=D:\Temp\User\figura-native-material-6953638911159551719\outfit-selected reference=D:\Temp\User\figura-native-material-6953638911159551719\outfit-selected tab=OUTFIT source=ALL
+[23:06:36] [main/INFO]: Wardrobe selectOutfitBase path=D:\Temp\User\figura-native-material-6953638911159551719\outfit-selected cloud=null selection=literal{selected outfit fixture} draft=null draftStartDone=null
+[23:06:36] [main/INFO]: Wardrobe selectOutfitBase ready base=ResourceRef[source=LOCAL, localId=d03581fb-f15d-4904-96fb-6fca5fcc2346, origin=null, resourceId=null, revision=null, contentHash=0a830ca9b23a17cc19f03e7d76e877c8d24a70fa92e7c6ae037dfb98d42a5467, format=FIGURA] instances=0
+[23:06:36] [main/INFO]: Wardrobe selectLocal name=crypto1.ysm path=D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\resources\ysm\crypto-vectors\crypto1.ysm reference=D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\resources\ysm\crypto-vectors\crypto1.ysm tab=OUTFIT source=ALL
+[23:06:36] [main/INFO]: Wardrobe selectOutfitBase path=D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\test\resources\ysm\crypto-vectors\crypto1.ysm cloud=null selection=literal{crypto1.ysm} draft=top.aihmc.omnimorph.model.outfit.OutfitDraft@230f8709 draftStartDone=true
+[23:06:36] [main/INFO]: Wardrobe selectOutfitBase ready base=ResourceRef[source=LOCAL, localId=3b1b2503-38e2-440e-a8ba-03082a36c1bd, origin=null, resourceId=null, revision=null, contentHash=b3fca14b434072ecca6f48a6382e20e2f56df71c1a3ce4e2fab3608c6e963b30, format=YSM_ENCRYPTED] instances=0
+[23:06:36] [main/INFO]: Wardrobe selectLocal name=null path=null reference=null tab=OUTFIT source=ALL
+[23:06:36] [main/INFO]: [STDOUT]: PASS outfit entry preview: actual Figura/encrypted YSM loading, widget binding, matching bones and unchanged equipment
+[23:06:36] [main/INFO]: [STDOUT]: PASS current-player Figura preview: real player, normal host permissions, Lua tick, scoped GUI lookup and deferred lifetime
+
+> Task :common:wardrobeTransitionSmokeTest
+PASS wardrobe transition: bounded layouts and durable local candidate references; GUI MANUAL/PENDING
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+
+> Task :common:libraryCollectionBurstSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+PASS collection burst: twelve uncached covers, no RATE_LIMITED, all images loaded
+
+> Task :common:libraryClientSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+PASS library client: both adapter credentials, bounded queues, independent transfer lane, cancellation, stale delivery and HTTP/JSON boundaries
+
+> Task :common:libraryUploadProgressSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+PASS upload progress: real streaming boundaries, retained history, moderation results, failure and JSON compatibility
+
+> Task :common:libraryModelEditSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+LibraryModelEditSmokeTest passed
+
+> Task :common:previewCoverSmokeTest
+PASS preview cover: upper-body region, clipping, square crop and PNG
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+
+> Task :common:modelCacheCodecSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+PASS model cache codec: roundtrip, nonce, authentication, budgets, truncation and key recovery
+
+> Task :common:libraryPreviewCacheSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+PASS preview cache: independent paths, live authorization, scoped identities, checksum, TTL/LRU budgets and cross-session active leases
+
+> Task :common:nativeFeaturePreparationSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.lwjgl.system.Library$$Lambda/0x00000000a11a6470 in an unnamed module (file:/C:/Users/eryth/.gradle/caches/modules-2/files-2.1/org.lwjgl/lwjgl/3.4.1/129e06a04f93992cb2a45172435b21fc4b60dd7d/lwjgl-3.4.1-unsafe.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.lwjgl.system.MemoryUtil (file:/C:/Users/eryth/.gradle/caches/modules-2/files-2.1/org.lwjgl/lwjgl/3.4.1/129e06a04f93992cb2a45172435b21fc4b60dd7d/lwjgl-3.4.1-unsafe.jar)
+WARNING: Please consider reporting this to the maintainers of class org.lwjgl.system.MemoryUtil
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+PASS native same-frame submissions: nested callbacks, native item preparation/execution, retained orders; no GPU pixels
+
+> Task :common:pipRenderStateScopeSmokeTest
+PIP state restoration PASS: nested failure, targets, lights, projection, matrix and stack depth
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+
+> Task :common:jar UP-TO-DATE
+> Task :fabric:compileJava UP-TO-DATE
+> Task :fabric:processResources
+> Task :fabric:classes
+> Task :fabric:jar
+> Task :fabric:processIncludeJars UP-TO-DATE
+> Task :fabric:shadowJar
+
+> Task :common:transformProductionNeoForge
+[Architectury Transformer] Read classpath in 1.720 s
+
+Cannot remap preparePictureInPictureState because it does not exists in any of the targets [net/minecraft/client/gui/render/GuiRenderer]
+Cannot remap scaleWidth because it does not exists in any of the targets [] or their parents.
+Cannot remap scaleHeight because it does not exists in any of the targets [] or their parents.
+
+> Task :common:transformProductionNeoForge
+[Architectury Transformer] Transformed jar with 6 transformer(s) in 4.852 s
+
+> Task :neoforge:compileJava UP-TO-DATE
+> Task :neoforge:generateAccessTransformer UP-TO-DATE
+> Task :neoforge:processResources
+> Task :neoforge:classes
+> Task :neoforge:processIncludeJars UP-TO-DATE
+> Task :neoforge:jar
+> Task :fabric:remapJar
+> Task :neoforge:shadowJar
+> Task :neoforge:remapJar
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_26.2/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 1m 1s
+38 actionable tasks: 23 executed, 15 up-to-date

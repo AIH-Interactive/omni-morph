@@ -136,6 +136,12 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         draft.categories(limits.categories());
     }
 
+    public ModelUploadScreen(Screen parent, LibraryClient client, LibraryModels.Capabilities limits,
+                              Runnable published, boolean accessory) {
+        this(parent, client, limits, published);
+        accessorySource = accessory;
+    }
+
     @Override
     public Class<? extends Screen> getSelectedPanel() {
         return ModelLibraryScreen.class;
@@ -155,7 +161,7 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         building = true;
         editableButtons.clear();
         editableFields.clear();
-        var layout = new LibraryWorkspaceLayout(width, height);
+        var layout = new LibraryWorkspaceLayout(width - top.aihmc.omnimorph.gui.widgets.library.LibraryResourceTabs.RESERVED_WIDTH, height);
         // The form starts right of the vertical section column and takes over the former tab row.
         int contentX = layout.left() + NAVIGATION_INSET;
         int left = layout.contentWidth() - NAVIGATION_INSET;
@@ -165,10 +171,14 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
                 height - layout.top() - 8));
         int labelWidth = Math.min(72, Math.max(48, left / 5));
         int fieldWidth = left - labelWidth - 22;
-        var purpose = new LibraryDropdown(0, 0, fieldWidth,
-                this::purposes, () -> outfitSource ? 2 : accessorySource ? 1 : 0, this::changePurpose);
-        editableButtons.add(purpose);
-        body.row(FiguraText.of("gui.library.purpose"), purpose, 24, labelWidth);
+        for (var typeTab : top.aihmc.omnimorph.gui.widgets.library.LibraryResourceTabs.create(
+                width, layout.top(), accessorySource, value -> changePurpose(value ? 1 : 0))) {
+            editableButtons.add(addRenderableWidget(typeTab));
+        }
+        if (limits.outfitsV1() != null && limits.outfitsV1().publication()) {
+            body.row(Component.empty(), button(fieldWidth, FiguraText.of("gui.library.purpose_outfit"),
+                    ignored -> changePurpose(2)), 24, labelWidth);
+        }
         var sourcePicker = new LibraryUploadSource(left - 22, limits.maxUploadBytes(),
                 () -> cover == null ? null : cover.capture(), () -> pick(sourceKind()),
                 () -> pick(ModelFilePickerScreen.Kind.IMAGE), this::clearImage);

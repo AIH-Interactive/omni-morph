@@ -113,7 +113,7 @@ public final class LibraryClient implements AutoCloseable {
     public Request<LibraryModels.Page> list(Map<String, String> query) {
         StringBuilder path = new StringBuilder(ROOT + "models?");
         for (var entry : Map.copyOf(query).entrySet()) {
-            if (!Set.of("scope", "q", "category", "tags", "type", "authorization", "status", "sort", "page", "page_size")
+            if (!Set.of("scope", "q", "category", "tags", "resource_kind", "type", "authorization", "status", "sort", "page", "page_size")
                     .contains(entry.getKey())) {
                 throw new IllegalArgumentException("INVALID_LIST_QUERY");
             }
