@@ -6,6 +6,7 @@
 
 ## 1.0.0-alpha.10
 
+- Version ports: complete Alpha.10, including missing Alpha.9 UI prerequisites, was merged and adapted by the corresponding version sessions in order: 26.3 → 26.2 → 1.21.1 → 1.20.1. Local regression, packaging and push checks are complete. Unresponsive navigation on 26.3 remains a recorded user-reported issue and was not fixed in this porting task.
 - UI: every main screen uses a persistent left navigation: Wardrobe (Outfit: Preview, Model info, Notices, Bone tree; My Collection), Model library (My models, My favorites, Model library, Upload model, Admin console), Permissions, Settings and Help. It is collapsed to an icon rail and expands over the content on hover; the duplicate section and pane tabs are removed. Only players listed as server administrators see the Admin console (requires the matching backend).
 - Model cards: fixed size with a square cover, icon-only status badges (blocked, requires authorization, private or public) and a three-dot "Report / Favorite" menu. The models per page follow the available area, and resizing keeps the first model of the current page.
 - In-world avatars: other players see an authorized wearer's model without a grant of their own; private models are shown to others by default but still stay out of their model library; an explicit "hide from others" choice is kept (requires the matching backend).
