@@ -62,6 +62,9 @@ public final class ModelLibraryCatalogSmokeTest {
                             + "\"uploader\":{\"uuid\":\"" + VIEWER + "\",\"name\":\"owner\"},"
                             + "\"model_type\":\"FIGURA\",\"visibility\":\"PUBLIC\","
                             + "\"allowed_actions\":[\"patch\",\"delete\",\"favorite\"]}";
+                    var resource = JsonParser.parseString(item).getAsJsonObject();
+                    resource.addProperty("resource_kind", requested.contains("resource_kind=ACCESSORY") ? "ACCESSORY" : "AVATAR");
+                    item = resource.toString();
                     result = "{\"items\":[" + (removed.get() ? "" : item) + "],\"total\":"
                             + (removed.get() ? 0 : 1) + ",\"page\":1,\"page_size\":8,\"has_next\":false}";
                 } else if (exchange.getRequestURI().getPath().equals(prefix + "/" + MODEL)
@@ -111,10 +114,20 @@ public final class ModelLibraryCatalogSmokeTest {
             await(() -> get(screen, "results") != null, drain);
             var page = (LibraryModels.Page) get(screen, "results");
             require(page.items().get(0).displayName().equals("new"), "new search owns visible results");
-            // 960x540: a 618 wide, 456 tall card area fits 6 columns and 4 rows of fixed 90x108 cards.
+            // The reserved type tabs and shared smaller cards fit seven columns and four rows at 960x540.
             require(query.get().contains("scope=mine") && query.get().contains("sort=name")
-                    && query.get().contains("page_size=24") && query.get().contains("%E6%96%B0"),
+                    && query.get().contains("resource_kind=AVATAR") && query.get().contains("page_size=28") && query.get().contains("%E6%96%B0"),
                     "server query owns filtering, page budget and sort");
+            set(screen, "type", 3);
+            set(screen, "accessory", true);
+            invoke(screen, "refresh");
+            await(() -> get(screen, "results") != null, drain);
+            require(query.get().contains("resource_kind=ACCESSORY") && !query.get().contains("YSM_ENCRYPTED")
+                            && ((LibraryModels.Page) get(screen, "results")).items().get(0).resourceKind().equals("ACCESSORY"),
+                    "accessory catalog filtering is sent to the server before pagination");
+            set(screen, "accessory", false);
+            invoke(screen, "refresh");
+            await(() -> get(screen, "results") != null, drain);
             release.countDown();
             drain.run();
             require(((LibraryModels.Page) get(screen, "results")).items().get(0).displayName().equals("new"),
