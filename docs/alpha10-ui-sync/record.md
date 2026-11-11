@@ -11,3 +11,5 @@ compile.log：生产/测试源码与Fabric/NeoForge compileJava，34秒退出0�
 后端e04c134已由源端推送，需升级其resource_kind计数/分页前筛选，不重复改后端/部署/触发Actions。用户逐级授权已只读核验源会话原始userMessage，本版完成后仅发1.21.1，再由其完成后发1.20.1，不越级并发或改模型设置。
 
 提交推送、提交后双包重建及最终校验见后续本版记录；额度remaining81%，未触发Luna。原.codex/保留。
+
+最终代码合并d5a71c3e80add6c7a3accb4603b7089c4d6f2cb1已推送并核对远端；从该正确代码提交重建双包21秒成功，生产任务图19秒成功且无测试/JNI/探测。artifacts.json/txt记录最终版本alpha.10+26.2-d5a71c3e及SHA；新增Tab、水平布局、导航footer方法、版本/依赖/CRC/AVIF与无测试加速类通过。无剩余开发及自动验证，最终文档推送交付后仅发1.21.1（授权已核验），不等待人工或触发Actions。

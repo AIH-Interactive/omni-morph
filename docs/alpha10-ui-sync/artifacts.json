@@ -1,0 +1,18 @@
+[
+  {
+    "loader": "fabric",
+    "path": "D:\\UserData\\Desktop\\Project\\OMP\\OMP_26.2\\fabric\\build\\libs\\omni-morph-1.0.0-alpha.10+26.2-fabric-mc.jar",
+    "version": "1.0.0-alpha.10+26.2-d5a71c3e",
+    "sourceCommit": "d5a71c3e80add6c7a3accb4603b7089c4d6f2cb1",
+    "sha256": "b0407b025748173c60d3303df2b987173dd0af12e6dcde705959501a6a9e204c",
+    "bytes": 19094710
+  },
+  {
+    "loader": "neoforge",
+    "path": "D:\\UserData\\Desktop\\Project\\OMP\\OMP_26.2\\neoforge\\build\\libs\\omni-morph-1.0.0-alpha.10+26.2-neoforge-mc.jar",
+    "version": "1.0.0-alpha.10+26.2-d5a71c3e",
+    "sourceCommit": "d5a71c3e80add6c7a3accb4603b7089c4d6f2cb1",
+    "sha256": "edf5eec1f7e20968f3b1c815a2debb0fdf651f2bb784b5170d8d3f43fef1d420",
+    "bytes": 18706237
+  }
+]

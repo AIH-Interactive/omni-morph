@@ -2,13 +2,19 @@
 
 日期2026-11-11。仅本版26.2，原分支26.2跟踪origin/26.2，原未跟踪.codex/保留。先前Alpha.10基线355cce31/记录4d9cc361已完成，本轮不重复；从4d9cc361直接merge源26.1.2最终8faa4b5954be798d9a0979e14537b5a583d1d9b8（UI代码245d4f3a），仅交接冲突保留本版，无额外生产API适配。
 
-当前实施和自动验证已完成，合并提交推送及提交后最终包校验尚待本检查点。详见docs/alpha10-ui-sync/record.md；新增完成内容统一汇总Alpha.10更新内容.md，四语言CHANGELOG已改为本版实际状态。旧交接存于下方，仅作为历史，不是当前状态或本轮交付哈希。
+当前实施、自动验证、合并推送和最终包校验已完成，无剩余开发或自动验收。详见docs/alpha10-ui-sync/record.md；新增完成内容统一汇总Alpha.10更新内容.md，四语言CHANGELOG已改为本版实际状态。旧交接存于下方，仅作为历史，不是当前状态或本轮交付哈希。
 
 本轮完成：配装形象/装饰独立列表操作、发布首位；紧凑独立信息/公告等宽双栏、装饰选择/挂载竖Tab及去重复骨骼按钮；集合/目录/上传右侧形象装饰Tab、装饰忽略旧格式值；80×98卡/80×80封面、水平居中且顶部对齐、480×252三卡；四状态移展开导航固定底部。集合预览保留网格和封面优化保持。后端resource_kind分页前筛选需升级e04c134，源端已完成，不改后端/部署/Actions。
 
 已验证：compile.log生产/测试源码及双loader compileJava 34秒退出0；regression.log16入口1分1秒全部通过，覆盖导航、布局/分页、真实目录HTTP resource_kind/装饰无旧type、实际衣柜信息公告/装饰挂载/预览输入/上传双Tab、节流、编辑封面、上传进度、缓存、普通feature/PIP和双remapJar。资源JSON与workflow静态通过，diff --check通过。没有把合并编译当行为RED，也未人为倒退源码制造RED。26.3测试按钮编码修正不适用于本版，26.2原MouseButtonInfo(0,0)保留，新卡坐标145,35自动合并且实际预览通过。
 
-下一原子操作：检查diff/status、提交推送合并核对远端，然后从该正确代码提交重建双alpha.10+26.2 JAR，检查包内SHA/版本/依赖/CRC/无测试或加速类、生产任务图无测试/JNI/探测，记录最终artifact摘要并提交推送文档。全部完成并在本会话交付后才发送1.21.1。
+最终代码合并d5a71c3e80add6c7a3accb4603b7089c4d6f2cb1已推送并与origin/26.2核对一致，双亲为4d9cc361与源8faa4b59。final-packaging.log从该提交重建双remapJar21秒退出0；production-tasks.log19秒退出0，无测试/JNI/探测任务。版本均1.0.0-alpha.10+26.2-d5a71c3e。主ZIP/嵌套依赖CRC、loader/26.2/Java25依赖、新LibraryResourceTabs/WardrobeVerticalTab、horizontalInset且无verticalInset、导航renderFooterStatus、保留AVIF/业务、无测试或加速类全部通过，见artifacts.json/txt。
+
+最终包：
+- D:/UserData/Desktop/Project/OMP/OMP_26.2/fabric/build/libs/omni-morph-1.0.0-alpha.10+26.2-fabric-mc.jar，SHA256 b0407b025748173c60d3303df2b987173dd0af12e6dcde705959501a6a9e204c。
+- D:/UserData/Desktop/Project/OMP/OMP_26.2/neoforge/build/libs/omni-morph-1.0.0-alpha.10+26.2-neoforge-mc.jar，SHA256 edf5eec1f7e20968f3b1c815a2debb0fdf651f2bb784b5170d8d3f43fef1d420。
+
+本记录仅文档提交，不改变包来源；本次最后记录SHA以本文件所在HEAD为准。完成本记录推送核对及本会话交付后，仅向下述1.21.1现有会话发送完整指令。没有其他后续实施；不等待或代做下一版本。
 
 用户逐级通信授权已用read_thread核验源会话01a1c521-948c-7be0-8ede-c43c637431ea最近原始userMessage：26.3完成并发送26.2→26.2完成并发送1.21.1→1.21.1完成并发送1.20.1。下一站仅local/01a1948c-5226-7b02-a74c-c9e1fe9edffb，cwd OMP_1.21.1；它完成后才发local/01a1970e-a221-7610-996d-9ef5214db4ce，cwd OMP_1.20.1。不越级并发、不创建聊天、不改模型设置、不让源会话代做。
 
