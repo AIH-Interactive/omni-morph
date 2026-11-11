@@ -46,3 +46,19 @@ resource_kind的服务端计数/分页前筛选需配套后端e04c13479e9f1e4ca5
 ## 提交与交付
 
 全部适配完成验证后提交push当前1.20.1并核对远端，再从代码提交重建双加载器JAR。最终SHA、元数据/CRC/依赖/Java17/Windows AVIF/新Tab/footer/无测试或专用加速与哈希在完成后记录。本版是链条最后一站，无下一站委派。
+
+
+## 最终交付结果
+
+代码直接merge提交 `2c8f0303cde097b7645c5364fca10e8adaae9439` 已推送1.20.1并核验ls-remote相同；父提交为本版2afa4aaff00e9b2ce777232ff2c032673038bdfe与源8faa4b5954be798d9a0979e14537b5a583d1d9b8。全部适配确实包含在代码提交内。
+
+从该提交重建：final-forge.log 15秒退出0，final-neoforge.log 11秒退出0。两个包内版本均为 `1.0.0-alpha.10+1.20.1-2c8f0303`。后续只补文档，不改变包的生产代码来源。
+
+artifacts.json与final-artifact-audit.log记录最终绝对路径、完整代码SHA、字节数、SHA256和实际检查；可复现命令：`python docs/alpha10-ui-sync/audit-artifacts.py 2c8f0303cde097b7645c5364fca10e8adaae9439 build/distributions/alpha10-ui-sync docs/alpha10-ui-sync/artifacts.json`（执行检查时按项目要求前台Tee build.log）。最终外包/14嵌套CRC、jarjar清单、版本/MC/加载器FML元数据、Java17业务类、依赖/许可证、AVIF Windows AMD64 PE、新LibraryResourceTabs/WardrobeVerticalTab/footerStatus/horizontalInset且无verticalInset、无测试或专用加速类均通过。
+
+- forge：`D:\UserData\Desktop\Project\OMP\OMP_1.20.1\build\distributions\alpha10-ui-sync\omni-morph-1.0.0-alpha.10+1.20.1-minecraftforge-mc.jar`；SHA256 `91b030e72ed0278505c2f757bdff758532473586cbb30333f9c0c1860f1fcf8c`，16601579字节。
+- neoforge：`D:\UserData\Desktop\Project\OMP\OMP_1.20.1\build\distributions\alpha10-ui-sync\omni-morph-1.0.0-alpha.10+1.20.1-neoforge-mc.jar`；SHA256 `91b030e72ed0278505c2f757bdff758532473586cbb30333f9c0c1860f1fcf8c`，16601579字节。
+
+本版两个Forge家族包使用同一生产桥接和历史FML约定，分别针对47.1.3/47.1.106构建通过；最终字节相同符合现有实现。Windows native为AVIF业务依赖，没有恢复专用GPU/JNI/SIMD。旧build/distributions/alpha10-port产物保留。
+
+任务全部授权实施与规定自动验证完成，无剩余开发阶段；本版是逐级链条最后一站，不再委派。人工项仍为前述SKIPPED，不计PASS。未触发Actions、未启动游戏/覆盖mods；工作区仅原未跟踪.codex/。最终文档/交接提交后再次核验远端，交付在本会话完成。额度最后可靠查询已用20%、剩余80%，未触发Luna，任务完成手册由当前Agent更新。

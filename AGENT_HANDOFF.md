@@ -16,7 +16,7 @@
 
 regression.log：common生产/全部测试与forge编译，14项功能/导航输入/布局/目录HTTP/预览/缓存/上传/普通渲染回归及Forge remapJar通过58秒退出0。neoforge.log：生产/测试编译、NeoForge remapJar、16模块/13桥接、AVIF实际解码、98Mixin静态契约及8typed Local通过12秒退出0。生产依赖图各16任务，无测试/JNI/探针；JSON/YAML/actionlint/diff及无冲突检查通过。初始API编译失败已解决，负向夹具故意异常非未处理失败。
 
-候选包CRC/14嵌套依赖与jarjar清单/元数据/Java17/Windows AVIF AMD64 PE/新Tab/footer/horizontalInset且无verticalInset/无测试或专用加速均通过，候选不是最终交付。代码提交推送后必须重建最终包并保存code SHA、版本、CRC/SHA和绝对路径；这一步尚在收尾，将在完成后追加。
+候选包CRC/14嵌套依赖与jarjar清单/元数据/Java17/Windows AVIF AMD64 PE/新Tab/footer/horizontalInset且无verticalInset/无测试或专用加速均通过，候选不是最终交付。最终双包已按下节从代码提交重建，产物检查与追溯完成。
 
 ## 人工与接续约束
 
@@ -25,3 +25,12 @@ regression.log：common生产/全部测试与forge编译，14项功能/导航输
 先读AGENTS.md和本手册、docs/alpha10-ui-sync/record.md，核对Git。不reset/abort/切换分支/覆盖其他修改，不改其他工作区、后端/wiki，不创建聊天或继续委派。原.codex/未跟踪保留。不启动游戏/覆盖mods/触发Actions。所有build/test/package前台PowerShell Tee build.log并立即捕获退出码读取日志；不可并发Gradle。保留旧产物。本轮无额外开发阶段，最终打包交付后链条结束。
 
 可靠额度接口周窗口10080分钟已用20%、剩余80%，未触发Luna阈值；当前Agent整理任务完成交接。当前工具未提供minecraft-dev入口，不冒称调用。
+
+
+## 本轮最终完成与Git
+
+代码merge提交2c8f0303cde097b7645c5364fca10e8adaae9439已push1.20.1并核验远端相同，父提交为本版2afa4aaf与源8faa4b59。最终两包从该提交重建，版本1.0.0-alpha.10+1.20.1-2c8f0303，Forge15秒/NeoForge11秒退出0。绝对路径和字节数见docs/alpha10-ui-sync/artifacts.json，包放在build/distributions/alpha10-ui-sync/，两个常规文件名分别以minecraftforge-mc.jar和neoforge-mc.jar结尾。两包SHA256均91b030e72ed0278505c2f757bdff758532473586cbb30333f9c0c1860f1fcf8c。
+
+最终CRC/14嵌套依赖/清单/Java17/模组MC版本/许可证/Windows AVIF x86_64 DLL/新增Tab和footer/horizontalInset且无verticalInset/无测试或专用加速全部通过。详见final-artifact-audit.log与audit-artifacts.py；无需重复构建。最终文档与本交接随收尾提交推送，当前HEAD与远端由执行者最后核对报告；包代码来源固定2c8f0303。除保留的未跟踪.codex/外无未提交实施、无进行中merge。
+
+已完成全部同步、验证和交付记录，无剩余实施任务；不等待人工，不需后续版本通知。下一次只有新授权任务才开始开发。保留本版历史证据与旧包，不清理。人工/已知边界仍按上节记录，未冒称实机PASS。

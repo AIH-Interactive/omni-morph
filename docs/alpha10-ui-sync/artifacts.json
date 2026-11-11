@@ -1,0 +1,26 @@
+[
+  {
+    "loader": "forge",
+    "minecraft": "1.20.1",
+    "java": 17,
+    "code_commit": "2c8f0303cde097b7645c5364fca10e8adaae9439",
+    "version": "1.0.0-alpha.10+1.20.1-2c8f0303",
+    "path": "D:\\UserData\\Desktop\\Project\\OMP\\OMP_1.20.1\\build\\distributions\\alpha10-ui-sync\\omni-morph-1.0.0-alpha.10+1.20.1-minecraftforge-mc.jar",
+    "bytes": 16601579,
+    "sha256": "91b030e72ed0278505c2f757bdff758532473586cbb30333f9c0c1860f1fcf8c",
+    "nested_jars": 14,
+    "windows_native": "AVIF amd64 PE x86_64"
+  },
+  {
+    "loader": "neoforge",
+    "minecraft": "1.20.1",
+    "java": 17,
+    "code_commit": "2c8f0303cde097b7645c5364fca10e8adaae9439",
+    "version": "1.0.0-alpha.10+1.20.1-2c8f0303",
+    "path": "D:\\UserData\\Desktop\\Project\\OMP\\OMP_1.20.1\\build\\distributions\\alpha10-ui-sync\\omni-morph-1.0.0-alpha.10+1.20.1-neoforge-mc.jar",
+    "bytes": 16601579,
+    "sha256": "91b030e72ed0278505c2f757bdff758532473586cbb30333f9c0c1860f1fcf8c",
+    "nested_jars": 14,
+    "windows_native": "AVIF amd64 PE x86_64"
+  }
+]
