@@ -134,7 +134,7 @@ public class AvatarList extends AbstractList {
     public void setResourceFilters(LibraryDropdown source, LibraryDropdown mode, boolean expanded,
                                    Consumer<Boolean> changed) {
         children.removeAll(resourceFilters);
-        resourceFilters = List.of(source, mode);
+        resourceFilters = mode == null ? List.of(source) : List.of(source, mode);
         children.remove(formatButton);
         children.addAll(resourceFilters);
         children.add(formatButton);
@@ -155,7 +155,7 @@ public class AvatarList extends AbstractList {
             selector.setY(getY() + 28 + actionsHeight);
             selector.setWidth(selectorWidth);
         }
-        int selectorsWidth = resourceFilters.isEmpty() ? 0 : 2 * (selectorWidth + 4);
+        int selectorsWidth = resourceFilters.size() * (selectorWidth + 4);
         formatButton.setX(getX() + 4 + selectorsWidth);
         formatButton.setWidth(Math.min(128, getWidth() - 8 - selectorsWidth));
         formatButton.setY(getY() + 28 + actionsHeight);

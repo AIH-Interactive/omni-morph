@@ -70,6 +70,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
     private int authorization;
     private int sort;
     private int category;
+    private boolean accessory;
     private int page = 1;
     private String query = "";
     private long searchChangedAt;
@@ -116,7 +117,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
             building = false;
             return;
         }
-        var layout = new LibraryWorkspaceLayout(width, height);
+        var layout = new LibraryWorkspaceLayout(width - top.aihmc.omnimorph.gui.widgets.library.LibraryResourceTabs.RESERVED_WIDTH, height);
         leftWidth = layout.contentWidth() - CONTENT_INSET;
         int rightX = layout.previewX();
         int rightWidth = layout.previewWidth();
@@ -145,24 +146,26 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                     sort = selected;
                     filterChanged();
                 }));
-        int filterWidth = (leftWidth - 8) / 3;
+        int filterWidth = accessory ? leftWidth : (leftWidth - 4) / 2;
         if (filtersExpanded) {
-            addRenderableWidget(new LibraryDropdown(CONTENT_X, 52, filterWidth,
-                    () -> categories().stream().map(value -> filterText("category", value)).toList(), () -> category, selected -> {
-                        category = selected;
-                        filterChanged();
-                    }));
-            addRenderableWidget(new LibraryDropdown(CONTENT_X + 4 + filterWidth, 52, filterWidth,
-                    () -> TYPES.stream().map(value -> filterText("type", value)).toList(), () -> type, selected -> {
-                        type = selected;
-                        filterChanged();
-                    }));
-            addRenderableWidget(new LibraryDropdown(CONTENT_X + 8 + filterWidth * 2, 52, filterWidth,
+            if (!accessory) {
+                addRenderableWidget(new LibraryDropdown(CONTENT_X, 52, filterWidth,
+                        () -> TYPES.stream().map(value -> filterText("type", value)).toList(), () -> type, selected -> {
+                            type = selected;
+                            filterChanged();
+                        }));
+            }
+            int authorizationX = accessory ? CONTENT_X : CONTENT_X + 4 + filterWidth;
+            addRenderableWidget(new LibraryDropdown(authorizationX, 52, filterWidth,
                     () -> AUTHORIZATION.stream().map(value -> filterText("authorization", value)).toList(),
                     () -> authorization, selected -> {
                         authorization = selected;
                         filterChanged();
                     }));
+        }
+        for (var typeTab : top.aihmc.omnimorph.gui.widgets.library.LibraryResourceTabs.create(
+                width, 28, accessory, this::selectResourceType)) {
+            addRenderableWidget(typeTab);
         }
         if (client == null && !closed) {
             connect();
@@ -377,7 +380,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
                         collection.refresh();
                     }
                     refresh();
-                }));
+                }, accessory));
             } else {
                 openAdmin();
             }
@@ -401,6 +404,18 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         } else {
             refresh();
         }
+    }
+
+    private void selectResourceType(boolean accessories) {
+        if (accessory == accessories || mutationBusy()) {
+            return;
+        }
+        accessory = accessories;
+        category = 0;
+        page = 1;
+        select(null);
+        rebuildWidgets();
+        refresh();
     }
 
     private void filterChanged() {
@@ -452,7 +467,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
         }
         requestedPageSize = pageCapacity();
         Map<String, String> query = Map.of("scope", SCOPES.get(scope), "q", this.query,
-                "category", categoryValue(), "type", TYPES.get(type),
+                "category", categoryValue(), "resource_kind", accessory ? "ACCESSORY" : "AVATAR", "type", accessory ? "" : TYPES.get(type),
                 "authorization", AUTHORIZATION.get(authorization), "sort", SORTS.get(sort),
                 "page", Integer.toString(page), "page_size", Integer.toString(requestedPageSize));
         var request = client.list(query);
@@ -490,7 +505,7 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
     }
 
     private int pageCapacity() {
-        var layout = new LibraryWorkspaceLayout(width, height);
+        var layout = new LibraryWorkspaceLayout(width - top.aihmc.omnimorph.gui.widgets.library.LibraryResourceTabs.RESERVED_WIDTH, height);
         int top = gridTop();
         // Match ModelLibraryGrid's scrollbar and inner padding exactly.
         int area = ModelLibraryGrid.cardAreaWidth(layout.contentWidth() - CONTENT_INSET);

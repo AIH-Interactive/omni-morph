@@ -2,14 +2,14 @@ package top.aihmc.omnimorph.gui.widgets.library;
 
 /**
  * Logical-pixel geometry shared by card rendering, clipping and pointer hit tests.
- * Cards have a fixed size (Penpot 54: 180x216 board units at 2x GUI); the available area only decides
+ * Cards share a compact fixed size in every view; the available area only decides
  * how many columns, rows and models per page fit.
  */
 public record ModelLibraryLayout(int width, int height, int count, int columns, int cardWidth,
                                  int cardHeight, int imageSize) {
     public static final int GAP = 6;
-    public static final int CARD_WIDTH = 90;
-    public static final int COVER_SIZE = 90;
+    public static final int CARD_WIDTH = 80;
+    public static final int COVER_SIZE = 80;
     public static final int NAME_ROW_HEIGHT = 18;
     public static final int CARD_HEIGHT = COVER_SIZE + NAME_ROW_HEIGHT;
 
@@ -47,8 +47,14 @@ public record ModelLibraryLayout(int width, int height, int count, int columns, 
         return Math.max(0, rows() * (cardHeight + GAP) - GAP - height);
     }
 
+    private int horizontalInset() {
+        int occupiedColumns = Math.min(columns, count);
+        int contentWidth = occupiedColumns == 0 ? 0 : occupiedColumns * (cardWidth + GAP) - GAP;
+        return Math.max(0, (width - contentWidth) / 2);
+    }
+
     public int x(int index) {
-        return index % columns * (cardWidth + GAP);
+        return horizontalInset() + index % columns * (cardWidth + GAP);
     }
 
     public int y(int index, int scroll) {
@@ -67,6 +73,10 @@ public record ModelLibraryLayout(int width, int height, int count, int columns, 
 
     public int hit(double x, double y, int scroll) {
         if (x < 0 || y < 0 || x >= width || y >= height) {
+            return -1;
+        }
+        x -= horizontalInset();
+        if (x < 0 || y < 0) {
             return -1;
         }
         int column = (int) x / (cardWidth + GAP);
