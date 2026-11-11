@@ -18,6 +18,7 @@ import org.figuramc.figura.utils.FiguraIdentifier;
 import org.figuramc.figura.utils.FiguraText;
 import org.figuramc.figura.utils.TextUtils;
 import org.figuramc.figura.utils.ui.UIHelper;
+import top.aihmc.omnimorph.gui.widgets.navigation.NavigationLayout;
 
 public class HelpScreen extends AbstractPanelScreen {
 
@@ -29,12 +30,18 @@ public class HelpScreen extends AbstractPanelScreen {
     }
 
     @Override
+    protected boolean usesSideNavigation() {
+        return true;
+    }
+
+    @Override
     protected void init() {
         super.init();
 
         int lineHeight = this.minecraft.font.lineHeight;
         int middle = width / 2;
-        int labelWidth = Math.min(width - 8, 420);
+        // Centred on the window as in Penpot 34; titles only narrow to stay right of the rail.
+        int labelWidth = Math.min(width - (NavigationLayout.RAIL_WIDTH + 2) * 2, 420);
         int documentWidth = Math.min(width - 16, 160);
         int linkWidth = Math.min(128, (width - 24) / 3);
         int linkStart = middle - (linkWidth * 3 + 8) / 2;

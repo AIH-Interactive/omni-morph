@@ -1,5 +1,6 @@
 package top.aihmc.omnimorph.gui.screens.library;
 
+import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import org.figuramc.figura.FiguraMod;
@@ -13,20 +14,23 @@ import top.aihmc.omnimorph.gui.screens.ModelLibraryScreen;
 import org.figuramc.figura.gui.widgets.Button;
 import org.figuramc.figura.gui.widgets.EntityPreview;
 import org.figuramc.figura.gui.widgets.TextField;
+import top.aihmc.omnimorph.gui.widgets.library.CompactMode;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryFormBody;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryLabels;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryRadioGroup;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryMultilineField;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryTagField;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown;
-import top.aihmc.omnimorph.gui.widgets.library.LibrarySectionTabs;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryUploadSource;
 import top.aihmc.omnimorph.gui.widgets.library.LibraryWorkspaceLayout;
+import top.aihmc.omnimorph.gui.widgets.navigation.NavigationRoute;
 import top.aihmc.omnimorph.model.library.LibraryPackagePreparation;
 import top.aihmc.omnimorph.model.library.LibraryPreviewSession;
+import top.aihmc.omnimorph.model.library.PreviewCover;
 import top.aihmc.omnimorph.model.library.LibraryThumbnailService;
 import top.aihmc.omnimorph.model.library.LibraryUploadDraft;
 import top.aihmc.omnimorph.model.library.LibraryUploadService;
+import top.aihmc.omnimorph.model.library.LibraryUploadProgress;
 import top.aihmc.omnimorph.model.library.OutfitUploadDraft;
 import top.aihmc.omnimorph.model.library.OutfitPresetResources;
 import top.aihmc.omnimorph.model.library.LibraryTransferService;
@@ -47,6 +51,9 @@ import java.util.concurrent.CompletionException;
 
 /** Local source preparation and isolated previews never equip or broadcast the draft. */
 public final class ModelUploadScreen extends AbstractPanelScreen {
+    /** Width reserved beyond the left inset for the navigation rail. */
+    private static final int NAVIGATION_INSET = 30;
+
     private final LibraryClient client;
     private final LibraryUploadDraft draft;
     private final LibraryUploadService uploads;
@@ -57,6 +64,20 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
     private LibraryPackagePreparation.Prepared prepared;
     private LibraryUploadService.Operation operation;
     private LibraryUploadService.Image image;
+    /** Cover cut from the preview for an upload without a chosen image; used by the next new upload only. */
+    private LibraryUploadService.Image automaticCover;
+    private boolean automaticCoverTried;
+    private boolean capturingCover;
+    private EntityPreview previewWidget;
+    /** Cover framing: the next drag on the preview selects the square to cut as the cover. */
+    private boolean framingCover;
+    private boolean framingDrag;
+    private int frameStartX;
+    private int frameStartY;
+    private int frameEndX;
+    private int frameEndY;
+    private PreviewCover.Region pendingFrame;
+    private int framesBeforeCapture;
     private LibraryThumbnailService.Handle cover;
     private LibraryClient.Request<?> sourceRequest;
     private LibraryClient.Request<?> imageRequest;
@@ -74,7 +95,6 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
     private LibraryRadioGroup authorization;
     private LibraryRadioGroup visibility;
     private LibraryTagField tagField;
-    private LibrarySectionTabs sectionTabs;
     private Path source;
     private boolean accessorySource;
     private boolean outfitSource;
@@ -136,18 +156,13 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         editableButtons.clear();
         editableFields.clear();
         var layout = new LibraryWorkspaceLayout(width, height);
-        int left = layout.contentWidth();
+        // The form starts right of the vertical section column and takes over the former tab row.
+        int contentX = layout.left() + NAVIGATION_INSET;
+        int left = layout.contentWidth() - NAVIGATION_INSET;
         int rightX = layout.previewX();
         int right = layout.previewWidth();
-        sectionTabs = addRenderableWidget(new LibrarySectionTabs(layout.left(), layout.top(), left, 3,
-                limits.adminLoginAvailable(), section -> {
-                    if (!busy() && parentScreen instanceof ModelLibraryScreen catalog) {
-                        minecraft.setScreen(catalog);
-                        catalog.openSection(section);
-                    }
-                }));
-        var body = addRenderableWidget(new LibraryFormBody(layout.left(), layout.bodyY(), left,
-                height - layout.bodyY() - 8));
+        var body = addRenderableWidget(new LibraryFormBody(contentX, layout.top(), left,
+                height - layout.top() - 8));
         int labelWidth = Math.min(72, Math.max(48, left / 5));
         int fieldWidth = left - labelWidth - 22;
         var purpose = new LibraryDropdown(0, 0, fieldWidth,
@@ -263,30 +278,29 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
                 previewDraft();
             }
         }), 24, labelWidth);
-        var entity = addRenderableWidget(new EntityPreview(rightX, layout.top(), right, layout.previewHeight() - 16,
+        int progressHeight = CompactMode.active(width) ? 20 : 40;
+        var entity = addRenderableWidget(new EntityPreview(rightX, layout.top() + progressHeight, right,
+                layout.previewHeight() - progressHeight,
                 Math.max(12, right / 3), -15, 30, preview.entity(), this));
         entity.setLibraryPreview(preview);
+        previewWidget = entity;
+        framingCover = false;
+        framingDrag = false;
+        addRenderableWidget(new Button(rightX + right - 72, layout.footerY() - 24, 72, 12,
+                FiguraText.of("gui.library.cover_frame"), FiguraText.of("gui.library.cover_frame_hint"), ignored -> {
+                    framingCover = !framingCover;
+                    framingDrag = false;
+                }));
         int actionWidth = (right - 4) / 2;
         upload = addRenderableWidget(new Button(rightX + actionWidth + 4, layout.footerY(), actionWidth, 20,
                 FiguraText.of("gui.library.publish"), null, ignored -> submit()));
-        addRenderableWidget(new Button(rightX + right - 20, layout.top(), 20, 20,
+        addRenderableWidget(new Button(rightX + right - 20, layout.top() + progressHeight, 20, 20,
                 Component.literal("×"), FiguraText.of("gui.done"), ignored -> onClose()));
         addRenderableWidget(new Button(rightX, layout.footerY(), actionWidth, 20,
                 FiguraText.of("gui.library.cancel"), null, ignored -> cancelUpload()));
-        addRenderableOnly((gui, x, y, delta) -> {
-            Component status = message;
-            if (operation != null && !operation.future().isDone() && operation.progress() != null) {
-                var progress = operation.progress();
-                status = progress.total() > 0 ? FiguraText.of("gui.library.sent",
-                        LibraryLabels.fileSize(progress.received()), LibraryLabels.fileSize(progress.total()))
-                        : FiguraText.of("gui.library.phase." + progress.stage().name().toLowerCase(java.util.Locale.ROOT));
-            } else if (sourceRequest != null && !sourceRequest.future().isDone()) {
-                status = FiguraText.of("gui.library.phase." + preparationPhase.name().toLowerCase(java.util.Locale.ROOT));
-            } else if (preview.status().stage() == LibraryPreviewSession.Stage.FAILED) {
-                status = FiguraText.of("gui.library.failure", preview.status().errorCode());
-            }
-            UIHelper.renderScrollingText(gui, status, rightX, layout.footerY() - 12, right, 0xffd3e7e1);
-        });
+        // Drawn last, above the preview, so the framing hint and square stay visible.
+        addRenderableOnly((gui, x, y, delta) -> renderCoverFrame(gui));
+        addRenderableOnly((gui, x, y, delta) -> renderUploadProgress(gui, layout, x, y));
         updateSourceFields();
         building = false;
         if (sessionRequest == null) {
@@ -326,6 +340,30 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         widget.getField().setValue(value);
         editableFields.add(widget);
         return widget;
+    }
+
+    @Override
+    protected boolean usesSideNavigation() {
+        return true;
+    }
+
+    @Override
+    protected NavigationRoute navigationRoute() {
+        return NavigationRoute.UPLOAD;
+    }
+
+    /** Navigation returns through the retained catalog, and waits while an upload request runs. */
+    @Override
+    public void navigate(NavigationRoute route) {
+        if (busy()) {
+            return;
+        }
+        if (parentScreen instanceof ModelLibraryScreen catalog) {
+            minecraft.setScreen(catalog);
+            catalog.navigate(route);
+        } else {
+            super.navigate(route);
+        }
     }
 
     private boolean busy() {
@@ -774,8 +812,144 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         building = previous;
     }
 
+    /**
+     * Cuts the upper body of the previewed model from the last rendered frame as the cover. Any failure,
+     * or a preview without a visible model, continues the upload without a cover as before.
+     */
+    private void captureAutomaticCover() {
+        automaticCoverTried = true;
+        automaticCover = null;
+        var region = previewWidget == null || preview.status().stage() != LibraryPreviewSession.Stage.READY
+                ? null : previewWidget.upperBodyRegion();
+        if (region == null) {
+            submit();
+            return;
+        }
+        captureCover(region, captured -> {
+            automaticCover = captured;
+            if (!closed) {
+                submit();
+            }
+        });
+    }
+
+    /**
+     * Cuts a GUI region from the last rendered frame into a PNG cover within the server's image limits.
+     * {@code done} receives the cover, or null when it could not be made.
+     */
+    private void captureCover(PreviewCover.Region region, java.util.function.Consumer<LibraryUploadService.Image> done) {
+        int size = Math.min(PreviewCover.SIZE, Math.min(limits.maxImageWidth(), limits.maxImageHeight()));
+        if (size < 1) {
+            done.accept(null);
+            return;
+        }
+        int guiScale = (int) minecraft.getWindow().getGuiScale();
+        capturingCover = true;
+        java.util.function.Consumer<com.mojang.blaze3d.platform.NativeImage> capture = screenshot -> {
+            LibraryUploadService.Image captured = null;
+            try (screenshot) {
+                int[] square = PreviewCover.crop(java.util.Arrays.stream(screenshot.getPixelsRGBA())
+                        .map(pixel -> (pixel & 0xff00ff00) | ((pixel & 0xff) << 16) | ((pixel >>> 16) & 0xff))
+                        .toArray(), screenshot.getWidth(), screenshot.getHeight(),
+                        region, guiScale, size);
+                if (square != null) {
+                    byte[] png = PreviewCover.png(square, size);
+                    if (png.length <= limits.maxImageBytes()) {
+                        captured = new LibraryUploadService.Image(png, "image/png");
+                    }
+                }
+            } catch (RuntimeException failure) {
+                FiguraMod.LOGGER.warn("Library cover capture failed", failure);
+            } finally {
+                capturingCover = false;
+            }
+            done.accept(captured);
+        };
+        capture.accept(Screenshot.takeScreenshot(minecraft.getMainRenderTarget()));
+    }
+
+    /** Draws the framing hint and the square being dragged, and captures a framed square once it is gone. */
+    private void renderCoverFrame(net.minecraft.client.gui.GuiGraphics gui) {
+        if (previewWidget == null) {
+            return;
+        }
+        if (framingCover) {
+            int accent = FiguraMod.getAccentColor().getColor().getValue() | 0xff000000;
+            UIHelper.fillOutline(gui, previewWidget.getX(), previewWidget.getY(), previewWidget.getWidth(),
+                    previewWidget.getHeight(), accent);
+            var square = framingDrag ? PreviewCover.framed(frameStartX, frameStartY, frameEndX, frameEndY,
+                    previewWidget.getX(), previewWidget.getY(), previewWidget.getWidth(), previewWidget.getHeight()) : null;
+            if (square != null) {
+                UIHelper.fillOutline(gui, square.x() - 1, square.y() - 1, square.side() + 2, square.side() + 2, accent);
+            }
+        }
+        // The frame outline must be gone from the image: wait until a frame without it has been drawn.
+        if (pendingFrame != null && --framesBeforeCapture <= 0) {
+            var region = pendingFrame;
+            pendingFrame = null;
+            captureCover(region, captured -> {
+                if (closed) {
+                    return;
+                }
+                if (captured == null) {
+                    message = FiguraText.of("gui.library.image_retry");
+                    return;
+                }
+                clearImage();
+                image = captured;
+                cover = thumbnails.acquireLocal(captured.bytes());
+                if (imageButton != null) {
+                    imageButton.setMessage(FiguraText.of("gui.library.cover_framed"));
+                }
+            });
+        }
+    }
+
+    private boolean onPreview(double x, double y) {
+        return previewWidget != null && previewWidget.isMouseOver(x, y);
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (framingCover && button == 0 && onPreview(mouseX, mouseY)) {
+            framingDrag = true;
+            frameStartX = (int) mouseX;
+            frameStartY = (int) mouseY;
+            frameEndX = frameStartX;
+            frameEndY = frameStartY;
+            return true;
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double deltaX, double deltaY) {
+        if (framingDrag) {
+            frameEndX = (int) mouseX;
+            frameEndY = (int) mouseY;
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, deltaX, deltaY);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (framingDrag) {
+            framingDrag = false;
+            framingCover = false;
+            var region = PreviewCover.framed(frameStartX, frameStartY, (int) mouseX, (int) mouseY,
+                    previewWidget.getX(), previewWidget.getY(), previewWidget.getWidth(), previewWidget.getHeight());
+            if (region != null) {
+                pendingFrame = region;
+                framesBeforeCapture = 2;
+            }
+            return true;
+        }
+        return super.mouseReleased(mouseX, mouseY, button);
+    }
+
     private void submit() {
-        if (busy() || prepared == null && outfitPrepared == null || closed
+        if (capturingCover || busy() || prepared == null && outfitPrepared == null || closed
                 || outfitSource && !outfitReady
                 || draftPreview != null && !draftPreview.isDone()
                 || preview.status().stage() == LibraryPreviewSession.Stage.LOADING
@@ -801,17 +975,27 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
                 return;
             }
             if (operation != null && operation.future().isCompletedExceptionally()) {
+                message = Component.empty();
                 operation.retry();
             } else if (operation == null) {
+                message = Component.empty();
+                if (image == null && !automaticCoverTried) {
+                    // No chosen cover: cut the upper body from the preview first, then submit again.
+                    captureAutomaticCover();
+                    return;
+                }
+                var uploadImage = image != null ? image : automaticCover;
+                automaticCover = null;
+                automaticCoverTried = false;
                 if (outfitSource) {
                     operation = uploads.uploadOutfit(OutfitUploadDraft.snapshot(outfitPrepared, draft.displayName(),
                             draft.description(), draft.category(), LibraryUploadDraft.normalizeTags(tags), draft.isPublic(),
-                            draft.requiresAuthorization(), limits, client.origin(), outfitLocalConfirmed), image);
+                            draft.requiresAuthorization(), limits, client.origin(), outfitLocalConfirmed), uploadImage);
                 } else {
                     if (accessorySource) {
                         draft.resourceKind("ACCESSORY", accessoryDeclaration());
                     }
-                    operation = uploads.upload(draft.snapshot(limits), image);
+                    operation = uploads.upload(draft.snapshot(limits), uploadImage);
                 }
             } else {
                 return;
@@ -846,8 +1030,152 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
         if (result.visibility() == null || result.moderationStatus() == null) {
             return FiguraText.of("gui.library.upload_success");
         }
-        return FiguraText.of("gui.library.upload_status", result.visibility(), result.published(),
-                LibraryLabels.status(result.moderationStatus()));
+        if (!result.moderationStatus().equals("ACTIVE")) {
+            return FiguraText.of("gui.library.upload_result_blocked", LibraryLabels.status(result.moderationStatus()));
+        }
+        return FiguraText.of(result.visibility().equals("PUBLIC")
+                ? "gui.library.upload_result_public" : "gui.library.upload_result_private");
+    }
+
+    /** The progress header leaves the model preview visible throughout publication. */
+    private void renderUploadProgress(net.minecraft.client.gui.GuiGraphics gui, LibraryWorkspaceLayout layout,
+                                      int mouseX, int mouseY) {
+        boolean started = operation != null;
+        int x = layout.previewX();
+        int y = layout.top();
+        int headerWidth = layout.previewWidth();
+        var state = started ? operation.publicationProgress()
+                : new LibraryUploadProgress.Snapshot(LibraryUploadProgress.Stage.PREPARING, java.util.Set.of(), false);
+        boolean reviewBlocked = started && uploadReviewBlocked();
+        if (CompactMode.active(width)) {
+            Component status = currentUploadStatus(state);
+            int color = started ? 0xfff5cd72 : 0xff92a5ad;
+            if (state.failed() || reviewBlocked) {
+                color = 0xffff6666;
+            } else if (state.stage() == LibraryUploadProgress.Stage.RESULT) {
+                color = 0xff79d9b1;
+            }
+            UIHelper.renderScrollingText(gui, status, x + 2, y + 5, headerWidth - 4, color);
+            if (mouseX >= x && mouseX < x + headerWidth && mouseY >= y && mouseY < y + 20) {
+                tooltip = status;
+                if (started && state.stage() == LibraryUploadProgress.Stage.RESULT) {
+                    tooltip = tooltip.copy().append("\n").append(message);
+                }
+            }
+            return;
+        }
+        var stages = List.of(LibraryUploadProgress.Stage.UPLOADING, LibraryUploadProgress.Stage.VALIDATING,
+                LibraryUploadProgress.Stage.REVIEWING, LibraryUploadProgress.Stage.RESULT);
+        var names = List.of("upload", "validate", "review", "done");
+        var labels = names.stream().map(name -> FiguraText.of("gui.library.upload_node." + name)).toList();
+        int longestLabel = labels.stream().mapToInt(label -> font.width(label)).max().orElse(1);
+        float labelScale = Math.min(1f, (headerWidth / 4 - 4f) / Math.max(1, longestLabel));
+        int current = switch (state.stage()) {
+            case PREPARING, UPLOADING, SUBMITTING -> 0;
+            case VALIDATING -> 1;
+            case REVIEWING -> 2;
+            case FINALIZING, RESULT -> 3;
+        };
+        int dotY = y + 12;
+        for (int index = 0; index < 4; index++) {
+            int cellLeft = x + headerWidth * index / 4;
+            int cellRight = x + headerWidth * (index + 1) / 4;
+            int cellWidth = cellRight - cellLeft;
+            int dotX = cellLeft + cellWidth / 2;
+            boolean completed = state.completed().contains(stages.get(index))
+                    || index == 3 && state.stage() == LibraryUploadProgress.Stage.RESULT && !state.failed();
+            boolean active = started && index == current;
+            int color = 0xff92a5ad;
+            if ((active && state.failed()) || (index == 2 && reviewBlocked)) {
+                color = 0xffff6666;
+            } else if (completed) {
+                color = 0xff79d9b1;
+            } else if (active) {
+                color = 0xfff5cd72;
+            }
+            if (index < 3) {
+                int nextLeft = cellRight;
+                int nextRight = x + headerWidth * (index + 2) / 4;
+                int nextX = nextLeft + (nextRight - nextLeft) / 2;
+                gui.fill(dotX + 4, dotY, nextX - 4, dotY + 1, completed ? 0xff79d9b1 : 0xff384c54);
+            }
+            if (active && !completed) {
+                drawProgressDot(gui, dotX, dotY, 7, 0xff665637);
+            }
+            drawProgressDot(gui, dotX, dotY, 4, color);
+            if (!completed && !active) {
+                drawProgressDot(gui, dotX, dotY, 2, 0xff020c10);
+            }
+            var label = labels.get(index);
+            renderProgressLabel(gui, label, dotX, y + 22, labelScale, color);
+            if (Math.abs(mouseX - dotX) <= 8 && Math.abs(mouseY - dotY) <= 8) {
+                String status = "waiting";
+                if ((active && state.failed()) || (index == 2 && reviewBlocked)) {
+                    status = "failed";
+                } else if (completed) {
+                    status = "complete";
+                } else if (active) {
+                    status = "active";
+                }
+                tooltip = label.copy().append(" · ").append(FiguraText.of("gui.library.upload_step." + status))
+                        .append("\n").append(FiguraText.of("gui.library.upload_node_description." + names.get(index)));
+                if (active) {
+                    tooltip = tooltip.copy().append("\n").append(currentUploadStatus(state));
+                }
+                if (index == 2 && reviewBlocked) {
+                    tooltip = tooltip.copy().append("\n").append(message);
+                }
+                if ((index == 3 && state.stage() == LibraryUploadProgress.Stage.RESULT)
+                        || (index == 0 && !started && !message.getString().isBlank())) {
+                    tooltip = tooltip.copy().append("\n").append(message);
+                }
+            }
+        }
+    }
+
+    private Component currentUploadStatus(LibraryUploadProgress.Snapshot state) {
+        if (operation == null) {
+            return message.getString().isBlank() ? FiguraText.of("gui.library.upload_idle") : message;
+        }
+        if (state.failed() || uploadReviewBlocked()) {
+            return message;
+        }
+        Component status = FiguraText.of("gui.library.upload_stage."
+                + state.stage().name().toLowerCase(java.util.Locale.ROOT));
+        var bytes = operation.progress();
+        if (state.stage() == LibraryUploadProgress.Stage.UPLOADING && bytes.total() > 0) {
+            status = status.copy().append(" · ").append(FiguraText.of("gui.library.sent",
+                    LibraryLabels.fileSize(bytes.received()), LibraryLabels.fileSize(bytes.total())));
+        }
+        return status;
+    }
+
+    /** Share a scale and baseline across labels while centering each label on its own dot. */
+    private void renderProgressLabel(net.minecraft.client.gui.GuiGraphics gui, Component label,
+                                     int centerX, int y, float scale, int color) {
+        int textWidth = font.width(label);
+        var pose = gui.pose();
+        pose.pushPose();
+        pose.translate(centerX - textWidth * scale / 2f, y, 0);
+        pose.scale(scale, scale, 1);
+        gui.drawString(font, label, 0, 0, color, false);
+        pose.popPose();
+    }
+
+    private boolean uploadReviewBlocked() {
+        if (!operation.future().isDone() || operation.future().isCompletedExceptionally()) {
+            return false;
+        }
+        var result = operation.future().getNow(null);
+        return result != null && result.moderationStatus() != null && !result.moderationStatus().equals("ACTIVE");
+    }
+
+    private static void drawProgressDot(net.minecraft.client.gui.GuiGraphics gui, int x, int y,
+                                        int radius, int color) {
+        for (int row = -radius; row <= radius; row++) {
+            int halfWidth = (int) Math.sqrt(radius * radius - row * row);
+            gui.fill(x - halfWidth, y + row, x + halfWidth + 1, y + row + 1, color);
+        }
     }
 
     private void cancelUpload() {
@@ -882,7 +1210,6 @@ public final class ModelUploadScreen extends AbstractPanelScreen {
             return;
         }
         boolean editable = !closed && client.current() && !busy() && operation == null;
-        sectionTabs.setEnabled(!closed && client.current() && !busy());
         editableButtons.forEach(button -> button.setActive(editable));
         editableFields.forEach(field -> field.setEnabled(editable));
         visibility.setActive(editable);

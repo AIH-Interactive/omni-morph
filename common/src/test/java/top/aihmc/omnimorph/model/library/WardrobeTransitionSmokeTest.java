@@ -36,6 +36,45 @@ public final class WardrobeTransitionSmokeTest {
                 }
             }
         }
+        // Reference 480x252 GUI: content starts right of the 28 wide navigation rail.
+        var outfit = WardrobeLayout.compactOf(480, 252);
+        require(outfit.compact() && outfit.leftX() == 30 && outfit.leftWidth() == 132,
+                "compact outfit keeps a narrow resource list instead of a full-width single pane");
+        require(outfit.previewX() == 168 && outfit.previewWidth() == 280
+                        && outfit.treeX() == 168 && outfit.treeWidth() == 280,
+                "compact preview and default information share the wide pane beside the list");
+        require(outfit.previewX() + outfit.previewWidth() == 448,
+                "the preview ends where Penpot 01 ends it, keeping the right margin");
+        var bones = WardrobeLayout.bonesOf(480, 252);
+        require(bones.compact() && bones.leftWidth() == 0 && bones.previewX() == 30 && bones.previewWidth() == 206
+                        && bones.treeX() == 242 && bones.treeWidth() == 206,
+                "compact bone editing hides the list and splits preview and tree into equal panes");
+        // Penpot 01/37/40: panes start at the top row; preview, information and bones are navigation entries.
+        require(outfit.top() == 28 && bones.top() == 28,
+                "compact outfit panes take over the former pane-switch row");
+        require(top.aihmc.omnimorph.gui.widgets.library.CompactMode.active(480, 0)
+                        && !top.aihmc.omnimorph.gui.widgets.library.CompactMode.active(560, 0),
+                "the automatic GUI scale uses compact layouts only below 560 GUI units");
+        require(!top.aihmc.omnimorph.gui.widgets.library.CompactMode.active(480, 2)
+                        && !top.aihmc.omnimorph.gui.widgets.library.CompactMode.active(320, 3),
+                "fixed GUI scales keep the existing layouts at the same logical width");
+        // Control screens: compact windows keep "settings | preview" instead of hiding the preview.
+        var controls = top.aihmc.omnimorph.gui.widgets.wardrobe.ControlsPaneLayout.of(480, true);
+        // User correction of Penpot 27: the preview is half of the former 206, the settings take the rest.
+        require(controls.previewWidth() == 103 && controls.controlsWidth() == 309 && controls.gap() == 6,
+                "compact controls keep a narrow preview beside a wide settings column");
+        require(controls.rowWidgetWidth() == 115 && controls.rowWidgetOffset() == 173 && controls.rowLabelWidth() == 120,
+                "compact control rows size the widget to the column and keep the label clear of it");
+        require(controls.panelWidth() == 418 && controls.controlsWidth() + controls.gap()
+                        + controls.previewWidth() == controls.panelWidth(),
+                "compact settings and preview fill the panel without overlap");
+        require(top.aihmc.omnimorph.gui.widgets.wardrobe.ControlsPaneLayout.of(480, false).previewWidth() == 0,
+                "fixed GUI scales keep the existing narrow controls layout");
+        var wideControls = top.aihmc.omnimorph.gui.widgets.wardrobe.ControlsPaneLayout.of(854, false);
+        require(wideControls.previewWidth() == 271 && wideControls.controlsWidth() == 527,
+                "wide controls keep their existing proportions");
+        require(wideControls.rowWidgetWidth() == 180 && wideControls.rowWidgetOffset() == 238,
+                "wide control rows keep their existing widget size and position");
         var directory = Files.createTempDirectory("wardrobe-candidates-");
         var source = directory.resolve("original-model.txt");
         try {

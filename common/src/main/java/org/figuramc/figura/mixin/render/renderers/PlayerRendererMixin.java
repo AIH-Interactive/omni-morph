@@ -247,7 +247,13 @@ public abstract class PlayerRendererMixin extends LivingEntityRenderer<AbstractC
             } else {
                 outfit.prepareFiguraBase(armAvatar);
                 outfit.drawFiguraBase(armAvatar, () -> {
-                    var pose = outfit.captureFiguraArm(armAvatar, new Matrix4f(stack.last().pose()).invert(),
+                    var nativeToEntity = top.aihmc.omnimorph.model.outfit.SkeletonPose
+                            .nativeToEntity(stack.last().pose()).orElse(null);
+                    if (nativeToEntity == null) {
+                        drawArm.run();
+                        return;
+                    }
+                    var pose = outfit.captureFiguraArm(armAvatar, nativeToEntity,
                             arm == model.leftArm, drawArm);
                     OutfitNativeRenderer.draw(outfit, pose, YsmEntityFrame.capture(player, delta), light, delta,
                             stack.last().pose(), buffers, EntityRenderMode.FIRST_PERSON);

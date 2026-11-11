@@ -13,7 +13,10 @@ import org.figuramc.figura.gui.widgets.ContextMenu;
 import org.figuramc.figura.gui.widgets.EntityPreview;
 import org.figuramc.figura.gui.widgets.FiguraRemovable;
 import org.figuramc.figura.gui.widgets.FiguraTickable;
-import org.figuramc.figura.gui.widgets.PanelSelectorWidget;
+import top.aihmc.omnimorph.gui.screens.NavigationScreens;
+import top.aihmc.omnimorph.gui.widgets.navigation.NavigationLayout;
+import top.aihmc.omnimorph.gui.widgets.navigation.NavigationRoute;
+import top.aihmc.omnimorph.gui.widgets.navigation.SideNavigationWidget;
 import org.figuramc.figura.lua.api.ClientAPI;
 import org.figuramc.figura.mixin.gui.ScreenAccessor;
 import org.figuramc.figura.utils.FiguraIdentifier;
@@ -29,9 +32,12 @@ public abstract class AbstractPanelScreen extends Screen {
             FiguraIdentifier.of("textures/gui/background/background_2.png")
     );
 
+    /** Horizontal margin that keeps centred content right of the navigation rail. */
+    protected static final int SIDE_MARGIN = NavigationLayout.RAIL_WIDTH + 2;
+
     // variables
     protected final Screen parentScreen;
-    public PanelSelectorWidget panels;
+    public SideNavigationWidget panels;
 
     // overlays
     public ContextMenu contextMenu;
@@ -50,12 +56,39 @@ public abstract class AbstractPanelScreen extends Screen {
         return this.getClass();
     };
 
+    /** The entry shown as current by the shared navigation; derived from the selected panel by default. */
+    protected NavigationRoute navigationRoute() {
+        return NavigationScreens.routeOf(getSelectedPanel());
+    }
+
+    /**
+     * Pages laid out beside the left rail return true. Other pages only show the top bar, since their
+     * content still starts at the left edge.
+     */
+    protected boolean usesSideNavigation() {
+        return false;
+    }
+
+    /** Opens a navigation destination, inside this page when it owns the destination. */
+    public void navigate(NavigationRoute route) {
+        if (openNavigationRoute(route)) {
+            return;
+        }
+        this.minecraft.setScreen(NavigationScreens.open(route, parentScreen));
+    }
+
+    /** Shows a destination this page owns without replacing the screen; false when it is elsewhere. */
+    protected boolean openNavigationRoute(NavigationRoute route) {
+        return false;
+    }
+
     @Override
     protected void init() {
         super.init();
 
-        // add panel selector
-        this.addRenderableWidget(panels = new PanelSelectorWidget(parentScreen, 0, 0, width, getSelectedPanel()));
+        // The navigation is an input listener only: it is drawn after the content, above it.
+        panels = new SideNavigationWidget(width, height, navigationRoute(), usesSideNavigation(), this::navigate);
+        this.addWidget(panels);
 
         // clear overlays
         contextMenu = null;
@@ -106,14 +139,26 @@ public abstract class AbstractPanelScreen extends Screen {
         // render background
         this.renderBackground(gui, delta);
 
-        // render contents
-        super.render(gui, mouseX, mouseY, delta);
+        // render contents; the expanded navigation covers them, so they see no pointer beneath it
+        boolean navigationAttached = navigationAttached();
+        boolean covered = navigationAttached && panels.capturesPointer(mouseX, mouseY);
+        super.render(gui, covered ? -1 : mouseX, covered ? -1 : mouseY, delta);
+
+        if (navigationAttached) {
+            gui.flush();
+            panels.render(gui, mouseX, mouseY, delta);
+        }
 
         // render overlays
         this.renderOverlays(gui, mouseX, mouseY, delta);
 
         // restore vanilla framebuffer
         // UIHelper.useVanillaFramebuffer();
+    }
+
+    /** The navigation is active unless the page removed it or draws it as a plain renderable. */
+    private boolean navigationAttached() {
+        return panels != null && children().contains(panels) && !renderables().contains(panels);
     }
 
     public void renderBackground(GuiGraphics gui, float delta) {
@@ -163,6 +208,13 @@ public abstract class AbstractPanelScreen extends Screen {
         // context menu first
         if (this.contextMenuClick(mouseX, mouseY, button))
             return true;
+
+        // The rail and the expanded tree take every click above the content.
+        if (navigationAttached() && panels.capturesPointer(mouseX, mouseY)) {
+            panels.mouseClicked(mouseX, mouseY, button);
+            setFocused(null);
+            return true;
+        }
 
         GuiEventListener widget = null;
 
@@ -229,6 +281,9 @@ public abstract class AbstractPanelScreen extends Screen {
         // hide previous context
         if (contextMenu != null)
             contextMenu.setVisible(false);
+
+        if (navigationAttached() && panels.capturesPointer(mouseX, mouseY))
+            return panels.mouseScrolled(mouseX, mouseY, amount, d);
 
         // fix scrolling targeting only one child
         boolean ret = false;

@@ -571,6 +571,14 @@ public final class LibraryUploadSmokeTest {
                     result = Map.of("code", status == 503 ? "BUSY" : "CONFLICT");
                 }
                 byte[] response = new Gson().toJson(result).getBytes(StandardCharsets.UTF_8);
+                exchange.getResponseHeaders().set("Content-Type", "application/json");
+                if (status == 200 && "application/x-ndjson".equals(exchange.getRequestHeaders().getFirst("Accept"))
+                        && (path.endsWith("/commit") || path.equals("uploads/outfit"))) {
+                    String events = "{\"stage\":\"VALIDATING\"}\n{\"stage\":\"REVIEWING\"}\n"
+                            + "{\"result\":" + new Gson().toJson(result) + "}\n";
+                    response = events.getBytes(StandardCharsets.UTF_8);
+                    exchange.getResponseHeaders().set("Content-Type", "application/x-ndjson");
+                }
                 exchange.sendResponseHeaders(status, status == 204 ? -1 : response.length);
                 if (status != 204) {
                     exchange.getResponseBody().write(response);

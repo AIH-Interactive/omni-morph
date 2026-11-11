@@ -1,0 +1,350 @@
+﻿gradlew.bat : Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+所在位置 行:1 字符: 1
++ & .\gradlew.bat :common:previewCoverSmokeTest :common:modelLibraryCat ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Picked up JAVA_....encoding=UTF-8:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnam
+ed module (file:/C:/Users/eryth/.gradle/wrapper/dists/gradle-9.4.1-bin/arn2x92ynaizyzdaamcbpbhtj/gradle-9.4.1/lib/nativ
+e-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+
+> Configure project :
+Architect Plugin: 3.5.168
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+> Task :common:compileJava
+> Task :common:processResources
+> Task :common:classes
+> Task :common:extractIncludeTestProto UP-TO-DATE
+> Task :common:extractTestProto UP-TO-DATE
+> Task :common:generateTestProto NO-SOURCE
+
+> Task :common:compileTestJava
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:32: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:46: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    public static void run(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                           ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:311: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testOtherPlayerRouting(Unsafe unsafe, LibraryClient library) throws Exception {
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:379: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testOtherPlayerDraft(Unsafe unsafe, Runnable drain) throws Exception {
+                                             ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:419: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testCatalogOutfitPreview(Unsafe unsafe, Runnable drain) throws Exception {
+                                                 ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:701: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testCollectionOutfitImport(Unsafe unsafe, Runnable drain, LibraryClient client,
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:829: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testProvidedCosmetics(Unsafe unsafe, Runnable drain) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:912: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testPackagedYsmDraftBases(Unsafe unsafe, Runnable drain) throws Exception {
+                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:978: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testPackagedFiguraDraftAccessory(Unsafe unsafe, Runnable drain) throws Exception {
+                                                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:1072: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testReportedAccessoryOnLocalBase(Unsafe unsafe, Runnable drain) throws Exception {
+                                                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:1285: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testVanillaSelection(Unsafe unsafe, Runnable drain) throws Exception {
+                                             ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:1422: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testOutfitTabShowsLoadedOutfit(Unsafe unsafe, Runnable drain) throws Exception {
+                                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:1574: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testWardrobeDraftActions(Unsafe unsafe, Runnable drain) throws Exception {
+                                                 ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:1846: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testLocalDraftPreview(Unsafe unsafe, Runnable drain, Object editor,
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:1929: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testWardrobeCloudCosmetic(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:2123: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testLocalPresetScreen(Unsafe unsafe, Runnable drain, LibraryClient client) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:2547: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testInstanceTransformFields(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen scree
+n,
+                                                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:2712: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testTreeAttachmentActions(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:3217: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        var unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                          ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:3219: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        var viewport = (com.mojang.blaze3d.platform.Window) ((Unsafe) unsafeField.get(null))
+                                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:3422: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testBoneOverrideEditor(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:3539: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testBoneHelperControls(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:3787: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testCurrentPlayerFigura(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                                                ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:3952: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testIndependentFigura(Unsafe unsafe, Runnable drain) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:4232: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testPreviewAppearance(Unsafe unsafe) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:4301: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testWardrobeDefaultPreview(Unsafe unsafe) throws Exception {
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:4459: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testWardrobeVisibilityTicks(Unsafe unsafe) throws Exception {
+                                                    ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:5075: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:5075: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:5075: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+        Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntime
+SmokeTest.java:5581: 璀﹀憡: Unsafe鏄唴閮ㄤ笓鐢?API, 鍙兘浼氬湪鏈潵鍙戣鐗堜腑鍒犻櫎
+    private static void testHiddenFormalParticleEmitter(Unsafe unsafe, LibraryPreviewSession preview,
+                                                        ^
+31 涓鍛?
+
+> Task :common:processTestResources UP-TO-DATE
+> Task :common:testClasses
+
+> Task :common:previewCoverSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+PASS preview cover: upper-body region, clipping, square crop and PNG
+
+> Task :common:modelLibraryCatalogSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.joml.MemUtil$MemUtilUnsafe (file:/C:/Users/eryth/.gr
+adle/caches/modules-2/files-2.1/org.joml/joml/1.10.8/fc0a71dad90a2cf41d82a76156a0e700af8e4f8d/joml-1.10.8.jar)
+WARNING: Please consider reporting this to the maintainers of class org.joml.MemUtil$MemUtilUnsafe
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[23:52:44] [main/INFO]: [STDOUT]: PASS actual catalog callbacks: query generation, filtering, policy CAS, favorite and hidden selection cleanup
+
+> Task :common:libraryPreviewRuntimeSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.joml.MemUtil$MemUtilUnsafe (file:/C:/Users/eryth/.gr
+adle/caches/modules-2/files-2.1/org.joml/joml/1.10.8/fc0a71dad90a2cf41d82a76156a0e700af8e4f8d/joml-1.10.8.jar)
+WARNING: Please consider reporting this to the maintainers of class org.joml.MemUtil$MemUtilUnsafe
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+[23:52:52] [main/INFO]: [STDOUT]: PASS model picker: configured avatars root, fixed navigation, real file filtering and external drag acceptance
+[23:52:52] [main/INFO]: [STDOUT]: PASS report input: actual screen click/release, CJK text, newline/backspace, disabled state and outside focus
+[23:52:52] [main/INFO]: [STDOUT]: PASS collection card pointer/keyboard/filter routing and conditional horizontal bone scrolling; GUI MANUAL/PENDING
+[23:52:52] [main/INFO]: [STDOUT]: PASS wardrobe plus panels: all resource selectors, independent values, bounded geometry and parts-mode access; GUI MANUAL/PENDING
+[23:52:52] [main/INFO]: [STDOUT]: PASS All source/use defaults: actual accessory inventory, independent Avatar/accessory filters, collection cards and candidate-only rows; GUI MANUAL/PENDING
+[23:52:52] [main/ERROR]: Avatar creation failed
+java.io.IOException: Expected creation failure fixture
+	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.testCreationMenuAndForm(LibraryPreviewRuntimeSmokeTest.java:5278)
+	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.testWardrobeActionMenus(LibraryPreviewRuntimeSmokeTest.java:5101)
+	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.testReportInput(LibraryPreviewRuntimeSmokeTest.java:4452)
+	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.run(LibraryPreviewRuntimeSmokeTest.java:78)
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:149)
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:73)
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.main(YsmMaterialNativeSmokeTest.java:42)
+[23:52:52] [main/INFO]: [STDOUT]: PASS creation menu/YSM form: actual native fields, metadata-only options, no files before Create, duplicate/close guards and failed-job retry state; GUI MANUAL/PENDING
+[23:52:52] [main/INFO]: [STDOUT]: PASS wardrobe action groups, native local/cloud removal menus, taller rows, tree refresh and type text; GUI MANUAL/PENDING
+[23:52:52] [main/INFO]: [STDOUT]: PASS wardrobe preview visibility: equipped state, toggling, unequipped selection and current equipment; GUI MANUAL/PENDING
+[23:52:52] [main/INFO]: [STDOUT]: PASS collection preview actions: ownership, permissions, confirmation, offline state and one global cache preference
+[23:52:52] [main/INFO]: [STDOUT]: PASS wardrobe visibility lifecycle: selected preview, multiple ticks, public/private HTTP saves and equipment reload
+[23:52:52] [main/INFO]: [STDOUT]: PASS wardrobe and model settings preview: ordinary/expanded widgets retain the live player without copies
+[23:52:52] [main/INFO]: [STDOUT]: PASS constructed preview entity IDs: assigned, distinct and stable
+[23:52:52] [main/INFO]: [STDOUT]: PASS isolated player appearance: native skin, live loading/model type, skin layers and fallback
+[23:52:52] [main/INFO]: [STDOUT]: PASS management/permissions player routing: online entity, missing entity, offline, cancellation and borrowed lifetime; GUI MANUAL/PENDING
+[23:52:53] [main/INFO]: [STDOUT]: PASS offline permissions copy: native load, private identity, refreshed NBT and cleanup; GUI MANUAL/PENDING
+[23:52:53] [main/INFO]: [STDOUT]: PASS wardrobe accessory selection: actual cosmetic source, private async composition, no base load/publication, deferred retirement and unavailable entry; GUI MANUAL/PENDING
+[23:52:53] [main/INFO]: [STDOUT]: PASS vanilla composition preview: no placeholder Avatar, scoped equipment masking, async accessory preparation and deferred cleanup; GUI MANUAL/PENDING
+[23:52:54] [main/INFO]: [STDOUT]: PASS collection Outfit workflow: authorized selection, explicit draft import, editor routing and cancellation; GUI MANUAL/PENDING
+[23:52:54] [main/INFO]: [STDOUT]: PASS catalog Outfit preview: HTTP JSON selection, independent composition, dependency issues and generation retirement; GUI MANUAL/PENDING
+[23:52:54] [main/INFO]: [STDOUT]: PASS local world animation preparation: detached, once per frame, GUI dedup and borrowed base
+[23:52:54] [main/INFO]: [STDOUT]: PASS first-person draft hands: actual Figura submission hook, both arms and matching captured base/composition; real game rendering MANUAL/PENDING
+[23:52:55] [main/INFO]: [STDOUT]: PASS virtual anchor native editor: create, name/transform fields, shared dependents, invalid input, generation-fenced confirmation and explicit unbinding; GUI MANUAL/PENDING
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.lwjgl.system.Library$$Lambda/0x0000000015e26c10 in an unnamed mo
+dule (file:/C:/Users/eryth/.gradle/caches/modules-2/files-2.1/org.lwjgl/lwjgl/3.4.1/6105690714874b995aa7812e4f7732a2110
+9276c/lwjgl-3.4.1.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+[23:52:55] [main/INFO]: [STDOUT]: PASS native tree views: actual selector, per-instance search/scroll, widget restoration and unchanged preparation/binding; GUI MANUAL/PENDING
+[23:52:55] [main/INFO]: [STDOUT]: PASS helper visibility menu: native Show/Hide callbacks, widget/binding cleanup, retained selection, disabled guard and unchanged draft/preparation; GUI MANUAL/PENDING
+[23:52:55] [main/INFO]: [STDOUT]: PASS internal bone editor: native generated package, independent instances, actual fields, authored bounds, reset, disabled/removed/stale controls and unchanged sources; GUI MANUAL/PENDING
+[23:52:56] [main/INFO]: [STDOUT]: PASS automatic GUI focus: generated Trail, actual controller target, owned tree selection, unchanged preparation and disabled cleanup; controlled pose, GUI MANUAL/PENDING
+[23:52:56] [main/INFO]: [STDOUT]: PASS cosmetic settings layout: tab row/panel/footer separation at four sizes, horizontal tab scrolling to the last tab and vertical content scrollbar; GUI MANUAL/PENDING
+[23:52:56] [main/INFO]: [STDOUT]: PASS wheel preview/native controls: actual menu, pointer/key/repeat/release/scroll routing, private preview, per-copy draft values, nested settings return and closed-scope rejection; screen dispatch fixture, real GUI/GPU MANUAL/PENDING
+[23:52:56] [main/INFO]: [STDOUT]: PASS cosmetic wheel/real Lua: generated packages, typed page registration, exact author actions, duplicate sandbox ownership, global/scroll callbacks and original subpage navigation; HUD/input/GPU MANUAL/PENDING
+[23:52:56] [main/INFO]: [STDOUT]: PASS cosmetic settings: native reused controls/resource tabs with ordinal separators, two-copy values, draft persistence, retained preview, definition versions and stale/disabled/closed callback rejection; GUI MANUAL/PENDING
+[23:52:56] [main/INFO]: [STDOUT]: PASS tree attachment menus: actual picker/socket actions, duplicate ownership, native preparation, cycle/self/private/disabled/stale rejection, cancel and unchanged source; GUI MANUAL/PENDING
+[23:52:56] [main/INFO]: Wardrobe selectLocal name=Selected outfit base path=D:\Temp\User\figura-native-material-17664393898531722891\selected-avatar-10180271069225733539 reference=D:\Temp\User\figura-native-material-17664393898531722891\selected-avatar-10180271069225733539 tab=OUTFIT source=ALL
+[23:52:56] [main/INFO]: Wardrobe selectOutfitBase path=D:\Temp\User\figura-native-material-17664393898531722891\selected-avatar-10180271069225733539 cloud=null selection=literal{Selected outfit base} draft=null draftStartDone=null
+[23:52:56] [main/INFO]: Wardrobe selectOutfitBase ready base=ResourceRef[source=LOCAL, localId=5c304447-74a2-421c-b836-e3d0590a0352, origin=null, resourceId=null, revision=null, contentHash=2657cfc351e8e817c01a769adaf8b3e768143cb1e0de8b53be12fb5453de2cd2, format=FIGURA] instances=0
+[23:52:56] [main/INFO]: Wardrobe selectLocal name=Other outfit base path=D:\Temp\User\figura-native-material-17664393898531722891\other-avatar-16511458147274472299 reference=D:\Temp\User\figura-native-material-17664393898531722891\other-avatar-16511458147274472299 tab=OUTFIT source=ALL
+[23:52:56] [main/INFO]: Wardrobe selectOutfitBase path=D:\Temp\User\figura-native-material-17664393898531722891\other-avatar-16511458147274472299 cloud=null selection=literal{Other outfit base} draft=top.aihmc.omnimorph.model.outfit.OutfitDraft@510c1120 draftStartDone=true
+[23:52:56] [main/INFO]: Wardrobe selectOutfitBase ready base=ResourceRef[source=LOCAL, localId=7ce85cca-ef64-4d4d-887e-f0bb31bd1b89, origin=null, resourceId=null, revision=null, contentHash=64e6363520ec22297a8a72bede97f84c5e59164a200b76694f82d6dea241cd5f, format=FIGURA] instances=0
+[23:52:56] [main/INFO]: Wardrobe selectLocal name=Selected outfit base path=D:\Temp\User\figura-native-material-17664393898531722891\selected-avatar-10180271069225733539 reference=D:\Temp\User\figura-native-material-17664393898531722891\selected-avatar-10180271069225733539 tab=OUTFIT source=ALL
+[23:52:56] [main/INFO]: Wardrobe selectOutfitBase path=D:\Temp\User\figura-native-material-17664393898531722891\selected-avatar-10180271069225733539 cloud=null selection=literal{Selected outfit base} draft=top.aihmc.omnimorph.model.outfit.OutfitDraft@510c1120 draftStartDone=true
+[23:52:56] [main/INFO]: Wardrobe selectOutfitBase ready base=ResourceRef[source=LOCAL, localId=5c304447-74a2-421c-b836-e3d0590a0352, origin=null, resourceId=null, revision=null, contentHash=2657cfc351e8e817c01a769adaf8b3e768143cb1e0de8b53be12fb5453de2cd2, format=FIGURA] instances=0
+[23:52:56] [main/INFO]: [STDOUT]: PASS wardrobe draft actions: actual base snapshot/source loading, independent copies, author transform, stable suffixes, remove/reset/cancel and unchanged equipment; GUI MANUAL/PENDING
+[23:52:56] [main/INFO]: [STDOUT]: PASS outfit tab opens on the restored outfit: draft, bone tree instance, retained Lua toggle, single tick owner and borrowed cleanup; GUI MANUAL/PENDING
+[23:52:57] [main/INFO]: [STDOUT]: PASS wardrobe cloud accessories: actual HTTP/portable Figura and encrypted YSM, scoped selection/Add, fixed references, shared cached body, revocation and stale selection cleanup; GUI MANUAL/PENDING
+[23:52:58] [main/INFO]: [STDOUT]: PASS preset dependencies: actual local Figura/encrypted YSM and authorized HTTP/cache, exact refs, all affected copies, no implicit upgrades, cancellation and retired results; GUI separate
+[23:52:58] [main/INFO]: [STDOUT]: PASS accessory upload native form: purpose, metadata prefill/edit, isolated composition, source preservation and stale guards; GUI MANUAL/PENDING
+[23:52:58] [main/INFO]: [STDOUT]: PASS Outfit upload native form: negotiated JSON purpose, metadata, isolated composition, dependency failure and source retirement; GUI MANUAL/PENDING
+[23:52:58] [main/INFO]: [STDOUT]: PASS personal cloud preset controls: actual storage selector/authenticated HTTP, lost-response retry with frozen intent, update/private preview/import, separate local files and retired callbacks; real GUI/GPU MANUAL/PENDING
+[23:52:58] [main/INFO]: [STDOUT]: PASS local preset screen: native entry/name/save/update/conflict/dropdown/private composition/import/cancel, source guards and visible per-copy failures; recording screen dispatch, real GUI/GPU MANUAL/PENDING
+[23:52:58] [main/INFO]: [STDOUT]: PASS Figura native skeleton: draw callbacks, visible/hidden empty pivots, stale-world exclusion and bounded capture cleanup
+[23:52:58] [main/WARN]: Outfit accessory allowance exhausted: permission=COMPLEXITY, accessoryMax=1, accessoryRemaining=1, basePermission=-1, baseCounter=-1/-1, sharedUsed=1, observedBase=0
+[23:52:58] [main/WARN]: Outfit accessory allowance exhausted: permission=COMPLEXITY, accessoryMax=1, accessoryRemaining=1, basePermission=-1, baseCounter=-1/-1, sharedUsed=1, observedBase=0
+[23:52:58] [main/INFO]: [STDOUT]: PASS composed native Figura vertices: two copies, mount matrices, interleaved frame poses, native callbacks and failure cleanup; GUI/GPU MANUAL/PENDING
+[23:52:59] [main/INFO]: [STDOUT]: PASS native vanilla arm composition: separate left/right frames, slim pivots and no body leakage; real first-person GUI/GPU MANUAL/PENDING
+[23:52:59] [main/INFO]: [STDOUT]: PASS retained Figura base: full Lua/native callback scope, matching accessory vertices and interleaved-frame restoration; GUI/GPU MANUAL/PENDING
+[23:52:59] [main/INFO]: [STDOUT]: PASS native accessory sockets: reversed dependency chain, shared virtual parent, draw callbacks, private paths and policy/hash rejection; authorized=true, stale=false
+[23:52:59] [main/INFO]: [STDOUT]: PASS native accessory sockets: reversed dependency chain, shared virtual parent, draw callbacks, private paths and policy/hash rejection; authorized=false, stale=false
+[23:52:59] [main/INFO]: [STDOUT]: PASS native accessory sockets: reversed dependency chain, shared virtual parent, draw callbacks, private paths and policy/hash rejection; authorized=true, stale=true
+[23:52:59] [main/INFO]: [YSM Validation] main_model: 2 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[23:52:59] [main/INFO]: [STDOUT]: PASS native YSM exported empty pivot: signed axes, parent animation, nonuniform scale, mixed Figura child and retained failure replay; GUI/GPU MANUAL/PENDING
+[23:52:59] [main/INFO]: [STDOUT]: PASS native preview bone helpers: instance scope, opaque selection, nested/interleaved frames, frozen native pivots and submitted helper lines; YSM=false; GUI/GPU MANUAL/PENDING
+[23:52:59] [main/INFO]: [STDOUT]: PASS internal native overlays: local pivot T/R/S, child sockets, two-copy isolation, immutable source and retained pose; YSM=false, accelerated preparation=false; GUI/GPU MANUAL/PENDING
+[23:52:59] [main/INFO]: [STDOUT]: PASS native preview bone helpers: instance scope, opaque selection, nested/interleaved frames, frozen native pivots and submitted helper lines; YSM=false; GUI/GPU MANUAL/PENDING
+[23:52:59] [main/INFO]: [STDOUT]: PASS internal native overlays: local pivot T/R/S, child sockets, two-copy isolation, immutable source and retained pose; YSM=false, accelerated preparation=true; GUI/GPU MANUAL/PENDING
+[23:52:59] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[23:52:59] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[23:52:59] [main/INFO]: [STDOUT]: PASS native preview bone helpers: instance scope, opaque selection, nested/interleaved frames, frozen native pivots and submitted helper lines; YSM=true; GUI/GPU MANUAL/PENDING
+[23:52:59] [main/INFO]: [STDOUT]: PASS internal native overlays: local pivot T/R/S, child sockets, two-copy isolation, immutable source and retained pose; YSM=true, accelerated preparation=false; GUI/GPU MANUAL/PENDING
+[23:52:59] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[23:52:59] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[23:52:59] [main/INFO]: [STDOUT]: PASS native preview bone helpers: instance scope, opaque selection, nested/interleaved frames, frozen native pivots and submitted helper lines; YSM=true; GUI/GPU MANUAL/PENDING
+[23:52:59] [main/INFO]: [STDOUT]: PASS internal native overlays: local pivot T/R/S, child sockets, two-copy isolation, immutable source and retained pose; YSM=true, accelerated preparation=true; GUI/GPU MANUAL/PENDING
+[23:52:59] [main/INFO]: [STDOUT]: PASS weighted Figura internal bone overlay: native joint pivot, rotation and scale; accelerated preparation=false; GUI/GPU MANUAL/PENDING
+[23:52:59] [main/INFO]: [STDOUT]: PASS weighted Figura internal bone overlay: native joint pivot, rotation and scale; accelerated preparation=true; GUI/GPU MANUAL/PENDING
+[23:52:59] [main/INFO]: [STDOUT]: PASS internal edit gates: author flag/range, user policy and runtime revision, with authorized rebind
+[23:52:59] [main/INFO]: [STDOUT]: PASS typed anchor helpers: virtual T/R/S, standard offsets, animated vanilla pivots, actual native line submission and unavailable target rejection; GUI/GPU MANUAL/PENDING
+[23:52:59] [main/WARN]: Outfit accessory not drawn: accessory script error during prepare: <no error text>
+[23:52:59] [main/INFO]: [STDOUT]: PASS automatic native tail selection: DEFAULT; GUI/GPU MANUAL/PENDING
+[23:52:59] [main/INFO]: [STDOUT]: PASS automatic native tail selection: PREFERRED; GUI/GPU MANUAL/PENDING
+[23:52:59] [main/INFO]: [STDOUT]: PASS automatic native tail selection: DISABLED; GUI/GPU MANUAL/PENDING
+[23:52:59] [main/INFO]: [STDOUT]: PASS automatic native tail selection: INVALID; GUI/GPU MANUAL/PENDING
+[23:52:59] [main/INFO]: [STDOUT]: PASS automatic native tail selection: AMBIGUOUS; GUI/GPU MANUAL/PENDING
+[23:52:59] [main/INFO]: [STDOUT]: PASS automatic native tail selection: MANUAL_INVALID; GUI/GPU MANUAL/PENDING
+[23:52:59] [main/INFO]: [STDOUT]: PASS automatic native tail selection: CYCLE; GUI/GPU MANUAL/PENDING
+[23:52:59] [main/INFO]: [STDOUT]: PASS automatic base fallback: tailtip/hip/Body/native root/entity root and ambiguous-name rejection; CPU matrices only
+[23:52:59] [main/INFO]: [STDOUT]: PASS preview controller trails: native GUI frame/Lua sampling, private slot budget, readonly linked source, replay and retirement; pixels MANUAL/PENDING
+[23:52:59] [main/INFO]: [STDOUT]: PASS world trail sampling: actual Lua/frame bridge, interpolated extraction pose, no replay/GUI effects, target/teleport/world/expiry/retirement cleanup; pixels MANUAL/PENDING
+[23:52:59] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[23:52:59] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[23:52:59] [main/WARN]: Outfit accessory allowance exhausted: permission=COMPLEXITY, accessoryMax=8, accessoryRemaining=7, basePermission=8, baseCounter=2/8, sharedUsed=8, observedBase=6
+[23:52:59] [main/WARN]: Outfit accessory allowance exhausted: permission=COMPLEXITY, accessoryMax=8, accessoryRemaining=8, basePermission=8, baseCounter=2/8, sharedUsed=8, observedBase=6
+[23:52:59] [main/INFO]: [STDOUT]: PASS composed YSM base/Figura/YSM face allowance, accelerated preparation=false; CPU vertices only, GUI/GPU MANUAL/PENDING
+[23:52:59] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[23:52:59] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[23:53:00] [main/WARN]: Outfit accessory allowance exhausted: permission=COMPLEXITY, accessoryMax=8, accessoryRemaining=7, basePermission=8, baseCounter=2/8, sharedUsed=8, observedBase=6
+[23:53:00] [main/WARN]: Outfit accessory allowance exhausted: permission=COMPLEXITY, accessoryMax=8, accessoryRemaining=8, basePermission=8, baseCounter=2/8, sharedUsed=8, observedBase=6
+[23:53:00] [main/INFO]: [STDOUT]: PASS composed YSM base/Figura/YSM face allowance, accelerated preparation=true; CPU vertices only, GUI/GPU MANUAL/PENDING
+[23:53:00] [main/INFO]: [STDOUT]: PASS asynchronous outfit preview: purpose validation, atomic replacement, newest draft, retained native frames and cleanup
+[23:53:00] [main/INFO]: [STDOUT]: PASS independent Figura drawing: real Lua render, native body vertices, script visibility and no entity layers
+[23:53:00] [main/INFO]: [STDOUT]: PASS detached library preview: actual async Avatar loading, newest selection, restricted permissions, frame lifetime and encrypted runtime; GUI MANUAL/PENDING
+[23:53:00] [main/INFO]: Wardrobe selectLocal name=selected outfit fixture path=D:\Temp\User\figura-native-material-17664393898531722891\outfit-selected reference=D:\Temp\User\figura-native-material-17664393898531722891\outfit-selected tab=OUTFIT source=ALL
+[23:53:00] [main/INFO]: Wardrobe selectOutfitBase path=D:\Temp\User\figura-native-material-17664393898531722891\outfit-selected cloud=null selection=literal{selected outfit fixture} draft=null draftStartDone=null
+[23:53:00] [main/INFO]: Wardrobe selectOutfitBase ready base=ResourceRef[source=LOCAL, localId=30a8126b-30b5-491b-a319-f0104368a0ab, origin=null, resourceId=null, revision=null, contentHash=0a830ca9b23a17cc19f03e7d76e877c8d24a70fa92e7c6ae037dfb98d42a5467, format=FIGURA] instances=0
+[23:53:00] [main/INFO]: Wardrobe selectLocal name=crypto1.ysm path=D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\resources\ysm\crypto-vectors\crypto1.ysm reference=D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\resources\ysm\crypto-vectors\crypto1.ysm tab=OUTFIT source=ALL
+[23:53:00] [main/INFO]: Wardrobe selectOutfitBase path=D:\UserData\Desktop\Project\OMP\OMP_26.1.2\common\src\test\resources\ysm\crypto-vectors\crypto1.ysm cloud=null selection=literal{crypto1.ysm} draft=top.aihmc.omnimorph.model.outfit.OutfitDraft@d7c7c22 draftStartDone=true
+[23:53:00] [main/INFO]: Wardrobe selectOutfitBase ready base=ResourceRef[source=LOCAL, localId=9a5abded-13f1-47b6-9c94-5c8cefcde9a4, origin=null, resourceId=null, revision=null, contentHash=b3fca14b434072ecca6f48a6382e20e2f56df71c1a3ce4e2fab3608c6e963b30, format=YSM_ENCRYPTED] instances=0
+[23:53:00] [main/INFO]: Wardrobe selectLocal name=null path=null reference=null tab=OUTFIT source=ALL
+[23:53:00] [main/INFO]: [STDOUT]: PASS outfit entry preview: actual Figura/encrypted YSM loading, widget binding, matching bones and unchanged equipment
+[23:53:00] [main/INFO]: [STDOUT]: PASS current-player Figura preview: real player, normal host permissions, Lua tick, scoped GUI lookup and deferred lifetime
+
+> Task :common:jar
+> Task :fabric:compileJava UP-TO-DATE
+> Task :fabric:processResources
+> Task :fabric:classes
+> Task :fabric:jar
+> Task :fabric:processIncludeJars UP-TO-DATE
+> Task :fabric:shadowJar
+> Task :common:sourcesJar
+> Task :fabric:sourcesJar
+> Task :fabric:compileTestJava NO-SOURCE
+> Task :fabric:processTestResources NO-SOURCE
+> Task :fabric:testClasses UP-TO-DATE
+> Task :fabric:test NO-SOURCE
+> Task :fabric:validateAccessWidener UP-TO-DATE
+> Task :fabric:check
+Cannot remap preparePictureInPictureState because it does not exists in any of the targets [net/minecraft/client/gui/render/GuiRenderer]
+Cannot remap entityRenderTranslations because it does not exists in any of the targets [] or their parents.
+Cannot remap modelRenderTranslations because it does not exists in any of the targets [] or their parents.
+Cannot remap scaleWidth because it does not exists in any of the targets [] or their parents.
+Cannot remap scaleHeight because it does not exists in any of the targets [] or their parents.
+Cannot remap headBone because it does not exists in any of the targets [] or their parents.
+Cannot remap leftLegBone because it does not exists in any of the targets [] or their parents.
+Cannot remap rightLegBone because it does not exists in any of the targets [] or their parents.
+Cannot remap leftArmBone because it does not exists in any of the targets [] or their parents.
+Cannot remap rightArmBone because it does not exists in any of the targets [] or their parents.
+Cannot remap bodyBone because it does not exists in any of the targets [] or their parents.
+Cannot remap leftBootBone because it does not exists in any of the targets [] or their parents.
+Cannot remap rightBootBone because it does not exists in any of the targets [] or their parents.
+> Task :fabric:remapJar
+> Task :fabric:remapSourcesJar
+> Task :fabric:assemble
+> Task :fabric:build
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_26.1.2/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 1m 1s
+23 actionable tasks: 14 executed, 9 up-to-date

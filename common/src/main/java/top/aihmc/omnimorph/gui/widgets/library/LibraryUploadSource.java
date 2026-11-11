@@ -25,16 +25,19 @@ public final class LibraryUploadSource extends AbstractContainerElement {
         this.cover = cover;
         int imageWidth = Math.max(52, width / 3);
         int sourceWidth = width - imageWidth - 6;
-        source = new Button(0, 0, sourceWidth, 84, FiguraText.of("gui.library.choose_model"),
+        setHeight(imageWidth + 22);
+        source = new Button(0, 0, sourceWidth, imageWidth, FiguraText.of("gui.library.choose_model"),
                 FiguraText.of("gui.library.upload_drop_hint", LibraryLabels.fileSize(maximumBytes)), ignored -> chooseSource.run()) {
             @Override
             protected void renderText(GuiGraphics gui, float delta) {
-                UIHelper.renderCenteredScrollingText(gui, Component.literal("+"), getX(), getY() + 10,
-                        getWidth(), 18, getTextColor() | 0xff000000);
-                UIHelper.renderCenteredScrollingText(gui, getMessage(), getX() + 4, getY() + 34,
-                        getWidth() - 8, 18, getTextColor() | 0xff000000);
+                int lineHeight = Math.min(22, getHeight() / 3);
+                int contentY = getY() + (getHeight() - lineHeight * 3) / 2;
+                UIHelper.renderCenteredScrollingText(gui, Component.literal("+"), getX(), contentY,
+                        getWidth(), lineHeight, getTextColor() | 0xff000000);
+                UIHelper.renderCenteredScrollingText(gui, getMessage(), getX() + 4, contentY + lineHeight,
+                        getWidth() - 8, lineHeight, getTextColor() | 0xff000000);
                 UIHelper.renderCenteredScrollingText(gui, sourceFormat, getX() + 4,
-                        getY() + 56, getWidth() - 8, 16, 0xffbac6d8);
+                        contentY + lineHeight * 2, getWidth() - 8, lineHeight, 0xffbac6d8);
             }
         };
         image = new Button(0, 0, imageWidth - 20, 18, FiguraText.of("gui.library.choose_image"), null,
@@ -70,17 +73,17 @@ public final class LibraryUploadSource extends AbstractContainerElement {
         int imageX = getX() + source.getWidth() + 6;
         int imageWidth = getWidth() - source.getWidth() - 6;
         image.setX(imageX);
-        image.setY(getY() + 66);
+        image.setY(getY() + imageWidth + 4);
         clear.setX(imageX + imageWidth - 18);
-        clear.setY(getY() + 66);
+        clear.setY(getY() + imageWidth + 4);
         ResourceLocation texture = cover.get();
         if (texture == null) {
             texture = FiguraIdentifier.of("textures/gui/library_placeholder.png");
         }
-        UIHelper.blitSliced(gui, imageX, getY(), imageWidth, 64, UIHelper.OUTLINE_FILL);
-        int size = Math.min(imageWidth - 4, 60);
+        UIHelper.blitSliced(gui, imageX, getY(), imageWidth, imageWidth, UIHelper.OUTLINE_FILL);
+        int size = imageWidth - 4;
         gui.blit(texture, imageX + (imageWidth - size) / 2,
-                getY() + (64 - size) / 2, 0, 0, size, size, size, size);
+                getY() + (imageWidth - size) / 2, 0, 0, size, size, size, size);
         super.render(gui, mouseX, mouseY, delta);
     }
 }

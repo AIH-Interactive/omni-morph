@@ -27,6 +27,11 @@ public class KeybindScreen extends AbstractPanelScreen {
     }
 
     @Override
+    protected boolean usesSideNavigation() {
+        return true;
+    }
+
+    @Override
     protected void init() {
         super.init();
 
@@ -51,7 +56,7 @@ public class KeybindScreen extends AbstractPanelScreen {
 
         // -- list -- // 
 
-        int listWidth = Math.min(this.width - 8, 420);
+        int listWidth = Math.min(this.width - SIDE_MARGIN * 2, 420);
         this.addRenderableWidget(list = new KeybindList((this.width - listWidth) / 2, 28, listWidth, height - 56, owner, reset));
     }
 
