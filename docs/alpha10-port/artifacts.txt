@@ -1,0 +1,13 @@
+Final code commit: ba72f27d7aba85bce4e89475b317dc1323dd0e74
+Version: 1.0.0-alpha.10+1.21.1-ba72f27d
+All artifact checks PASS; this is production packaging, not real-client validation.
+
+fabric: D:\UserData\Desktop\Project\OMP\OMP_1.21.1\fabric\build\libs\omni-morph-1.0.0-alpha.10+1.21.1-fabric-mc.jar
+SHA256: 79f381ad3039d67f5d459c4a9479ac7f115425db0abdd208bdd4646f309f010f
+Bytes: 16765208
+PASS: CRC including nested JARs, metadata, Java21, features, dependencies, AVIF, licenses, no tests or custom acceleration
+
+neoforge: D:\UserData\Desktop\Project\OMP\OMP_1.21.1\neoforge\build\libs\omni-morph-1.0.0-alpha.10+1.21.1-neoforge-mc.jar
+SHA256: 1e4cf01ac6c5f4530d3e5da9f05dd23dc7142c97df6e7c293f0edec0a8582b23
+Bytes: 16409259
+PASS: CRC including nested JARs, metadata, Java21, features, dependencies, AVIF, licenses, no tests or custom acceleration
