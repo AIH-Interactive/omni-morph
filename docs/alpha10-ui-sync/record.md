@@ -10,4 +10,4 @@ compile.log：common testClasses及Fabric/NeoForge compileJava，42秒退出0，
 
 汇总见根Alpha.10更新内容.md，四语言CHANGELOG保留完整最终行为并更新26.3状态。源用户验收不冒充本版实机验收；本版游戏GUI/多人/整合包MANUAL/PENDING，未启动游戏。已知导航点击无反应仍OPEN。后端e04c134已由源会话完成，不重复处理。
 
-合并提交推送后将从该提交重建最终JAR并验证版本/SHA/ZIP/嵌套依赖、新类型及无测试/加速类，再更新记录。完成交付并核对远端后仅发26.2；原.codex/保留，不处理其他版本代码。
+合并c502d7a88a5bfcfe4534c7db040fe5ad15876eb2已推送核对；从该提交重建双JAR（final-packaging.log，12秒退出0），生产任务图无测试/JNI/探测（production-tasks.log，7秒退出0）。包内版本均alpha.10+26.3-c502d7a8，主ZIP/嵌套依赖CRC、AVIF、新资源Tab类型、水平居中/无verticalInset及导航footer方法、无测试/加速类通过，哈希见artifacts.json/txt。实施/自动验证/交付均完成；交付记录提交核对后仅发26.2，原.codex/保留。

@@ -1,0 +1,36 @@
+[
+  {
+    "loader": "fabric",
+    "path": "D:\\UserData\\Desktop\\Project\\OMP\\OMP_26.3\\fabric\\build\\libs\\omni-morph-1.0.0-alpha.10+26.3-fabric-mc.jar",
+    "version": "1.0.0-alpha.10+26.3-c502d7a8",
+    "sourceCommit": "c502d7a88a5bfcfe4534c7db040fe5ad15876eb2",
+    "sha256": "38c0fdb3e7858cf51178f8b101388bf7cabc6e9e2c3b465b5cb53693eb7e1449",
+    "cardGui": [
+      80,
+      98
+    ],
+    "coverGui": [
+      80,
+      80
+    ],
+    "compactCards": 3,
+    "alignment": "horizontal center; vertical top"
+  },
+  {
+    "loader": "neoforge",
+    "path": "D:\\UserData\\Desktop\\Project\\OMP\\OMP_26.3\\neoforge\\build\\libs\\omni-morph-1.0.0-alpha.10+26.3-neoforge-mc.jar",
+    "version": "1.0.0-alpha.10+26.3-c502d7a8",
+    "sourceCommit": "c502d7a88a5bfcfe4534c7db040fe5ad15876eb2",
+    "sha256": "7b002b21c573a73e65daa6a7dca393c2307f9870936291fd9569540935a16838",
+    "cardGui": [
+      80,
+      98
+    ],
+    "coverGui": [
+      80,
+      80
+    ],
+    "compactCards": 3,
+    "alignment": "horizontal center; vertical top"
+  }
+]

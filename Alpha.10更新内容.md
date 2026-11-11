@@ -38,3 +38,5 @@
 26.3实测：编译42秒通过。16个回归/打包入口最终通过；首轮唯一失败来自合并测试夹具沿用左键0，已保留新点击坐标并改回本版InputConstants.MOUSE_BUTTON_LEFT，实际预览28秒转GREEN；生产点击处理未改。详见docs/alpha10-ui-sync/record.md。最终JAR在合并提交后重建并记录SHA。
 
 26.3导航点击无反应仍OPEN，仅记录、未定位/修复；自动回归不能替代该实际问题。实机GUI/多人/整合包MANUAL/PENDING，未启动游戏。26.3交付后仅通知26.2，再由各站逐级发送1.21.1、1.20.1，不越级分发。
+
+本轮26.3交付：已直接合并并推送c502d7a88a5bfcfe4534c7db040fe5ad15876eb2，双包内版本1.0.0-alpha.10+26.3-c502d7a8；实际哈希见docs/alpha10-ui-sync/artifacts.json。16个请求入口最终通过，最终双发行包12秒构建通过。导航OPEN和实机MANUAL/PENDING保留，交付完成后仅逐级转交26.2。
