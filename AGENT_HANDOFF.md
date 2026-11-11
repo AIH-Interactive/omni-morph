@@ -53,3 +53,12 @@ MC1.21.1适配GuiGraphics/ResourceLocation/坐标输入/Font/PoseStack/同步截
 待完成最小交付操作：显式暂存全部适配和记录，提交merge、push同名1.21.1并核对远端；从已提交代码SHA重建双JAR、校验并记录哈希路径，文档收尾提交推送后，向1.20.1现有会话01a1970e-a221-7610-996d-9ef5214db4ce发送完整逐级指令。不得提前或并发启动它，不改模型设置。
 
 本版实机项按项目要求SKIPPED（MANUAL，未验证），不阻塞；源26.1.2用户验收不等于本版实机PASS；未启动游戏/覆盖mods，不改后端/其他版本/Actions。周已用20%，未触发Luna。当前merge尚未提交，前轮产物哈希已不代表本轮最终JAR，最终数据待提交后重建追加。
+
+
+### 本轮最终交付状态（覆盖上节待办）
+
+- 代码merge 2b82deea32d58dbb371fa555439b2f255ce0449b 已推送核验，源8faa4b59为祖先，全部适配真正包含在merge内。
+- 从代码提交重建双JAR12秒成功，版本1.0.0-alpha.10+1.21.1-2b82deea。最终CRC/嵌套依赖、元数据、Java21、AVIF/许可证、新Tab/footer/horizontalInset且无verticalInset、无测试/自建加速均PASS；minecraft-dev元数据读取成功。
+- Fabric SHA256：6cae514b6ae682f7df6476d743193a230cbd7b0d73f763fedb74f722a5f0393f。NeoForge SHA256：6eb20b77ee77a1944d3e2f70900e2412a36f3fc1cc2f4847a0a849257c0cb8af。路径为本根fabric/build/libs及neoforge/build/libs的alpha.10+1.21.1-对应loader-mc.jar；完整绝对路径与哈希以docs/alpha10-ui-sync/artifacts.json为准，以上前轮ba72f27d哈希已是历史。
+- 本版所有授权实施/自动验证完成，未验证人工项仍SKIPPED（MANUAL），不作为受阻；无额外开发阶段。周额度已用20%，未触发Luna。
+- 当前仅本次最终文档提交待推送，完成后立即按已核验原始用户授权发送至1.20.1现有会话01a1970e-a221-7610-996d-9ef5214db4ce；保留设置，不触碰其工作区。发送结果后续追加。

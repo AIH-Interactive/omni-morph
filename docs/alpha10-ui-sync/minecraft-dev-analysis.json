@@ -1,0 +1,37 @@
+[
+  {
+    "loader": "fabric",
+    "analysis": {
+      "jarPath": "D:\\UserData\\Desktop\\Project\\OMP\\OMP_1.21.1\\fabric\\build\\libs\\omni-morph-1.0.0-alpha.10+1.21.1-fabric-mc.jar",
+      "jarSize": 16770592,
+      "analyzedAt": "2026-11-11T14:21:28.663Z",
+      "durationMs": 155
+    },
+    "id": "omni-morph",
+    "version": "1.0.0-alpha.10+1.21.1-2b82deea",
+    "compatibility": {
+      "minecraft": "1.21.1",
+      "loaderVersion": ">=0.16",
+      "javaVersion": 21,
+      "environment": "client"
+    },
+    "scope": "Read-only minecraft-dev metadata analysis; NeoForge loader version/dependencies verified directly from TOML by artifact checker."
+  },
+  {
+    "loader": "neoforge",
+    "analysis": {
+      "jarPath": "D:\\UserData\\Desktop\\Project\\OMP\\OMP_1.21.1\\neoforge\\build\\libs\\omni-morph-1.0.0-alpha.10+1.21.1-neoforge-mc.jar",
+      "jarSize": 16414691,
+      "analyzedAt": "2026-11-11T14:21:28.812Z",
+      "durationMs": 138
+    },
+    "id": "omni_morph",
+    "version": "1.0.0-alpha.10+1.21.1-2b82deea",
+    "compatibility": {
+      "minecraft": "1.21.1",
+      "loaderVersion": "1.21.1",
+      "environment": "*"
+    },
+    "scope": "Read-only minecraft-dev metadata analysis; NeoForge loader version/dependencies verified directly from TOML by artifact checker."
+  }
+]

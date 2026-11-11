@@ -1,0 +1,12 @@
+Code commit: 2b82deea32d58dbb371fa555439b2f255ce0449b
+Version: 1.0.0-alpha.10+1.21.1-2b82deea
+
+fabric: D:\UserData\Desktop\Project\OMP\OMP_1.21.1\fabric\build\libs\omni-morph-1.0.0-alpha.10+1.21.1-fabric-mc.jar
+SHA256: 6cae514b6ae682f7df6476d743193a230cbd7b0d73f763fedb74f722a5f0393f
+Bytes: 16770592
+PASS: CRC including nested JARs, metadata, Java21, features, dependencies, AVIF, licenses, no tests or custom acceleration
+
+neoforge: D:\UserData\Desktop\Project\OMP\OMP_1.21.1\neoforge\build\libs\omni-morph-1.0.0-alpha.10+1.21.1-neoforge-mc.jar
+SHA256: 6eb20b77ee77a1944d3e2f70900e2412a36f3fc1cc2f4847a0a849257c0cb8af
+Bytes: 16414691
+PASS: CRC including nested JARs, metadata, Java21, features, dependencies, AVIF, licenses, no tests or custom acceleration
