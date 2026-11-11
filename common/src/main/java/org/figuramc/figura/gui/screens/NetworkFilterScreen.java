@@ -21,10 +21,15 @@ public class NetworkFilterScreen extends AbstractPanelScreen {
     }
 
     @Override
+    protected boolean usesSideNavigation() {
+        return true;
+    }
+
+    @Override
     protected void init() {
         titleLabel.setX(width / 2);
         titleLabel.setY(8 + titleLabel.getHeight() / 2 );
-        int listWidth = Math.min(420, this.width - 8);
+        int listWidth = Math.min(420, this.width - SIDE_MARGIN * 2);
         addRenderableWidget(networkFilterList =
                 new NetworkFilterList((this.width - listWidth) / 2, titleLabel.getY() + (titleLabel.getHeight() / 2) + 8,
                         listWidth, height - (titleLabel.getY() + (titleLabel.getHeight() / 2) + 16), config));

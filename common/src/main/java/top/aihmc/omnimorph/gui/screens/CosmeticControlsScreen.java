@@ -103,6 +103,16 @@ public final class CosmeticControlsScreen extends AvatarControlsScreen {
     }
 
     @Override
+    protected int framedTopRowHeight() {
+        int count = resourceTabs(groups).size();
+        int available = Math.max(1, width - TAB_ROW_MARGIN * 2);
+        int tabWidth = Math.max(MIN_TAB_WIDTH, Math.min(MAX_TAB_WIDTH, available / count));
+        boolean overflow = tabWidth * count - 4 > available;
+        // panelY adds 20; leave four units after the tabs, or after their scrollbar.
+        return overflow ? 22 : 8;
+    }
+
+    @Override
     protected void buildAdditionalControls() {
         tabButtons.clear();
         tabScrollbar = null;

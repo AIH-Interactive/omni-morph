@@ -31,6 +31,7 @@ public final class ModelLibraryCatalogSmokeTest {
     private static final UUID VIEWER = new UUID(0, 1);
 
     public static void run(Runnable drain) throws Exception {
+        testActionBudget();
         top.aihmc.omnimorph.gui.widgets.ModelResourceBadges.drawType(null, 0, 0, null, 16);
         require(top.aihmc.omnimorph.gui.widgets.ModelResourceBadges.typeTooltip(null).getString().isEmpty(),
                 "formatless Outfit cards neither draw a native model badge nor fabricate a format tooltip");
@@ -110,8 +111,9 @@ public final class ModelLibraryCatalogSmokeTest {
             await(() -> get(screen, "results") != null, drain);
             var page = (LibraryModels.Page) get(screen, "results");
             require(page.items().get(0).displayName().equals("new"), "new search owns visible results");
+            // 960x540: a 618 wide, 456 tall card area fits 6 columns and 4 rows of fixed 90x108 cards.
             require(query.get().contains("scope=mine") && query.get().contains("sort=name")
-                    && query.get().contains("page_size=12") && query.get().contains("%E6%96%B0"),
+                    && query.get().contains("page_size=24") && query.get().contains("%E6%96%B0"),
                     "server query owns filtering, page budget and sort");
             release.countDown();
             drain.run();
@@ -148,6 +150,65 @@ public final class ModelLibraryCatalogSmokeTest {
             server.stop(0);
             threads.shutdownNow();
         }
+    }
+
+    /** Actual action bar buttons: a three-slot budget with a text overflow menu that keeps every callback. */
+    private static void testActionBudget() throws Exception {
+        // Menu entries measure their text; the headless client has no font, so use a fixed-width stand-in.
+        var minecraft = Minecraft.getInstance();
+        var fontField = Minecraft.class.getDeclaredField("font");
+        fontField.setAccessible(true);
+        Object previousFont = fontField.get(minecraft);
+        fontField.set(minecraft, new net.minecraft.client.gui.Font(null, false) {
+            @Override
+            public int width(net.minecraft.network.chat.FormattedText text) {
+                return text.getString().length() * 6;
+            }
+        });
+        try {
+            checkActionBudget();
+        } finally {
+            fontField.set(minecraft, previousFont);
+        }
+    }
+
+    private static void checkActionBudget() {
+        var calls = new int[7];
+        var bar = new top.aihmc.omnimorph.gui.widgets.library.LibraryActionBar(0, 200, 137, 24);
+        var buttons = new java.util.ArrayList<org.figuramc.figura.gui.widgets.Button>();
+        for (int index = 0; index < calls.length; index++) {
+            int action = index;
+            buttons.add(bar.action(new org.figuramc.figura.gui.widgets.Button(0, 0, 24, 24,
+                    net.minecraft.network.chat.Component.literal("action " + index), null, button -> calls[action]++)));
+            if (index == 1) {
+                bar.separator();
+            }
+        }
+        buttons.get(3).setVisible(false);
+        buttons.get(5).setActive(false);
+        bar.budget(3);
+        var shown = bar.shownButtons();
+        require(shown.size() == 3 && shown.get(0) == buttons.get(0) && shown.get(1) == buttons.get(1)
+                        && !buttons.contains(shown.get(2)),
+                "a three-slot bar shows two actions and the menu button");
+        var menu = bar.overflowMenu();
+        require(menu != null, "actions beyond the budget move into a menu");
+        var labels = menu.getEntries().stream().map(entry -> entry.getMessage().getString()).toList();
+        require(labels.equals(List.of("action 2", "action 4", "action 5", "action 6")),
+                "the menu lists every remaining visible action by its text, in order");
+        require(!menu.getEntries().get(2).isActive() && menu.getEntries().get(1).isActive(),
+                "disabled actions stay disabled in the menu");
+        ((org.figuramc.figura.gui.widgets.Button) menu.getEntries().get(1)).onPress();
+        require(calls[4] == 1 && java.util.Arrays.stream(calls).sum() == 1,
+                "a menu entry runs exactly its own action once");
+        var small = new top.aihmc.omnimorph.gui.widgets.library.LibraryActionBar(0, 200, 137, 24);
+        var first = small.action(new org.figuramc.figura.gui.widgets.Button(0, 0, 24, 24,
+                net.minecraft.network.chat.Component.literal("one"), null, button -> {}));
+        var second = small.action(new org.figuramc.figura.gui.widgets.Button(0, 0, 24, 24,
+                net.minecraft.network.chat.Component.literal("two"), null, button -> {}));
+        small.budget(3);
+        require(small.shownButtons().equals(List.of(first, second)) && small.overflowMenu() == null,
+                "two actions stay two buttons without padding or a menu");
     }
 
     private static void select(ModelLibraryScreen screen, LibraryModels.Model model) throws Exception {

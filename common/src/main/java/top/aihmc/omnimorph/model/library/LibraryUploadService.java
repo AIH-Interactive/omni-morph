@@ -58,7 +58,8 @@ public final class LibraryUploadService implements AutoCloseable {
         }
     }
     public record ImageResult(UUID modelId, long imageRevision, long policyRevision) {}
-    private record OutfitPublished(UUID modelId, boolean published, long revision, long policyRevision) {}
+    private record OutfitPublished(UUID modelId, boolean published, long revision, long policyRevision,
+                                   String visibility, String moderationStatus) {}
 
     public Operation upload(LibraryUploadDraft.Snapshot draft, Image image) {
         if (active != null) {
@@ -94,6 +95,7 @@ public final class LibraryUploadService implements AutoCloseable {
         private final UUID imageOperation = UUID.randomUUID();
         private final UUID cancelOperation = UUID.randomUUID();
         private final AvatarLoadProgress progress = new AvatarLoadProgress();
+        private final LibraryUploadProgress publicationProgress = new LibraryUploadProgress();
         private volatile boolean closed;
         private volatile long attempt;
         private volatile boolean commitAttempted;
@@ -139,6 +141,22 @@ public final class LibraryUploadService implements AutoCloseable {
             return progress.snapshot();
         }
 
+        public LibraryUploadProgress.Snapshot publicationProgress() {
+            return publicationProgress.snapshot();
+        }
+
+        private void serverStage(String stage) {
+            publicationProgress.advance(LibraryUploadProgress.Stage.valueOf(stage));
+        }
+
+        private void finishPublication(Throwable failure) {
+            if (failure == null) {
+                publicationProgress.advance(LibraryUploadProgress.Stage.RESULT);
+            } else {
+                publicationProgress.fail();
+            }
+        }
+
         public UUID operationId() {
             return operation;
         }
@@ -158,6 +176,7 @@ public final class LibraryUploadService implements AutoCloseable {
         private void start() {
             long generation = ++attempt;
             future = new CompletableFuture<>();
+            publicationProgress.begin();
             progressGeneration = progress.begin(AvatarLoadProgress.Stage.PREPARING);
             CompletableFuture<Published> completion = future;
             completion.whenComplete((result, failure) -> {
@@ -202,6 +221,7 @@ public final class LibraryUploadService implements AutoCloseable {
                     completion.cancel(false);
                 } else if (failure != null) {
                     progress.finish(progressGeneration);
+                    publicationProgress.fail();
                     completion.completeExceptionally(new LibraryClient.Failure(0, "UPLOAD_PREPARATION_FAILED"));
                 } else {
                     distribution = prepared.distribution();
@@ -228,11 +248,13 @@ public final class LibraryUploadService implements AutoCloseable {
                         completion.cancel(false);
                     } else if (failure != null) {
                         progress.finish(progressGeneration);
+                        publicationProgress.fail();
                         completion.completeExceptionally(failure);
                     } else if (!dependencies.ready()) {
                         progress.finish(progressGeneration);
                         var issues = dependencies.resources().issues();
                         String code = issues.isEmpty() ? "OUTFIT_DEPENDENCY_NOT_DISTRIBUTABLE" : issues.get(0).code();
+                        publicationProgress.fail();
                         completion.completeExceptionally(new LibraryClient.Failure(400, code));
                     } else {
                         outfitDependenciesReady = true;
@@ -260,6 +282,7 @@ public final class LibraryUploadService implements AutoCloseable {
                     completion.cancel(false);
                 } else if (failure != null) {
                     progress.finish(progressGeneration);
+                    publicationProgress.fail();
                     completion.completeExceptionally(new LibraryClient.Failure(0, "INVALID_IMAGE"));
                 } else {
                     imagePrepared = true;
@@ -280,8 +303,9 @@ public final class LibraryUploadService implements AutoCloseable {
                 }
                 if (outfitPublished == null) {
                     progress.stage(progressGeneration, AvatarLoadProgress.Stage.UPLOADING);
-                    var result = exchange.json("POST", ROOT + "uploads/outfit",
-                            outfit.input(operation, limits.outfitsV1().limits()), OutfitPublished.class);
+                    publicationProgress.advance(LibraryUploadProgress.Stage.UPLOADING);
+                    var result = exchange.uploadJson(ROOT + "uploads/outfit",
+                            outfit.input(operation, limits.outfitsV1().limits()), OutfitPublished.class, this::serverStage);
                     if (result.modelId() == null || !result.published() || result.revision() != 1 || result.policyRevision() < 1) {
                         throw new LibraryClient.Failure(0, "INVALID_OUTFIT_PUBLICATION");
                     }
@@ -290,6 +314,7 @@ public final class LibraryUploadService implements AutoCloseable {
                     imageExpectedRevision = result.policyRevision();
                 }
                 if (image != null) {
+                    publicationProgress.advance(LibraryUploadProgress.Stage.FINALIZING);
                     var result = exchange.binaryJson("PUT", ROOT + "models/" + outfitPublished.modelId() + "/image",
                             image.bytes, image.contentType(), Map.of("x-omnimorph-operation", imageOperation.toString(),
                                     "x-omnimorph-expected-revision", Long.toString(imageExpectedRevision)), ImageResult.class);
@@ -299,7 +324,7 @@ public final class LibraryUploadService implements AutoCloseable {
                         throw new LibraryClient.Failure(409, "IMAGE_CHANGED");
                     }
                 }
-                return new Published(outfitPublished.modelId(), true);
+                return new Published(outfitPublished.modelId(), true, outfitPublished.visibility(), outfitPublished.moderationStatus());
             });
             var completion = future;
             request.future().whenComplete((published, failure) -> {
@@ -307,6 +332,7 @@ public final class LibraryUploadService implements AutoCloseable {
                     return;
                 }
                 progress.finish(progressGeneration);
+                finishPublication(failure);
                 if (failure != null) {
                     completion.completeExceptionally(failure);
                 } else {
@@ -365,6 +391,7 @@ public final class LibraryUploadService implements AutoCloseable {
                 grant = reservation;
                 byte[] bytes = distribution.compressed();
                 progress.stage(progressGeneration, AvatarLoadProgress.Stage.UPLOADING);
+                publicationProgress.advance(LibraryUploadProgress.Stage.UPLOADING);
                 try {
                     exchange.binary("PUT", grant.relativePath(), CloudHttp.uploadBody(bytes,
                             sent -> {
@@ -397,6 +424,7 @@ public final class LibraryUploadService implements AutoCloseable {
                     return;
                 }
                 progress.finish(progressGeneration);
+                finishPublication(failure);
                 if (failure != null) {
                     completion.completeExceptionally(failure);
                 } else {
@@ -408,10 +436,11 @@ public final class LibraryUploadService implements AutoCloseable {
         private Published commit(LibraryClient.Exchange exchange) throws Exception {
             exchange.requireCurrent();
             progress.stage(progressGeneration, AvatarLoadProgress.Stage.APPLYING);
+            publicationProgress.advance(LibraryUploadProgress.Stage.SUBMITTING);
             commitAttempted = true;
-            var result = exchange.json("POST", ROOT + "uploads/" + operation + "/commit",
+            var result = exchange.uploadJson(ROOT + "uploads/" + operation + "/commit",
                     Map.of("operation_id", commitOperation.toString(), "expected_revision", commitExpectedRevision),
-                    Published.class);
+                    Published.class, this::serverStage);
             if (!result.published() || !grant.modelId().equals(result.modelId())) {
                 throw new LibraryClient.Failure(0, "INVALID_UPLOAD_COMMIT");
             }

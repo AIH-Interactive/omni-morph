@@ -47,6 +47,20 @@ public final class LibraryPreviewRuntimeSmokeTest {
     private static final UUID DEFAULT_SKIN_OWNER = new UUID(0, 9);
 
     public static void run(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+        var renderLifetime = new top.aihmc.omnimorph.render.RenderLifetime();
+        var renderOwner = new top.aihmc.omnimorph.render.RenderOwner();
+        var currentLease = renderLifetime.capture(renderOwner, "library");
+        require(renderLifetime.isCurrent(currentLease), "current library pose remains valid");
+        renderLifetime.invalidateResources();
+        require(!renderLifetime.isCurrent(currentLease), "resource reload rejects captured library pose");
+        var retiredLease = renderLifetime.capture(renderOwner, "library");
+        renderOwner.retire();
+        require(!renderLifetime.isCurrent(retiredLease), "retired model rejects captured library pose");
+        require(Configs.WARDROBE_AUTO_CACHE.parent == Configs.MISC,
+                "ordinary cache preference remains registered");
+        require(org.figuramc.figura.config.ConfigManager.CATEGORIES_REGISTRY.keySet().stream()
+                        .noneMatch(name -> name.contains("hardware_acceleration")),
+                "removed hardware acceleration category must not appear in settings");
         Object users = field(AvatarManager.class, "LOADED_USERS").get(null);
         int userCount = ((Map<?, ?>) users).size();
         int permissions = ((Map<?, ?>) field(PermissionManager.class, "PLAYERS").get(null)).size();
@@ -63,6 +77,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 new LibrarySession("synthetic-preview", FiguraMod.getLocalPlayerUUID(), epoch, live::get),
                 Minecraft.getInstance()::execute);
              var preview = new LibraryPreviewSession(client, true)) {
+            NavigationInputSmokeTest.run();
             testModelFilePicker(client, drain);
             testReportInput(client);
             testCollectionActions(client);
@@ -1841,6 +1856,35 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(AvatarManager.getAvatar(worldFrame) == preview.outfitState().base()
                             && top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.composition(worldFrame) != null,
                     "local draft replaces only the current player's extracted render frame");
+            OutfitHandRenderingSmokeTest.run(unsafe, preview);
+            String handModel = System.getenv("OMNIMORPH_TEST_HAND_AVATAR");
+            if (handModel != null && !handModel.isBlank()) {
+                try (var provided = new LibraryPreviewSession()) {
+                    CompoundTag nbt;
+                    OutfitConfig.ResourceRef reference;
+                    try (var archive = java.nio.file.FileSystems.newFileSystem(Path.of(handModel), Map.of());
+                         var entries = Files.walk(archive.getPath("/"))) {
+                        var modelRoot = entries.filter(path -> path.getFileName() != null
+                                        && path.getFileName().toString().equals("avatar.json"))
+                                .findFirst().orElseThrow().getParent();
+                        var sources = new top.aihmc.omnimorph.avatar.local.LocalAvatarSource(
+                                Path.of(System.getProperty("figura.test.directory")));
+                        reference = sources.describe(modelRoot, () -> false);
+                        nbt = sources.prepare(reference, player.getUUID(), () -> false);
+                    }
+                    require(await(provided.selectDraft(nbt), drain), "provided hand model loads as a Figura preview");
+                    var configuration = new OutfitConfig(1, 0, reference, java.util.List.of(), java.util.List.of(),
+                            Map.of(), false);
+                    require(await(provided.prepareComposition(configuration, OutfitLimits.defaults(), player.getUUID(),
+                            UUID.randomUUID(), provided.outfitBase().permissions, (resource, cancelled) -> {
+                                throw new AssertionError("base-only hand fixture has no accessory resources");
+                            }), drain), "provided hand model composition prepares");
+                    top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.show(editor, provided);
+                    OutfitHandRenderingSmokeTest.run(unsafe, provided);
+                } finally {
+                    top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.show(editor, preview);
+                }
+            }
             var other = (CurrentPreviewPlayer) unsafe.allocateInstance(CurrentPreviewPlayer.class);
             other.setUUID(UUID.randomUUID());
             require(top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.state(other) == null
@@ -2140,6 +2184,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
              var parentPreview = new LibraryPreviewSession()) {
             testAccessoryUploadScreen(client, player, drain);
             testOutfitUploadScreen(client, player, drain);
+            testSeparateInformationAndNotices();
+            testCollectionSelectionPreservesGrid();
             Files.writeString(root.resolve("avatar.json"), "{\"name\":\"Original preset base\"}");
             var base = new top.aihmc.omnimorph.avatar.local.LocalAvatarSource(data).describe(root, () -> false);
             equipped.load(new top.aihmc.omnimorph.avatar.local.LocalAvatarSource(data).prepare(base, owner, () -> false));
@@ -2461,7 +2507,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
             field(type, "preview").set(screen, preview);
             var choose = type.getDeclaredMethod("selectCosmetic", entry.getClass());
             choose.setAccessible(true);
-            choose.invoke(screen, entry);
+            // Selection itself starts draft preparation. Hold the worker before selecting so
+            // even a fast machine cannot finish the draft before this stale-request scenario.
             var blocker = top.aihmc.omnimorph.avatar.AvatarLoadExecutor.submit(() -> {
                 started.countDown();
                 try {
@@ -2474,6 +2521,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
             });
             try {
                 require(started.await(5, TimeUnit.SECONDS), "bounded model worker reaches the test gate");
+                choose.invoke(screen, entry);
+                var starting = (CompletableFuture<?>) field(type, "draftStart").get(screen);
+                require(starting != null && !starting.isDone(),
+                        "draft capture must still be pending before testing a stale add request");
                 var add = type.getDeclaredMethod("addSelectedInstance");
                 add.setAccessible(true);
                 add.invoke(screen);
@@ -2488,8 +2539,11 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var pending = (CompletableFuture<top.aihmc.omnimorph.model.outfit.OutfitDraft>) field(type, "draftStart").get(screen);
             var draft = await(pending, drain);
             awaitDraftComposition(screen, preview, drain);
-            require(draft.configuration().instances().isEmpty() && preview.outfitBase() != null,
-                    "late preparation cannot add an old resource; candidate changes retain the current base");
+            require(draft.configuration().instances().isEmpty(),
+                    "late preparation cannot add an old resource: " + draft.configuration());
+            require(preview.outfitBase() != null,
+                    "candidate changes retain the current base: " + preview.status()
+                            + "; draft=" + draft.configuration());
         }
     }
 
@@ -3036,6 +3090,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     tabRow.add(tabScrollbar);
                 }
                 require(footer.size() == 2 && !tabRow.isEmpty(), "framed settings expose a tab row and two footer buttons");
+                int tabBottom = tabRow.stream().mapToInt(widget -> widget.getY() + widget.getHeight()).max().orElseThrow();
+                require(panel[1] == tabBottom + 4,
+                        "panel follows the actual tab row with only a four-unit gap at " + size[0] + "x" + size[1]);
                 for (var widget : tabRow) {
                     require(widget.getY() + widget.getHeight() <= panel[1],
                             "tab row stays above the panel at " + size[0] + "x" + size[1]);
@@ -4605,6 +4662,41 @@ public final class LibraryPreviewRuntimeSmokeTest {
         }
     }
 
+    /** The wardrobe preview shows only the equipment visibility of the previewed model. */
+    private static void testPreviewStatus(org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                          LibraryCollectionService collection,
+                                          java.lang.reflect.Constructor<?> selection, UUID first,
+                                          com.google.gson.JsonObject firstJson, com.google.gson.Gson gson) throws Exception {
+        var originalSelection = field(screen.getClass(), "selected").get(screen);
+        var originalVisibility = field(screen.getClass(), "libraryVisibility").get(screen);
+        var visibilityField = field(screen.getClass(), "libraryVisibility");
+        try {
+            visibilityField.set(screen, new top.aihmc.omnimorph.backend2.library.LibraryEquipmentVisibility.State(
+                    first, 1, 7, true, true));
+            require(Boolean.TRUE.equals(screen.previewVisibility()),
+                    "the equipped cloud model shows that it is visible to others");
+            visibilityField.set(screen, new top.aihmc.omnimorph.backend2.library.LibraryEquipmentVisibility.State(
+                    first, 1, 8, true, false));
+            require(Boolean.FALSE.equals(screen.previewVisibility()),
+                    "hiding the equipment from others switches the indicator");
+            UUID second = UUID.randomUUID();
+            field(screen.getClass(), "selected").set(screen,
+                    selection.newInstance(null, null, false, second, net.minecraft.network.chat.Component.literal("second")));
+            require(screen.previewVisibility() == null,
+                    "a selected model that is not equipped has no visibility and keeps no previous state");
+            field(screen.getClass(), "selected").set(screen, null);
+            require(Boolean.FALSE.equals(screen.previewVisibility()),
+                    "the current equipment preview uses the equipment visibility");
+            visibilityField.set(screen, null);
+            require(screen.previewVisibility() == null || field(screen.getClass(), "localVisibility").get(screen) != null,
+                    "without cloud or local equipment state the indicator is unknown");
+        } finally {
+            field(screen.getClass(), "selected").set(screen, originalSelection);
+            visibilityField.set(screen, originalVisibility);
+        }
+        System.out.println("PASS wardrobe preview visibility: equipped state, toggling, unequipped selection and current equipment; GUI MANUAL/PENDING");
+    }
+
     private static void testCollectionActions(LibraryClient client) throws Exception {
         require(!Configs.WARDROBE_AUTO_CACHE.defaultValue && Configs.WARDROBE_AUTO_CACHE.parent == Configs.MISC
                         && Configs.MISC.children.contains(Configs.WARDROBE_AUTO_CACHE)
@@ -4643,6 +4735,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     selection.newInstance(null, null, false, id, net.minecraft.network.chat.Component.literal("selected")));
             field(collection.getClass(), "entries").set(collection, java.util.List.of(
                     new top.aihmc.omnimorph.backend2.library.LibraryModels.CollectionEntry(id, 1, "UPLOAD", false, model)));
+            testPreviewStatus(screen, collection, selection, id, modelJson, gson);
             var showModel = new org.figuramc.figura.gui.widgets.SwitchButton(0, 0, 24, 24,
                     net.minecraft.network.chat.Component.literal("show"), false);
             field(screen.getClass(), "showModel").set(screen, showModel);
@@ -5257,6 +5350,101 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 + "duplicate/close guards and failed-job retry state; GUI MANUAL/PENDING");
     }
 
+    private static void testSeparateInformationAndNotices() throws Exception {
+        var type = org.figuramc.figura.gui.screens.WardrobeScreen.class;
+        var buildInformation = type.getDeclaredMethod("buildInformation");
+        var updateNotices = type.getDeclaredMethod("updateMotdWidget");
+        var currentRoute = type.getDeclaredMethod("navigationRoute");
+        for (var method : java.util.List.of(buildInformation, updateNotices, currentRoute)) {
+            method.setAccessible(true);
+        }
+        var previous = org.figuramc.figura.backend2.NetworkStuff.motd;
+        try {
+            org.figuramc.figura.backend2.NetworkStuff.motd = net.minecraft.network.chat.Component.literal("Notice fixture");
+            for (var route : java.util.List.of(
+                    top.aihmc.omnimorph.gui.widgets.navigation.NavigationRoute.INFORMATION,
+                    top.aihmc.omnimorph.gui.widgets.navigation.NavigationRoute.ANNOUNCEMENTS)) {
+                var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null);
+                screen.width = 480;
+                screen.height = 270;
+                field(net.minecraft.client.gui.screens.Screen.class, "font").set(screen, Minecraft.getInstance().font);
+                field(type, "layout").set(screen,
+                        top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout.compactOf(480, 270));
+                screen.selectNavigationRoute(route);
+                require(currentRoute.invoke(screen) == route, "information and notices have distinct current routes");
+                boolean information = route == top.aihmc.omnimorph.gui.widgets.navigation.NavigationRoute.INFORMATION;
+                if (information) {
+                    buildInformation.invoke(screen);
+                }
+                updateNotices.invoke(screen);
+                require((field(type, "infoWidget").get(screen) != null) == information,
+                        "only the information page builds the model information widget");
+                require((field(type, "motdWidget").get(screen) != null) == !information,
+                        "only the notices page builds the announcement widget, including periodic updates");
+            }
+        } finally {
+            org.figuramc.figura.backend2.NetworkStuff.motd = previous;
+        }
+        System.out.println("PASS compact information/notices: separate routes and mutually exclusive widgets; GUI MANUAL/PENDING");
+    }
+
+    private static void testCollectionSelectionPreservesGrid() throws Exception {
+        var input = field(Minecraft.class, "lastInputType");
+        var previousInput = input.get(Minecraft.getInstance());
+        input.set(Minecraft.getInstance(), net.minecraft.client.InputType.MOUSE);
+        var type = org.figuramc.figura.gui.screens.WardrobeScreen.class;
+        var build = type.getDeclaredMethod("buildResources");
+        build.setAccessible(true);
+        // Run the real clear/build path without unrelated connection setup or GPU rendering.
+        var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null) {
+            @Override
+            protected void init() {
+                clearWidgets();
+                try {
+                    build.invoke(this);
+                } catch (ReflectiveOperationException failure) {
+                    throw new AssertionError(failure);
+                }
+            }
+        };
+        var root = Files.createTempDirectory("collection-selection-");
+        var session = new LibraryPreviewSession();
+        try (var catalog = new LocalCosmeticCatalog(root, Runnable::run)) {
+            field(net.minecraft.client.gui.screens.Screen.class, "minecraft").set(screen, Minecraft.getInstance());
+            field(net.minecraft.client.gui.screens.Screen.class, "font").set(screen, Minecraft.getInstance().font);
+            screen.width = 640;
+            screen.height = 360;
+            field(type, "tab").set(screen, field(type, "tab").getType().getEnumConstants()[1]);
+            field(type, "layout").set(screen,
+                    top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout.collectionOf(640, 360));
+            field(type, "cosmetics").set(screen, catalog);
+            field(type, "localCandidates").set(screen, LocalOutfitCandidates.forDirectory(root));
+            field(type, "preview").set(screen, session);
+            var entry = new top.aihmc.omnimorph.backend2.library.LibraryModels.CollectionEntry(
+                    UUID.randomUUID(), 1, "DOWNLOAD", false, null);
+            field(type, "offlineEntries").set(screen, java.util.List.of(entry));
+            build.invoke(screen);
+            var original = field(type, "collectionGrid").get(screen);
+            var select = type.getDeclaredMethod("selectCloud", entry.getClass());
+            select.setAccessible(true);
+            for (int index = 0; index < 3; index++) {
+                select.invoke(screen, entry);
+                require(field(type, "collectionGrid").get(screen) == original,
+                        "preview selection must preserve the collection grid and its cover handles");
+            }
+            ((AutoCloseable) original).close();
+        } finally {
+            input.set(Minecraft.getInstance(), previousInput);
+            session.close();
+            try (var paths = Files.walk(root)) {
+                for (var path : paths.sorted(java.util.Comparator.reverseOrder()).toList()) {
+                    Files.deleteIfExists(path);
+                }
+            }
+        }
+        System.out.println("PASS collection preview selection: grid and cover ownership survive repeated clicks; GUI MANUAL/PENDING");
+    }
+
     private static void testOutfitUploadScreen(LibraryClient client, CurrentPreviewPlayer player, Runnable drain) throws Exception {
         var budget = top.aihmc.omnimorph.model.outfit.OutfitLimits.defaults();
         var extension = new top.aihmc.omnimorph.backend2.library.LibraryModels.OutfitCapabilities(1, true, true,
@@ -5283,6 +5471,10 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var initialize = type.getDeclaredMethod("init");
             initialize.setAccessible(true);
             initialize.invoke(screen);
+            var uploadPreview = (org.figuramc.figura.gui.widgets.EntityPreview) field(type, "previewWidget").get(screen);
+            require(uploadPreview.getY() == 68, "upload progress reserves a header above the actual preview");
+            require(uploadPreview.getY() + uploadPreview.getHeight() < screen.height - 28,
+                    "upload preview remains inside the area above publication actions");
             var purpose = type.getDeclaredMethod("changePurpose", int.class);
             purpose.setAccessible(true);
             purpose.invoke(screen, 2);
