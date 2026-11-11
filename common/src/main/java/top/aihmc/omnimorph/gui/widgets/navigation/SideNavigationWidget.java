@@ -5,6 +5,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import org.figuramc.figura.gui.widgets.StatusWidget;
 import net.minecraft.resources.ResourceLocation;
 import org.figuramc.figura.gui.widgets.AbstractContainerElement;
 import org.figuramc.figura.utils.FiguraIdentifier;
@@ -49,6 +50,7 @@ public final class SideNavigationWidget extends AbstractContainerElement {
     private boolean expanded;
     private int scrollX;
     private int scrollY;
+    private StatusWidget footerStatus;
 
     /**
      * @param railVisible false for pages laid out without the rail: only the top bar is drawn
@@ -161,6 +163,22 @@ public final class SideNavigationWidget extends AbstractContainerElement {
             gui.disableScissor();
         }
         renderScrollbars(gui, layout);
+        renderFooterStatus(gui, mouseX, mouseY, width);
+    }
+
+    /** The original four indicators stay together in the expanded menu's fixed footer. */
+    private void renderFooterStatus(GuiGraphics gui, int mouseX, int mouseY, int width) {
+        int top = getHeight() - NavigationLayout.FOOTER_HEIGHT;
+        gui.fill(0, top, width, getHeight(), OVERLAY_COLOR);
+        gui.fill(6, top, width - 6, top + 1, DIVIDER_COLOR);
+        if (footerStatus == null) {
+            footerStatus = new StatusWidget(6, top, Math.min(64, width - 12));
+            footerStatus.setBackground(false);
+        }
+        footerStatus.setY(top + (NavigationLayout.FOOTER_HEIGHT - font.lineHeight) / 2);
+        footerStatus.setWidth(Math.min(64, width - 12));
+        footerStatus.tick();
+        footerStatus.render(gui, mouseX, mouseY, 0);
     }
 
     private void renderRow(GuiGraphics gui, NavigationLayout layout, NavigationTree.Node row,
@@ -201,7 +219,7 @@ public final class SideNavigationWidget extends AbstractContainerElement {
             gui.fill(trackX, thumbY, trackX + 2, thumbY + thumb, SCROLL_THUMB_COLOR);
         }
         if (layout.maximumScrollX() > 0) {
-            int trackY = getHeight() - NavigationLayout.SCROLLBAR;
+            int trackY = getHeight() - NavigationLayout.FOOTER_HEIGHT - NavigationLayout.SCROLLBAR;
             int thumb = Math.max(8, width * width / layout.contentWidth());
             int thumbX = (width - thumb) * scrollX / layout.maximumScrollX();
             gui.fill(0, trackY + 1, width, trackY + 3, SCROLL_TRACK_COLOR);

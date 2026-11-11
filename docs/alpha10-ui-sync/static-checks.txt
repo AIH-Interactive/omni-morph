@@ -1,0 +1,10 @@
+PASS changed JSON (en_us, zh_cn).
+PASS all workflow YAML and PowerShell run-block AST.
+PASS actionlint, exit0 without diagnostics.
+PASS production graph: 24 tasks, no test/check/smoke/verification/JNI/probe.
+PASS git diff HEAD --check; no unmerged entries.
+PASS no changes to loader/build/dependency/Java/MC/ordinary-render/acceleration-removal boundaries.
+PASS premerge ZIP and nested CRC, metadata, Java21 own classes, licenses, native AVIF, required dependencies.
+PASS LibraryResourceTabs, WardrobeVerticalTab, footer method, horizontalInset, absence of verticalInset and test/custom acceleration classes.
+PASS minecraft-dev analyzed both loader JAR IDs and Minecraft compatibility; NeoForge dependencies checked directly from TOML/nested JARs.
+Quota: reliable primary weekly used20%, no handoff threshold.

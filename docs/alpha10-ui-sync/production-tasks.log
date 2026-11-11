@@ -1,0 +1,43 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+
+> Configure project :
+Architect Plugin: 3.4.164
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+Mod was built with a newer version of Loom (1.17.493), you are using Loom (1.14.476)
+Mod was built with a newer version of Loom (1.17.21), you are using Loom (1.14.476)
+Mod was built with a newer version of Loom (1.16.3), you are using Loom (1.14.476)
+:common:protobufDummy SKIPPED
+:common:extractIncludeProto SKIPPED
+:common:extractProto SKIPPED
+:common:generateProto SKIPPED
+:common:compileJava SKIPPED
+:common:processResources SKIPPED
+:common:classes SKIPPED
+:common:jar SKIPPED
+:fabric:compileJava SKIPPED
+:fabric:processResources SKIPPED
+:fabric:classes SKIPPED
+:fabric:jar SKIPPED
+:fabric:processIncludeJars SKIPPED
+:common:transformProductionFabric SKIPPED
+:fabric:shadowJar SKIPPED
+:fabric:remapJar SKIPPED
+:neoforge:compileJava SKIPPED
+:neoforge:processResources SKIPPED
+:neoforge:classes SKIPPED
+:neoforge:jar SKIPPED
+:neoforge:processIncludeJars SKIPPED
+:common:transformProductionNeoForge SKIPPED
+:neoforge:shadowJar SKIPPED
+:neoforge:remapJar SKIPPED
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_1.21.1/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 2s

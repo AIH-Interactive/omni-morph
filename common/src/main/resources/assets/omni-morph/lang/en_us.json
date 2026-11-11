@@ -52,6 +52,8 @@
     "omni-morph.gui.wardrobe.parts": "Cosmetics",
     "omni-morph.gui.wardrobe.resources": "Resources",
     "omni-morph.gui.wardrobe.preview": "Preview",
+    "omni-morph.gui.wardrobe.select_accessory": "Select",
+    "omni-morph.gui.wardrobe.mount_accessory": "Mount",
     "omni-morph.gui.wardrobe.tree": "Bones",
     "omni-morph.gui.wardrobe.preview_status_unavailable": "Local, draft or equipped models have no library status",
     "omni-morph.gui.wardrobe.info": "Info",
@@ -323,10 +325,10 @@
     "omni-morph.gui.navigation.title": "Navigation",
     "omni-morph.gui.navigation.wardrobe": "Wardrobe",
     "omni-morph.gui.navigation.outfit": "Outfit",
-    "omni-morph.gui.navigation.preview": "Preview",
+    "omni-morph.gui.navigation.preview": "Avatar",
     "omni-morph.gui.navigation.information": "Model info",
     "omni-morph.gui.navigation.announcements": "Announcements",
-    "omni-morph.gui.navigation.bones": "Bone tree",
+    "omni-morph.gui.navigation.bones": "Accessories",
     "omni-morph.gui.navigation.collection": "My Collection",
     "omni-morph.gui.navigation.library": "Model library",
     "omni-morph.gui.navigation.mine": "My models",
@@ -2419,5 +2421,7 @@
   "omni-morph.gui.wardrobe.preview_unresolved": "Mount unresolved: choose a valid bone",
   "omni-morph.gui.wardrobe.preview_mounted": "Mounted",
   "omni-morph.gui.wardrobe.local_preview_missing": "This resource is not cached. Acquire it in your collection before editing locally.",
-  "omni-morph.gui.wardrobe.instance_unmount": "Unmount accessory"
+  "omni-morph.gui.wardrobe.instance_unmount": "Unmount accessory",
+    "omni-morph.gui.library.tab_avatar": "Avatar",
+    "omni-morph.gui.library.tab_accessory": "Parts"
 }

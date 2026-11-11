@@ -48,7 +48,7 @@ public final class NavigationTreeSmokeTest {
                 "the management entry is hidden until the player is confirmed as an administrator");
         tree.setAdministratorVisible(true);
         List<String> expected = List.of(
-                "0 衣柜", "1 配装", "2 预览", "2 模型信息", "2 公告", "2 骨骼树", "1 我的形象集",
+                "0 衣柜", "1 配装", "2 形象", "2 装饰", "2 模型信息", "2 公告", "1 我的形象集",
                 "0 模型库", "1 我的模型", "1 我的收藏", "1 模型库", "1 上传模型", "1 管理员后台",
                 "0 权限", "0 设置", "0 帮助");
         List<String> actual = tree.visibleRows().stream()
@@ -123,7 +123,7 @@ public final class NavigationTreeSmokeTest {
         var longText = NavigationLayout.of(tree, 480, 252, text -> chinese(text).length() * 30);
         require(longText.expandedWidth() == NavigationLayout.MAX_EXPANDED_WIDTH && longText.maximumScrollX() > 0,
                 "text beyond the maximum width scrolls horizontally");
-        require(longText.rowsBottom() == 252 - NavigationLayout.SCROLLBAR, "a horizontal bar reserves its row");
+        require(longText.rowsBottom() == 252 - NavigationLayout.FOOTER_HEIGHT - NavigationLayout.SCROLLBAR, "horizontal scrollbar stays above the fixed connection footer");
 
         for (int height : new int[]{120, 150, 199, 233}) {
             var shortWindow = NavigationLayout.of(tree, 480, height, text -> chinese(text).length() * 6);

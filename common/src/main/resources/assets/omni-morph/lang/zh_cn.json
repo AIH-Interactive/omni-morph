@@ -52,7 +52,9 @@
     "omni-morph.gui.wardrobe.parts": "装饰",
     "omni-morph.gui.wardrobe.resources": "资源",
     "omni-morph.gui.wardrobe.preview": "预览",
-    "omni-morph.gui.wardrobe.tree": "骨骼",
+  "omni-morph.gui.wardrobe.select_accessory": "选择装饰",
+  "omni-morph.gui.wardrobe.mount_accessory": "装饰挂载",
+  "omni-morph.gui.wardrobe.tree": "骨骼",
     "omni-morph.gui.wardrobe.preview_status_unavailable": "本地、草稿或当前装备没有模型库状态",
     "omni-morph.gui.wardrobe.info": "信息",
     "omni-morph.gui.wardrobe.coming_2": "敬请期待（2.0实装）",
@@ -966,10 +968,10 @@
   "omni-morph.gui.navigation.title": "导航",
   "omni-morph.gui.navigation.wardrobe": "衣柜",
   "omni-morph.gui.navigation.outfit": "配装",
-  "omni-morph.gui.navigation.preview": "预览",
+  "omni-morph.gui.navigation.preview": "形象",
   "omni-morph.gui.navigation.information": "模型信息",
   "omni-morph.gui.navigation.announcements": "公告",
-  "omni-morph.gui.navigation.bones": "骨骼树",
+  "omni-morph.gui.navigation.bones": "装饰",
   "omni-morph.gui.navigation.collection": "我的形象集",
   "omni-morph.gui.navigation.library": "模型库",
   "omni-morph.gui.navigation.mine": "我的模型",
@@ -1188,5 +1190,7 @@
   "omni-morph.gui.wardrobe.preview_unresolved": "未解析到挂载目标，请选择有效骨骼",
   "omni-morph.gui.wardrobe.preview_mounted": "已挂载",
   "omni-morph.gui.wardrobe.local_preview_missing": "该资源尚未缓存，请先在形象集中获取，再进行本地配装。",
-  "omni-morph.gui.wardrobe.instance_unmount": "取消挂载"
+  "omni-morph.gui.wardrobe.instance_unmount": "取消挂载",
+  "omni-morph.gui.library.tab_avatar": "形象",
+  "omni-morph.gui.library.tab_accessory": "装饰"
 }

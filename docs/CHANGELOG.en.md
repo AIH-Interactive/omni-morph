@@ -6,19 +6,21 @@
 
 ## 1.0.0-alpha.10
 
-- Minecraft 1.21.1 / Java 21: ports all features below and the Alpha.9 UI prerequisites to Fabric and NeoForge; see `alpha10-port/record.md` for API adaptations and validation.
+- Minecraft 1.21.1 / Java 21 · Fabric / NeoForge: `alpha10-ui-sync/record.md`.
 
-- UI: every main screen uses a persistent left navigation: Wardrobe (Outfit: Preview, Model info, Notices, Bone tree; My Collection), Model library (My models, My favorites, Model library, Upload model, Admin console), Permissions, Settings and Help. It is collapsed to an icon rail and expands over the content on hover; the duplicate section and pane tabs are removed. Only players listed as server administrators see the Admin console (requires the matching backend).
-- Model cards: fixed size with a square cover, icon-only status badges (blocked, requires authorization, private or public) and a three-dot "Report / Favorite" menu. The models per page follow the available area, and resizing keeps the first model of the current page.
-- In-world avatars: other players see an authorized wearer's model without a grant of their own; private models are shown to others by default but still stay out of their model library; an explicit "hide from others" choice is kept (requires the matching backend).
-- Fix: the `INVALID_OUTFIT_CONFIGURATION` crash on NeoForge when mods such as TaCZ render the first-person arm with a non-invertible pose.
-- Navigation and layout: use the mod logo; compact Outfit screens have separate Model info and Notices entries, each showing only its own content. These entries are hidden in wide mode. Notices use the remaining content height, and redundant space above model controls is removed.
-- Submission covers: model, accessory and outfit forms use square covers and equally tall file upload areas. Both owner and administrator editing support replacing/removing covers and capturing a framed model preview.
-- Collection request bursts: selecting a preview preserves the grid, filters, scroll and cover resources instead of rebuilding the page. Library requests share a paced sender to reduce `RATE_LIMITED` under the shared budget.
-- Publication progress: an always-visible Upload—Validate—Review—Done stepper sits above the preview, with hollow, unfilled idle nodes. Labels share their nodes' centers and a common scale/baseline. Hover shows descriptions and actual results/errors; the redundant area below the preview is removed. Compact mode updates only the current status text.
-- Matching backend: submission endpoints stream actual validation/review phases and public/private/blocked outcomes without changing review rules, permissions or rate limits. Update the backend for live phases; older backends still return final results without live events.
-
-- Real game rendering, multiplayer and modpack acceptance remain `MANUAL/PENDING`.
+- Navigation: main screens share a persistent left rail with the mod logo. Hover expands the menu over content; duplicate section/pane tabs are removed. Wardrobe, Library, Permissions, Settings and Help remain available; Admin appears only after server confirmation.
+- Outfit: Avatar / Accessories destinations have dedicated lists and actions in both layouts. Publish comes first for accessories. Compact Select / Mount vertical tabs switch between list / preview and preview / bone tree, replacing the duplicate Bones button.
+- Model info and Notices remain separate compact-only destinations, with equal-width preview / information columns. Notices scroll independently; redundant top spacing is removed from model controls.
+- Collection and library: collection, owned models, favorites, public catalog and upload have right-side Avatar / Parts tabs in both layouts. Redundant purpose filters are removed. Avatar retains format filtering; accessories hide and ignore it. Individual edit/authorization/report/appeal forms and admin UI retain their existing flows; Outfit upload keeps a separate entry.
+- Cards share 80×98 GUI dimensions and square 80×80 covers. The occupied grid is horizontally centered and top-aligned, including short pages and single cards. A 480×252 automatic compact view fits three complete cards with filters open or closed. Wide views adapt rows, columns and page capacity to available space, retaining the first item on resize. Status icons and report/favorite menus keep matching pointer geometry.
+- Size, texture, script and connection indicators move together to the expanded navigation footer, retaining tooltips and error details. They are hidden in collapsed navigation and removed from the preview.
+- Covers: avatar, accessory and outfit upload use square covers and equally tall source selectors. Normal and admin edits support replacing/clearing covers and framing a cover from the preview.
+- Upload progress: a persistent Upload—Validate—Automatic review—Complete four-node bar sits above the preview, empty before upload. Labels share node centers and baselines; hover shows stage/results/errors. Redundant preview-footer messages are removed; compact mode updates only its current-stage text.
+- Requests and preview: collection preview clicks preserve grid/filter/scroll/cover ownership. Shared request pacing reduces RATE_LIMITED bursts.
+- World rendering: authorized wearers remain visible to observers without grants; private models stay out of others' catalogs while preserving explicit visibility choices (matching backend required). Fix the NeoForge first-person arm crash with non-invertible poses when using mods such as TaCZ.
+- Backend: real upload validation/review/result events preserve policy and limits. New resource_kind filtering runs before catalog count/pagination and requires the updated backend. Backend GitHub Actions skips all test execution while retaining build/package/artifact upload; local validation still runs.
+- Version scope: this UI round is merged from 8faa4b59 and adapted to Minecraft 1.21.1 / Java 21, retaining the earlier Alpha.10 baseline. The recorded 26.3 navigation issue is outside this port.
+- Acceptance: user acceptance applies to the source 26.1.2 UI. This port reports its own local automated regression and dual-loader builds. 1.21.1 real-client, multiplayer and modpack checks are skipped (MANUAL, unverified).
 
 ## 1.0.0-alpha.9
 
