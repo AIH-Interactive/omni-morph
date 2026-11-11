@@ -4459,6 +4459,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
             testCollectionCardsAndTreeScrolling();
             testResourceFilterPanels();
             testAllResourceSources(client);
+            testOutfitNavigation();
+            testCollectionResourceTabs();
+            testCompactAccessoryTabs();
             testWardrobeActionMenus();
         } finally {
             screen.removed();
@@ -4748,7 +4751,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var a = new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(null, first);
             var b = new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(null, second);
             grid.entries(java.util.List.of(a, b), null);
-            var click = new net.minecraft.client.input.MouseButtonEvent(8, 62,
+            var click = new net.minecraft.client.input.MouseButtonEvent(145, 35,
                     new net.minecraft.client.input.MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0));
             require(grid.mouseClicked(click, false) && chosen.get() == a, "collection pointer hit testing selects the first card");
             require(grid.keyPressed(new net.minecraft.client.input.KeyEvent(InputConstants.KEY_RIGHT, 0, 0)) && chosen.get() == b,
@@ -4836,10 +4839,11 @@ public final class LibraryPreviewRuntimeSmokeTest {
             field(type, "localCandidates").set(screen, candidates);
             field(type, "cosmetics").set(screen, catalog);
             require(field(type, "source").get(screen).toString().equals("ALL")
-                            && field(type, "mode").get(screen).toString().equals("ALL")
+                            && field(type, "mode").get(screen).toString().equals("AVATAR")
                             && !field(type, "parts").getBoolean(screen),
-                    "source and use default independently to All without entering the cosmetic placeholder");
+                    "outfit opens the avatar page with all sources");
             field(type, "tab").set(screen, field(type, "tab").getType().getEnumConstants()[1]);
+            field(type, "mode").set(screen, field(type, "mode").getType().getEnumConstants()[0]);
             field(type, "collectionGrid").set(screen, grid);
             var refresh = type.getDeclaredMethod("refreshCollectionCards");
             refresh.setAccessible(true);
@@ -4859,12 +4863,18 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(cosmeticCards.size() == 1 && cosmeticCards.contains(
                             new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(null, null, catalog.entries().getFirst())),
                     "accessory purpose filters independently from source and format");
+            var gridView = field(grid.getClass(), "view").get(grid);
+            field(gridView.getClass(), "format").setInt(gridView, 3);
+            grid.setFormatFilterVisible(false);
+            require(((java.util.List<?>) field(grid.getClass(), "filtered").get(grid)).size() == 1,
+                    "accessory collection ignores a hidden retained YSM format filter");
+            field(gridView.getClass(), "format").setInt(gridView, 0);
+            grid.setFormatFilterVisible(true);
             field(type, "mode").set(screen, purposes[1]);
             refresh.invoke(screen);
             require(((java.util.List<?>) field(grid.getClass(), "entries").get(grid)).size() == 4,
                     "Avatar purpose excludes local accessories without changing the All source");
-            field(type, "mode").set(screen, purposes[0]);
-            field(type, "tab").set(screen, field(type, "tab").getType().getEnumConstants()[0]);
+            screen.selectNavigationRoute(top.aihmc.omnimorph.gui.widgets.navigation.NavigationRoute.PREVIEW);
             field(type, "collectionGrid").set(screen, null);
             screen.width = 640;
             screen.height = 360;
@@ -4877,12 +4887,12 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 var filtered = list.getClass().getDeclaredMethod("filteredEntries");
                 filtered.setAccessible(true);
                 var entries = (java.util.List<?>) filtered.invoke(list);
-                require(entries.size() == 3
+                require(entries.size() == 2
                                 && entries.contains(new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(local, null))
-                                && entries.contains(new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(null, member))
-                                && entries.contains(new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(null, null, catalog.entries().getFirst())),
-                        "All outfit sources contain local Avatar/accessory/cloud candidates, never other collection entries");
+                                && entries.contains(new top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCollectionGrid.Entry(null, member)),
+                        "avatar page includes local and cloud avatars, excluding accessories and non-candidates");
                 var selectors = (java.util.List<?>) field(list.getClass(), "resourceFilters").get(list);
+                require(selectors.size() == 1, "outfit has no redundant avatar/accessory selector");
                 for (Object selector : selectors) {
                     var choices = (java.util.function.Supplier<?>) field(selector.getClass(), "choices").get(selector);
                     var selected = (java.util.function.IntSupplier) field(selector.getClass(), "selected").get(selector);
@@ -4890,13 +4900,15 @@ public final class LibraryPreviewRuntimeSmokeTest {
                             "production source/use dropdowns each expose All as the default first option");
                 }
             }
-            field(type, "mode").set(screen, purposes[2]);
+            screen.selectNavigationRoute(top.aihmc.omnimorph.gui.widgets.navigation.NavigationRoute.BONES);
             field(type, "cloudList").set(screen, null);
             build.invoke(screen);
             var cosmeticList = (top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCloudList) field(type, "cloudList").get(screen);
             try (cosmeticList) {
                 var filtered = cosmeticList.getClass().getDeclaredMethod("filteredEntries");
                 filtered.setAccessible(true);
+                require(!field(cosmeticList.getClass(), "formatFilterVisible").getBoolean(cosmeticList),
+                        "accessories have no model format filter");
                 require(((java.util.List<?>) filtered.invoke(cosmeticList)).size() == 1,
                         "production accessory purpose builds a real candidate list instead of a placeholder");
             }
@@ -4968,7 +4980,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
         screen.height = 360;
         field(screen.getClass(), "layout").set(screen,
                 top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout.of(640, 360));
-        field(screen.getClass(), "parts").setBoolean(screen, true);
+        screen.selectNavigationRoute(top.aihmc.omnimorph.gui.widgets.navigation.NavigationRoute.BONES);
         var build = screen.getClass().getDeclaredMethod("buildResources");
         build.setAccessible(true);
         build.invoke(screen);
@@ -4983,10 +4995,148 @@ public final class LibraryPreviewRuntimeSmokeTest {
         require(field(screen.getClass(), "resourceFiltersExpanded").getBoolean(screen)
                         && placeholder.children().stream().filter(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::isInstance)
                         .map(top.aihmc.omnimorph.gui.widgets.library.LibraryDropdown.class::cast)
-                        .allMatch(org.figuramc.figura.gui.widgets.Button::isVisible),
-                "2.0 placeholder mode retains access to the collapsed source and mode selectors");
+                        .filter(org.figuramc.figura.gui.widgets.Button::isVisible).count() == 1,
+                "accessory filters expand to show only the source selector");
         placeholder.close();
         System.out.println("PASS wardrobe plus panels: all resource selectors, independent values, bounded geometry and parts-mode access; GUI MANUAL/PENDING");
+    }
+
+    private static void testOutfitNavigation() throws Exception {
+        var type = org.figuramc.figura.gui.screens.WardrobeScreen.class;
+        // Exercise navigation handlers and view identities without claiming rendered GUI validation.
+        var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null) {
+            @Override
+            protected void init() {
+            }
+        };
+        var input = field(Minecraft.class, "lastInputType");
+        var previousInput = input.get(Minecraft.getInstance());
+        input.set(Minecraft.getInstance(), net.minecraft.client.InputType.MOUSE);
+        try {
+            var navigate = type.getDeclaredMethod("openNavigationRoute",
+                    top.aihmc.omnimorph.gui.widgets.navigation.NavigationRoute.class);
+            navigate.setAccessible(true);
+            var context = type.getDeclaredMethod("context");
+            context.setAccessible(true);
+            var avatarContext = context.invoke(screen);
+            navigate.invoke(screen, top.aihmc.omnimorph.gui.widgets.navigation.NavigationRoute.BONES);
+            require(field(type, "parts").getBoolean(screen)
+                            && field(type, "mode").get(screen).toString().equals("COSMETIC")
+                            && field(type, "pane").get(screen).toString().equals("PREVIEW")
+                            && !field(type, "bonesShown").getBoolean(screen),
+                    "accessory navigation opens its resource list beside the preview, not the full bone editor");
+            require(!avatarContext.equals(context.invoke(screen)),
+                    "avatar and accessory pages keep separate list views and selections");
+            navigate.invoke(screen, top.aihmc.omnimorph.gui.widgets.navigation.NavigationRoute.INFORMATION);
+            require(field(type, "parts").getBoolean(screen)
+                            && field(type, "pane").get(screen).toString().equals("INFO"),
+                    "model information retains the current resource type");
+            navigate.invoke(screen, top.aihmc.omnimorph.gui.widgets.navigation.NavigationRoute.PREVIEW);
+            require(!field(type, "parts").getBoolean(screen)
+                            && field(type, "mode").get(screen).toString().equals("AVATAR")
+                            && avatarContext.equals(context.invoke(screen)),
+                    "returning to avatars restores the avatar page context");
+            System.out.println("PASS outfit destinations: fixed resource types, separate views, preview and unchanged information route; GUI MANUAL/PENDING");
+        } finally {
+            input.set(Minecraft.getInstance(), previousInput);
+        }
+    }
+
+    private static void testCollectionResourceTabs() throws Exception {
+        var input = field(Minecraft.class, "lastInputType");
+        var previousInput = input.get(Minecraft.getInstance());
+        input.set(Minecraft.getInstance(), net.minecraft.client.InputType.MOUSE);
+        var type = org.figuramc.figura.gui.screens.WardrobeScreen.class;
+        var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null) {
+            @Override
+            protected void init() {
+            }
+        };
+        screen.selectNavigationRoute(top.aihmc.omnimorph.gui.widgets.navigation.NavigationRoute.COLLECTION);
+        var change = type.getDeclaredMethod("switchCollectionType", boolean.class);
+        var context = type.getDeclaredMethod("context");
+        change.setAccessible(true);
+        context.setAccessible(true);
+        var avatarContext = context.invoke(screen);
+        try (var preview = new LibraryPreviewSession()) {
+            field(type, "preview").set(screen, preview);
+            change.invoke(screen, true);
+            require(field(type, "mode").get(screen).toString().equals("COSMETIC")
+                            && !avatarContext.equals(context.invoke(screen)),
+                    "collection accessory tab owns a separate filtered list context");
+            change.invoke(screen, false);
+            require(field(type, "mode").get(screen).toString().equals("AVATAR")
+                            && avatarContext.equals(context.invoke(screen)),
+                    "collection avatar tab restores its list context");
+            for (int width : new int[]{480, 640}) {
+                var picked = new java.util.concurrent.atomic.AtomicReference<Boolean>();
+                var tabs = top.aihmc.omnimorph.gui.widgets.library.LibraryResourceTabs.create(width, 28, false, picked::set);
+                require(tabs.size() == 2 && tabs.get(0).getX() + tabs.get(0).getWidth() < width
+                                && tabs.get(0).getY() + tabs.get(0).getHeight() < tabs.get(1).getY()
+                                && tabs.get(1).getY() + tabs.get(1).getHeight() < 220 - 28,
+                        "compact and wide resource tabs fit the right margin and minimum-height footer");
+                tabs.get(1).onPress(null);
+                require(Boolean.TRUE.equals(picked.get()), "accessory tab callback selects accessory resources");
+                tabs.get(0).onPress(null);
+                require(Boolean.FALSE.equals(picked.get()), "avatar tab callback selects avatar resources");
+            }
+        } finally {
+            input.set(Minecraft.getInstance(), previousInput);
+        }
+        System.out.println("PASS collection resource tabs: fixed resource kinds, independent list contexts and compact/wide tab callbacks; GUI MANUAL/PENDING");
+    }
+
+    private static void testCompactAccessoryTabs() throws Exception {
+        var type = org.figuramc.figura.gui.screens.WardrobeScreen.class;
+        var input = field(Minecraft.class, "lastInputType");
+        var previousInput = input.get(Minecraft.getInstance());
+        input.set(Minecraft.getInstance(), net.minecraft.client.InputType.MOUSE);
+        var screen = new org.figuramc.figura.gui.screens.WardrobeScreen(null) {
+            @Override
+            protected void init() {
+            }
+        };
+        screen.width = 480;
+        screen.height = 252;
+        screen.selectNavigationRoute(top.aihmc.omnimorph.gui.widgets.navigation.NavigationRoute.BONES);
+        field(type, "layout").set(screen,
+                top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout.compactOf(480, 252));
+        var sourceType = field(type, "source").getType();
+        field(type, "source").set(screen, sourceType.getEnumConstants()[2]);
+        var build = type.getDeclaredMethod("buildCompactOutfitPanes");
+        build.setAccessible(true);
+        try (var preview = new LibraryPreviewSession()) {
+            field(type, "preview").set(screen, preview);
+            build.invoke(screen);
+            var list = (top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeCloudList) field(type, "cloudList").get(screen);
+            try (list) {
+                require(list != null && field(type, "previewWidget").get(screen) != null,
+                        "Select accessory opens the candidate list beside the preview");
+                require(screen.children().stream().filter(child -> child instanceof org.figuramc.figura.gui.widgets.Button button
+                                && button.getMessage().equals(org.figuramc.figura.utils.FiguraText.of("gui.wardrobe.tree")))
+                                .findAny().isEmpty(), "Select accessory has no redundant Bones button");
+                var tabs = screen.children().stream()
+                        .filter(top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeVerticalTab.class::isInstance)
+                        .map(top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeVerticalTab.class::cast).toList();
+                require(tabs.size() == 2 && tabs.get(0).getX() > list.getX() + list.getWidth()
+                                && tabs.get(0).getY() + tabs.get(0).getHeight() < tabs.get(1).getY()
+                                && tabs.get(1).getY() + tabs.get(1).getHeight() < screen.height - 28,
+                        "two right-side vertical tabs fit without covering the list or footer");
+                long generation = field(type, "resourceSelectionGeneration").getLong(screen);
+                tabs.get(1).onPress(null);
+                require(field(type, "bonesShown").getBoolean(screen)
+                                && field(type, "pane").get(screen).toString().equals("TREE"),
+                        "Mount accessory tab opens the bone editor");
+                tabs.get(0).onPress(null);
+                require(!field(type, "bonesShown").getBoolean(screen)
+                                && field(type, "pane").get(screen).toString().equals("PREVIEW")
+                                && generation == field(type, "resourceSelectionGeneration").getLong(screen),
+                        "Select accessory tab returns without reselecting or preparing the resource");
+            }
+        } finally {
+            input.set(Minecraft.getInstance(), previousInput);
+        }
+        System.out.println("PASS compact accessory tabs: actual Select/Mount callbacks, right-side bounds and no redundant Bones button; GUI MANUAL/PENDING");
     }
 
     private static void testWardrobeActionMenus() throws Exception {
@@ -5032,8 +5182,8 @@ public final class LibraryPreviewRuntimeSmokeTest {
             field(screen.getClass(), "parts").setBoolean(screen, true);
             groups.invoke(screen);
             var accessorySlots = (java.util.List<?>) visible.invoke(actions);
-            require(accessorySlots.size() == 11 && accessorySlots.get(0) == field(screen.getClass(), "uploadButton").get(screen),
-                    "accessory mode keeps the shared publish action before its own controls and shared draft operations");
+            require(accessorySlots.size() == 10 && accessorySlots.get(0) == field(screen.getClass(), "uploadButton").get(screen),
+                    "Publish precedes accessory controls and the shared draft operations");
             for (Object button : (java.util.List<?>) field(screen.getClass(), "avatarActions").get(screen)) {
                 require(!((org.figuramc.figura.gui.widgets.Button) button).isVisible(),
                         "avatar operations are hidden in accessory mode");
@@ -5056,15 +5206,15 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     accessory.path(), accessory.path(), false, null,
                     net.minecraft.network.chat.Component.literal("Accessory"), accessory));
             groups.invoke(screen);
-            require(((java.util.List<?>) visible.invoke(actions)).size() == 11,
-                    "an accessory selected in All switches the actual controls to the accessory group");
+            require(((java.util.List<?>) visible.invoke(actions)).size() == 15,
+                    "avatar page keeps its dedicated controls regardless of a stale accessory selection");
             field(screen.getClass(), "selected").set(screen, selectionConstructor.newInstance(
                     java.nio.file.Path.of("avatar"), java.nio.file.Path.of("avatar"), false,
                     null, net.minecraft.network.chat.Component.literal("Avatar"), null));
             field(screen.getClass(), "parts").setBoolean(screen, true);
             groups.invoke(screen);
-            require(((java.util.List<?>) visible.invoke(actions)).size() == 15,
-                    "the selected avatar takes priority over an accessory filter fallback");
+            require(((java.util.List<?>) visible.invoke(actions)).size() == 10,
+                    "accessory page keeps its dedicated controls regardless of a stale avatar selection");
         }
         var refreshed = new java.util.concurrent.atomic.AtomicInteger();
         var tree = new top.aihmc.omnimorph.gui.widgets.wardrobe.BoneTreeWidget(10, 20, 180, 180,
@@ -5300,7 +5450,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
 
     private static void testSeparateInformationAndNotices() throws Exception {
         var type = org.figuramc.figura.gui.screens.WardrobeScreen.class;
-        var buildInformation = type.getDeclaredMethod("buildInformation");
+        var buildInformation = type.getDeclaredMethod("buildCompactOutfitPanes");
         var updateNotices = type.getDeclaredMethod("updateMotdWidget");
         var currentRoute = type.getDeclaredMethod("navigationRoute");
         for (var method : java.util.List.of(buildInformation, updateNotices, currentRoute)) {
@@ -5317,12 +5467,22 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 screen.height = 270;
                 field(net.minecraft.client.gui.screens.Screen.class, "font").set(screen, Minecraft.getInstance().font);
                 field(type, "layout").set(screen,
-                        top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout.compactOf(480, 270));
+                        top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout.bonesOf(480, 270));
                 screen.selectNavigationRoute(route);
                 require(currentRoute.invoke(screen) == route, "information and notices have distinct current routes");
                 boolean information = route == top.aihmc.omnimorph.gui.widgets.navigation.NavigationRoute.INFORMATION;
-                if (information) {
+                try (var preview = new LibraryPreviewSession()) {
+                    field(type, "preview").set(screen, preview);
                     buildInformation.invoke(screen);
+                    var widget = (org.figuramc.figura.gui.widgets.EntityPreview) field(type, "previewWidget").get(screen);
+                    var layout = (top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeLayout) field(type, "layout").get(screen);
+                    require(widget.getX() == layout.previewX() && widget.getWidth() == layout.treeWidth()
+                                    && widget.getX() + widget.getWidth() < layout.treeX(),
+                            "compact information and notices place an equal-width preview on the left");
+                    require(field(type, "cloudList").get(screen) == null && field(type, "localList").get(screen) == null
+                                    && screen.children().stream().noneMatch(
+                                        top.aihmc.omnimorph.gui.widgets.library.LibraryActionBar.class::isInstance),
+                            "information pages contain no resource list or preview action toolbar");
                 }
                 updateNotices.invoke(screen);
                 require((field(type, "infoWidget").get(screen) != null) == information,
@@ -5497,6 +5657,12 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var initialize = type.getDeclaredMethod("init");
             initialize.setAccessible(true);
             initialize.invoke(screen);
+            var resourceTabs = screen.children().stream()
+                    .filter(top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeVerticalTab.class::isInstance)
+                    .map(top.aihmc.omnimorph.gui.widgets.wardrobe.WardrobeVerticalTab.class::cast).toList();
+            require(resourceTabs.size() == 2, "upload form exposes the same two resource tabs");
+            resourceTabs.get(1).onPress(null);
+            require(field(type, "accessorySource").getBoolean(screen), "actual upload tab opens the accessory form");
             var purpose = type.getDeclaredMethod("changePurpose", boolean.class);
             purpose.setAccessible(true);
             purpose.invoke(screen, true);

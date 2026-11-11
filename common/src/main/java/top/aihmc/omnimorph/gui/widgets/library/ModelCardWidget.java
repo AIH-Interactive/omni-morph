@@ -85,7 +85,8 @@ public final class ModelCardWidget extends AbstractContainerElement implements A
         int coverSize = ModelLibraryLayout.COVER_SIZE;
         gui.fill(x, y, x + width, y + height, selected ? 0xc0335566 : 0xb51a202c);
         // Full normalized texture, with dimensions independent of the source image's pixel size.
-        gui.blit(RenderPipelines.GUI_TEXTURED, cover == null ? PLACEHOLDER : cover, x, y, 0, 0,
+        int coverX = x + (width - coverSize) / 2;
+        gui.blit(RenderPipelines.GUI_TEXTURED, cover == null ? PLACEHOLDER : cover, coverX, y, 0, 0,
                 coverSize, coverSize, coverSize, coverSize);
         int outline = selected ? FiguraMod.getAccentColor().getColor().getValue() : 0x4b5569;
         UIHelper.fillOutline(gui, x, y, width, height, UIHelper.adjustColor(outline));

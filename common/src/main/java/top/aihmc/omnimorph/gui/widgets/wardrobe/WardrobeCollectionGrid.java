@@ -110,6 +110,7 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
     private Consumer<LibraryModels.Model> favorite = ignored -> {};
     private String selected;
     private final LibraryDropdown formatFilter;
+    private boolean formatFilterVisible = true;
     private List<LibraryDropdown> resourceFilters = List.of();
     private Consumer<Boolean> filtersChanged = ignored -> {};
 
@@ -158,7 +159,7 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
     public void setResourceFilters(LibraryDropdown source, LibraryDropdown mode, boolean expanded,
                                    Consumer<Boolean> changed) {
         children.removeAll(resourceFilters);
-        resourceFilters = List.of(source, mode);
+        resourceFilters = mode == null ? List.of(source) : List.of(source, mode);
         children.remove(formatFilter);
         children.addAll(resourceFilters);
         children.add(formatFilter);
@@ -167,8 +168,17 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
         updateHeader();
     }
 
+    public void setFormatFilterVisible(boolean visible) {
+        if (formatFilterVisible == visible) {
+            return;
+        }
+        formatFilterVisible = visible;
+        updateHeader();
+        filter();
+    }
+
     private void updateHeader() {
-        formatFilter.setVisible(view.filtersExpanded);
+        formatFilter.setVisible(view.filtersExpanded && formatFilterVisible);
         int selectorWidth = Math.min(100, (getWidth() - 16) / 3);
         for (int index = 0; index < resourceFilters.size(); index++) {
             var selector = resourceFilters.get(index);
@@ -177,7 +187,7 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
             selector.setY(getY() + 28);
             selector.setWidth(selectorWidth);
         }
-        int selectorsWidth = resourceFilters.isEmpty() ? 0 : 2 * (selectorWidth + 4);
+        int selectorsWidth = resourceFilters.size() * (selectorWidth + 4);
         formatFilter.setX(getX() + 4 + selectorsWidth);
         formatFilter.setWidth(Math.min(128, getWidth() - 8 - selectorsWidth));
         formatFilter.setY(getY() + 28);
@@ -205,7 +215,7 @@ public final class WardrobeCollectionGrid extends AbstractList implements AutoCl
     private void filter() {
         closeImages();
         String query = view.query.toLowerCase(Locale.ROOT);
-        filtered = entries.stream().filter(entry -> (view.format == 0 || entry.format().equals(FORMATS.get(view.format)))
+        filtered = entries.stream().filter(entry -> (!formatFilterVisible || view.format == 0 || entry.format().equals(FORMATS.get(view.format)))
                 && entry.search(query)).toList();
         layout = null;
     }

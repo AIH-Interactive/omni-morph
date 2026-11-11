@@ -57,6 +57,7 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
     private LibraryThumbnailService thumbnails;
     private final Map<UUID, LibraryThumbnailService.Handle> icons = new HashMap<>();
     private final LibraryDropdown formatFilter;
+    private boolean formatFilterVisible = true;
     private List<LibraryDropdown> resourceFilters = List.of();
     private Consumer<Boolean> filtersChanged = ignored -> {};
 
@@ -103,7 +104,7 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
     public void setResourceFilters(LibraryDropdown source, LibraryDropdown mode, boolean expanded,
                                    Consumer<Boolean> changed) {
         children.removeAll(resourceFilters);
-        resourceFilters = List.of(source, mode);
+        resourceFilters = mode == null ? List.of(source) : List.of(source, mode);
         children.remove(formatFilter);
         children.addAll(resourceFilters);
         children.add(formatFilter);
@@ -112,8 +113,13 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
         updateHeader();
     }
 
+    public void setFormatFilterVisible(boolean visible) {
+        formatFilterVisible = visible;
+        updateHeader();
+    }
+
     private void updateHeader() {
-        formatFilter.setVisible(view.filtersExpanded);
+        formatFilter.setVisible(view.filtersExpanded && formatFilterVisible);
         int selectorWidth = Math.min(100, (getWidth() - 16) / 3);
         for (int index = 0; index < resourceFilters.size(); index++) {
             var selector = resourceFilters.get(index);
@@ -122,7 +128,7 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
             selector.setY(getY() + 28);
             selector.setWidth(selectorWidth);
         }
-        int selectorsWidth = resourceFilters.isEmpty() ? 0 : 2 * (selectorWidth + 4);
+        int selectorsWidth = resourceFilters.size() * (selectorWidth + 4);
         formatFilter.setX(getX() + 4 + selectorsWidth);
         formatFilter.setWidth(Math.min(128, getWidth() - 8 - selectorsWidth));
         formatFilter.setY(getY() + 28);
@@ -276,7 +282,7 @@ public final class WardrobeCloudList extends AbstractList implements AutoCloseab
         entries.forEach(entry -> resources.add(new WardrobeCollectionGrid.Entry(null, entry)));
         return resources.stream().filter(entry -> {
             boolean matches = entry.search(query);
-            return matches && (view.format == 0
+            return matches && (!formatFilterVisible || view.format == 0
                     || entry.format().equals(List.of("", "FIGURA", "YSM_PLAIN", "YSM_ENCRYPTED").get(view.format)));
         }).toList();
     }
