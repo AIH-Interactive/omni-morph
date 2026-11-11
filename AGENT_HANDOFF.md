@@ -62,3 +62,10 @@ MC1.21.1适配GuiGraphics/ResourceLocation/坐标输入/Font/PoseStack/同步截
 - Fabric SHA256：6cae514b6ae682f7df6476d743193a230cbd7b0d73f763fedb74f722a5f0393f。NeoForge SHA256：6eb20b77ee77a1944d3e2f70900e2412a36f3fc1cc2f4847a0a849257c0cb8af。路径为本根fabric/build/libs及neoforge/build/libs的alpha.10+1.21.1-对应loader-mc.jar；完整绝对路径与哈希以docs/alpha10-ui-sync/artifacts.json为准，以上前轮ba72f27d哈希已是历史。
 - 本版所有授权实施/自动验证完成，未验证人工项仍SKIPPED（MANUAL），不作为受阻；无额外开发阶段。周额度已用20%，未触发Luna。
 - 当前仅本次最终文档提交待推送，完成后立即按已核验原始用户授权发送至1.20.1现有会话01a1970e-a221-7610-996d-9ef5214db4ce；保留设置，不触碰其工作区。发送结果后续追加。
+
+### 逐级交接已发送（本轮最终状态）
+
+- 本版代码2b82deea及交付记录b355bcf5已推送并核对origin/1.21.1一致。
+- 已在本会话交付两包路径与本版结果，然后通过send_message_to_thread成功发送完整指令至hostId local、threadId 01a1970e-a221-7610-996d-9ef5214db4ce（1.20.1现有会话）。工具返回isError=false及相同threadId。
+- 消息包含已核验用户原始逐级授权、原始源8faa/245d、全部最终UI规格、后端依赖、本版适配/测试/提交/最终JAR哈希、项目约束和剩余链条。未设置模型/思考覆盖，未创建新聊天，未修改1.20.1工作区，未越级或代做。
+- 本版任务已完整收尾，无剩余开发/自动验证/通信待办。1.20.1需在自身会话完成后结束，不在本版等待它或人工结果。后续此手册仅收件记录提交，不改变已交付包的生产代码SHA。
