@@ -1150,6 +1150,15 @@ tasks.register('figuraWithoutIrisSmokeTest', JavaExec) {
     args rootProject.file('common/src/test/resources/nofigura/avatar').path
 }
 
+tasks.register('keyframeDiagnosticSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks authored animation errors through the formal reader and animation player.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.outfit.KeyframeDiagnosticSmokeTest'
+    args rootProject.file('common/src/test/resources/nofigura/avatar').path
+}
+
 tasks.register('previewCoverSmokeTest', JavaExec) {
     group = 'verification'
     description = 'Checks the automatic upload cover cut from the preview: region, clipping, crop and PNG.'

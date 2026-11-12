@@ -227,8 +227,8 @@ if ($buildExitCode -ne 0) {
 | M0 | DONE | 手臂/延迟姿态/原生材质/缓存及双加载器 PASS；语料计数基线失败独立记录 | MANUAL/PENDING | 9d5b3bcf 已推送 |
 | M1 | 实施完成 | firstPersonItemRender RED→GREEN，手臂/姿态和双加载器 PASS | MANUAL/PENDING | ea755aa5 已推送 |
 | M2 | 实施完成 | cameraFov RED→GREEN、M1/手臂回归与双加载器 PASS | MANUAL/PENDING | f8f7562d 已推送 |
-| M3 | PBR 接线实施完成 | RED→GREEN、无 Iris/实例/生命周期/YSM 材质及双加载器 PASS | 画面 MANUAL/PENDING | 检查点提交中 |
-| M4 | PLANNED | NOT RUN | MANUAL/PENDING | 无 |
+| M3 | PBR 接线实施完成 | RED→GREEN、无 Iris/实例/生命周期/YSM 材质及双加载器 PASS | 画面 MANUAL/PENDING | 33dae03f 已推送 |
+| M4 | 诊断实施完成 | keyframeDiagnostic RED→GREEN、Lua/Molang/版本继承、私有诊断和双加载器 PASS | 显示 MANUAL/PENDING | 检查点提交中 |
 | M5 | PLANNED | NOT RUN | MANUAL/PENDING | 无 |
 | M6 | PLANNED | NOT RUN | MANUAL/PENDING | 无 |
 
