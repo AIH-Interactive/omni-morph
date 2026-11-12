@@ -1,5 +1,28 @@
 # NoFigura P1/P2 实施记录
 
+## Alpha.11：YSM 原生第一人称武器替换（2026-11-13）
+
+- 用户授权：补齐 YSM 通用第一人称武器替换，用指定芙宁娜原样本 RED/GREEN，保持手臂、第三人称及配装，编译并提交推送。不修改或发布作者模型。
+- 原样本：`D:/Program Files/AIHMC/.minecraft/versions/26.1.2-Fabric 0.19.3/omnimorph/avatars/芙宁娜v3.14中文配音.ysm`；13,712,332 字节。读入前后 SHA256 均为 `F5FB807C1454A14CA5BDF519EDD2EE852F0ECCB5A0369BCAC0B587EEFC3A6254`。模型未修改、未复制进仓库；未导出解密资源。
+- 根因：物品入口只有 Figura ITEM_RENDER，没有 YSM 原生替换；第一人称只采样独立手臂，身体中的武器没有采样/提交。同时，原有默认隐藏初始化在每次采样中修改两个骨骼域，手臂采样会重新隐藏刚采样好的身体武器。
+- RED 1：原模型原生加载、作者持剑动画声明通过，实际 FirstPersonItemRender.submit 未拦截原版剑；断言 `YSM authored hidden hand locator replaces the vanilla first-person sword`。日志 `build/ysm-firstperson-weapon-red.log`。
+- RED 2：正式控制器状态恢复后回放作者 `剑1` 的 0.15 秒已完成过渡姿态；身体采样中 LeftSword 可见、scale=1，第一人称采样后被隐藏。日志 `build/ysm-firstperson-pose-red.log`。错误的夹具、动画名、未完成的混合过渡或编译准备失败均未计为功能 RED。
+- 实施：在现有可见 Avatar 作用域中分流到原生 YSM；有独立手臂时按同一时间线补采身体姿态，不重复推进控制器、时间或事件；默认隐藏仅重置当前骨骼域。用作者手挂点的隐藏规则决定是否接管原版物品，借用挂在手部、未包含在手臂模型中的装备，排除手指/拇指等重复皮肤。
+- 提交时将身体装备换算到原版第一人称持物空间，保留作者动画及发光后代；挂点零缩放作为隐藏标记处理，不用于构造奇异握持矩阵。捕获不可变姿态和生命周期，再经现有 Feature 提交消费者绘制。生产代码没有作者模型名、路径或剑动画名特判。
+- 样本语义：作者持剑待机隐藏手中剑、显示背剑；主手挥剑动画实际在左手显示武器。单个替换允许跨手动作，双手替换各提交自身装备，避免重复。没有隐藏声明、空物品以及第三人称上下文保留原有路径。
+- GREEN：原始加密样本正式加载 → 作者动画/控制器姿态 → 生产物品提交 → 延迟原生顶点消费通过。待机 0、挥剑 6024 顶点（56 个武器立方体及 195 个发光后代立方体）；提交后改变实时可见性不影响捕获姿态。左右手分别提交后总顶点仍为 6024，同帧重采样不二次推进动画，独立手臂姿态、原版回退及空手通过。日志 `build/ysm-firstperson-weapon-green.log`、`build/ysm-firstperson-weapon-final.log`。
+- 最终验证命令：`./gradlew.bat :common:ysmFirstPersonWeaponSmokeTest :common:ysmFirstPersonControllerSmokeTest :common:ysmHandAnimationSmokeTest :common:ysmDeferredPoseSmokeTest :common:ysmAnimationFrameClockSmokeTest :common:ysmHeldItemGeometrySmokeTest :common:firstPersonItemRenderSmokeTest :common:firstPersonArmPoseSmokeTest :common:libraryPreviewRuntimeSmokeTest :common:outfitApplyClientSmokeTest :fabric:build :neoforge:build -Prelease -PysmWeaponSample=<原样本绝对路径>`。全程前台 PowerShell/Tee；退出码 0，BUILD SUCCESSFUL in 2m 52s，43 个任务。
+- 第三人称默认身体/附件几何语料 53 个模型（18 个加密）PASS，包括该样本 33360 顶点。此项不等于全语料每个动画控制器的实机验收；语料中的 controller-parse 诊断未在本次扩大修复。Figura 物品、草稿/配装 Apply、手臂、第一人称控制器和延迟姿态回归均通过。
+- 双平台发行包 CRC 与原生替换类/方法检查 PASS：`build/ysm-firstperson-weapon-artifacts.log`。下列产物覆盖本记录之前 Alpha.11 包的哈希。
+
+| 平台 | 字节数 | SHA256 |
+| --- | --- | --- |
+| Fabric | 19100541 | `d592692979ac0627a3edcfb4918e2b5f1e1cee1bc184f5f4d67ce543f1483594` |
+| NeoForge | 18714206 | `edcf981eea28ad28703779e4a80b53653a2190c0426ebb8b0cc7b16c8f95af6c` |
+
+- 范围：没有修改第三人称绘制/持物变换、正式装备、网络同步或权限实现。未自行启动游戏、覆盖安装目录或修改模型。上述验证为真实解析与 CPU 渲染消费者证据；实际游戏中的位置、遮挡、光影以及键鼠触发挥砍画面记录为 **MANUAL/PENDING**，不记为 PASS，也不阻止已授权交付。
+- 实施与自动验证完成，无新增实施阶段。分支 `dev`，提交与远端核对以本次交付检查点及 AGENT_HANDOFF.md 为准。最近可靠周额度已用 29%、剩余 71%，未触发交接。
+
 ## Alpha.11 公共草稿查询修复（2026-11-12）
 
 - 新增仅用于客户端呈现/输入的 VisibleAvatar.forEntity/localPlayer：显式 GUI 预览（含原版）优先，然后本地可见配装草稿，最后原有 AvatarManager 查询。空基础草稿不回退到正式 Avatar；panic 保持禁用，其他实体不套用本地草稿。
