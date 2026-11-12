@@ -1,5 +1,17 @@
 # Agent 交接手册
 
+## 最新任务：Alpha.11 第一人称物品草稿回归修复（2026-11-12）
+
+- 用户报告 youling.zip 钻石剑仍显示原版。已复现并修复：物品入口取正式 Avatar，而可见模型是 LocalOutfitPreview 草稿。现在物品作用域和手部 RENDER 入口优先取同一可见草稿，没有草稿时保持正式 Avatar 路径。
+- 状态：实施、功能 RED→GREEN、作者 ZIP 正式回放和受影响回归、Fabric/NeoForge 构建完成。无剩余实施；修复后游戏画面 `MANUAL/PENDING`，没有自行启动游戏或覆盖安装目录 JAR。
+- 固定回归通过实际 ItemInHandRendererMixin 包装入口测试；作者原 ZIP 直接事件/绘制输出 6584 顶点。原始模型未修改、未纳入 Git。包内两张纹理查找警告是独立观察，未在本次扩大范围处理。
+- 日志：`build/firstperson-draft-red.log`、`build/firstperson-draft-green.log`（BUILD SUCCESSFUL，退出码 0）、`build/firstperson-draft-artifacts.log`。完整根因、命令任务和新版产物 SHA256 在 `NoFigura实施记录.md` 最前节；新版哈希覆盖下方 M6 初版产物引用。
+- 分支 `dev` / `origin/dev`；本修复提交包含生产 Mixin、固定回归、显式本地作者 ZIP 回放入口、四语言 CHANGELOG 和此记录。提交前已核对差异和 whitespace；推送与远端 SHA 在交付时核对，实际 HEAD 用 git log 查询。
+- 既有未跟踪资料保留；没有修改作者资源、用户安装目录、协议或全局渲染顺序。后续仅在用户反馈实际效果后登记实机结果，无新增开发阶段。
+- 最近可靠额度：周窗口已用 26%、剩余 74%，未触发 Luna 交接。
+
+下方为此前 M0～M6 的交付历史；第一人称实机反馈已由本节覆盖。
+
 ## 当前任务：NoFigura P1/P2 移植 / Alpha.11（2026-11-12）
 
 - 用户授权目标：完成 M0～M6，每阶段自动验证后提交、推送并确认，再进入下一阶段；额度达到阈值时交接。M0～M6 实施与自动交付均完成并推送；实机验收仍 MANUAL/PENDING。

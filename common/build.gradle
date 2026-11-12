@@ -1150,6 +1150,16 @@ tasks.register('figuraWithoutIrisSmokeTest', JavaExec) {
     args rootProject.file('common/src/test/resources/nofigura/avatar').path
 }
 
+tasks.register('firstPersonAvatarSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Opt-in replay of the reported local first-person avatar package.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.outfit.FirstPersonAvatarSmokeTest'
+    args rootProject.file('common/src/test/resources/nofigura/avatar').path
+    args providers.gradleProperty('firstPersonAvatar').getOrElse('')
+}
+
 tasks.register('luaModulePathSmokeTest', JavaExec) {
     group = 'verification'
     description = 'Checks virtual module names through formal ZIP compilation and Lua require.'

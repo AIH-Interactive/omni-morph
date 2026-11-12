@@ -147,7 +147,7 @@ public final class FirstPersonItemRenderSmokeTest {
         }
     }
 
-    private static final class RegistryLevel extends net.minecraft.client.multiplayer.ClientLevel {
+    static final class RegistryLevel extends net.minecraft.client.multiplayer.ClientLevel {
         private RegistryLevel() {
             super(null, null, null, null, 0, 0, null, false, 0L, 0);
         }

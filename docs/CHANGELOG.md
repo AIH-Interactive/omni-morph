@@ -6,6 +6,7 @@
 
 ## 1.0.0-alpha.11
 
+- 修复配装草稿的第一人称物品替换：物品事件和手部渲染使用当前可见的本地草稿，而不是仍然同步的正式 Avatar。
 - 第一人称：接通左右手普通持物的 Figura ITEM_RENDER 替换；nil/非 Item 返回保留原版路径。
 - 相机：接通 Lua `renderer:setFOV` 倍率，nil 恢复实时原版视野，本地 Avatar 权限与生命周期生效。
 - 材质：Figura 基色按纹理组向 Iris 配对 `_n` 法线与 `_s` 高光；保留源图生命周期、动态更新及现有 YSM PBR，无 Iris 时继续普通材质。
