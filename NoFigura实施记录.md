@@ -1,5 +1,24 @@
 # NoFigura P1/P2 实施记录
 
+## Alpha.11 修复：本地草稿第一人称物品（2026-11-12）
+
+- 用户报告 `youling.zip` 手持钻石剑仍显示原版。已安装 NeoForge JAR SHA256 与最初 Alpha.11 交付完全一致，排除装错旧包。
+- 原始 ZIP 正式编译/加载后，作者 weapons.lua 返回 model1.Item，直接事件和实际顶点消费输出 6584 个顶点；包内两张纹理查找警告独立存在，但没有阻止本次 Item 几何输出。没有修改或提交作者 ZIP。
+- 根因：用户日志显示本地配装草稿正在预览 youling；手臂已有草稿选择，新增 ITEM_RENDER 入口却只用 AvatarManager.getAvatarForPlayer 的正式装备 Avatar。故可见模型与物品脚本不是同一个 Avatar，未命中替换时继续原版物品。
+- RED：在现有真实草稿夹具中调用生产 ItemInHandRendererMixin 包装方法，有几何的 Item 返回仍不能替换；断言 `First-person item must use the visible local draft, not the resident Avatar`。日志 `build/firstperson-draft-red.log`。注册组件未初始化和空几何夹具错误不作为功能 RED。
+- 最小修复：ItemInHandRendererMixin 在物品作用域和手部 RENDER 事件入口共用可见 Avatar 选择，优先 LocalOutfitPreview.state(player).base；没有本地草稿才用正式 Avatar。草稿为原版基础时返回 null，保持不被旧模型覆盖。没有改全局 Feature 消费顺序、协议、模型文件或纹理解析。
+- GREEN：`libraryPreviewRuntimeSmokeTest`、`firstPersonAvatarSmokeTest`（`-PfirstPersonAvatar=<用户 ZIP>`）、`firstPersonItemRenderSmokeTest`、`firstPersonArmPoseSmokeTest`、`ysmDeferredPoseSmokeTest`、Fabric/NeoForge build 及 NeoForge 分发校验 PASS；退出码 0，BUILD SUCCESSFUL in 1m 16s，日志 `build/firstperson-draft-green.log`。
+- `firstPersonAvatarSmokeTest` 是本地显式输入回放，默认发行构建不依赖作者模型；真实 ZIP 留在原目录。固定可发布回归位于 OutfitHandRenderingSmokeTest 的生产 Mixin 入口。
+- 实机：修复后的 NeoForge 游戏画面 `MANUAL/PENDING`。本次没有启动或操作游戏，没有替换安装目录 JAR。此前手动消费队列的测试未覆盖草稿选择差异，本次已补足这一生产入口。
+- 以下哈希替代下方 M6 初版产物哈希；CRC 和包含修复的 Mixin 字节码验证 PASS，日志 `build/firstperson-draft-artifacts.log`。对应源码为包含本记录的修复提交。
+
+| 平台 | 字节数 | SHA256 |
+| --- | --- | --- |
+| Fabric | 19096877 | `183f2411882f76660b05ef6daea2d8eb198841f64027f4100c232521386b8d41` |
+| NeoForge | 18710606 | `764c445d6d1ce01f7f0d5373ded8571a7d5ace98b7a3cc7127f36d1a80b7cc62` |
+
+产物仍为两平台 `build/libs/omni-morph-1.0.0-alpha.11+26.1.2-<loader>-mc.jar`。周额度已用 26%、剩余 74%，未触发交接；当前修复的提交/推送以本记录所在提交和交付时远端核对为准。
+
 用户已确定本轮发布版本 `1.0.0-alpha.11`；M0 保留 Alpha.10 基线证据，M1 起构建采用 Alpha.11。
 
 ## M0 基线（2026-11-12）

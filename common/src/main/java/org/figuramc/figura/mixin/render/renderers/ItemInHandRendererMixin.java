@@ -42,16 +42,22 @@ public abstract class ItemInHandRendererMixin {
 
     @Unique Avatar avatar;
 
+    @Unique
+    private Avatar figura$visibleHandAvatar(LocalPlayer player) {
+        var preview = top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.state(player);
+        return preview != null ? preview.base() : AvatarManager.getAvatarForPlayer(player.getUUID());
+    }
+
     @WrapMethod(method = "renderHandsWithItems")
     private void figura$withFirstPersonItems(float tickDelta, PoseStack matrices, SubmitNodeCollector collector,
                                             LocalPlayer player, int light, Operation<Void> original) {
-        FirstPersonItemRender.withAvatar(AvatarManager.getAvatarForPlayer(player.getUUID()), () ->
+        FirstPersonItemRender.withAvatar(figura$visibleHandAvatar(player), () ->
                 original.call(tickDelta, matrices, collector, player, light));
     }
 
     @Inject(method = "renderHandsWithItems", at = @At("HEAD"))
     private void onRenderHandsWithItems(float tickDelta, PoseStack matrices, SubmitNodeCollector submitNodeCollector, LocalPlayer player, int light, CallbackInfo ci) {
-        avatar = AvatarManager.getAvatarForPlayer(player.getUUID());
+        avatar = figura$visibleHandAvatar(player);
         if (avatar == null)
             return;
 
