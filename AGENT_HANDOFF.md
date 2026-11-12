@@ -77,3 +77,12 @@ MC1.21.1适配GuiGraphics/ResourceLocation/坐标输入/Font/PoseStack/同步截
 新增实际绘制调用回归，先RED捕获缺Logo/五项高度0/菜单Z0，再GREEN；初版夹具原生背景初始化失败已修正。libraryPreviewRuntime（含新绘制、既有输入与原生预览）、navigationTree、modelLibraryLayout、modelLibraryCatalog及双remapJar全部通过，1分13秒退出0；包预检和diff检查通过。详细记录docs/navigation-render-fix/record.md，RED/GREEN日志同目录。测试不声称游戏像素验证；人工客户端项SKIPPED（MANUAL，未验证），未启动游戏或覆盖mods。
 
 本次修复实施与规定回归已完成，尚需：提交推送当前代码→从代码提交重建双包并校验记录哈希→按用户授权发送修复到1.20.1现有会话01a1970e-a221-7610-996d-9ef5214db4ce核查→记录交付及发送结果并推送。不要代改1.20.1或自行扩大修复。周已用20%，未触发Luna。以上历史产物SHA不再是本轮最终产物，稍后追加新值。
+
+### 最终修复交付与1.20.1发送结果（覆盖上节待办）
+
+- 修复代码c12c0408702a3e91e462123b3dff19c40f6c5545已提交推送并ls-remote核对一致，所有生产修复与回归均包含在此提交。提交后双remapJar12秒成功，包版本1.0.0-alpha.10+1.21.1-c12c0408；后续仅文档记录提交，不改变生产代码来源。
+- 最终包路径：D:/UserData/Desktop/Project/OMP/OMP_1.21.1/fabric/build/libs/omni-morph-1.0.0-alpha.10+1.21.1-fabric-mc.jar；SHA256 49c1f8dd04801d6673b8dec8b9b3e106e9ee32523a281ded3fc7beb15f9a06ee。
+- NeoForge：D:/UserData/Desktop/Project/OMP/OMP_1.21.1/neoforge/build/libs/omni-morph-1.0.0-alpha.10+1.21.1-neoforge-mc.jar；SHA256 5eec88400a261eb2990e9ac8f8c1e3976817dfb7e3c2c558ea9bfcaebdc6ce8c。
+- 最终Logo引用存在/不再引用缺失路径、双包/嵌套CRC、MC/Java/加载器元数据、AVIF/业务依赖/许可证、无测试或自建加速均PASS；证据docs/navigation-render-fix/artifacts.json/txt及final-packaging.log。源码diff检查通过，原始red.log JVM Exception行尾空格作为原始日志保留，不格式化证据。
+- 已按用户本会话直接授权，通过send_message_to_thread发送至hostId local、threadId 01a1970e-a221-7610-996d-9ef5214db4ce；返回isError=false及相同threadId。包含修复SHA、三根因、正确接口/层级、RED/GREEN与最终包证据，要求1.20.1按其实际版本核查，不假定同故障、不照抄Java21测试/配置。未修改其工作区或模型设置，未创建新聊天。
+- 本版无剩余实施/自动验证/通信待办；1.20.1在自身会话核查，本版不等待或代做。人工实机验收仍SKIPPED（MANUAL，未验证），未启动游戏/覆盖mods。原未跟踪.codex/、.mcp.json、.omc/保留。当前任务已完成。
