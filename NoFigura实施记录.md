@@ -70,3 +70,26 @@ M0 检查点：`9d5b3bcf` 已推送，远端 SHA 已确认。
 - 实施：小型 ScriptPath 只处理 Avatar 脚本索引，不实现整个 java.nio.Path，不接触磁盘。既有 PathUtils 的 Path 接口保留；脚本安全名和 require/listFiles 使用虚拟解析，真实 IO、导出、ZIP、缓存规则不变。
 - M1/M2 回归、Fabric/NeoForge build 及发行包校验 PASS，退出码 0；日志 `build/m5-final.log`。实机模块脚本显示/双平台启动 `MANUAL/PENDING`。
 - 范围外观察：ZIP 文件系统根目录直接交给编译器时，脚本名有前导点；样本改用正式 ZIP 内模型目录。该旧命名行为未在本阶段修改，留作后续独立调查。
+- M5 检查点 `30198cb8` 已推送并确认远端。
+
+## M6 组合回归与 Alpha.11 交付
+
+- 同一正式加载的 Figura Avatar：ITEM_RENDER 提交/原生四顶点 + Lua FOV 倍率 + 作者 PBR 纹理组，消费后原始法线/高光对象仍有效。`figuraPbrSmokeTest` 复用第一人称用例覆盖，未新增生产测试专用入口。
+- 交付补验：第一人称四次实际事件调用断言、第三人称/递归不增加次数、正式加载的 Avatar 退役后物品不替换且 FOV 恢复；`build/m6-retirement.log`。ItemTask 的实际 RenderUtils → GameRenderer/ItemModelResolver → submit 链需要游戏渲染环境，静态核对未改该链，完整自动/实机执行仍 `MANUAL/PENDING`，不把嵌套 helper 断言冒充 ItemTask 全链运行。
+- 最终命令：`gradlew.bat :common:figuraPbrSmokeTest :common:firstPersonItemRenderSmokeTest :common:figuraWithoutIrisSmokeTest :common:keyframeDiagnosticSmokeTest :common:luaModulePathSmokeTest :common:modelCacheCodecSmokeTest :common:libraryPreviewCacheSmokeTest :common:libraryTransferSmokeTest :common:libraryEquipmentSmokeTest :common:outfitApplyClientSmokeTest :common:cloudAdapterSmokeTest :common:cloudProtocolConfigSmokeTest :common:navigationTreeSmokeTest :common:ysmMaterialNativeSmokeTest :fabric:build :neoforge:build -Prelease --no-daemon --console=plain`。
+- 全部 PASS，`BUILD SUCCESSFUL in 1m 59s`，退出码 0；前台 PowerShell/Tee 原始日志 `build/m6-final.log`。负向装备样本的“YSM main model is empty”是拒绝错误输入用例，正式装备测试最终 PASS。未忽略测试失败。
+- 构建所含 `libraryPreviewRuntimeSmokeTest` 同时通过原生 Figura 装饰、左右手、保留 Figura 基础姿态、YSM 基础/Figura/YSM 混合装饰、模型库装备与预览隔离。YSM 原生材质回归同时覆盖粒子、Ribbon、动态光源及控制器绑定；这些为 CPU/录制路径证据。
+- 四语言 CHANGELOG 和 README 版本/产物路径更新，作者示例及通道/导入约定见计划书第 14 节；保留历史版本记录。
+- 最终 JAR 全部条目 CRC、Alpha.11 元数据、新增生产类及中英诊断资源检查 PASS，日志 `build/m6-artifacts.log`。对应生产源码提交 `30198cb874ee0a2279b259328d60f23e7b39fa5a`；M6 只修改测试及文档，不改变生产树。
+
+| 平台 | 最终产物 | 字节数 | SHA256 |
+| --- | --- | --- | --- |
+| Fabric | `fabric/build/libs/omni-morph-1.0.0-alpha.11+26.1.2-fabric-mc.jar` | 19096659 | `bfb00b85b865a1e41e108dbf0efe5ba81409ae028f6bd17337b420a8f2606f31` |
+| NeoForge | `neoforge/build/libs/omni-morph-1.0.0-alpha.11+26.1.2-neoforge-mc.jar` | 18710403 | `c648b376d396e57790211fb59a62440e7bf760d9a1d95cd9839b18ec66bad15b` |
+
+### 交付状态与证据边界
+
+- F1～F5：均已实施并有功能 RED→GREEN；F5 为正式复现后的实施，未使用 NOT_APPLICABLE/DEFERRED 代替功能。
+- 真实运行验收：`MANUAL/PENDING`。包括游戏/Mixin 启动、PBR shader 画面和切换、左右手特殊物品/ItemTask、混合配装特效实景、视野动作组合、中英文错误显示、双客户端与两加载器实机。未启动游戏，也未声明这些画面 PASS。
+- 自动验证/文档/产物记录完成，M6 检查点待提交推送。M0 外部语料数量基线失败与 ZIP 根目录旧命名行为已单独记录，无待修的本轮自动测试失败。
+- 最近可靠额度：周窗口已用 25%、剩余 75%，未触发 Luna 额度交接。
