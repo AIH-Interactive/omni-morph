@@ -33,3 +33,12 @@ M0 检查点：`9d5b3bcf` 已推送，远端 SHA 已确认。
 - 用 Minecraft 26.1.2 实际字节码核对：GameRenderer.renderItemInHand 调用 renderHandsWithItems，renderLevel 后续调用 FeatureRenderDispatcher.renderAllFeatures；因此沿用已有队列消费，不照搬参考项目改变全局顺序。该静态路径证据与录制顶点不等于实机画面。
 - `firstPersonArmPoseSmokeTest`、`ysmDeferredPoseSmokeTest` 和 Alpha.11 Fabric/NeoForge 构建及分发校验 PASS，退出码 0；`build/m1-final.log`。测试没有重置生产 UI、权限或资源规则。
 - 游戏左右手/双持、地图/望远镜/头颅、ItemTask、混合装饰与粒子拖尾、两平台实际 Mixin 加载：`MANUAL/PENDING`。
+- M1 检查点 `ea755aa5` 已推送并确认远端。
+
+## M2 Lua FOV 倍率
+
+- RED：`:common:cameraFovSmokeTest`，真实 Lua `renderer:setFOV(0.5)` 后，80 输入仍为 80，断言期望 40；日志 `build/m2-red.log`。
+- GREEN：接入 `Camera.calculateFov` RETURN 后，同用例输出 40；实时原版输入 100 得到 50，nil 对 96 恢复 96，远端/预览和无权限不覆盖。无状态消费者避免逐 tick 累积。
+- 与 NoFigura tickFov 写入平滑状态相比，当前选择在原版世界视野计算后相乘，明确保留奔跑/死亡/流体等原有计算；HUD 独立视野未改。没有改变 API 接受值范围或 roll/矩阵逻辑。
+- `cameraFovSmokeTest`、M1 用例、手臂姿态及 Alpha.11 双加载器构建 PASS，退出码 0；日志 `build/m2-green.log`。
+- 真实相机切换、奔跑/使用动作、M1 组合画面及双平台运行 Mixin：`MANUAL/PENDING`。
