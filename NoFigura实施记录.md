@@ -42,3 +42,13 @@ M0 检查点：`9d5b3bcf` 已推送，远端 SHA 已确认。
 - 与 NoFigura tickFov 写入平滑状态相比，当前选择在原版世界视野计算后相乘，明确保留奔跑/死亡/流体等原有计算；HUD 独立视野未改。没有改变 API 接受值范围或 roll/矩阵逻辑。
 - `cameraFovSmokeTest`、M1 用例、手臂姿态及 Alpha.11 双加载器构建 PASS，退出码 0；日志 `build/m2-green.log`。
 - 真实相机切换、奔跑/使用动作、M1 组合画面及双平台运行 Mixin：`MANUAL/PENDING`。
+- M2 检查点 `f8f7562d` 已推送并确认远端。
+
+## M3 Figura PBR
+
+- RED：`:common:figuraPbrSmokeTest` 实际失败于 Figura 动态纹理没有 Iris PBR loader；`build/m3-red.log`。
+- GREEN：正式 Blockbench 内嵌 PNG → NBT → FiguraTextureSet → 基色持有明确辅助图关联 → 真实 PBRTextureLoaderRegistry/consumer。无/单/双通道、两纹理组、Lua 对应图像更新、Iris holder close/reload 与不同 Avatar 隔离通过。
+- `BorrowedPbrTexture` 仅委托源纹理的 GPU texture/view/sampler，不复制像素、不另分配资源；Iris close 不销毁作者纹理，实际退役由原 FiguraTexture 管理。现有 YSM loader 保持独立，按 Iris 精确类注册不会被覆盖。
+- `figuraWithoutIrisSmokeTest` 在明确排除 Iris jar 的独立 JVM 中实际加载 Figura 并普通上传材质，PASS；`ysmMaterialNativeSmokeTest` 原生材质/换肤/回收等回归 PASS。
+- Alpha.11 Fabric/NeoForge build、NeoForge 分发校验 PASS，退出码 0；日志 `build/m3-final.log`。
+- 实施与自动交接验证完成；shader 实际法线/高光画面、光影切换、GUI/第一人称及双平台实机均 `MANUAL/PENDING`。没有指定或下载 shader pack，没有 GPU 画面 PASS 声明。

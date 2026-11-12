@@ -63,6 +63,23 @@ public class FiguraTexture extends SimpleTexture {
     private boolean modified = false;
     private final String name;
     private final Avatar owner;
+    private AbstractTexture pbrNormal;
+    private AbstractTexture pbrSpecular;
+
+    public void pairPbrTextures(FiguraTexture normal, FiguraTexture specular) {
+        pbrNormal = normal == null ? null
+                : new top.aihmc.omnimorph.model.rendering.texture.BorrowedPbrTexture(normal);
+        pbrSpecular = specular == null ? null
+                : new top.aihmc.omnimorph.model.rendering.texture.BorrowedPbrTexture(specular);
+    }
+
+    public AbstractTexture pbrNormalTexture() {
+        return isClosed ? null : pbrNormal;
+    }
+
+    public AbstractTexture pbrSpecularTexture() {
+        return isClosed ? null : pbrSpecular;
+    }
 
     /**
      * Native image holding the texture data for this texture.
@@ -193,6 +210,8 @@ public class FiguraTexture extends SimpleTexture {
         }
 
         isClosed = true;
+        pbrNormal = null;
+        pbrSpecular = null;
 
         // Close native images
         if (nativeImageTexture != null)

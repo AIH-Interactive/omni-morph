@@ -1130,6 +1130,26 @@ tasks.register('cameraFovSmokeTest', JavaExec) {
     args rootProject.file('common/src/test/resources/nofigura/avatar').path
 }
 
+tasks.register('figuraPbrSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks formal Figura materials through the actual Iris PBR loader and consumer.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.outfit.FiguraPbrSmokeTest'
+    args rootProject.file('common/src/test/resources/nofigura/avatar').path
+}
+
+tasks.register('figuraWithoutIrisSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Loads actual Figura materials in a JVM whose classpath excludes Iris.'
+    dependsOn testClasses
+    classpath = (sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath).filter {
+        !it.name.toLowerCase(java.util.Locale.ROOT).startsWith('iris-')
+    }
+    mainClass = 'top.aihmc.omnimorph.model.outfit.FiguraWithoutIrisSmokeTest'
+    args rootProject.file('common/src/test/resources/nofigura/avatar').path
+}
+
 tasks.register('previewCoverSmokeTest', JavaExec) {
     group = 'verification'
     description = 'Checks the automatic upload cover cut from the preview: region, clipping, crop and PNG.'
