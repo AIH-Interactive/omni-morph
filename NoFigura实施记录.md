@@ -61,3 +61,12 @@ M0 检查点：`9d5b3bcf` 已推送，远端 SHA 已确认。
 - 最小实施：Blockbench v5 编译输出 `_v`，reader 向子节点传递；Keyframe 保留旧构造接口，沿原错误出口增加定位和中英文迁移提示，不重写作者表达式。
 - `keyframeDiagnosticSmokeTest`、`ysmPrivateDiagnosticsSmokeTest`、`ysmControllerDiagnosticSmokeTest`、Fabric/NeoForge build 及分发校验 PASS，退出码 0；日志 `build/m4-final.log`。
 - 中英文错误在实际客户端的显示为 `MANUAL/PENDING`；未启动游戏。M4 自动验收完成，提交检查点后进入 M5。
+- M4 检查点 `4f485710` 已推送并确认远端。
+
+## M5 Lua 虚拟模块路径
+
+- 适用证据/RED：真实 ZIP 内 `avatar/feature:variant.lua` 经 LocalAvatarLoader 正式编译后保留名称，但 Avatar.createLuaRuntime 调用 Windows Path.of 抛 InvalidPathException，Lua 运行时创建失败。日志 `build/m5-red.log`；早期夹具编译错误和 ZIP 根目录命名差异不作为 RED。
+- GREEN：`luaModulePathSmokeTest` 同一 ZIP 模块可实际 require；补验嵌套相对导入、`.`/`..`、斜杠/点名、模块缓存、空/根目录枚举、单层/递归枚举、缺失模块、大小写和两份 Avatar 隔离。
+- 实施：小型 ScriptPath 只处理 Avatar 脚本索引，不实现整个 java.nio.Path，不接触磁盘。既有 PathUtils 的 Path 接口保留；脚本安全名和 require/listFiles 使用虚拟解析，真实 IO、导出、ZIP、缓存规则不变。
+- M1/M2 回归、Fabric/NeoForge build 及发行包校验 PASS，退出码 0；日志 `build/m5-final.log`。实机模块脚本显示/双平台启动 `MANUAL/PENDING`。
+- 范围外观察：ZIP 文件系统根目录直接交给编译器时，脚本名有前导点；样本改用正式 ZIP 内模型目录。该旧命名行为未在本阶段修改，留作后续独立调查。
