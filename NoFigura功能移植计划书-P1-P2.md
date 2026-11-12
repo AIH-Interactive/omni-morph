@@ -56,8 +56,8 @@ collections / 部件 UUID 消费功能、Badge 命令、允许错误模型上传
 
 | 阶段 | 范围 | 依赖 | 当前状态 |
 | --- | --- | --- | --- |
-| M0 | 基线、功能契约与验证样本 | 实施指令 | DONE，检查点提交中 |
-| M1 | F1 第一人称物品替换 | M0 检查点完成 | PLANNED |
+| M0 | 基线、功能契约与验证样本 | 实施指令 | DONE，9d5b3bcf 已推送 |
+| M1 | F1 第一人称物品替换 | M0 检查点完成 | 自动验证完成，检查点提交中 |
 | M2 | F2 FOV 倍率控制 | M1 检查点完成 | PLANNED |
 | M3 | F3 Figura PBR | M2 检查点完成 | PLANNED |
 | M4 | F4 动画诊断 | M3 检查点完成 | PLANNED |
@@ -176,7 +176,7 @@ collections / 部件 UUID 消费功能、Badge 命令、允许错误模型上传
 1. 核对 F1～F5 的实际 diff、功能状态和未验证项。M5 条件出口如实保留，其他阶段不得凭已有 API 或字段存在判定成功。
 2. 组合检查：第一人称自定义物品 + FOV；该物品/基础形象的 Figura PBR；YSM 基础 + Figura 装饰；Figura 基础 + YSM 装饰；模型库下载/缓存复用后预览与装备。诊断和路径样本需经正式载入，不只直调辅助函数。
 3. 自动验证实际受影响的缓存/模型库/配装/双协议与 UI 基线；运行最终 Fabric / NeoForge 构建及既有发行包校验。对最终产物记录路径、大小、SHA256 与对应源码提交，避免把前一阶段 JAR 当作最终产物。
-4. 更新用户功能说明、示例与当前维护的更新日志语言版本；说明 FOV 是倍率、ITEM_RENDER 的覆盖范围、PBR 的运行条件和通道约定、诊断与模块命名行为。版本号只按实际发布决定更新，不预先指定 Alpha.11。
+4. 更新用户功能说明、示例与当前维护的更新日志语言版本；说明 FOV 是倍率、ITEM_RENDER 的覆盖范围、PBR 的运行条件和通道约定、诊断与模块命名行为。用户已确定本轮版本为 `1.0.0-alpha.11`，构建产物与功能说明统一使用该版本。
 5. 更新本计划进度表与 `AGENT_HANDOFF.md`，记录每阶段提交/推送 SHA、自动验证、人工状态、F5 条件结论和仍需继续的最小事项。完成本阶段提交/推送并确认远端。
 
 最终结论分别写“实施/自动验证”“真实运行验收”“提交/推送”状态。人工项尚未执行不阻止文档和代码交付，但不得宣称全部画面/多人能力已经验证。
@@ -224,8 +224,8 @@ if ($buildExitCode -ne 0) {
 | 阶段 | 实施/条件结论 | 自动验证 | 人工验收 | 提交/推送 |
 | --- | --- | --- | --- | --- |
 | 计划编制 | DONE | 文档引用、范围及 whitespace 检查 | 不适用 | 未提交/未推送 |
-| M0 | DONE | 手臂/延迟姿态/原生材质/缓存及双加载器 PASS；语料计数基线失败独立记录 | MANUAL/PENDING | 检查点提交中 |
-| M1 | PLANNED | NOT RUN | MANUAL/PENDING | 无 |
+| M0 | DONE | 手臂/延迟姿态/原生材质/缓存及双加载器 PASS；语料计数基线失败独立记录 | MANUAL/PENDING | 9d5b3bcf 已推送 |
+| M1 | 实施完成 | firstPersonItemRender RED→GREEN，手臂/姿态和双加载器 PASS | MANUAL/PENDING | 检查点提交中 |
 | M2 | PLANNED | NOT RUN | MANUAL/PENDING | 无 |
 | M3 | PLANNED | NOT RUN | MANUAL/PENDING | 无 |
 | M4 | PLANNED | NOT RUN | MANUAL/PENDING | 无 |

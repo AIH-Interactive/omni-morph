@@ -1112,6 +1112,15 @@ tasks.register('firstPersonArmPoseSmokeTest', JavaExec) {
     mainClass = 'top.aihmc.omnimorph.model.outfit.FirstPersonArmPoseSmokeTest'
 }
 
+tasks.register('firstPersonItemRenderSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks formal first-person ITEM_RENDER routing and deferred native vertex consumption.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.outfit.FirstPersonItemRenderSmokeTest'
+    args rootProject.file('common/src/test/resources/nofigura/avatar').path
+}
+
 tasks.register('previewCoverSmokeTest', JavaExec) {
     group = 'verification'
     description = 'Checks the automatic upload cover cut from the preview: region, clipping, crop and PNG.'
