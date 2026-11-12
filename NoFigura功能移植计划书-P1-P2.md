@@ -1,6 +1,6 @@
 # NoFigura 功能移植计划书：P1 / P2
 
-日期：2026-11-12。状态：**M0～M5 已完成并推送，M6 组合验证与交付进行中**。
+日期：2026-11-12。状态：**M0～M6 实施与自动交付完成并推送；实机验收 MANUAL/PENDING**。
 
 ## 1. 目标与授权范围
 
@@ -62,7 +62,7 @@ collections / 部件 UUID 消费功能、Badge 命令、允许错误模型上传
 | M3 | F3 Figura PBR | M2 检查点完成 | DONE，33dae03f 已推送 |
 | M4 | F4 动画诊断 | M3 检查点完成 | DONE，4f485710 已推送 |
 | M5 | F5 虚拟路径复现与条件实施 | M4 检查点完成 | DONE，30198cb8 已推送 |
-| M6 | 组合回归、文档与发行交付 | M5 检查点完成 | 组合验证与发行记录进行中 |
+| M6 | 组合回归、文档与发行交付 | M5 检查点完成 | DONE，0228f0b4 已推送 |
 
 每阶段完成所列自动验证后：更新本计划进度记录 → 检查 `git status` / `git diff` / `git diff --check` → 仅提交当前阶段授权文件 → 推送同名当前分支并确认远端 SHA → 才开始下一阶段。不得把多个已完成阶段攒成一个提交。用户已指定使用 `dev`，不重置用户工作区。
 
@@ -223,14 +223,14 @@ if ($buildExitCode -ne 0) {
 
 | 阶段 | 实施/条件结论 | 自动验证 | 人工验收 | 提交/推送 |
 | --- | --- | --- | --- | --- |
-| 计划编制 | DONE | 文档引用、范围及 whitespace 检查 | 不适用 | 未提交/未推送 |
+| 计划编制 | DONE | 文档引用、范围及 whitespace 检查 | 不适用 | 随 M0 已推送 |
 | M0 | DONE | 手臂/延迟姿态/原生材质/缓存及双加载器 PASS；语料计数基线失败独立记录 | MANUAL/PENDING | 9d5b3bcf 已推送 |
 | M1 | 实施完成 | firstPersonItemRender RED→GREEN，手臂/姿态和双加载器 PASS | MANUAL/PENDING | ea755aa5 已推送 |
 | M2 | 实施完成 | cameraFov RED→GREEN、M1/手臂回归与双加载器 PASS | MANUAL/PENDING | f8f7562d 已推送 |
 | M3 | PBR 接线实施完成 | RED→GREEN、无 Iris/实例/生命周期/YSM 材质及双加载器 PASS | 画面 MANUAL/PENDING | 33dae03f 已推送 |
 | M4 | 诊断实施完成 | keyframeDiagnostic RED→GREEN、Lua/Molang/版本继承、私有诊断和双加载器 PASS | 显示 MANUAL/PENDING | 4f485710 已推送 |
 | M5 | 适用，虚拟模块路径实施完成 | 正式 ZIP/require RED→GREEN、导入/枚举/隔离、M1/M2 和双加载器 PASS | MANUAL/PENDING | 30198cb8 已推送 |
-| M6 | PLANNED | NOT RUN | MANUAL/PENDING | 无 |
+| M6 | 实施/交付完成 | 组合、缓存/模型库/配装/协议/UI、双平台和产物 CRC PASS | MANUAL/PENDING | 0228f0b4 已推送 |
 
 每阶段记录实际修改文件、验证命令/结果、提交与远端确认、已发现问题和下一最小动作。达到本文定义的完成条件即结束该阶段，不继续追加范围。执行证据见 [NoFigura实施记录.md](NoFigura实施记录.md)。
 
