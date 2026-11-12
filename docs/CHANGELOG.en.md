@@ -6,6 +6,7 @@
 
 ## 1.0.0-alpha.11
 
+- Unify visible-avatar routing for draft camera/FOV, keyboard/mouse/Lua keybinds, fire and block outlines. Preserve vanilla preview scopes, formal equipment/synchronization/permission identity and the formal HUD wheel.
 - Fix first-person item replacement in outfit drafts: item events and hand rendering now use the visible local draft instead of the resident equipped Avatar.
 - First person: Figura ITEM_RENDER replacement for normal held-item submissions in either hand; nil or non-Item results preserve vanilla rendering.
 - Camera: Lua `renderer:setFOV` now multiplies the current vanilla world FOV; nil restores it, with local-avatar permission and lifetime checks.

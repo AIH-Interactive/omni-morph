@@ -24,7 +24,7 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
-import org.figuramc.figura.avatar.AvatarManager;
+import top.aihmc.omnimorph.model.outfit.VisibleAvatar;
 import org.figuramc.figura.ducks.GameRendererAccessor;
 import top.aihmc.omnimorph.gui.FiguraGuiRenderer;
 import top.aihmc.omnimorph.model.library.LibraryFiguraPreviewRenderer;
@@ -109,7 +109,7 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
         CameraRenderState cameraRenderState = this.gameRenderState.levelRenderState.cameraRenderState;
         Matrix4f instance = cameraRenderState.viewRotationMatrix;
 
-        Avatar avatar = AvatarManager.getAvatar(this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity());
+        Avatar avatar = VisibleAvatar.forEntity(this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity());
         if (!RenderUtils.vanillaModelAndScript(avatar)) {
             return;
         }
@@ -138,7 +138,7 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
     @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;doEntityOutline()V", shift = At.Shift.AFTER))
     private void render(DeltaTracker deltaTracker, boolean tick, CallbackInfo ci) {
         Entity entity = this.minecraft.getCameraEntity();
-        Avatar avatar = AvatarManager.getAvatar(entity);
+        Avatar avatar = VisibleAvatar.forEntity(entity);
         if (!RenderUtils.vanillaModelAndScript(avatar)) {
             if (avatarPostShader) {
                 avatarPostShader = false;
@@ -185,7 +185,7 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
             at = @At(value = "INVOKE",
                     target = "Lnet/minecraft/client/renderer/GameRenderer;bobHurt(Lnet/minecraft/client/renderer/state/level/CameraRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;)V"))
     private PoseStack renderLevelBobHurt(PoseStack stack) {
-        Avatar avatar = AvatarManager.getAvatar(this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity());
+        Avatar avatar = VisibleAvatar.forEntity(this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity());
         if (!RenderUtils.vanillaModelAndScript(avatar) || hasShaders) return stack;
         stack.pushPose();
         stack.last().pose().identity();
@@ -211,7 +211,7 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
             at = @At(value = "INVOKE",
                     target = "Lnet/minecraft/client/renderer/GameRenderer;bobView(Lnet/minecraft/client/renderer/state/level/CameraRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;)V"))
     private void figura$stopBobView(GameRenderer instance, CameraRenderState cameraRenderState, PoseStack stack, Operation<Void> original) {
-        Avatar avatar = AvatarManager.getAvatar(this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity());
+        Avatar avatar = VisibleAvatar.forEntity(this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity());
         if (!RenderUtils.vanillaModelAndScript(avatar) || hasShaders)
             original.call(instance, cameraRenderState, stack);
     }
@@ -220,7 +220,7 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
             at = @At(value = "INVOKE",
                     target = "Lnet/minecraft/client/renderer/GameRenderer;bobHurt(Lnet/minecraft/client/renderer/state/level/CameraRenderState;Lcom/mojang/blaze3d/vertex/PoseStack;)V"))
     private void figura$stopBobHurt(GameRenderer instance, CameraRenderState cameraRenderState, PoseStack stack, Operation<Void> original) {
-        Avatar avatar = AvatarManager.getAvatar(this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity());
+        Avatar avatar = VisibleAvatar.forEntity(this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity());
         if (!RenderUtils.vanillaModelAndScript(avatar) || hasShaders)
             original.call(instance, cameraRenderState, stack);
     }

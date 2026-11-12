@@ -20,6 +20,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.Vec3;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
+import top.aihmc.omnimorph.model.outfit.VisibleAvatar;
 import org.figuramc.figura.avatar.AvatarManager;
 import top.aihmc.omnimorph.ducks.FiguraEntityRenderStateExtension;
 import top.aihmc.omnimorph.ducks.NodeCollectorExtension;
@@ -108,7 +109,7 @@ public abstract class LevelRendererMixin {
 
     @ModifyArg(method = "renderHitOutline", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/ShapeRenderer;renderShape(Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;Lnet/minecraft/world/phys/shapes/VoxelShape;DDDIF)V"), index = 6)
     private int renderHitOutline(int colorInt) {
-        Avatar avatar = AvatarManager.getAvatar(this.minecraft.getCameraEntity());
+        Avatar avatar = VisibleAvatar.forEntity(this.minecraft.getCameraEntity());
         FiguraVec4 color;
 
         if (avatar == null || avatar.luaRuntime == null || (color = avatar.luaRuntime.renderer.blockOutlineColor) == null)

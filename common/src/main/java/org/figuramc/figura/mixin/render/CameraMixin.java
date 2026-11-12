@@ -5,7 +5,7 @@ import net.minecraft.client.Minecraft;
 import top.aihmc.omnimorph.model.rendering.CameraFov;
 import net.minecraft.world.entity.Entity;
 import org.figuramc.figura.avatar.Avatar;
-import org.figuramc.figura.avatar.AvatarManager;
+import top.aihmc.omnimorph.model.outfit.VisibleAvatar;
 import org.figuramc.figura.math.vector.FiguraVec3;
 import org.figuramc.figura.utils.RenderUtils;
 import org.figuramc.figura.utils.ui.UIHelper;
@@ -31,7 +31,7 @@ public abstract class CameraMixin {
     private void figura$applyFov(float tickDelta, CallbackInfoReturnable<Float> cir) {
         boolean localPlayer = entity != null && entity == Minecraft.getInstance().player;
         cir.setReturnValue(CameraFov.apply(cir.getReturnValueF(),
-                localPlayer ? AvatarManager.getAvatar(entity) : null, localPlayer));
+                localPlayer ? VisibleAvatar.forEntity(entity) : null, localPlayer));
     }
 
     @Shadow protected abstract void setRotation(float yaw, float pitch);
@@ -39,7 +39,7 @@ public abstract class CameraMixin {
 
     @Inject(method = "alignWithEntity", at = @At(value = "HEAD"))
     private void setupAvatarVar(float f, CallbackInfo ci) {
-        avatar = AvatarManager.getAvatar(this.entity);
+        avatar = VisibleAvatar.forEntity(this.entity);
     }
 
     // Neo adds roll in addition to pitch and yaw
