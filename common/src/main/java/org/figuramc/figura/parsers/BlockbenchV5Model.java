@@ -118,6 +118,7 @@ public class BlockbenchV5Model extends ModelFormat {
         CompoundTag tag = new CompoundTag();
 
         tag.putString("name", target.name);
+        tag.putByte("_v", (byte) 0x50);
         BlockbenchCommonTypes.parseParent(target.name, tag);
 
         // TODO: collections

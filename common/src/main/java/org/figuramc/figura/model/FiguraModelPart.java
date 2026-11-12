@@ -49,6 +49,7 @@ public class FiguraModelPart implements Comparable<FiguraModelPart> {
     public final PartCustomization customization;
     public PartCustomization savedCustomization;
     public ParentType parentType = ParentType.None;
+    public int formatVersion;
     public PartCustomization playerCustomization;
 
     private final Map<String, FiguraModelPart> childCache = new HashMap<>();
@@ -1526,6 +1527,7 @@ public class FiguraModelPart implements Comparable<FiguraModelPart> {
         result.facesByTexture = new ArrayList<>(facesByTexture);
         result.textures = new ArrayList<>(textures);
         result.parentType = parentType;
+        result.formatVersion = formatVersion;
         result.textureHeight = textureHeight;
         result.textureWidth = textureWidth;
 
@@ -1551,6 +1553,7 @@ public class FiguraModelPart implements Comparable<FiguraModelPart> {
     )
     public FiguraModelPart newPart(@LuaNotNil String name, String parentType) {
         FiguraModelPart newer = new FiguraModelPart(owner, name, new PartCustomization(), new HashMap<>(), new ArrayList<>());
+        newer.formatVersion = formatVersion;
         newer.facesByTexture = new ArrayList<>();
         newer.textures = new ArrayList<>();
 

@@ -1,4 +1,5 @@
 {
+    "omni-morph.animation.keyframe_migration_hint": "If this model was migrated from Blockbench 4.12 to 5.0, check the authored expressions: rotation X/Y and position X may need sign correction. Fix the source model manually.",
     "omni-morph.gui.wardrobe.outfit_presets": "Outfit presets",
     "omni-morph.gui.wardrobe.preset_personal_cloud": "Personal cloud",
     "omni-morph.gui.wardrobe.preset_storage_help": "Local presets stay on this device. Personal cloud presets are owner-only and do not publish or upload model dependencies. Local references still need this device's resources.",

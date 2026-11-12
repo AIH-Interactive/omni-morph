@@ -52,3 +52,12 @@ M0 检查点：`9d5b3bcf` 已推送，远端 SHA 已确认。
 - `figuraWithoutIrisSmokeTest` 在明确排除 Iris jar 的独立 JVM 中实际加载 Figura 并普通上传材质，PASS；`ysmMaterialNativeSmokeTest` 原生材质/换肤/回收等回归 PASS。
 - Alpha.11 Fabric/NeoForge build、NeoForge 分发校验 PASS，退出码 0；日志 `build/m3-final.log`。
 - 实施与自动交接验证完成；shader 实际法线/高光画面、光影切换、GUI/第一人称及双平台实机均 `MANUAL/PENDING`。没有指定或下载 shader pack，没有 GPU 画面 PASS 声明。
+- M3 检查点 `33dae03f` 已推送并确认远端。
+
+## M4 动画作者诊断
+
+- RED：`:common:keyframeDiagnosticSmokeTest` 经正式模型 reader → AnimationPlayer → Avatar.errorText，原错误只有动画名和时间，缺少部件/通道/轴；日志 `build/m4-red.log`。
+- GREEN：错误包含部件“腕骨”、1.25 秒和 ROTATION X；v5 语法编译失败附迁移提示，旧格式和未知版本不附提示。合法 Lua 表达式、语句块及 Molang 结果保持一致；继承读取、copy/newPart 版本传递 PASS。
+- 最小实施：Blockbench v5 编译输出 `_v`，reader 向子节点传递；Keyframe 保留旧构造接口，沿原错误出口增加定位和中英文迁移提示，不重写作者表达式。
+- `keyframeDiagnosticSmokeTest`、`ysmPrivateDiagnosticsSmokeTest`、`ysmControllerDiagnosticSmokeTest`、Fabric/NeoForge build 及分发校验 PASS，退出码 0；日志 `build/m4-final.log`。
+- 中英文错误在实际客户端的显示为 `MANUAL/PENDING`；未启动游戏。M4 自动验收完成，提交检查点后进入 M5。

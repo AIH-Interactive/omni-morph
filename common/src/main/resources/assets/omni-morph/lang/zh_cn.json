@@ -1,4 +1,5 @@
 {
+    "omni-morph.animation.keyframe_migration_hint": "若模型由 Blockbench 4.12 迁移到 5.0，请检查作者表达式：旋转 X/Y 和位置 X 可能需要修正符号。请手动修复源模型。",
     "omni-morph.gui.wardrobe.outfit_presets": "装扮预设",
     "omni-morph.gui.wardrobe.preset_personal_cloud": "个人云端",
     "omni-morph.gui.wardrobe.preset_storage_help": "本地预设保存在此设备；个人云端预设仅本人可读，不会公开或上传依赖模型。本地引用仍需对应设备资源。",
