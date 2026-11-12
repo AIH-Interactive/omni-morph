@@ -1,5 +1,6 @@
 package top.aihmc.omnimorph.gui.widgets.navigation;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -250,7 +251,7 @@ public final class SideNavigationWidget extends AbstractContainerElement {
         if (!capturesPointer(event.x(), event.y())) {
             return false;
         }
-        if (event.button() != 0) {
+        if (event.button() != InputConstants.MOUSE_BUTTON_LEFT) {
             return true;
         }
         var layout = layout();

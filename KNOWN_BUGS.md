@@ -1,11 +1,15 @@
 # 已知问题
 
-## 2026-11-10：导航菜单点击无反应
+## 2026-11-10：导航菜单点击无反应（2026-11-12修复）
 
 - 适用版本：Minecraft 26.3，OmniMorph 1.0.0-alpha.10。
-- 状态：OPEN，用户实测反馈；仅记录，尚未定位或修复。
-- 现象：点击导航菜单后无反应。
-- 反馈上下文：本次Alpha.10移植交付后。交付代码提交0f55e2b3，交付记录提交4e8685dc；尚未核对用户实际安装JAR及加载器。
-- 复现细节：具体页面、菜单项、GUI缩放、加载器及日志尚未记录，不作推断。
-- 验证边界：现有自动回归和包检查通过不代表真实游戏点击行为通过；该用户反馈保留为已知未解决问题。
-- 本轮操作：按用户要求先记录到26.3仓库；未改生产代码、未运行构建或游戏。后续修复应从本版实际导航输入分发与点击路由获取证据。
+- 状态：FIXED/OFFLINE-VERIFIED；真实游戏 GUI 为 MANUAL/PENDING，未启动游戏。
+- 根因：SideNavigationWidget.mouseClicked 沿用旧左键编码0，26.3 SDL左键编码为1；事件被提前吞掉，无法进入路由及折叠处理。
+- 修复：改用 InputConstants.MOUSE_BUTTON_LEFT；未改产品布局或页面路由。
+- RED：既有离线宿主中实际调用生产控件，旧代码在图标栏左键路由回调断言失败。
+- GREEN：图标栏、展开菜单、分支箭头、右键过滤及正文外点击检查通过；libraryPreviewRuntimeSmokeTest、navigationTreeSmokeTest及双加载器remapJar通过。
+- 日志：docs/navigation-input-fix/mouse-red.log、mouse-green.log。
+
+## 独立后续项：导航键盘编码
+
+- 静态排查发现cycleTab仍使用旧数字键49和Tab258，26.3对应KEY_1=30、KEY_TAB=43。本次仅修复用户反馈的鼠标导航；键盘修复与运行验证另行处理。

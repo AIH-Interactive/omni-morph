@@ -2162,6 +2162,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             }
         };
         fontField.set(minecraft, font);
+        top.aihmc.omnimorph.gui.navigation.SideNavigationInputSmokeTest.run();
         var window = field(Minecraft.class, "window");
         var previousWindow = window.get(minecraft);
         var viewport = (com.mojang.blaze3d.platform.Window) unsafe.allocateInstance(com.mojang.blaze3d.platform.Window.class);
