@@ -1,0 +1,22 @@
+# NoFigura P1/P2 实施记录
+
+## M0 基线（2026-11-12）
+
+- 分支 `dev` / `origin/dev`，起点 `8faa4b5954be798d9a0979e14537b5a583d1d9b8`；既有未跟踪资料保留。
+- Java：Gradle 使用 `JAVA_HOME=D:/Program Files/Java/25`；终端 PATH 的 java 为 17，不能据此判断 Gradle 使用错误 JDK。
+- 首次沙箱执行因用户 Gradle 缓存锁写入受限失败，获准后正常前台运行；未创建第二套缓存或下载数据库。
+- `firstPersonArmPoseSmokeTest`、`ysmDeferredPoseSmokeTest` 已 PASS。
+- `ysmMaterialInputSmokeTest` 在未改生产代码的基线失败：测试将本地 `refs/avatars` 固定断言为 40 模型、5 加密；此前逐模型材质配对断言均通过，最终数量断言失败。此项是外部语料集固定数量约束，不据此修改产品；后续使用固定构造材质与原生材质对象验证。原始日志 `build/m0-initial.log`。
+- 样本：`common/src/test/resources/nofigura/` 提供可解析的 Figura Item 节点、事件/FOV 脚本与嵌套 require。实际可见几何、PBR 通道组合和错误动画在各阶段测试中构造，避免私有模型进入仓库。
+- F1 契约：复用 ITEM_RENDER；只替换有效 Item 部件，无替换保留原版，左右手隔离，递归/退出清理。
+- F2 契约：现有 FOV 倍率 API，本地有效 Avatar 消费，nil 恢复原版实时值。
+- F3 契约：Figura `_n/_s` 按纹理组配对，保留字节编码；无 Iris 普通绘制不变，YSM PBR 原有生命周期保留。
+- F4 契约：增加定位与适用版本迁移提示，不改动画表达式结果或 Molang 分流。
+- F5 契约：正式模型脚本索引中的模块名是虚拟名；必须实际 require 复现再实施，不修改真实 IO 边界。
+- 当前未启动 Minecraft，目标 shader pack 未选定；所有真实画面与双客户端项目为 `MANUAL/PENDING`，不据此阻止自主实施。
+- 未引入新的界面设计、协议、模型库权限规则或 GPU 几何加速。
+- 后续基线 PASS：`ysmMaterialNativeSmokeTest`、`modelCacheCodecSmokeTest`、Fabric/NeoForge build 及 NeoForge 分发校验；`BUILD SUCCESSFUL`，退出码 0，日志 `build/m0-green.log`。
+
+## RED / GREEN 约定
+
+用户已要求 RED/GREEN；测试边界采用已批准计划中的正式入口与消费者，不为测试新增另一套业务路径。每次一条行为用例先 RED，再最小实现 GREEN，最后受影响回归。RED 必须断言目标功能失败；编译拼写错误、环境权限与外部语料计数失败不算功能 RED。每阶段保存命令、失败断言、修复后结果与日志路径；CPU/录制型测试不替代真实画面。

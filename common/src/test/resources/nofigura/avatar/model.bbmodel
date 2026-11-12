@@ -1,0 +1,13 @@
+{
+  "meta": {"format_version": "4.12", "model_format": "free"},
+  "name": "model",
+  "resolution": {"width": 16, "height": 16},
+  "elements": [],
+  "outliner": [{
+    "name": "Item",
+    "origin": [0, 0, 0],
+    "uuid": "00000000-0000-0000-0000-000000000001",
+    "children": []
+  }],
+  "textures": []
+}
