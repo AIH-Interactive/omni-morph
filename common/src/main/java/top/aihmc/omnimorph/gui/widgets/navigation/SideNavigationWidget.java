@@ -38,7 +38,7 @@ public final class SideNavigationWidget extends AbstractContainerElement {
 
     private static final ResourceLocation PANEL_ICONS = FiguraIdentifier.of("textures/gui/panels.png");
     private static final ResourceLocation LIBRARY_ICON = FiguraIdentifier.of("textures/gui/library.png");
-    private static final ResourceLocation LOGO_ICON = FiguraIdentifier.of("textures/gui/navigation_logo.png");
+    private static final ResourceLocation LOGO_ICON = FiguraIdentifier.of("icon.png");
 
     /** Folding is kept for the session, so every page shows the same tree. */
     private static final NavigationTree TREE = new NavigationTree();
@@ -131,7 +131,7 @@ public final class SideNavigationWidget extends AbstractContainerElement {
     private void renderRail(GuiGraphics gui) {
         var layout = layout();
         gui.fill(0, 0, NavigationLayout.RAIL_WIDTH, getHeight(), RAIL_COLOR);
-        gui.blit(LOGO_ICON, 7, 6, 0, 0, 14, 14, 14, 14);
+        gui.blit(LOGO_ICON, 7, 6, 14, 14, 0f, 0f, 256, 256, 256, 256);
         NavigationRoute selected = TREE.topLevelOf(current);
         List<NavigationRoute> parents = TREE.topLevel();
         for (int index = 0; index < parents.size(); index++) {
@@ -230,7 +230,7 @@ public final class SideNavigationWidget extends AbstractContainerElement {
     /** Reuses the project's existing panel icons; the library has its own texture. */
     private static void renderIcon(GuiGraphics gui, NavigationRoute parent, int x, int y) {
         if (parent == NavigationRoute.LIBRARY) {
-            gui.blit(LIBRARY_ICON, x, y, 0, 0, ICON_SIZE, ICON_SIZE, 20, 20, 20, 20);
+            gui.blit(LIBRARY_ICON, x, y, ICON_SIZE, ICON_SIZE, 0f, 0f, 20, 20, 20, 20);
             return;
         }
         int iconIndex = switch (parent) {
@@ -239,7 +239,7 @@ public final class SideNavigationWidget extends AbstractContainerElement {
             case SETTINGS -> 4;
             default -> 5;
         };
-        gui.blit(PANEL_ICONS, x, y, iconIndex * 20, 0, ICON_SIZE, ICON_SIZE,
+        gui.blit(PANEL_ICONS, x, y, ICON_SIZE, ICON_SIZE, iconIndex * 20f, 0f,
                 20, 20, 140, 20);
     }
 

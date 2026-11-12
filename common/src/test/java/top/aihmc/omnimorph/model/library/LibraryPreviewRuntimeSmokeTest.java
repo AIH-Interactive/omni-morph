@@ -77,6 +77,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 new LibrarySession("synthetic-preview", FiguraMod.getLocalPlayerUUID(), epoch, live::get),
                 Minecraft.getInstance()::execute);
              var preview = new LibraryPreviewSession(client, true)) {
+            NavigationRenderingSmokeTest.run();
             NavigationInputSmokeTest.run();
             testModelFilePicker(client, drain);
             testReportInput(client);

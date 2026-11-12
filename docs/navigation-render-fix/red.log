@@ -1,0 +1,57 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+
+> Configure project :
+Architect Plugin: 3.4.164
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+Mod was built with a newer version of Loom (1.17.21), you are using Loom (1.14.476)
+Mod was built with a newer version of Loom (1.17.493), you are using Loom (1.14.476)
+Mod was built with a newer version of Loom (1.16.3), you are using Loom (1.14.476)
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+> Task :common:compileJava UP-TO-DATE
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes UP-TO-DATE
+> Task :common:extractIncludeTestProto UP-TO-DATE
+> Task :common:extractTestProto UP-TO-DATE
+> Task :common:generateTestProto NO-SOURCE
+> Task :common:compileTestJava
+> Task :common:processTestResources UP-TO-DATE
+> Task :common:testClasses
+
+> Task :common:libraryPreviewRuntimeSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+[19:37:33] [main/INFO]: [STDERR]: java.lang.AssertionError: missing navigation texture /assets/omni-morph/textures/gui/navigation_logo.png; wrong native blit dimensions for WARDROBE: [Blit[width=40, height=0]]; wrong native blit dimensions for LIBRARY: [Blit[width=0, height=0]]; wrong native blit dimensions for PERMISSIONS: [Blit[width=60, height=0]]; wrong native blit dimensions for SETTINGS: [Blit[width=80, height=0]]; wrong native blit dimensions for HELP: [Blit[width=100, height=0]]; navigation must be above preview/text depth and below context menus: [0.0, 0.0, 0.0]; navigation must flush before its foreground pose is restored
+[19:37:33] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.library.NavigationRenderingSmokeTest.run(NavigationRenderingSmokeTest.java:73)
+[19:37:33] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.run(LibraryPreviewRuntimeSmokeTest.java:80)
+[19:37:33] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:162)
+[19:37:33] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:73)
+[19:37:33] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.main(YsmMaterialNativeSmokeTest.java:46)
+
+> Task :common:libraryPreviewRuntimeSmokeTest FAILED
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_1.21.1/build/reports/problems/problems-report.html
+Exception in thread "main" 
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:libraryPreviewRuntimeSmokeTest'.
+> Process 'command 'D:\Program Files\Java\21\bin\java.exe'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 20s
+10 actionable tasks: 2 executed, 8 up-to-date

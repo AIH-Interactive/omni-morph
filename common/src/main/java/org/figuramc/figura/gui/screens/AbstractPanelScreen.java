@@ -146,7 +146,16 @@ public abstract class AbstractPanelScreen extends Screen {
 
         if (navigationAttached) {
             gui.flush();
-            panels.render(gui, mouseX, mouseY, delta);
+            PoseStack pose = gui.pose();
+            pose.pushPose();
+            try {
+                // Above body text and previews (250), below context menus (500).
+                pose.translate(0, 0, 400);
+                panels.render(gui, mouseX, mouseY, delta);
+                gui.flush();
+            } finally {
+                pose.popPose();
+            }
         }
 
         // render overlays

@@ -6,6 +6,8 @@
 
 ## 1.0.0-alpha.10
 
+- Fix Minecraft 1.21.1 navigation: reuse the packaged mod logo, correct native blit arguments that hid icons, and give the navigation its own foreground depth so body text is covered.
+
 - Minecraft 1.21.1 / Java 21 · Fabric / NeoForge: `alpha10-ui-sync/record.md`.
 
 - Navigation: main screens share a persistent left rail with the mod logo. Hover expands the menu over content; duplicate section/pane tabs are removed. Wardrobe, Library, Permissions, Settings and Help remain available; Admin appears only after server confirmation.
