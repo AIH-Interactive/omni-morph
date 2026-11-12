@@ -1,5 +1,20 @@
 # Agent 交接手册
 
+## 最新任务：YSM 原生第一人称武器替换（2026-11-13，已交付）
+
+- 用户授权补齐通用 YSM 第一人称武器替换，用芙宁娜原始加密样本 RED/GREEN，不改模型，保持手臂、第三人称、配装，编译并提交推送。实施与自动验收均完成，无剩余实施阶段。
+- 当前分支 `dev`，上游 `origin/dev`。实施提交 `87e04bb771ec820380ad22871acb6b5ae650e2a3` 已提交、推送，并用 `git ls-remote origin refs/heads/dev` 核对一致。本手册的文档收尾提交不改变构建产物，最新文档提交以 `git log -1` 为准。
+- 根因和修复：原生 YSM 没有第一人称物品提交，独立手臂采样遗漏身体武器；默认隐藏重置跨域覆盖身体武器可见性。新增原生物品分流、同帧身体姿态补采、当前骨骼域隐藏重置、手部装备与跨手动作提交、不可变延迟姿态；没有模型名/路径特判，没有修改正式装备、同步、权限或第三人称绘制实现。
+- 两条有效 RED：`build/ysm-firstperson-weapon-red.log`（生产入口未替换原版剑）、`build/ysm-firstperson-pose-red.log`（身体武器 scale=1 可见，手臂采样后被重新隐藏）。夹具/构建准备失败未计为功能 RED，均已解决。
+- GREEN 和交付：`build/ysm-firstperson-weapon-final.log`，退出码 0，BUILD SUCCESSFUL in 2m 52s，43 个任务。原样本待机 0、挥剑 6024 个顶点，包含武器及发光后代；左右手去重、同帧时钟、延迟姿态、原版回退、空手、独立手臂通过。第一人称控制器/手动画、Figura 物品、草稿和配装 Apply 回归通过。第三人称默认几何语料 53 个模型（18 加密）通过；语料 controller-parse 诊断没有扩大修复，也未将所有动画记为实机 PASS。
+- Fabric/NeoForge alpha.11 发行构建通过，CRC 与替换类/方法检查通过：`build/ysm-firstperson-weapon-artifacts.log`。产物均位于 `<平台>/build/libs/omni-morph-1.0.0-alpha.11+26.1.2-<平台>-mc.jar`。Fabric SHA256 `d592692979ac0627a3edcfb4918e2b5f1e1cee1bc184f5f4d67ce543f1483594`；NeoForge SHA256 `edcf981eea28ad28703779e4a80b53653a2190c0426ebb8b0cc7b16c8f95af6c`。
+- 芙宁娜原文件仍在用户提供目录，13,712,332 字节，读入前后 SHA256 均为 `F5FB807C1454A14CA5BDF519EDD2EE852F0ECCB5A0369BCAC0B587EEFC3A6254`。没有修改、导出明文资源或纳入 Git。作者待机将剑放背后、挥砍交到左手，替换保留该行为。
+- 实际游戏中的位置、遮挡、光影与键鼠触发画面 **MANUAL/PENDING**；测试通过正式解析、控制器状态恢复/已完成过渡姿态和 CPU 顶点消费者，没有冒充实机。未自行启动游戏、覆盖用户安装目录或改写模型；人工项不作为受阻条件。
+- 详细证据、完整命令及产物表：`NoFigura实施记录.md` 最新节；本次四语言 CHANGELOG 已更新。当前无待修文件；原有 `.omc/`、`refs`、崩溃文本和历史未跟踪资料保留。仅需用户实机核对已交付 JAR，不编造下一开发阶段。
+- 最近可靠周额度：已用 29%、剩余 71%，未到交接阈值；本次由当前 Agent 更新完成记录，未调用 Luna。继续遵守 CodeGraph 优先、前台 PowerShell/Tee、范围控制及禁止 Qt offscreen。
+
+下方均为历史记录；当前任务范围和交付状态以本节为准。
+
 ## 最新任务：客户端可见 Avatar 公共查询修复（2026-11-12）
 
 - 用户授权统一相机、输入等已确认同类问题，先 RED/GREEN，再编译提交推送；正式装备、同步和权限逻辑不变。
