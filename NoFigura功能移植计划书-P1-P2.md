@@ -57,8 +57,8 @@ collections / 部件 UUID 消费功能、Badge 命令、允许错误模型上传
 | 阶段 | 范围 | 依赖 | 当前状态 |
 | --- | --- | --- | --- |
 | M0 | 基线、功能契约与验证样本 | 实施指令 | DONE，9d5b3bcf 已推送 |
-| M1 | F1 第一人称物品替换 | M0 检查点完成 | 自动验证完成，检查点提交中 |
-| M2 | F2 FOV 倍率控制 | M1 检查点完成 | PLANNED |
+| M1 | F1 第一人称物品替换 | M0 检查点完成 | DONE，ea755aa5 已推送 |
+| M2 | F2 FOV 倍率控制 | M1 检查点完成 | 自动验证完成，检查点提交中 |
 | M3 | F3 Figura PBR | M2 检查点完成 | PLANNED |
 | M4 | F4 动画诊断 | M3 检查点完成 | PLANNED |
 | M5 | F5 虚拟路径复现与条件实施 | M4 检查点完成 | PLANNED |
@@ -225,8 +225,8 @@ if ($buildExitCode -ne 0) {
 | --- | --- | --- | --- | --- |
 | 计划编制 | DONE | 文档引用、范围及 whitespace 检查 | 不适用 | 未提交/未推送 |
 | M0 | DONE | 手臂/延迟姿态/原生材质/缓存及双加载器 PASS；语料计数基线失败独立记录 | MANUAL/PENDING | 9d5b3bcf 已推送 |
-| M1 | 实施完成 | firstPersonItemRender RED→GREEN，手臂/姿态和双加载器 PASS | MANUAL/PENDING | 检查点提交中 |
-| M2 | PLANNED | NOT RUN | MANUAL/PENDING | 无 |
+| M1 | 实施完成 | firstPersonItemRender RED→GREEN，手臂/姿态和双加载器 PASS | MANUAL/PENDING | ea755aa5 已推送 |
+| M2 | 实施完成 | cameraFov RED→GREEN、M1/手臂回归与双加载器 PASS | MANUAL/PENDING | 检查点提交中 |
 | M3 | PLANNED | NOT RUN | MANUAL/PENDING | 无 |
 | M4 | PLANNED | NOT RUN | MANUAL/PENDING | 无 |
 | M5 | PLANNED | NOT RUN | MANUAL/PENDING | 无 |

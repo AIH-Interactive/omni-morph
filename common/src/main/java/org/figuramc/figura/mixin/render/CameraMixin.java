@@ -1,6 +1,8 @@
 package org.figuramc.figura.mixin.render;
 
 import net.minecraft.client.Camera;
+import net.minecraft.client.Minecraft;
+import top.aihmc.omnimorph.model.rendering.CameraFov;
 import net.minecraft.world.entity.Entity;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.avatar.AvatarManager;
@@ -24,6 +26,13 @@ public abstract class CameraMixin {
     @Shadow private Entity entity;
 
     @Unique private Avatar avatar;
+
+    @Inject(method = "calculateFov", at = @At("RETURN"), cancellable = true)
+    private void figura$applyFov(float tickDelta, CallbackInfoReturnable<Float> cir) {
+        boolean localPlayer = entity != null && entity == Minecraft.getInstance().player;
+        cir.setReturnValue(CameraFov.apply(cir.getReturnValueF(),
+                localPlayer ? AvatarManager.getAvatar(entity) : null, localPlayer));
+    }
 
     @Shadow protected abstract void setRotation(float yaw, float pitch);
     @Shadow protected abstract void move(float x, float y, float z);

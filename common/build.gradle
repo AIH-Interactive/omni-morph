@@ -1121,6 +1121,15 @@ tasks.register('firstPersonItemRenderSmokeTest', JavaExec) {
     args rootProject.file('common/src/test/resources/nofigura/avatar').path
 }
 
+tasks.register('cameraFovSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks actual Lua FOV settings through the camera multiplier consumer.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.outfit.CameraFovSmokeTest'
+    args rootProject.file('common/src/test/resources/nofigura/avatar').path
+}
+
 tasks.register('previewCoverSmokeTest', JavaExec) {
     group = 'verification'
     description = 'Checks the automatic upload cover cut from the preview: region, clipping, crop and PNG.'
