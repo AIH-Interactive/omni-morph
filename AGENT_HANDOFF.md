@@ -2,8 +2,8 @@
 
 ## 当前任务：NoFigura P1/P2 移植 / Alpha.11（2026-11-12）
 
-- 用户授权目标：完成 M0～M6，每阶段自动验证后提交、推送并确认，再进入下一阶段；额度达到阈值时交接。当前 M0～M5 均已推送，M6 实施/自动验证完成，交付检查点准备提交。
-- 项目“新功能开发”；目录 `D:/UserData/Desktop/Project/OMP/OMP_26.1.2`；分支 `dev` 跟踪 `origin/dev`。当前 HEAD/已确认远端 `30198cb874ee0a2279b259328d60f23e7b39fa5a`。
+- 用户授权目标：完成 M0～M6，每阶段自动验证后提交、推送并确认，再进入下一阶段；额度达到阈值时交接。M0～M6 实施与自动交付均完成并推送；实机验收仍 MANUAL/PENDING。
+- 项目“新功能开发”；目录 `D:/UserData/Desktop/Project/OMP/OMP_26.1.2`；分支 `dev` 跟踪 `origin/dev`。M6 已确认本地/远端检查点 `0228f0b4c158709498ecfe41fa6ea28760d4f77d`；随后仅此交付状态记录提交，最终 HEAD 以 git log 为准。
 - 计划与证据：根目录 `NoFigura功能移植计划书-P1-P2.md`（第 14 节含作者示例）、`NoFigura实施记录.md`（RED/GREEN、命令、日志和产物哈希）。后续优先核对这两份与实际 Git 状态。
 
 ### 已完成及已验证
@@ -16,7 +16,7 @@
 | M3 | Figura → Iris PBR 配对、无 Iris 与资源生命周期 | 33dae03f |
 | M4 | 动画部件/时间/通道/轴定位与已知 v5 迁移提示 | 4f485710 |
 | M5 | 正式 ZIP 特殊模块名 RED→GREEN，虚拟 require/listFiles | 30198cb8 |
-| M6 | 同 Avatar 物品/FOV/PBR 组合、既有功能回归、双平台包及四语言文档 | 自动完成，检查点待提交 |
+| M6 | 同 Avatar 物品/FOV/PBR 组合、既有功能回归、双平台包及四语言文档 | 0228f0b4 |
 
 - 最新完整验证：`build/m6-final.log`，48 个 Gradle 任务，BUILD SUCCESSFUL，退出码 0。包括缓存/下载/真实装备、配装 Apply、Cloud/Protobuf 配置、导航、YSM 原生材质与混合装饰；具体命令在实施记录。
 - `build/m6-artifacts.log`：最终双平台 JAR CRC、版本、所需新增类和中英文诊断资源 PASS；产物大小和 SHA256 在实施记录。生产源码树对应 30198cb8，M6 仅测试/文档变化。
@@ -31,8 +31,8 @@
 
 ### 当前最小下一步
 
-1. 检查本轮 diff/whitespace，提交 M6 测试、四语言说明、计划/记录和本交接手册，推送 dev 并确认远端。
-2. 将检查点 SHA/推送确认写回状态记录并交付；没有新增功能实施阶段。
+1. 无剩余新功能实施；M0～M6 检查点推送均已确认。最终仅同步此完成状态并推送，交付时核对本地与远端 HEAD 相同。
+2. 补验事件次数与正式 Avatar 退役、同 Avatar 组合测试已 PASS（build/m6-retirement.log）；无新增开发阶段。
 3. 人工验收保持 MANUAL/PENDING，只有用户另行提供授权/结果时再执行或登记。
 
 ### 约束与额度
