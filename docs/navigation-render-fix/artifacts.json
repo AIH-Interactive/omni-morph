@@ -1,0 +1,28 @@
+[
+  {
+    "loader": "forge",
+    "minecraft": "1.20.1",
+    "java": 17,
+    "source_base_commit": "638f45512d3fe454cbfc5784feba522b9dc51942",
+    "uncommitted_fix": true,
+    "version": "1.0.0-alpha.10+1.20.1-638f4551",
+    "path": "D:\\UserData\\Desktop\\Project\\OMP\\OMP_1.20.1\\build\\distributions\\navigation-render-fix\\omni-morph-1.0.0-alpha.10+1.20.1-minecraftforge-mc.jar",
+    "bytes": 16601641,
+    "sha256": "6b1279070b869ef7aeb89f61f07f6dbf36c4cec5cb7d69097db08811b2d715f7",
+    "nested_jars": 14,
+    "windows_native": "AVIF amd64 PE x86_64"
+  },
+  {
+    "loader": "neoforge",
+    "minecraft": "1.20.1",
+    "java": 17,
+    "source_base_commit": "638f45512d3fe454cbfc5784feba522b9dc51942",
+    "uncommitted_fix": true,
+    "version": "1.0.0-alpha.10+1.20.1-638f4551",
+    "path": "D:\\UserData\\Desktop\\Project\\OMP\\OMP_1.20.1\\build\\distributions\\navigation-render-fix\\omni-morph-1.0.0-alpha.10+1.20.1-neoforge-mc.jar",
+    "bytes": 16601641,
+    "sha256": "6b1279070b869ef7aeb89f61f07f6dbf36c4cec5cb7d69097db08811b2d715f7",
+    "nested_jars": 14,
+    "windows_native": "AVIF amd64 PE x86_64"
+  }
+]

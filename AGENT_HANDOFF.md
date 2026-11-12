@@ -1,3 +1,23 @@
+# 当前交接：1.20.1 导航修复提交推送
+
+用户2026-11-12明确要求“提交并推送”，覆盖此前等待验收门槛。本轮三项导航修复及实际回归已完成，随本次提交交付当前1.20.1分支并核验远端；未触发Actions，未重新编译。当前具体SHA以git HEAD和最终交付回复为准。没有剩余实施任务；原未跟踪.codex/保留。
+
+## 修复及验证
+
+AbstractPanelScreen导航使用Z400、域内flush和finally恢复；SideNavigationWidget复用icon.png并纠正本版blit尺寸/UV。新增NavigationRenderingSmokeTest接入LibraryPreviewRuntimeSmokeTest；四语言日志和Alpha.10汇总同步。
+
+docs/navigation-render-fix/record.md及red/green日志为本版证据。RED实际捕获资源缺失、五图标错误尺寸及导航深度；GREEN Forge42秒、NeoForge8秒通过，含真实绘制/导航输入、预览/布局/目录回归。CRC/14嵌套依赖/清单/Java17/Logo/Windows AVIF AMD64 PE/无测试或专用加速通过。提交前核对生产文件SHA与验收构建记录相同，未改变测试后的生产代码。
+
+## 产物与未验证
+
+build/distributions/navigation-render-fix/下两个常规minecraftforge-mc.jar/neoforge-mc.jar为此前验收包，SHA256均6b1279070b869ef7aeb89f61f07f6dbf36c4cec5cb7d69097db08811b2d715f7，含Windows x86_64 AVIF native。包内638f4551是构建时基线，包含本次修复但不是从新提交重建；artifacts.json明确历史source_base_commit/uncommitted_fix，不能冒称新提交产物。
+
+用户只要求提交推送，未提供实机视觉结果；游戏像素/字体/菜单覆盖仍未验证，不记PASS。无需因此等待或标blocked。后续仅在新授权或验收反馈下继续，不自动启动游戏、覆盖mods、触发Actions或重复构建。遵守AGENTS.md，保留所有历史包和其他工作区。可靠额度此前剩80%，未触发Luna。
+
+---
+
+以下为已完成的上一轮同步历史：
+
 # 1.20.1 当前交接：后续Alpha.10 UI同步
 
 ## 本版历史

@@ -6,6 +6,8 @@
 
 ## 1.0.0-alpha.10
 
+- Fix 1.20.1 missing navigation logo, incorrect icon blit dimensions and content showing through the menu. Reuse the packaged icon and draw navigation at Z=400. Local checks/builds pass; client acceptance is pending.
+
 - Navigation: main screens share a persistent left rail with the mod logo. Hover expands the menu over content; duplicate section/pane tabs are removed. Wardrobe, Library, Permissions, Settings and Help remain available; Admin appears only after server confirmation.
 - Outfit: Avatar / Accessories destinations have dedicated lists and actions in both layouts. Publish comes first for accessories. Compact Select / Mount vertical tabs switch between list / preview and preview / bone tree, replacing the duplicate Bones button.
 - Model info and Notices remain separate compact-only destinations, with equal-width preview / information columns. Notices scroll independently; redundant top spacing is removed from model controls.

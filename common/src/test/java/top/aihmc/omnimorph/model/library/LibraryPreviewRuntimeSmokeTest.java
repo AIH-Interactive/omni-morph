@@ -78,6 +78,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 Minecraft.getInstance()::execute);
              var preview = new LibraryPreviewSession(client, true)) {
             NavigationInputSmokeTest.run();
+            NavigationRenderingSmokeTest.run();
             testModelFilePicker(client, drain);
             testReportInput(client);
             testCollectionActions(client);

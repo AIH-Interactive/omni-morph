@@ -1,0 +1,272 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+
+> Configure project :
+Architect Plugin: 3.4.164
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+Mod was built with a newer version of Loom (1.16.3), you are using Loom (1.14.476)
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+> Task :common:compileJava UP-TO-DATE
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes UP-TO-DATE
+> Task :common:extractIncludeTestProto UP-TO-DATE
+> Task :common:extractTestProto UP-TO-DATE
+> Task :common:generateTestProto NO-SOURCE
+
+> Task :common:compileTestJava
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:32: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:26: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:49: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    public static void run(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                           ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:316: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testOtherPlayerRouting(Unsafe unsafe, LibraryClient library) throws Exception {
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:384: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testOtherPlayerDraft(Unsafe unsafe, Runnable drain) throws Exception {
+                                             ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:424: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testCatalogOutfitPreview(Unsafe unsafe, Runnable drain) throws Exception {
+                                                 ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:706: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testCollectionOutfitImport(Unsafe unsafe, Runnable drain, LibraryClient client,
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:835: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testProvidedCosmetics(Unsafe unsafe, Runnable drain) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:916: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testPackagedYsmDraftBases(Unsafe unsafe, Runnable drain) throws Exception {
+                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:981: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testPackagedFiguraDraftAccessory(Unsafe unsafe, Runnable drain) throws Exception {
+                                                         ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1071: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testReportedAccessoryOnLocalBase(Unsafe unsafe, Runnable drain) throws Exception {
+                                                         ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1280: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testVanillaSelection(Unsafe unsafe, Runnable drain) throws Exception {
+                                             ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1418: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testOutfitTabShowsLoadedOutfit(Unsafe unsafe, Runnable drain) throws Exception {
+                                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1571: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testWardrobeDraftActions(Unsafe unsafe, Runnable drain) throws Exception {
+                                                 ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1845: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testLocalDraftPreview(Unsafe unsafe, Runnable drain, Object editor,
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1928: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testWardrobeCloudCosmetic(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2123: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testLocalPresetScreen(Unsafe unsafe, Runnable drain, LibraryClient client) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2551: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testInstanceTransformFields(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                                    ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2716: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testTreeAttachmentActions(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3224: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                          ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3226: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var viewport = (com.mojang.blaze3d.platform.Window) ((Unsafe) unsafeField.get(null))
+                                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3426: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testBoneOverrideEditor(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3543: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testBoneHelperControls(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3791: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testCurrentPlayerFigura(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                                                ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3962: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testIndependentFigura(Unsafe unsafe, Runnable drain) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4213: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        private PreviewGraphics(Unsafe unsafe) throws Exception {
+                                ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4269: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testPreviewAppearance(Unsafe unsafe) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4359: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testWardrobeDefaultPreview(Unsafe unsafe) throws Exception {
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4520: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testWardrobeVisibilityTicks(Unsafe unsafe) throws Exception {
+                                                    ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5292: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+        ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5292: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+                         ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5292: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5924: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testHiddenFormalParticleEmitter(Unsafe unsafe, LibraryPreviewSession preview,
+                                                        ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:65: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    public static AutoCloseable recordingSoundManager(Unsafe unsafe) throws Exception {
+                                                      ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:87: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                            ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:89: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) unsafeField.get(null);
+        ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:89: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) unsafeField.get(null);
+                         ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:316: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testControlledBasePlayback(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:368: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testControllerChannelOwnership(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:486: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static RunningEntity movementEntity(Unsafe unsafe) throws ReflectiveOperationException {
+                                                ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:500: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testRunningControllerPhase(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:551: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testWalkingUsesAvailableLocomotion(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                           ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:652: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testControlledBaseGeometry(Unsafe unsafe, RecordingClient client, Path path) throws Exception {
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:827: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testTexturePublication(Unsafe unsafe, RecordingClient client) throws Exception {
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:837: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testLateTextureBindings(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:842: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testTextureUploadLifetime(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:847: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testScaleAndDefaultTexture(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:874: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testPreviewDefaultPose(Unsafe unsafe, RecordingClient client) throws Exception {
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1009: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testPreviewLighting(Unsafe unsafe, RecordingClient client) throws Exception {
+                                            ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1047: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testGuiResources(Unsafe unsafe, RecordingClient client) throws Exception {
+                                         ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1092: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testLayerOrder(Unsafe unsafe, RecordingClient client) throws Exception {
+                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1153: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static boolean testCorpusHeldItems(Unsafe unsafe, RecordingClient client, Path path, int index) throws Exception {
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1186: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testAttachmentGeometry(Unsafe unsafe, RecordingClient client) throws Exception {
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1260: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testBakedPreviewGeometry(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                 ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1276: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testPreviewBoneFade(Unsafe unsafe, RecordingClient client) throws Exception {
+                                            ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1351: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testStandingPreviewVertices(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                    ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1411: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testYsmComplexity(Unsafe unsafe, RecordingClient client) throws Exception {
+                                          ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1448: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testHandLocators(Unsafe unsafe, RecordingClient client) throws Exception {
+                                         ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1493: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testHandLocatorChains(Unsafe unsafe, RecordingClient client) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1523: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testSubEntityInstances(Unsafe unsafe, RecordingClient client) throws Exception {
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1534: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testSyncModel(Unsafe unsafe, RecordingClient client) throws Exception {
+                                      ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1547: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testSyncConnection(Unsafe unsafe, RecordingClient client) throws Exception {
+                                           ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1565: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testCullingProperty(Unsafe unsafe, RecordingClient client) throws Exception {
+                                            ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1603: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testModelSelection(Unsafe unsafe, RecordingClient client) throws Exception {
+                                           ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1655: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testOwnershipAndDeferredClose(Unsafe unsafe, RecordingClient client) throws Exception {
+                                                      ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1678: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testSelectionRestore(Unsafe unsafe, RecordingClient client, Path directory) throws Exception {
+                                             ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1716: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        private Fixture(Unsafe unsafe, int id) throws Exception {
+                        ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1720: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        private Fixture(Unsafe unsafe, int id, Path selectionPath) throws Exception {
+                        ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1724: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        private Fixture(Unsafe unsafe, int id, Path selectionPath, String geometry) throws Exception {
+                        ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1728: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        private Fixture(Unsafe unsafe, int id, Path selectionPath, String geometry, boolean bakedOnly) throws Exception {
+                        ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmMaterialNativeSmokeTest.java:1784: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static Avatar owner(Unsafe unsafe, int id) throws Exception {
+                                ^
+71 个警告
+
+> Task :common:processTestResources UP-TO-DATE
+> Task :common:testClasses
+
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+> Task :common:libraryPreviewRuntimeSmokeTest
+[20:04:02] [main/INFO]: [STDOUT]: PASS navigation input: real screen rail/row/arrow dispatch, covered clicks and modal detachment; pixels unverified
+[20:04:02] [main/INFO]: [STDERR]: java.lang.AssertionError: missing navigation texture /assets/omni-morph/textures/gui/navigation_logo.png; wrong native blit dimensions for WARDROBE: [Blit[width=40, height=0]]; wrong native blit dimensions for LIBRARY: [Blit[width=0, height=0]]; wrong native blit dimensions for PERMISSIONS: [Blit[width=60, height=0]]; wrong native blit dimensions for SETTINGS: [Blit[width=80, height=0]]; wrong native blit dimensions for HELP: [Blit[width=100, height=0]]; navigation must be above preview/text depth and below context menus: [0.0, 0.0, 0.0]; navigation must flush before its foreground pose is restored
+[20:04:02] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.library.NavigationRenderingSmokeTest.run(NavigationRenderingSmokeTest.java:73)
+[20:04:02] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.run(LibraryPreviewRuntimeSmokeTest.java:81)
+[20:04:02] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:166)
+[20:04:02] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:73)
+[20:04:02] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.main(YsmMaterialNativeSmokeTest.java:46)
+
+> Task :common:libraryPreviewRuntimeSmokeTest FAILED
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_1.20.1/build/reports/problems/problems-report.html
+Exception in thread "main" 
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:libraryPreviewRuntimeSmokeTest'.
+> Process 'command 'C:\Users\eryth\.gradle\jdks\eclipse_adoptium-17-amd64-windows.2\bin\java.exe'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 17s
+10 actionable tasks: 2 executed, 8 up-to-date
