@@ -1,6 +1,9 @@
 package org.figuramc.figura.mixin.render.renderers;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import top.aihmc.omnimorph.model.rendering.FirstPersonItemRender;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.player.LocalPlayer;
@@ -38,6 +41,13 @@ public abstract class ItemInHandRendererMixin {
     protected abstract void renderPlayerArm(PoseStack matrices, SubmitNodeCollector submitNodeCollector, int light, float equipProgress, float swingProgress, HumanoidArm arm);
 
     @Unique Avatar avatar;
+
+    @WrapMethod(method = "renderHandsWithItems")
+    private void figura$withFirstPersonItems(float tickDelta, PoseStack matrices, SubmitNodeCollector collector,
+                                            LocalPlayer player, int light, Operation<Void> original) {
+        FirstPersonItemRender.withAvatar(AvatarManager.getAvatarForPlayer(player.getUUID()), () ->
+                original.call(tickDelta, matrices, collector, player, light));
+    }
 
     @Inject(method = "renderHandsWithItems", at = @At("HEAD"))
     private void onRenderHandsWithItems(float tickDelta, PoseStack matrices, SubmitNodeCollector submitNodeCollector, LocalPlayer player, int light, CallbackInfo ci) {

@@ -1,5 +1,7 @@
 # NoFigura P1/P2 实施记录
 
+用户已确定本轮发布版本 `1.0.0-alpha.11`；M0 保留 Alpha.10 基线证据，M1 起构建采用 Alpha.11。
+
 ## M0 基线（2026-11-12）
 
 - 分支 `dev` / `origin/dev`，起点 `8faa4b5954be798d9a0979e14537b5a583d1d9b8`；既有未跟踪资料保留。
@@ -20,3 +22,14 @@
 ## RED / GREEN 约定
 
 用户已要求 RED/GREEN；测试边界采用已批准计划中的正式入口与消费者，不为测试新增另一套业务路径。每次一条行为用例先 RED，再最小实现 GREEN，最后受影响回归。RED 必须断言目标功能失败；编译拼写错误、环境权限与外部语料计数失败不算功能 RED。每阶段保存命令、失败断言、修复后结果与日志路径；CPU/录制型测试不替代真实画面。
+
+M0 检查点：`9d5b3bcf` 已推送，远端 SHA 已确认。
+
+## M1 第一人称自定义物品
+
+- RED：`:common:firstPersonItemRenderSmokeTest` 实际失败于 `right-hand ITEM_RENDER replaces a valid Item part`，`build/m1-red.log`。初期夹具初始化失败不作为 RED。
+- GREEN：同任务经正式 Figura 编译/加载、真实 Lua ITEM_RENDER、NodeCollectorExtension 提交闭包及 Avatar.renderItem 发出四个顶点。补验左右手、nil/非 Item 返回、嵌套事件拒绝、异常作用域恢复。
+- 实施：`FirstPersonItemRender` 管理手部绘制调用域及递归状态；既有 ItemInHandRenderer 以 WrapMethod 确保 finally 清理，ItemStackRenderState.submit 按显示模式路由。保留原 YSM/Outfit/头颅代码与全局 Feature 消费顺序。
+- 用 Minecraft 26.1.2 实际字节码核对：GameRenderer.renderItemInHand 调用 renderHandsWithItems，renderLevel 后续调用 FeatureRenderDispatcher.renderAllFeatures；因此沿用已有队列消费，不照搬参考项目改变全局顺序。该静态路径证据与录制顶点不等于实机画面。
+- `firstPersonArmPoseSmokeTest`、`ysmDeferredPoseSmokeTest` 和 Alpha.11 Fabric/NeoForge 构建及分发校验 PASS，退出码 0；`build/m1-final.log`。测试没有重置生产 UI、权限或资源规则。
+- 游戏左右手/双持、地图/望远镜/头颅、ItemTask、混合装饰与粒子拖尾、两平台实际 Mixin 加载：`MANUAL/PENDING`。
