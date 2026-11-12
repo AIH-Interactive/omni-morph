@@ -47,6 +47,14 @@ public final class FiguraPbrSmokeTest {
                 require(consumer.normal != null && consumer.specular != null, "both declared channels reach Iris");
                 require(consumer.normal.getTexture() == normal.getTexture(), "normal pairs with the authored normal image");
                 require(consumer.specular.getTexture() == specular.getTexture(), "specular pairs with the authored specular image");
+                FirstPersonItemRenderSmokeTest.check(avatar,
+                        new org.figuramc.figura.model.rendering.texture.FiguraTextureSet(
+                                "combined item material", base, null, specular, normal));
+                var afterItem = new Channels();
+                loader.load(base, null, afterItem);
+                require(afterItem.normal.getTexture() == consumer.normal.getTexture()
+                                && afterItem.specular.getTexture() == consumer.specular.getTexture(),
+                        "first-person item and FOV keep the authored PBR channels live");
                 consumer.normal.close();
                 consumer.specular.close();
                 normal.fill(0, 0, 1, 1, 0.2, 0.4, 0.6, 1.0).update();

@@ -25,7 +25,7 @@ OmniMorph 是基于 [Figura](https://github.com/FiguraMC/Figura) 的 Minecraft J
 | Minecraft Java | 26.1.2 |
 | 模组加载器 | Fabric / NeoForge 26.1.2.126 |
 | Java | 25 |
-| 模组版本 | 1.0.0-alpha.10 |
+| 模组版本 | 1.0.0-alpha.11 |
 
 构建依赖版本见 [gradle.properties](gradle.properties)。这是客户端模组；多人资源分发与状态同步需要兼容的后端服务。
 
@@ -91,7 +91,7 @@ if ($buildExitCode -ne 0) {
 }
 ```
 
-正式产物为 `neoforge/build/libs/omni-morph-1.0.0-alpha.10+26.1.2-neoforge-mc.jar`。`build` 包含 `verifyNeoForgeJar`：检查元数据、Mixin 类、运行依赖和平台桥接。`:neoforge:remapJar` 保留为打包入口名称，26.1.2 无需名称重映射；`-Prelease` 省略元数据中的 Git 提交后缀。仅安装与实例加载器匹配的一个 JAR。
+正式产物为 `neoforge/build/libs/omni-morph-1.0.0-alpha.11+26.1.2-neoforge-mc.jar`。`build` 包含 `verifyNeoForgeJar`：检查元数据、Mixin 类、运行依赖和平台桥接。`:neoforge:remapJar` 保留为打包入口名称，26.1.2 无需名称重映射；`-Prelease` 省略元数据中的 Git 提交后缀。仅安装与实例加载器匹配的一个 JAR。
 
 [统一构建流水线](https://github.com/AIH-Interactive/omni-morph/actions/workflows/fabric-build.yml) 支持手动运行。Fabric/NeoForge 分别编译并上传普通发行 JAR。Actions 仅生产编译、打包和发布，不编译或执行任何测试代码。NeoForge 加载器 ID 为 `omni_morph`；资源命名空间、模型目录和配置文件沿用现有名称。
 

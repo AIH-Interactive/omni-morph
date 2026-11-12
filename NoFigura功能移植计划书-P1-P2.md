@@ -1,6 +1,6 @@
 # NoFigura 功能移植计划书：P1 / P2
 
-日期：2026-11-12。状态：**已授权实施，M0 基线完成，后续阶段按检查点执行**。
+日期：2026-11-12。状态：**M0～M5 已完成并推送，M6 组合验证与交付进行中**。
 
 ## 1. 目标与授权范围
 
@@ -59,10 +59,10 @@ collections / 部件 UUID 消费功能、Badge 命令、允许错误模型上传
 | M0 | 基线、功能契约与验证样本 | 实施指令 | DONE，9d5b3bcf 已推送 |
 | M1 | F1 第一人称物品替换 | M0 检查点完成 | DONE，ea755aa5 已推送 |
 | M2 | F2 FOV 倍率控制 | M1 检查点完成 | DONE，f8f7562d 已推送 |
-| M3 | F3 Figura PBR | M2 检查点完成 | 自动验证完成，检查点提交中 |
-| M4 | F4 动画诊断 | M3 检查点完成 | PLANNED |
-| M5 | F5 虚拟路径复现与条件实施 | M4 检查点完成 | PLANNED |
-| M6 | 组合回归、文档与发行交付 | M5 检查点完成 | PLANNED |
+| M3 | F3 Figura PBR | M2 检查点完成 | DONE，33dae03f 已推送 |
+| M4 | F4 动画诊断 | M3 检查点完成 | DONE，4f485710 已推送 |
+| M5 | F5 虚拟路径复现与条件实施 | M4 检查点完成 | DONE，30198cb8 已推送 |
+| M6 | 组合回归、文档与发行交付 | M5 检查点完成 | 组合验证与发行记录进行中 |
 
 每阶段完成所列自动验证后：更新本计划进度记录 → 检查 `git status` / `git diff` / `git diff --check` → 仅提交当前阶段授权文件 → 推送同名当前分支并确认远端 SHA → 才开始下一阶段。不得把多个已完成阶段攒成一个提交。用户已指定使用 `dev`，不重置用户工作区。
 
@@ -200,7 +200,7 @@ collections / 部件 UUID 消费功能、Badge 命令、允许错误模型上传
 
 ### 12.2 构建、测试与日志
 
-所有构建/测试前台 PowerShell 执行，完整输出通过 Tee-Object。以下为获准实施后的最终构建示例，**本次未执行**：
+所有构建/测试前台 PowerShell 执行，完整输出通过 Tee-Object。以下为最终构建模式，实际任务和结果见实施记录：
 
 ```powershell
 & .\gradlew.bat :fabric:build :neoforge:build -Prelease --no-daemon --console=plain 2>&1 | Tee-Object -FilePath 'build.log'
@@ -229,7 +229,51 @@ if ($buildExitCode -ne 0) {
 | M2 | 实施完成 | cameraFov RED→GREEN、M1/手臂回归与双加载器 PASS | MANUAL/PENDING | f8f7562d 已推送 |
 | M3 | PBR 接线实施完成 | RED→GREEN、无 Iris/实例/生命周期/YSM 材质及双加载器 PASS | 画面 MANUAL/PENDING | 33dae03f 已推送 |
 | M4 | 诊断实施完成 | keyframeDiagnostic RED→GREEN、Lua/Molang/版本继承、私有诊断和双加载器 PASS | 显示 MANUAL/PENDING | 4f485710 已推送 |
-| M5 | 适用，虚拟模块路径实施完成 | 正式 ZIP/require RED→GREEN、导入/枚举/隔离、M1/M2 和双加载器 PASS | MANUAL/PENDING | 检查点提交中 |
+| M5 | 适用，虚拟模块路径实施完成 | 正式 ZIP/require RED→GREEN、导入/枚举/隔离、M1/M2 和双加载器 PASS | MANUAL/PENDING | 30198cb8 已推送 |
 | M6 | PLANNED | NOT RUN | MANUAL/PENDING | 无 |
 
 每阶段记录实际修改文件、验证命令/结果、提交与远端确认、已发现问题和下一最小动作。达到本文定义的完成条件即结束该阶段，不继续追加范围。执行证据见 [NoFigura实施记录.md](NoFigura实施记录.md)。
+
+## 14. Alpha.11 作者使用说明
+
+### 第一人称物品与 FOV
+
+将替换几何放在 Figura `Item` 类型部件下，用现有事件返回该部件；例如模型路径为 `models.model.Item` 时：
+
+```lua
+function events.item_render(item, mode)
+   if item.id == "minecraft:stick" then
+      return models.model.Item
+   end
+end
+
+renderer:setFOV(0.8) -- 原版实时世界 FOV × 0.8，不是 0.8 度
+-- renderer:setFOV(nil) -- 清除倍率，恢复当前原版值
+```
+
+本次新增左右手第一人称入口，第三人称保留既有事件路径；不返回部件或返回非 Item 部件时保留原版物品。地图、望远镜等绕过普通持物提交的特殊绘制路径不新增替换承诺。FOV 作用于本地玩家的有效脚本 Avatar，沿用脚本/原版模型权限，HUD 视野独立。
+
+### Figura PBR
+
+同一纹理组使用 `albedo.png`、`albedo_n.png`、`albedo_s.png`；`albedo` 可换为作者实际基色名。法线和高光可以只提供一个，缺失通道保持缺失。通道字节不做编码转换，须与目标 shader 的法线/高光约定匹配。
+
+需要已支持的 Iris 环境及可读取对应 PBR 通道的 shader。没有 Iris 时继续普通 Figura 材质绘制；本次没有加入 shader pack，也没有更改现有 YSM PBR。动态源图更新继续沿用原纹理对象，Iris 材质持有者释放不会销毁作者源图。
+
+### 动画错误定位
+
+现有脚本错误详情增加动画名、部件名、时间、通道和轴，例如 `walk keyframe (part '腕骨', time 1.25s, ROTATION X)`。已知 v5 模型的 Lua 语法编译错误附 Blockbench 4.12→5.0 迁移检查提示；未知/旧格式不给版本推断。提示不会自动改写表达式，合法 Lua/Molang 结果保持原规则。
+
+### 模块路径
+
+脚本模块属于模型包内索引，点号和斜杠作为现有模块分隔符，大小写按索引精确匹配；相对路径从调用脚本目录解析。例如 `special:dir/entry.lua` 可以使用：
+
+```lua
+local common = require("../feature:variant")
+local nested = require("nested.module") -- 从模型根目录查找
+local siblings = listFiles(".", false)
+local all = listFiles("", true)
+```
+
+ZIP 或跨平台来源可包含 Windows 磁盘文件名不允许的字符；虚拟导入不再交给 Windows Path 校验。此能力不改变 Windows 创建真实文件的规则，也不允许 require 读取宿主磁盘。相同规范化名称沿用每个 Avatar 自己的模块缓存。
+
+上述能力的正式加载/消费者自动验证见实施记录；实际 shader 画面、双平台启动与双客户端验收仍为 `MANUAL/PENDING`。

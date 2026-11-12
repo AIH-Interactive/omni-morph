@@ -4,6 +4,15 @@
 
 [Project overview](../README.en.md)
 
+## 1.0.0-alpha.11
+
+- First person: Figura ITEM_RENDER replacement for normal held-item submissions in either hand; nil or non-Item results preserve vanilla rendering.
+- Camera: Lua `renderer:setFOV` now multiplies the current vanilla world FOV; nil restores it, with local-avatar permission and lifetime checks.
+- Materials: pair Figura base textures with `_n` normal and `_s` specular maps in Iris, preserving dynamic source ownership and existing YSM PBR. Ordinary materials remain available without Iris.
+- Animation: errors identify part, time, channel and axis; known v5 syntax failures include migration guidance without changing Lua/Molang evaluation.
+- Scripts: package-local virtual paths for require/listFiles remove Windows filename restrictions from cross-platform ZIP module names, preserving caches, relative imports and host IO boundaries.
+- Examples and evidence are in the [porting plan](../NoFigura功能移植计划书-P1-P2.md#14-alpha11-作者使用说明). Actual shader/game visuals and two-client acceptance remain MANUAL/PENDING.
+
 ## 1.0.0-alpha.10
 
 - Navigation: main screens share a persistent left rail with the mod logo. Hover expands the menu over content; duplicate section/pane tabs are removed. Wardrobe, Library, Permissions, Settings and Help remain available; Admin appears only after server confirmation.
