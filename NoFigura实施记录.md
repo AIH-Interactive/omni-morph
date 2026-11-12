@@ -1,5 +1,24 @@
 # NoFigura P1/P2 实施记录
 
+## Alpha.11 公共草稿查询修复（2026-11-12）
+
+- 新增仅用于客户端呈现/输入的 VisibleAvatar.forEntity/localPlayer：显式 GUI 预览（含原版）优先，然后本地可见配装草稿，最后原有 AvatarManager 查询。空基础草稿不回退到正式 Avatar；panic 保持禁用，其他实体不套用本地草稿。
+- 接入：CameraMixin 的 FOV/旋转/位置，GameRendererMixin 的 roll/矩阵/后处理/晃动，键盘、鼠标、Lua KeyMapping 与解锁光标，火焰、方块描边；第一人称物品复用同一查询。
+- 不修改 AvatarManager、UserData、装备发布、网络同步、权限保存及判定规则。HUD 动作轮盘继续用正式配装，编辑器轮盘保留独立预览；鼠标轮盘派发不依赖可见草稿有 Lua，避免原版草稿使正式轮盘失去入口。
+- 相机 RED：实际 CameraMixin 回调中 80 度输入仍为 80，期望草稿倍率得到 40；`build/visible-camera-red.log`。最小实现后 GREEN，`build/visible-camera-green.log`。
+- 输入 RED：实际 KeyboardHandlerMixin.charTyped 后草稿事件计数为 0；`build/visible-input-red.log`。迁移接收者后 GREEN，`build/visible-input-green.log`。
+- 覆盖层 RED：实际 ScreenEffectRendererMixin 没按草稿 renderFire=false 取消；`build/visible-effects-red.log`。补齐 CPU 夹具的相机实体后重新确认旧代码失败，修复 GREEN 为 `build/visible-effects-green.log`；无相机的初期夹具不算功能证据。
+- 最终覆盖实际生产回调：FOV、旋转/位移/轴映射、字符接收、鼠标滚轮取消、Lua 快捷键覆盖/释放、火焰，以及原版 GUI 优先、原版世界草稿、panic、正式 Avatar 查询身份不变。测试原生回调/对象，不宣称 OS 输入或画面验收。
+- 最终任务：libraryPreviewRuntimeSmokeTest、cameraFovSmokeTest、firstPersonItemRenderSmokeTest、firstPersonArmPoseSmokeTest、ysmDeferredPoseSmokeTest、outfitApplyClientSmokeTest、cloudAdapterSmokeTest、cloudProtocolConfigSmokeTest、Fabric/NeoForge build（-Prelease）。全部 PASS，退出码 0，BUILD SUCCESSFUL in 1m 27s，`build/visible-routing-final.log`。
+- 两平台发行包 CRC 和 VisibleAvatar 类检查 PASS；`build/visible-routing-artifacts.log`。版本保持 alpha.11，以下哈希覆盖此前交付包。源码对应本记录所在修复提交。
+
+| 平台 | 字节数 | SHA256 |
+| --- | --- | --- |
+| Fabric | 19097608 | `315c3409202b1255ac806ac57a5420a43133f7643354e909a137836dc81e24f9` |
+| NeoForge | 18711308 | `139ee28bf73a1dba71da3fb1b3592b07b70deeb42bf76681c16600b10cae3b20` |
+
+实机相机/输入/光影与双客户端仍 MANUAL/PENDING。实现和自动交付无剩余工作；提交推送核对后，按用户追加要求只读分析其指定芙宁娜 .ysm 的第一人称武器替换链，不新增 YSM 功能或修改样本。额度周窗口已用 26%、剩余 74%，未触发交接。
+
 ## Alpha.11 修复：本地草稿第一人称物品（2026-11-12）
 
 - 用户报告 `youling.zip` 手持钻石剑仍显示原版。已安装 NeoForge JAR SHA256 与最初 Alpha.11 交付完全一致，排除装错旧包。

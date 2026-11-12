@@ -1,5 +1,17 @@
 # Agent 交接手册
 
+## 最新任务：客户端可见 Avatar 公共查询修复（2026-11-12）
+
+- 用户授权统一相机、输入等已确认同类问题，先 RED/GREEN，再编译提交推送；正式装备、同步和权限逻辑不变。
+- 实施和自动验收完成：新增 VisibleAvatar，迁移相机/FOV/roll/矩阵/后处理/晃动、键鼠/Lua 快捷键/光标、火焰/描边及第一人称物品选择。全局 AvatarManager、UserData、正式发布、协议和权限实现未修改，HUD 轮盘保持正式身份。
+- 三条真实功能 RED→GREEN 见 NoFigura实施记录.md 首节及 build/visible-{camera,input,effects}-{red,green}.log。最终生产回调测试与第一人称/YSM/配装/协议回归、Fabric/NeoForge 构建 PASS，退出码 0，build/visible-routing-final.log。发行包 CRC/新增类检查与最新 SHA256 在实施记录，覆盖历史包哈希。
+- 新增固定回归同时检查 GUI 原版优先、世界原版草稿、panic、草稿/正式身份隔离；没有把 CPU 回调断言当作实机画面。相机、OS 输入、shader 与双客户端实机 MANUAL/PENDING；未启动游戏或覆盖用户安装目录。
+- 分支 dev / origin/dev；本修复提交包含源代码、测试、四语言日志及此记录；推送后按远端实际 SHA 核对。既有未跟踪资料保留，未纳入提交。
+- 当前无剩余公共修复实施。用户追加要求：完成提交推送后，仅只读核对 `D:/Program Files/AIHMC/.minecraft/versions/26.1.2-Fabric 0.19.3/omnimorph/avatars/芙宁娜v3.14中文配音.ysm` 的第一人称物品替换。区分 YSM 手臂与武器替换，沿声明→解析→消费者核对；不新增 YSM 功能、不修改模型，最终分析在对话交付。
+- 最近可靠周额度：已用 26%、剩余 74%，未到 Luna 交接阈值。后续继续遵守前台 PowerShell/Tee、CodeGraph 优先、范围控制与禁止 Qt offscreen。
+
+以下为历史任务记录，本节为当前有效实施状态。
+
 ## 最新任务：Alpha.11 第一人称物品草稿回归修复（2026-11-12）
 
 - 用户报告 youling.zip 钻石剑仍显示原版。已复现并修复：物品入口取正式 Avatar，而可见模型是 LocalOutfitPreview 草稿。现在物品作用域和手部 RENDER 入口优先取同一可见草稿，没有草稿时保持正式 Avatar 路径。

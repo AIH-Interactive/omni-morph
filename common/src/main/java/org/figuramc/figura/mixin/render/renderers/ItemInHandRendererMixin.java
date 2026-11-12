@@ -19,7 +19,6 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.AbstractSkullBlock;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
-import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.ducks.SkullBlockRendererAccessor;
 import org.figuramc.figura.lua.api.vanilla_model.VanillaModelPart;
 import org.figuramc.figura.math.matrix.FiguraMat4;
@@ -44,8 +43,7 @@ public abstract class ItemInHandRendererMixin {
 
     @Unique
     private Avatar figura$visibleHandAvatar(LocalPlayer player) {
-        var preview = top.aihmc.omnimorph.model.outfit.LocalOutfitPreview.state(player);
-        return preview != null ? preview.base() : AvatarManager.getAvatarForPlayer(player.getUUID());
+        return top.aihmc.omnimorph.model.outfit.VisibleAvatar.forEntity(player);
     }
 
     @WrapMethod(method = "renderHandsWithItems")
