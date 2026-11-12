@@ -1121,6 +1121,17 @@ tasks.register('firstPersonItemRenderSmokeTest', JavaExec) {
     args rootProject.file('common/src/test/resources/nofigura/avatar').path
 }
 
+tasks.register('ysmFirstPersonWeaponSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Replays an external encrypted YSM sample through first-person weapon submission.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.ysm.YsmFirstPersonWeaponSmokeTest'
+    doFirst {
+        args providers.gradleProperty('ysmWeaponSample').get()
+    }
+}
+
 tasks.register('cameraFovSmokeTest', JavaExec) {
     group = 'verification'
     description = 'Checks actual Lua FOV settings through the camera multiplier consumer.'

@@ -88,8 +88,8 @@ public abstract class ItemInHandRendererMixin {
             return;
 
         // YSM first-person: replace vanilla arm geometry while preserving vanilla item animations.
-        // submitFiguraModel doesn't work here because FiguraFeatureRenderer only
-        // processes submissions during entity (third-person) rendering, not first-person.
+        // PlayerRendererMixin replaces the arm through its model callback. Native
+        // item replacements are submitted separately by FirstPersonItemRender.
         if (avatar != null && avatar.isYsmNative()) {
             YsmModelRuntime ysm = avatar.getYsmRuntime();
             if (ysm != null) {

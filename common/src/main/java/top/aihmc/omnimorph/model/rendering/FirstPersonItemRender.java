@@ -37,6 +37,10 @@ public final class FirstPersonItemRender {
         }
         eventActive = true;
         try {
+            if (avatar.isYsmNative()) {
+                return avatar.getYsmRuntime().renderer().submitFirstPersonItem(
+                        item, context.leftHand(), pose, collector, light);
+            }
             return avatar.itemRenderEvent(ItemStackAPI.verify(item), context.name(),
                     FiguraVec3.fromVec3f(transform.translation()),
                     FiguraVec3.of(transform.rotation().z(), transform.rotation().y(), transform.rotation().x()),
