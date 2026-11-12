@@ -228,8 +228,8 @@ if ($buildExitCode -ne 0) {
 | M1 | 实施完成 | firstPersonItemRender RED→GREEN，手臂/姿态和双加载器 PASS | MANUAL/PENDING | ea755aa5 已推送 |
 | M2 | 实施完成 | cameraFov RED→GREEN、M1/手臂回归与双加载器 PASS | MANUAL/PENDING | f8f7562d 已推送 |
 | M3 | PBR 接线实施完成 | RED→GREEN、无 Iris/实例/生命周期/YSM 材质及双加载器 PASS | 画面 MANUAL/PENDING | 33dae03f 已推送 |
-| M4 | 诊断实施完成 | keyframeDiagnostic RED→GREEN、Lua/Molang/版本继承、私有诊断和双加载器 PASS | 显示 MANUAL/PENDING | 检查点提交中 |
-| M5 | PLANNED | NOT RUN | MANUAL/PENDING | 无 |
+| M4 | 诊断实施完成 | keyframeDiagnostic RED→GREEN、Lua/Molang/版本继承、私有诊断和双加载器 PASS | 显示 MANUAL/PENDING | 4f485710 已推送 |
+| M5 | 适用，虚拟模块路径实施完成 | 正式 ZIP/require RED→GREEN、导入/枚举/隔离、M1/M2 和双加载器 PASS | MANUAL/PENDING | 检查点提交中 |
 | M6 | PLANNED | NOT RUN | MANUAL/PENDING | 无 |
 
 每阶段记录实际修改文件、验证命令/结果、提交与远端确认、已发现问题和下一最小动作。达到本文定义的完成条件即结束该阶段，不继续追加范围。执行证据见 [NoFigura实施记录.md](NoFigura实施记录.md)。

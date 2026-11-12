@@ -22,6 +22,15 @@ public class PathUtils {
     }
 
     public static Path getWorkingDirectory(LuaFunction debugGetinfo) {
+        Path path = Path.of("/" + getWorkingSource(debugGetinfo));
+        return path.getNameCount() > 1 ? path.resolve("../").normalize() : Path.of("/");
+    }
+
+    public static ScriptPath getScriptWorkingDirectory(LuaFunction debugGetinfo) {
+        return ScriptPath.sourceDirectory(getWorkingSource(debugGetinfo));
+    }
+
+    private static String getWorkingSource(LuaFunction debugGetinfo) {
         // Navigate up the stack trace and grab the first non-Java source
         int i=1;
         String file = "";
@@ -32,8 +41,7 @@ public class PathUtils {
             file = stack.get("source").checkjstring();
         } while (file.equals("=[Java]"));
 
-        Path path = Path.of("/" + file);
-        return path.getNameCount() > 1 ? path.resolve("../").normalize() : Path.of("/");
+        return file;
     }
 
     public static String computeSafeString(Path path) {
@@ -44,7 +52,11 @@ public class PathUtils {
     }
 
     public static String computeSafeString(String path) {
-        return computeSafeString(getPath(path));
+        return ScriptPath.parse(path).safeString();
+    }
+
+    public static String computeSafeString(ScriptPath path) {
+        return path.safeString();
     }
 
     public static boolean isAbsolute(Path path) {

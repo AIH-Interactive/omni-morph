@@ -24,6 +24,7 @@ import top.aihmc.omnimorph.lua.api.ysm_model.YsmModelAPI;
 import org.figuramc.figura.permissions.Permissions;
 import top.aihmc.omnimorph.model.outfit.OutfitInstructionBudget;
 import org.figuramc.figura.utils.PathUtils;
+import org.figuramc.figura.utils.ScriptPath;
 import org.luaj.vm2.*;
 import org.luaj.vm2.compiler.LuaC;
 import org.luaj.vm2.lib.*;
@@ -35,7 +36,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
@@ -243,10 +243,10 @@ public class FiguraLuaRuntime {
     private final VarArgFunction require = new VarArgFunction() {
         @Override
         public Varargs invoke(Varargs arg) {
-            Path path = PathUtils.getPath(arg.checkstring(1));
-            Path dir = PathUtils.getWorkingDirectory(getInfoFunction);
+            ScriptPath path = ScriptPath.parse(arg.checkjstring(1));
+            ScriptPath dir = PathUtils.getScriptWorkingDirectory(getInfoFunction);
             String scriptName = PathUtils.computeSafeString(
-                PathUtils.isAbsolute(path) ? path : dir.resolve(path)
+                path.isAbsolute() ? path : dir.resolve(path)
             );
 
             if (loadingScripts.contains(scriptName))
@@ -264,10 +264,10 @@ public class FiguraLuaRuntime {
     private final TwoArgFunction listFiles = new TwoArgFunction() {
         @Override
         public LuaValue call(LuaValue folderPath, LuaValue includeSubfolders) {
-            Path path = PathUtils.getPath(folderPath);
-            Path dir = PathUtils.getWorkingDirectory(getInfoFunction);
+            ScriptPath path = ScriptPath.parse(folderPath.isnil() ? "/" : folderPath.checkjstring());
+            ScriptPath dir = PathUtils.getScriptWorkingDirectory(getInfoFunction);
 
-            Path targetPath = (PathUtils.isAbsolute(path) ? path : dir.resolve(path)).normalize();
+            ScriptPath targetPath = (path.isAbsolute() ? path : dir.resolve(path)).normalize();
 
             boolean subFolders = !includeSubfolders.isnil() && includeSubfolders.checkboolean();
 
@@ -275,16 +275,14 @@ public class FiguraLuaRuntime {
             int i = 1;
             LuaTable table = new LuaTable();
             for (String s : scripts.keySet()) {
-                Path scriptPath = PathUtils.getPath(s);
+                ScriptPath scriptPath = ScriptPath.parse(s);
 
                 // Add to table only if the beginning of the path matches
                 if (!(scriptPath.startsWith(targetPath)))
                     continue;
-                // remove the common parent
-                Path result = targetPath.relativize(scriptPath);
-                // Paths always have at least one name.
-                // If we do not allow subfolders, only allow paths that directly point to a file
-                if (!subFolders && result.getNameCount()!=1)
+                // Count names below the query; an exact script query also matches.
+                int relativeNames = scriptPath.getNameCount() - targetPath.getNameCount();
+                if (!subFolders && relativeNames > 1)
                     continue;
                 table.set(i++, LuaValue.valueOf(s.replace('/', '.')));
             }
@@ -362,7 +360,7 @@ public class FiguraLuaRuntime {
     // init event //
 
     private Varargs initializeScript(String str){
-        Path path = PathUtils.getPath(str);
+        ScriptPath path = ScriptPath.parse(str);
         String name = PathUtils.computeSafeString(path);
 
         // already loaded
