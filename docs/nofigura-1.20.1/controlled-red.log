@@ -1,0 +1,90 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+
+> Configure project :
+Architect Plugin: 3.4.164
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+Mod was built with a newer version of Loom (1.16.3), you are using Loom (1.14.476)
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+
+> Task :common:compileJava
+注: D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\main\java\org\figuramc\figura\mixin\render\GameRendererMixin.java使用了未经检查或不安全的操作。
+注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes
+> Task :common:extractIncludeTestProto UP-TO-DATE
+> Task :common:extractTestProto UP-TO-DATE
+> Task :common:generateTestProto NO-SOURCE
+
+> Task :common:compileTestJava
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\VisibleAvatarRoutingSmokeTest.java:7: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\VisibleAvatarRoutingSmokeTest.java:11: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    static void run(Unsafe unsafe, LibraryPreviewSession preview, Runnable drain, Object editor) throws Exception {
+                    ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonAvatarSmokeTest.java:37: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+                    var field = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+                                        ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonAvatarSmokeTest.java:39: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+                    var unsafe = (sun.misc.Unsafe) field.get(null);
+                                          ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonItemRenderSmokeTest.java:42: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            var unsafeField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+                                      ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonItemRenderSmokeTest.java:44: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            var unsafe = (sun.misc.Unsafe) unsafeField.get(null);
+                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFirstPersonWeaponSmokeTest.java:37: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            var field = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+                                ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFirstPersonWeaponSmokeTest.java:39: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            var unsafe = (sun.misc.Unsafe) field.get(null);
+                                  ^
+8 个警告
+
+> Task :common:processTestResources UP-TO-DATE
+> Task :common:testClasses
+
+> Task :common:firstPersonItemRenderSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+[22:13:13] [main/INFO]: [STDERR]: java.lang.AssertionError: disabled setting preserves vanilla item and skips ITEM_RENDER
+[22:13:13] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.outfit.FirstPersonItemRenderSmokeTest.require(FirstPersonItemRenderSmokeTest.java:152)
+[22:13:13] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.outfit.FirstPersonItemRenderSmokeTest.lambda$checkReplacement$3(FirstPersonItemRenderSmokeTest.java:82)
+[22:13:13] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.rendering.FirstPersonItemRender.withAvatar(FirstPersonItemRender.java:25)
+[22:13:13] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.outfit.FirstPersonItemRenderSmokeTest.checkReplacement(FirstPersonItemRenderSmokeTest.java:81)
+[22:13:13] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.outfit.FirstPersonItemRenderSmokeTest.check(FirstPersonItemRenderSmokeTest.java:33)
+[22:13:13] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.outfit.FirstPersonItemRenderSmokeTest.lambda$main$0(FirstPersonItemRenderSmokeTest.java:20)
+[22:13:13] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:215)
+[22:13:13] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.replayFiguraModel(YsmMaterialNativeSmokeTest.java:63)
+[22:13:13] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.outfit.FirstPersonItemRenderSmokeTest.main(FirstPersonItemRenderSmokeTest.java:20)
+
+> Task :common:firstPersonItemRenderSmokeTest FAILED
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_1.20.1/build/reports/problems/problems-report.html
+Exception in thread "main" 
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:firstPersonItemRenderSmokeTest'.
+> Process 'command 'C:\Users\eryth\.gradle\jdks\eclipse_adoptium-17-amd64-windows.2\bin\java.exe'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 11s
+10 actionable tasks: 3 executed, 7 up-to-date

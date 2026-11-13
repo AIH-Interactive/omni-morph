@@ -98,7 +98,7 @@ public abstract class MinecraftMixin {
         }
 
         // unlock cursor :p
-        Avatar avatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
+        Avatar avatar = top.aihmc.omnimorph.model.outfit.VisibleAvatar.localPlayer();
         if (avatar != null && avatar.luaRuntime != null && avatar.luaRuntime.host.unlockCursor) {
             this.mouseHandler.releaseMouse();
             scriptMouseUnlock = true;

@@ -29,7 +29,7 @@ Lua と Molang の両ランタイムに対応しています。Lua はスクリ�
 | Minecraft Java | 1.20.1 |
 | Mod ローダー | Forge 47.1.3 / NeoForge 47.1.106 |
 | Java | 17 |
-| Mod バージョン | 1.0.0-alpha.10 |
+| Mod バージョン | 1.0.0-alpha.11 |
 
 ビルド依存関係のバージョンは [gradle.properties](gradle.properties) を参照してください。本 Mod はクライアント用です。マルチプレイでのリソース配信と状態同期には、対応バックエンドが必要です。
 

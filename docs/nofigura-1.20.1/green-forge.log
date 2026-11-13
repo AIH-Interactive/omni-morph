@@ -1,0 +1,104 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+
+> Configure project :
+Architect Plugin: 3.4.164
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+Mod was built with a newer version of Loom (1.16.3), you are using Loom (1.14.476)
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+
+> Task :common:compileJava
+注: D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\main\java\org\figuramc\figura\mixin\render\GameRendererMixin.java使用了未经检查或不安全的操作。
+注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes
+> Task :common:extractIncludeTestProto UP-TO-DATE
+> Task :common:extractTestProto UP-TO-DATE
+> Task :common:generateTestProto NO-SOURCE
+
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonAvatarSmokeTest.java:37: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+> Task :common:compileTestJava
+                    var field = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+                                        ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonAvatarSmokeTest.java:39: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+                    var unsafe = (sun.misc.Unsafe) field.get(null);
+                                          ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonItemRenderSmokeTest.java:42: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            var unsafeField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+                                      ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonItemRenderSmokeTest.java:44: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            var unsafe = (sun.misc.Unsafe) unsafeField.get(null);
+                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFirstPersonWeaponSmokeTest.java:37: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            var field = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
+                                ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\ysm\YsmFirstPersonWeaponSmokeTest.java:39: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+            var unsafe = (sun.misc.Unsafe) field.get(null);
+                                  ^
+6 个警告
+
+> Task :common:processTestResources UP-TO-DATE
+> Task :common:testClasses
+
+> Task :common:firstPersonItemRenderSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+[22:14:01] [main/INFO]: [STDOUT]: PASS first-person item: formal Lua event, direct replacement and native vertices; game pending
+
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+> Task :common:cameraFovSmokeTest
+[22:14:07] [main/INFO]: [STDOUT]: PASS camera FOV: actual Lua setter, multiplier, reset and owner/permission isolation; game pending
+
+> Task :common:ysmFirstPersonWeaponSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+[22:14:19] [main/INFO]: [STDOUT]: Author sample vertices: idle=0, swing=6024
+[22:14:19] [main/INFO]: [STDOUT]: PASS YSM first-person weapon: authored hold/swing, native buffered vertices and fallback
+
+> Task :common:jar
+> Task :forge:compileJava UP-TO-DATE
+> Task :forge:processResources
+> Task :forge:classes
+> Task :forge:compileTestJava NO-SOURCE
+> Task :forge:jar
+> Task :forge:processIncludeJars UP-TO-DATE
+
+> Task :common:transformProductionForge
+[Architectury Transformer] Read classpath in 1.417 s
+[Architectury Transformer] Transformed jar with 7 transformer(s) in 3.692 s
+
+> Task :forge:shadowJar
+Cannot remap entityRenderTranslations because it does not exists in any of the targets [] or their parents.
+Cannot remap modelRenderTranslations because it does not exists in any of the targets [] or their parents.
+Cannot remap scaleWidth because it does not exists in any of the targets [] or their parents.
+Cannot remap scaleHeight because it does not exists in any of the targets [] or their parents.
+Cannot remap renderRaw because it does not exists in any of the targets [net/minecraft/client/renderer/BlockEntityWithoutLevelRenderer]
+> Task :forge:remapJar
+
+> Task :common:productionMixinContractSmokeTest
+SKIPPED optional target unavailable in audit classpath: de/maxhenkel/voicechat/voice/client/RenderEvents
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+OPTIONAL selector absent: org/figuramc/figura/mixin/render/renderers/BlockEntityWithoutLevelRendererMixin.setTargetItem [renderRaw]
+PASS compiled target/member/invocation contracts for 98 Mixins
+PASS 8 typed @Local bindings at invocation sites
+Not covered: Mixin transformation, frame reconstruction, generic local references, refmaps and rendered behavior
+
+> Task :common:loaderModuleSmokeTest
+PASS Java 17 outer classes and 13 transformed @ExpectPlatform owners/descriptors
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+PASS actual JAR package ownership through Java module resolver: modules=16
+PASS isolated final-JAR AVIF ImageIO registration and actual native decode
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_1.20.1/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 48s
+22 actionable tasks: 13 executed, 9 up-to-date

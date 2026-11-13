@@ -4,6 +4,21 @@
 
 [Project overview](../README.en.md)
 
+## 1.0.0-alpha.11
+
+- Minecraft 1.20.1 / Java17 / Forge47.1.3 / NeoForge47.1.106: Alpha.11 NoFigura — [本版适配与验证 / target API and validation record](../NoFigura-1.20.1同步记录.md).
+
+- Add a First-Person Weapon Replacement toggle under Settings → Rendering, disabled by default. It controls Figura/YSM item replacement without changing arms, third-person rendering or outfits.
+- Native YSM first-person weapon replacement follows authored hand-locator visibility and animation, borrowing held equipment from the body rig while preserving cross-hand swings, glow children, vanilla fallback and independent arm poses.
+- Unify visible-avatar routing for draft camera/FOV, keyboard/mouse/Lua keybinds, fire and block outlines. Preserve vanilla preview scopes, formal equipment/synchronization/permission identity and the formal HUD wheel.
+- Fix first-person item replacement in outfit drafts: item events and hand rendering now use the visible local draft instead of the resident equipped Avatar.
+- First person: Figura ITEM_RENDER replacement for normal held-item submissions in either hand; nil or non-Item results preserve vanilla rendering.
+- Camera: Lua `renderer:setFOV` now multiplies the current vanilla world FOV; nil restores it, with local-avatar permission and lifetime checks.
+- Materials: pair Figura base textures with `_n` normal and `_s` specular maps in Iris, preserving dynamic source ownership and existing YSM PBR. Ordinary materials remain available without Iris.
+- Animation: errors identify part, time, channel and axis; known v5 syntax failures include migration guidance without changing Lua/Molang evaluation.
+- Scripts: package-local virtual paths for require/listFiles remove Windows filename restrictions from cross-platform ZIP module names, preserving caches, relative imports and host IO boundaries.
+- Examples and evidence are in the [porting plan](../NoFigura功能移植计划书-P1-P2.md#14-alpha11-作者使用说明). Actual shader/game visuals and two-client acceptance remain SKIPPED (MANUAL; unverified, per user request).
+
 ## 1.0.0-alpha.10
 
 - Fix 1.20.1 missing navigation logo, incorrect icon blit dimensions and content showing through the menu. Reuse the packaged icon and draw navigation at Z=400. Local checks/builds pass; client acceptance is pending.

@@ -1,0 +1,1 @@
+PASS native getFov/renderHandsWithItems descriptors; JSON; no newly added WrapMethod; 24 production-only tasks; workflow/platform build unchanged. Existing frame/font WrapMethod usages retained from target baseline. Game runtime remains unverified.

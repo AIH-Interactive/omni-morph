@@ -1,0 +1,63 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+
+> Configure project :
+Architect Plugin: 3.4.164
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+Mod was built with a newer version of Loom (1.17.21), you are using Loom (1.14.476)
+Mod was built with a newer version of Loom (1.17.493), you are using Loom (1.14.476)
+Mod was built with a newer version of Loom (1.16.3), you are using Loom (1.14.476)
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+> Task :common:compileJava UP-TO-DATE
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes UP-TO-DATE
+> Task :common:extractIncludeTestProto UP-TO-DATE
+> Task :common:extractTestProto UP-TO-DATE
+> Task :common:generateTestProto NO-SOURCE
+> Task :common:compileTestJava UP-TO-DATE
+> Task :common:processTestResources UP-TO-DATE
+> Task :common:testClasses UP-TO-DATE
+
+> Task :common:firstPersonItemRenderSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+[21:37:13] [main/INFO]: [STDOUT]: PASS first-person item: formal Lua event, direct replacement and native vertices; game pending
+
+> Task :common:cameraFovSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+[21:37:22] [main/INFO]: [STDOUT]: PASS camera FOV: actual Lua setter, multiplier, reset and owner/permission isolation; game pending
+
+> Task :common:figuraPbrSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+[21:37:34] [main/INFO]: [STDOUT]: PASS Figura PBR: formal parsing, Iris consumer, channel pairing and borrowed lifetime; shader pixels pending
+
+> Task :common:figuraWithoutIrisSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+[21:37:44] [main/INFO]: [STDOUT]: PASS Figura material without Iris: formal model load and ordinary texture upload
+
+> Task :common:keyframeDiagnosticSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+[21:37:56] [main/INFO]: [STDOUT]: PASS animation diagnostics: actual reader/player, version hints and Lua/Molang results; display pending
+
+> Task :common:luaModulePathSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+[21:38:05] [main/INFO]: [STDOUT]: PASS formal ZIP module loading and require
+
+> Task :common:ysmFirstPersonWeaponSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+[21:38:24] [main/INFO]: [STDOUT]: Author sample vertices: idle=0, swing=6024
+[21:38:24] [main/INFO]: [STDOUT]: PASS YSM first-person weapon: authored hold/swing, deferred geometry and fallback
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_1.21.1/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 1m 27s
+16 actionable tasks: 7 executed, 9 up-to-date

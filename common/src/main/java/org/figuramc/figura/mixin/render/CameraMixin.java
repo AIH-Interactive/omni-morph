@@ -30,7 +30,7 @@ public abstract class CameraMixin {
 
     @Inject(method = "setup", at = @At(value = "HEAD"))
     private void setupAvatarVar(BlockGetter area, Entity focusedEntity, boolean thirdPerson, boolean inverseView, float tickDelta, CallbackInfo ci) {
-        avatar = AvatarManager.getAvatar(focusedEntity);
+        avatar = top.aihmc.omnimorph.model.outfit.VisibleAvatar.forEntity(focusedEntity);
     }
 
     @Inject(method = "setup", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Camera;setRotation(FF)V", shift = At.Shift.AFTER), require = 1)

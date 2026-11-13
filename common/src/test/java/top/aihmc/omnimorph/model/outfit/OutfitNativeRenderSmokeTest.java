@@ -573,11 +573,11 @@ public final class OutfitNativeRenderSmokeTest {
         System.out.println("PASS retained Figura base: full Lua/native callback scope, matching accessory vertices and interleaved-frame restoration; GUI/GPU MANUAL/PENDING");
     }
 
-    static VertexConsumer vertexSink(List<float[]> positions) {
+    public static VertexConsumer vertexSink(List<float[]> positions) {
         return vertexSink(positions, null);
     }
 
-    static VertexConsumer vertexSink(List<float[]> positions, List<float[]> normals) {
+    public static VertexConsumer vertexSink(List<float[]> positions, List<float[]> normals) {
         return (VertexConsumer) Proxy.newProxyInstance(VertexConsumer.class.getClassLoader(),
                 new Class<?>[]{VertexConsumer.class}, (proxy, method, arguments) -> {
                     if (method.isDefault()) {
@@ -657,7 +657,7 @@ public final class OutfitNativeRenderSmokeTest {
         System.out.println("PASS native vanilla arm composition: separate left/right frames, slim pivots and no body leakage; real first-person GUI/GPU MANUAL/PENDING");
     }
 
-    static void addQuad(Avatar avatar) {
+    public static void addQuad(Avatar avatar) {
         var vertices = List.of(new Vertex(1, 2, 3, 0, 0, 0, 0, 1),
                 new Vertex(2, 2, 3, 16, 0, 0, 0, 1), new Vertex(2, 3, 3, 16, 16, 0, 0, 1),
                 new Vertex(1, 3, 3, 0, 16, 0, 0, 1));

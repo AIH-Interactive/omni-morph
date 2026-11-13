@@ -1,0 +1,24 @@
+[
+  {
+    "loader": "fabric",
+    "path": "D:\\UserData\\Desktop\\Project\\OMP\\OMP_1.21.1\\fabric\\build\\libs\\omni-morph-1.0.0-alpha.11+1.21.1-fabric-mc.jar",
+    "size": 16783021,
+    "sha256": "443da80a872eb1bf2ef52008ee509e646a6a2bb7cf200568e96ed80fac9f3589",
+    "code_commit": "9b66a9f211503adceb79dc595acada70375742da",
+    "version": "1.0.0-alpha.11+1.21.1",
+    "nested_jars": 20,
+    "own_classes": 1704,
+    "checks": "PASS: CRC including nested JARs, metadata, Java21, features, dependencies, AVIF, licenses, no tests or custom acceleration"
+  },
+  {
+    "loader": "neoforge",
+    "path": "D:\\UserData\\Desktop\\Project\\OMP\\OMP_1.21.1\\neoforge\\build\\libs\\omni-morph-1.0.0-alpha.11+1.21.1-neoforge-mc.jar",
+    "size": 16427279,
+    "sha256": "a5da447e12e149fbe70784a18fef9348c69ca6e26afd42f00a0eadac5c3281ae",
+    "code_commit": "9b66a9f211503adceb79dc595acada70375742da",
+    "version": "1.0.0-alpha.11+1.21.1",
+    "nested_jars": 13,
+    "own_classes": 1708,
+    "checks": "PASS: CRC including nested JARs, metadata, Java21, features, dependencies, AVIF, licenses, no tests or custom acceleration"
+  }
+]

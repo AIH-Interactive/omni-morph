@@ -1,0 +1,198 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+
+> Configure project :
+Architect Plugin: 3.4.164
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+Mod was built with a newer version of Loom (1.16.3), you are using Loom (1.14.476)
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+> Task :common:compileJava UP-TO-DATE
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes UP-TO-DATE
+> Task :common:extractIncludeTestProto UP-TO-DATE
+> Task :common:extractTestProto UP-TO-DATE
+> Task :common:generateTestProto NO-SOURCE
+
+> Task :common:compileTestJava
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:32: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\VisibleAvatarRoutingSmokeTest.java:7: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+import sun.misc.Unsafe;
+               ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:49: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    public static void run(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                           ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:316: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testOtherPlayerRouting(Unsafe unsafe, LibraryClient library) throws Exception {
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:384: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testOtherPlayerDraft(Unsafe unsafe, Runnable drain) throws Exception {
+                                             ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:424: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testCatalogOutfitPreview(Unsafe unsafe, Runnable drain) throws Exception {
+                                                 ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:706: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testCollectionOutfitImport(Unsafe unsafe, Runnable drain, LibraryClient client,
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:835: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testProvidedCosmetics(Unsafe unsafe, Runnable drain) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:916: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testPackagedYsmDraftBases(Unsafe unsafe, Runnable drain) throws Exception {
+                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:981: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testPackagedFiguraDraftAccessory(Unsafe unsafe, Runnable drain) throws Exception {
+                                                         ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1071: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testReportedAccessoryOnLocalBase(Unsafe unsafe, Runnable drain) throws Exception {
+                                                         ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1280: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testVanillaSelection(Unsafe unsafe, Runnable drain) throws Exception {
+                                             ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1418: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testOutfitTabShowsLoadedOutfit(Unsafe unsafe, Runnable drain) throws Exception {
+                                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1571: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testWardrobeDraftActions(Unsafe unsafe, Runnable drain) throws Exception {
+                                                 ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1845: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testLocalDraftPreview(Unsafe unsafe, Runnable drain, Object editor,
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:1929: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testWardrobeCloudCosmetic(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2124: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testLocalPresetScreen(Unsafe unsafe, Runnable drain, LibraryClient client) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2552: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testInstanceTransformFields(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                                    ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:2717: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testTreeAttachmentActions(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                                  ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3225: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+                          ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3227: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        var viewport = (com.mojang.blaze3d.platform.Window) ((Unsafe) unsafeField.get(null))
+                                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3427: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testBoneOverrideEditor(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3544: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testBoneHelperControls(Unsafe unsafe, org.figuramc.figura.gui.screens.WardrobeScreen screen,
+                                               ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3792: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testCurrentPlayerFigura(Unsafe unsafe, Runnable drain, Path encrypted) throws Exception {
+                                                ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:3963: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testIndependentFigura(Unsafe unsafe, Runnable drain) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4214: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        private PreviewGraphics(Unsafe unsafe) throws Exception {
+                                ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4270: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testPreviewAppearance(Unsafe unsafe) throws Exception {
+                                              ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4360: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testWardrobeDefaultPreview(Unsafe unsafe) throws Exception {
+                                                   ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:4521: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testWardrobeVisibilityTicks(Unsafe unsafe) throws Exception {
+                                                    ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5293: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+        ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5293: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+                         ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5293: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+        Unsafe unsafe = (Unsafe) field(Unsafe.class, "theUnsafe").get(null);
+                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\LibraryPreviewRuntimeSmokeTest.java:5925: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    private static void testHiddenFormalParticleEmitter(Unsafe unsafe, LibraryPreviewSession preview,
+                                                        ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\java\top\aihmc\omnimorph\model\library\VisibleAvatarRoutingSmokeTest.java:11: 警告: Unsafe是内部专用 API, 可能会在未来发行版中删除
+    static void run(Unsafe unsafe, LibraryPreviewSession preview, Runnable drain, Object editor) throws Exception {
+                    ^
+34 个警告
+
+> Task :common:processTestResources UP-TO-DATE
+> Task :common:testClasses
+
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+> Task :common:libraryPreviewRuntimeSmokeTest
+[22:10:42] [main/INFO]: [STDOUT]: PASS navigation input: real screen rail/row/arrow dispatch, covered clicks and modal detachment; pixels unverified
+[22:10:42] [main/INFO]: [STDOUT]: PASS navigation rendering: packaged textures, actual native blit dimensions, foreground depth/flush and pose restore; pixels unverified
+[22:10:42] [main/INFO]: [STDOUT]: PASS model picker: configured avatars root, fixed navigation, real file filtering and external drag acceptance
+[22:10:42] [main/INFO]: [STDOUT]: PASS report input: actual screen click/release, CJK text, newline/backspace, disabled state and outside focus
+[22:10:43] [main/INFO]: [STDOUT]: PASS collection card pointer/keyboard/filter routing and conditional horizontal bone scrolling; GUI MANUAL/PENDING
+[22:10:43] [main/INFO]: [STDOUT]: PASS wardrobe plus panels: all resource selectors, independent values, bounded geometry and parts-mode access; GUI MANUAL/PENDING
+[22:10:43] [main/INFO]: [STDOUT]: PASS All source/use defaults: actual accessory inventory, independent Avatar/accessory filters, collection cards and candidate-only rows; GUI MANUAL/PENDING
+[22:10:43] [main/INFO]: [STDOUT]: PASS outfit destinations: fixed resource types, separate views, preview and unchanged information route; GUI MANUAL/PENDING
+[22:10:43] [main/INFO]: [STDOUT]: PASS collection resource tabs: fixed resource kinds, independent list contexts and compact/wide tab callbacks; GUI MANUAL/PENDING
+[22:10:43] [main/INFO]: [STDOUT]: PASS compact accessory tabs: actual Select/Mount callbacks, right-side bounds and no redundant Bones button; GUI MANUAL/PENDING
+[22:10:43] [main/ERROR]: Avatar creation failed
+java.io.IOException: Expected creation failure fixture
+	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.testCreationMenuAndForm(LibraryPreviewRuntimeSmokeTest.java:5496) ~[test/:?]
+	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.testWardrobeActionMenus(LibraryPreviewRuntimeSmokeTest.java:5318) ~[test/:?]
+	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.testReportInput(LibraryPreviewRuntimeSmokeTest.java:4514) ~[test/:?]
+	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.run(LibraryPreviewRuntimeSmokeTest.java:83) ~[test/:?]
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:173) ~[test/:?]
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:80) ~[test/:?]
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.main(YsmMaterialNativeSmokeTest.java:53) ~[test/:?]
+[22:10:43] [main/INFO]: [STDOUT]: PASS creation menu/YSM form: actual native fields, metadata-only options, no files before Create, duplicate/close guards and failed-job retry state; GUI MANUAL/PENDING
+[22:10:43] [main/INFO]: [STDOUT]: PASS wardrobe action groups, native local/cloud removal menus, taller rows, tree refresh and type text; GUI MANUAL/PENDING
+[22:10:43] [main/INFO]: [STDOUT]: PASS wardrobe preview visibility: equipped state, toggling, unequipped selection and current equipment; GUI MANUAL/PENDING
+[22:10:43] [main/INFO]: [STDOUT]: PASS collection preview actions: ownership, permissions, confirmation, offline state and one global cache preference
+[22:10:44] [main/INFO]: [STDOUT]: PASS wardrobe visibility lifecycle: selected preview, multiple ticks, public/private HTTP saves and equipment reload
+[22:10:44] [main/INFO]: [STDOUT]: PASS wardrobe and model settings preview: ordinary/expanded widgets retain the live player without copies
+[22:10:44] [main/INFO]: [STDOUT]: PASS constructed preview entity IDs: assigned, distinct and stable
+[22:10:44] [main/INFO]: [STDOUT]: PASS isolated player appearance: native skin, live loading/model type, skin layers and fallback
+[22:10:44] [main/INFO]: [STDOUT]: PASS management/permissions player routing: online entity, missing entity, offline, cancellation and borrowed lifetime; GUI MANUAL/PENDING
+[22:10:44] [main/INFO]: [STDOUT]: PASS offline permissions copy: native load, private identity, refreshed NBT and cleanup; GUI MANUAL/PENDING
+[22:10:44] [main/INFO]: [STDOUT]: PASS wardrobe accessory selection: actual cosmetic source, private async composition, no base load/publication, deferred retirement and unavailable entry; GUI MANUAL/PENDING
+[22:10:44] [main/INFO]: [STDOUT]: PASS vanilla composition preview: no placeholder Avatar, scoped equipment masking, async accessory preparation and deferred cleanup; GUI MANUAL/PENDING
+[22:10:45] [main/INFO]: [STDOUT]: PASS collection Outfit workflow: authorized selection, explicit draft import, editor routing and cancellation; GUI MANUAL/PENDING
+[22:10:46] [main/INFO]: [STDOUT]: PASS catalog Outfit preview: HTTP JSON selection, independent composition, dependency issues and generation retirement; GUI MANUAL/PENDING
+[22:10:46] [main/INFO]: [STDOUT]: PASS local world animation preparation: detached, once per frame, GUI dedup and borrowed base
+[22:10:46] [main/INFO]: [STDOUT]: PASS first-person draft hand capture, both draw callbacks and cleanup; pixels unverified
+[22:10:46] [main/INFO]: [STDERR]: java.lang.AssertionError: Lua FOV must preserve the tick-computed vanilla multiplier instead of replacing it
+[22:10:46] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.library.VisibleAvatarRoutingSmokeTest.require(VisibleAvatarRoutingSmokeTest.java:209)
+[22:10:46] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.library.VisibleAvatarRoutingSmokeTest.run(VisibleAvatarRoutingSmokeTest.java:40)
+[22:10:46] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.testLocalDraftPreview(LibraryPreviewRuntimeSmokeTest.java:1861)
+[22:10:46] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.testWardrobeDraftActions(LibraryPreviewRuntimeSmokeTest.java:1648)
+[22:10:46] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.run(LibraryPreviewRuntimeSmokeTest.java:97)
+[22:10:46] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:173)
+[22:10:46] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:80)
+[22:10:46] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.main(YsmMaterialNativeSmokeTest.java:53)
+
+> Task :common:libraryPreviewRuntimeSmokeTest FAILED
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_1.20.1/build/reports/problems/problems-report.html
+Exception in thread "main" 
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:libraryPreviewRuntimeSmokeTest'.
+> Process 'command 'C:\Users\eryth\.gradle\jdks\eclipse_adoptium-17-amd64-windows.2\bin\java.exe'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 13s
+10 actionable tasks: 2 executed, 8 up-to-date

@@ -1,3 +1,19 @@
+# 当前任务：Alpha.11 NoFigura完整1.20.1接力
+
+停止后重新从26.1.2开始的新接力，1.20.1最后一站；本轮独立于下方旧导航/Alpha.10交付。当前1.20.1，起点57a19059；已直接merge固定源86e47ee7，全部冲突按本版Java17/Gradle JDK21/Forge47.1.3/历史NeoForge47.1.106解决。完整内容见NoFigura-1.20.1同步记录.md和docs/nofigura-1.20.1。保留所有既有导航、普通渲染/加速撤销、AVIF/加载与粒子修复；未改其他版本/后端/wiki/CI或依赖。
+
+ITEM_RENDER左右手、VisibleAvatar草稿相机/FOV/输入/火焰/轮廓/手部与正式身份隔离、Figura PBR借用/无Iris、关键帧诊断与版本继承、Lua虚拟路径、YSM作者locator武器/跨手/姿态快照/去重及默认关闭设置全部完成。修正本版Java17集合、Camera.move double、Iris texture.pbr包和握持逆矩阵/法线。实际FOV钩子RED发现旧tick覆盖与最终乘法冲突，已删除旧覆盖GREEN，保持实时原版FOV。
+
+7新入口58秒、15回归56秒PASS；原始加密芙宁娜样本idle0/swing6024顶点，私有资源不提交。默认关闭受控RED捕获失败，finally逐字节恢复155a365ac129a1b98869e83edbd00d128b76fe6bc2fe09c24935568a4b5c9d13；后续功能GREEN+Forge包/模块/Mixin48秒、Neo13秒PASS。两个生产图各16任务无测试/JNI/探针，JSON/YAML/actionlint/diff/候选包CRC依赖/Java17/native/功能类与无测试或专用加速PASS。
+
+当前最小收尾：提交push这个完整目标版本并核验远端；从代码提交--rerun-tasks真正重建双包，审计并记录路径/版本/CRC/SHA256/代码SHA，最终文档和此手册更新push。全部实施已完成，没有新开发阶段。原.codex/保留；不reset/abort/切换分支/清理，不自动启动游戏/覆盖mods/触发Actions，不再向其他版本转发。前台PowerShell Tee build.log立即检查LASTEXITCODE，Gradle串行。
+
+实机游戏/Mixin、像素/CJK/shader、双客户端多人按用户要求SKIPPED（MANUAL，未验证），不计PASS/不作受阻。minecraft-dev不可用，已CodeGraph和官方映射JAR核验，不冒称调用。额度可靠主要窗口10080分钟已用32%、剩余68%，未触发Luna；正常完成由当前Agent更新交接。
+
+---
+
+以下旧轮次历史保留，不替代当前Alpha.11状态：
+
 # 当前交接：1.20.1 导航修复提交推送
 
 用户2026-11-12明确要求“提交并推送”，覆盖此前等待验收门槛。本轮三项导航修复及实际回归已完成，随本次提交交付当前1.20.1分支并核验远端；未触发Actions，未重新编译。当前具体SHA以git HEAD和最终交付回复为准。没有剩余实施任务；原未跟踪.codex/保留。

@@ -29,7 +29,7 @@ This branch targets Minecraft 1.20.1 with Forge-family variants. Run the game on
 | Minecraft Java | 1.20.1 |
 | Mod loader | Forge 47.1.3 / NeoForge 47.1.106 |
 | Java | 17 |
-| Mod version | 1.0.0-alpha.10 |
+| Mod version | 1.0.0-alpha.11 |
 
 Build dependency versions are listed in [gradle.properties](gradle.properties). This is a client mod; multiplayer resource distribution and state synchronization require a compatible backend.
 

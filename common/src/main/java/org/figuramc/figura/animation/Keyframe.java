@@ -4,6 +4,8 @@ import com.mojang.datafixers.util.Pair;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.math.vector.FiguraVec3;
+import org.figuramc.figura.model.FiguraModelPart;
+import org.figuramc.figura.utils.FiguraText;
 import top.aihmc.omnimorph.molang.parser.ast.Expression;
 import top.aihmc.omnimorph.molang.runtime.ExpressionEvaluator;
 import org.figuramc.figura.parsers.BlockbenchCommonTypes;
@@ -22,6 +24,8 @@ public class Keyframe implements Comparable<Keyframe> {
     private final FiguraVec3 targetA, targetB;
     private final String[] aCode, bCode;
     private final String chunkName;
+    private final FiguraModelPart part;
+    private final TransformType channel;
     private final FiguraVec3 bezierLeft, bezierRight;
     private final FiguraVec3 bezierLeftTime, bezierRightTime;
 
@@ -32,6 +36,15 @@ public class Keyframe implements Comparable<Keyframe> {
     private final boolean[] bIsMolang;
 
     public Keyframe(Avatar owner, Animation animation, float time, Interpolation interpolation, Pair<FiguraVec3, String[]> a, Pair<FiguraVec3, String[]> b, FiguraVec3 bezierLeft, FiguraVec3 bezierRight, FiguraVec3 bezierLeftTime, FiguraVec3 bezierRightTime) {
+        this(owner, animation, time, interpolation, a, b, bezierLeft, bezierRight,
+                bezierLeftTime, bezierRightTime, null, null);
+    }
+
+    public Keyframe(Avatar owner, Animation animation, float time, Interpolation interpolation,
+                    Pair<FiguraVec3, String[]> a, Pair<FiguraVec3, String[]> b,
+                    FiguraVec3 bezierLeft, FiguraVec3 bezierRight,
+                    FiguraVec3 bezierLeftTime, FiguraVec3 bezierRightTime,
+                    FiguraModelPart part, TransformType channel) {
         this.owner = owner;
         this.animation = animation;
         this.time = time;
@@ -41,6 +54,8 @@ public class Keyframe implements Comparable<Keyframe> {
         this.aCode = a.getSecond();
         this.bCode = b.getSecond();
         this.chunkName = animation.getName() + " keyframe (" + time + "s)";
+        this.part = part;
+        this.channel = channel;
         this.bezierLeft = bezierLeft;
         this.bezierRight = bezierRight;
         this.bezierLeftTime = bezierLeftTime;
@@ -129,10 +144,13 @@ public class Keyframe implements Comparable<Keyframe> {
         }
 
         // Fallback: original Lua evaluation
-        return parseStringData(data, delta);
+        return parseStringData(data, delta, index);
     }
 
-    private float parseStringData(String data, float delta) {
+    private float parseStringData(String data, float delta, int axis) {
+        String chunkName = part == null ? this.chunkName
+                : animation.getName() + " keyframe (part '" + part.name + "', time " + time
+                + "s, " + channel + " " + "XYZ".charAt(axis) + ")";
         FiguraMod.pushProfiler(data);
         try {
             return FiguraMod.popReturnProfiler(Float.parseFloat(data));
@@ -140,8 +158,11 @@ public class Keyframe implements Comparable<Keyframe> {
             if (data == null)
                 return FiguraMod.popReturnProfiler(0f);
 
+            boolean expressionCompiled = false;
+            boolean blockCompiled = false;
             try {
                 LuaValue val = owner.loadScript(chunkName, "return " + data);
+                expressionCompiled = val != null;
                 if (val == null)
                     return FiguraMod.popReturnProfiler(0f);
 
@@ -153,6 +174,7 @@ public class Keyframe implements Comparable<Keyframe> {
             } catch (Exception ignored2) {
                 try {
                     LuaValue val = owner.loadScript(chunkName, data);
+                    blockCompiled = val != null;
                     if (val == null)
                         return FiguraMod.popReturnProfiler(0f);
 
@@ -160,10 +182,15 @@ public class Keyframe implements Comparable<Keyframe> {
                     if (args.isnumber(1))
                         return FiguraMod.popReturnProfiler(args.tofloat(1));
                     else
-                        throw new LuaError("Failed to parse data from [" + this.chunkName + "], expected number, but got " + args.arg(1).typename());
+                        throw new LuaError("Failed to parse data from [" + chunkName + "], expected number, but got " + args.arg(1).typename());
                 } catch (Exception e) {
-                    if (owner.luaRuntime != null)
-                        owner.luaRuntime.error(e);
+                    if (owner.luaRuntime != null) {
+                        String hint = !expressionCompiled && !blockCompiled && part != null
+                                && part.formatVersion >= 0x50
+                                ? "\n" + FiguraText.of("animation.keyframe_migration_hint").getString() : "";
+                        owner.luaRuntime.error(new LuaError("Animation error [" + chunkName + "]: "
+                                + e.getMessage() + hint));
+                    }
                 }
             }
         }

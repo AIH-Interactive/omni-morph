@@ -1,0 +1,9 @@
+  private double getFov(net.minecraft.client.Camera, float, boolean);
+    descriptor: (Lnet/minecraft/client/Camera;FZ)D
+    Code:
+  private void renderItemInHand(net.minecraft.client.Camera, float, org.joml.Matrix4f);
+    descriptor: (Lnet/minecraft/client/Camera;FLorg/joml/Matrix4f;)V
+    Code:
+     239: invokevirtual #1547               // Method net/minecraft/client/renderer/ItemInHandRenderer.renderHandsWithItems:(FLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;Lnet/minecraft/client/player/LocalPlayer;I)V
+     242: aload_0
+     243: getfield      #247                // Field lightTexture:Lnet/minecraft/client/renderer/LightTexture;

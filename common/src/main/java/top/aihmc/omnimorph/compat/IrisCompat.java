@@ -3,8 +3,24 @@ package top.aihmc.omnimorph.compat;
 import net.irisshaders.iris.api.v0.IrisApi;
 import net.irisshaders.iris.texture.pbr.loader.PBRTextureLoaderRegistry;
 import top.aihmc.omnimorph.model.ysm.YsmMaterialTexture;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 
 public class IrisCompat {
+    public static void registerFiguraPbr() {
+        PBRTextureLoaderRegistry.INSTANCE.register(FiguraTexture.class, (texture, resources, consumer) -> {
+            var normal = texture.pbrNormalTexture();
+            if (normal != null) {
+                normal.getId();
+                consumer.acceptNormalTexture(normal);
+            }
+            var specular = texture.pbrSpecularTexture();
+            if (specular != null) {
+                specular.getId();
+                consumer.acceptSpecularTexture(specular);
+            }
+        });
+    }
+
     public static boolean isShadowPass() {
         return IrisApi.getInstance().isRenderingShadowPass();
     }
@@ -16,6 +32,7 @@ public class IrisCompat {
      * so no per-pipeline program assignment is needed here.
      */
     public static void registerMaterialTextures() {
+        registerFiguraPbr();
         PBRTextureLoaderRegistry.INSTANCE.register(YsmMaterialTexture.class, (texture, resources, consumer) -> {
             var normal = texture.normalTexture();
             if (normal != null) {

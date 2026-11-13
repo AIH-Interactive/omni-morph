@@ -1,0 +1,341 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+
+> Configure project :
+Architect Plugin: 3.4.164
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+Mod was built with a newer version of Loom (1.16.3), you are using Loom (1.14.476)
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+
+> Task :common:compileJava
+注: D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\main\java\org\figuramc\figura\mixin\render\GameRendererMixin.java使用了未经检查或不安全的操作。
+注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes
+> Task :common:extractIncludeTestProto UP-TO-DATE
+> Task :common:extractTestProto UP-TO-DATE
+> Task :common:generateTestProto NO-SOURCE
+> Task :common:compileTestJava UP-TO-DATE
+> Task :common:processTestResources UP-TO-DATE
+> Task :common:testClasses UP-TO-DATE
+
+> Task :common:firstPersonArmPoseSmokeTest
+PASS first-person arm pose: collapsed or broken native poses no longer reach the capture
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+
+> Task :common:ysmDeferredPoseSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+[22:11:37] [main/INFO]: [STDOUT]: M3 deferred body/arm matrices, owned scale/visibility and immutable submission pose checks passed.
+
+> Task :common:ysmFirstPersonControllerSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+M3 first-person controller activation, view-query scopes and camera exit/re-entry passed.
+
+> Task :common:libraryPreviewRuntimeSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+[22:11:43] [main/INFO]: [STDOUT]: PASS navigation input: real screen rail/row/arrow dispatch, covered clicks and modal detachment; pixels unverified
+[22:11:43] [main/INFO]: [STDOUT]: PASS navigation rendering: packaged textures, actual native blit dimensions, foreground depth/flush and pose restore; pixels unverified
+[22:11:43] [main/INFO]: [STDOUT]: PASS model picker: configured avatars root, fixed navigation, real file filtering and external drag acceptance
+[22:11:43] [main/INFO]: [STDOUT]: PASS report input: actual screen click/release, CJK text, newline/backspace, disabled state and outside focus
+[22:11:43] [main/INFO]: [STDOUT]: PASS collection card pointer/keyboard/filter routing and conditional horizontal bone scrolling; GUI MANUAL/PENDING
+[22:11:43] [main/INFO]: [STDOUT]: PASS wardrobe plus panels: all resource selectors, independent values, bounded geometry and parts-mode access; GUI MANUAL/PENDING
+[22:11:43] [main/INFO]: [STDOUT]: PASS All source/use defaults: actual accessory inventory, independent Avatar/accessory filters, collection cards and candidate-only rows; GUI MANUAL/PENDING
+[22:11:43] [main/INFO]: [STDOUT]: PASS outfit destinations: fixed resource types, separate views, preview and unchanged information route; GUI MANUAL/PENDING
+[22:11:43] [main/INFO]: [STDOUT]: PASS collection resource tabs: fixed resource kinds, independent list contexts and compact/wide tab callbacks; GUI MANUAL/PENDING
+[22:11:43] [main/INFO]: [STDOUT]: PASS compact accessory tabs: actual Select/Mount callbacks, right-side bounds and no redundant Bones button; GUI MANUAL/PENDING
+[22:11:43] [main/ERROR]: Avatar creation failed
+java.io.IOException: Expected creation failure fixture
+	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.testCreationMenuAndForm(LibraryPreviewRuntimeSmokeTest.java:5496) ~[test/:?]
+	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.testWardrobeActionMenus(LibraryPreviewRuntimeSmokeTest.java:5318) ~[test/:?]
+	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.testReportInput(LibraryPreviewRuntimeSmokeTest.java:4514) ~[test/:?]
+	at top.aihmc.omnimorph.model.library.LibraryPreviewRuntimeSmokeTest.run(LibraryPreviewRuntimeSmokeTest.java:83) ~[test/:?]
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:173) ~[test/:?]
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:80) ~[test/:?]
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.main(YsmMaterialNativeSmokeTest.java:53) ~[test/:?]
+[22:11:43] [main/INFO]: [STDOUT]: PASS creation menu/YSM form: actual native fields, metadata-only options, no files before Create, duplicate/close guards and failed-job retry state; GUI MANUAL/PENDING
+[22:11:43] [main/INFO]: [STDOUT]: PASS wardrobe action groups, native local/cloud removal menus, taller rows, tree refresh and type text; GUI MANUAL/PENDING
+[22:11:43] [main/INFO]: [STDOUT]: PASS wardrobe preview visibility: equipped state, toggling, unequipped selection and current equipment; GUI MANUAL/PENDING
+[22:11:43] [main/INFO]: [STDOUT]: PASS collection preview actions: ownership, permissions, confirmation, offline state and one global cache preference
+[22:11:44] [main/INFO]: [STDOUT]: PASS wardrobe visibility lifecycle: selected preview, multiple ticks, public/private HTTP saves and equipment reload
+[22:11:44] [main/INFO]: [STDOUT]: PASS wardrobe and model settings preview: ordinary/expanded widgets retain the live player without copies
+[22:11:44] [main/INFO]: [STDOUT]: PASS constructed preview entity IDs: assigned, distinct and stable
+[22:11:44] [main/INFO]: [STDOUT]: PASS isolated player appearance: native skin, live loading/model type, skin layers and fallback
+[22:11:44] [main/INFO]: [STDOUT]: PASS management/permissions player routing: online entity, missing entity, offline, cancellation and borrowed lifetime; GUI MANUAL/PENDING
+[22:11:44] [main/INFO]: [STDOUT]: PASS offline permissions copy: native load, private identity, refreshed NBT and cleanup; GUI MANUAL/PENDING
+[22:11:45] [main/INFO]: [STDOUT]: PASS wardrobe accessory selection: actual cosmetic source, private async composition, no base load/publication, deferred retirement and unavailable entry; GUI MANUAL/PENDING
+[22:11:45] [main/INFO]: [STDOUT]: PASS vanilla composition preview: no placeholder Avatar, scoped equipment masking, async accessory preparation and deferred cleanup; GUI MANUAL/PENDING
+[22:11:45] [main/INFO]: [STDOUT]: PASS collection Outfit workflow: authorized selection, explicit draft import, editor routing and cancellation; GUI MANUAL/PENDING
+[22:11:47] [main/INFO]: [STDOUT]: PASS catalog Outfit preview: HTTP JSON selection, independent composition, dependency issues and generation retirement; GUI MANUAL/PENDING
+[22:11:47] [main/INFO]: [STDOUT]: PASS local world animation preparation: detached, once per frame, GUI dedup and borrowed base
+[22:11:47] [main/INFO]: [STDOUT]: PASS first-person draft hand capture, both draw callbacks and cleanup; pixels unverified
+[22:11:47] [main/INFO]: [STDOUT]: PASS visible draft: camera, input, fire, vanilla scopes, panic and unchanged formal lookup
+[22:11:47] [main/INFO]: [STDOUT]: PASS virtual anchor native editor: create, name/transform fields, shared dependents, invalid input, generation-fenced confirmation and explicit unbinding; GUI MANUAL/PENDING
+[22:11:47] [main/INFO]: [STDOUT]: PASS native tree views: actual selector, per-instance search/scroll, widget restoration and unchanged preparation/binding; GUI MANUAL/PENDING
+[22:11:47] [main/INFO]: [STDOUT]: PASS helper visibility menu: native Show/Hide callbacks, widget/binding cleanup, retained selection, disabled guard and unchanged draft/preparation; GUI MANUAL/PENDING
+[22:11:47] [main/INFO]: [STDOUT]: PASS internal bone editor: native generated package, independent instances, actual fields, authored bounds, reset, disabled/removed/stale controls and unchanged sources; GUI MANUAL/PENDING
+[22:11:47] [main/INFO]: [STDOUT]: PASS automatic GUI focus: generated Trail, actual controller target, owned tree selection, unchanged preparation and disabled cleanup; controlled pose, GUI MANUAL/PENDING
+[22:11:47] [main/INFO]: [STDOUT]: PASS cosmetic settings layout: tab row/panel/footer separation at four sizes, horizontal tab scrolling to the last tab and vertical content scrollbar; GUI MANUAL/PENDING
+[22:11:47] [main/INFO]: [STDOUT]: PASS wheel preview/native controls: actual menu, pointer/key/repeat/release/scroll routing, private preview, per-copy draft values, nested settings return and closed-scope rejection; screen dispatch fixture, real GUI/GPU MANUAL/PENDING
+[22:11:47] [main/INFO]: [STDOUT]: PASS cosmetic wheel/real Lua: generated packages, typed page registration, exact author actions, duplicate sandbox ownership, global/scroll callbacks and original subpage navigation; HUD/input/GPU MANUAL/PENDING
+[22:11:47] [main/INFO]: [STDOUT]: PASS cosmetic settings: native reused controls/resource tabs with ordinal separators, two-copy values, draft persistence, retained preview, definition versions and stale/disabled/closed callback rejection; GUI MANUAL/PENDING
+[22:11:47] [main/INFO]: [STDOUT]: PASS tree attachment menus: actual picker/socket actions, duplicate ownership, native preparation, cycle/self/private/disabled/stale rejection, cancel and unchanged source; GUI MANUAL/PENDING
+[22:11:47] [main/INFO]: Wardrobe selectLocal name=Selected outfit base path=D:\Temp\User\figura-native-material-8984593179423680219\selected-avatar-417298724727086705 reference=D:\Temp\User\figura-native-material-8984593179423680219\selected-avatar-417298724727086705 tab=OUTFIT source=ALL
+[22:11:47] [main/INFO]: Wardrobe selectOutfitBase path=D:\Temp\User\figura-native-material-8984593179423680219\selected-avatar-417298724727086705 cloud=null selection=literal{Selected outfit base} draft=null draftStartDone=null
+[22:11:47] [main/INFO]: Wardrobe selectOutfitBase ready base=ResourceRef[source=LOCAL, localId=6bee605b-3292-4ea7-9cc7-dd810b431c41, origin=null, resourceId=null, revision=null, contentHash=2657cfc351e8e817c01a769adaf8b3e768143cb1e0de8b53be12fb5453de2cd2, format=FIGURA] instances=0
+[22:11:47] [main/INFO]: Wardrobe selectLocal name=Other outfit base path=D:\Temp\User\figura-native-material-8984593179423680219\other-avatar-14527676388804656871 reference=D:\Temp\User\figura-native-material-8984593179423680219\other-avatar-14527676388804656871 tab=OUTFIT source=ALL
+[22:11:47] [main/INFO]: Wardrobe selectOutfitBase path=D:\Temp\User\figura-native-material-8984593179423680219\other-avatar-14527676388804656871 cloud=null selection=literal{Other outfit base} draft=top.aihmc.omnimorph.model.outfit.OutfitDraft@7fcd4b0c draftStartDone=true
+[22:11:47] [main/INFO]: Wardrobe selectOutfitBase ready base=ResourceRef[source=LOCAL, localId=e06cec73-f27b-4076-9a82-0ce0362630f6, origin=null, resourceId=null, revision=null, contentHash=64e6363520ec22297a8a72bede97f84c5e59164a200b76694f82d6dea241cd5f, format=FIGURA] instances=0
+[22:11:47] [main/INFO]: Wardrobe selectLocal name=Selected outfit base path=D:\Temp\User\figura-native-material-8984593179423680219\selected-avatar-417298724727086705 reference=D:\Temp\User\figura-native-material-8984593179423680219\selected-avatar-417298724727086705 tab=OUTFIT source=ALL
+[22:11:47] [main/INFO]: Wardrobe selectOutfitBase path=D:\Temp\User\figura-native-material-8984593179423680219\selected-avatar-417298724727086705 cloud=null selection=literal{Selected outfit base} draft=top.aihmc.omnimorph.model.outfit.OutfitDraft@7fcd4b0c draftStartDone=true
+[22:11:47] [main/INFO]: Wardrobe selectOutfitBase ready base=ResourceRef[source=LOCAL, localId=6bee605b-3292-4ea7-9cc7-dd810b431c41, origin=null, resourceId=null, revision=null, contentHash=2657cfc351e8e817c01a769adaf8b3e768143cb1e0de8b53be12fb5453de2cd2, format=FIGURA] instances=0
+[22:11:48] [main/INFO]: [STDOUT]: PASS wardrobe draft actions: actual base snapshot/source loading, independent copies, author transform, stable suffixes, remove/reset/cancel and unchanged equipment; GUI MANUAL/PENDING
+[22:11:48] [main/INFO]: [STDOUT]: PASS outfit tab opens on the restored outfit: draft, bone tree instance, retained Lua toggle, single tick owner and borrowed cleanup; GUI MANUAL/PENDING
+[22:11:48] [main/INFO]: [STDOUT]: PASS wardrobe cloud accessories: actual HTTP/portable Figura and encrypted YSM, scoped selection/Add, fixed references, shared cached body, revocation and stale selection cleanup; GUI MANUAL/PENDING
+[22:11:49] [main/INFO]: [STDOUT]: PASS preset dependencies: actual local Figura/encrypted YSM and authorized HTTP/cache, exact refs, all affected copies, no implicit upgrades, cancellation and retired results; GUI separate
+[22:11:49] [main/INFO]: [STDOUT]: PASS accessory upload native form: purpose, metadata prefill/edit, isolated composition, source preservation and stale guards; GUI MANUAL/PENDING
+[22:11:49] [main/INFO]: [STDOUT]: PASS Outfit upload native form: negotiated JSON purpose, metadata, isolated composition, dependency failure and source retirement; GUI MANUAL/PENDING
+[22:11:49] [main/INFO]: [STDOUT]: PASS compact information/notices: separate routes and mutually exclusive widgets; GUI MANUAL/PENDING
+[22:11:49] [main/INFO]: [STDOUT]: PASS collection preview selection: grid and cover ownership survive repeated clicks; GUI MANUAL/PENDING
+[22:11:50] [main/INFO]: [STDOUT]: PASS personal cloud preset controls: actual storage selector/authenticated HTTP, lost-response retry with frozen intent, update/private preview/import, separate local files and retired callbacks; real GUI/GPU MANUAL/PENDING
+[22:11:50] [main/INFO]: [STDOUT]: PASS local preset screen: native entry/name/save/update/conflict/dropdown/private composition/import/cancel, source guards and visible per-copy failures; recording screen dispatch, real GUI/GPU MANUAL/PENDING
+[22:11:50] [main/INFO]: [STDOUT]: PASS Lua trail world coordinates at 15 real camera angles and nonzero camera position
+[22:11:50] [main/INFO]: [STDOUT]: PASS Figura native skeleton: draw callbacks, visible/hidden empty pivots, stale-world exclusion and bounded capture cleanup
+[22:11:50] [main/WARN]: Outfit accessory allowance exhausted: permission=COMPLEXITY, accessoryMax=1, accessoryRemaining=1, basePermission=-1, baseCounter=-1/-1, sharedUsed=1, observedBase=0
+[22:11:50] [main/WARN]: Outfit accessory allowance exhausted: permission=COMPLEXITY, accessoryMax=1, accessoryRemaining=1, basePermission=-1, baseCounter=-1/-1, sharedUsed=1, observedBase=0
+[22:11:50] [main/INFO]: [STDOUT]: PASS composed native Figura vertices: two copies, mount matrices, interleaved frame poses, native callbacks and failure cleanup; GUI/GPU MANUAL/PENDING
+[22:11:50] [main/INFO]: [STDOUT]: PASS native vanilla arm composition: separate left/right frames, slim pivots and no body leakage; real first-person GUI/GPU MANUAL/PENDING
+[22:11:50] [main/INFO]: [STDOUT]: PASS retained Figura base: full Lua/native callback scope, matching accessory vertices and interleaved-frame restoration; GUI/GPU MANUAL/PENDING
+[22:11:50] [main/INFO]: [STDOUT]: PASS native accessory sockets: reversed dependency chain, shared virtual parent, draw callbacks, private paths and policy/hash rejection; authorized=true, stale=false
+[22:11:50] [main/INFO]: [STDOUT]: PASS native accessory sockets: reversed dependency chain, shared virtual parent, draw callbacks, private paths and policy/hash rejection; authorized=false, stale=false
+[22:11:50] [main/INFO]: [STDOUT]: PASS native accessory sockets: reversed dependency chain, shared virtual parent, draw callbacks, private paths and policy/hash rejection; authorized=true, stale=true
+[22:11:50] [main/INFO]: [YSM Validation] main_model: 2 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:11:50] [main/INFO]: [STDOUT]: PASS native YSM exported empty pivot: signed axes, parent animation, nonuniform scale, mixed Figura child and retained failure replay; GUI/GPU MANUAL/PENDING
+[22:11:50] [main/INFO]: [STDOUT]: PASS native preview bone helpers: instance scope, opaque selection, nested/interleaved frames, frozen native pivots and submitted helper lines; YSM=false; GUI/GPU MANUAL/PENDING
+[22:11:50] [main/INFO]: [STDOUT]: PASS internal native overlays: local pivot T/R/S, child sockets, two-copy isolation, immutable source and retained pose; YSM=false, ordinary vertex preparation; GUI/GPU MANUAL/PENDING
+[22:11:50] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:11:50] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:11:50] [main/INFO]: [STDOUT]: PASS native preview bone helpers: instance scope, opaque selection, nested/interleaved frames, frozen native pivots and submitted helper lines; YSM=true; GUI/GPU MANUAL/PENDING
+[22:11:50] [main/INFO]: [STDOUT]: PASS internal native overlays: local pivot T/R/S, child sockets, two-copy isolation, immutable source and retained pose; YSM=true, ordinary vertex preparation; GUI/GPU MANUAL/PENDING
+[22:11:50] [main/INFO]: [STDOUT]: PASS weighted Figura internal bone overlay: native joint pivot, rotation and scale; ordinary vertex preparation; GUI/GPU MANUAL/PENDING
+[22:11:50] [main/INFO]: [STDOUT]: PASS internal edit gates: author flag/range, user policy and runtime revision, with authorized rebind
+[22:11:50] [main/INFO]: [STDOUT]: PASS typed anchor helpers: virtual T/R/S, standard offsets, animated vanilla pivots, actual native line submission and unavailable target rejection; GUI/GPU MANUAL/PENDING
+[22:11:50] [main/WARN]: Outfit accessory not drawn: accessory script error during prepare: <no error text>
+[22:11:50] [main/INFO]: [STDOUT]: PASS automatic native tail selection: DEFAULT; GUI/GPU MANUAL/PENDING
+[22:11:50] [main/INFO]: [STDOUT]: PASS automatic native tail selection: PREFERRED; GUI/GPU MANUAL/PENDING
+[22:11:50] [main/INFO]: [STDOUT]: PASS automatic native tail selection: DISABLED; GUI/GPU MANUAL/PENDING
+[22:11:50] [main/INFO]: [STDOUT]: PASS automatic native tail selection: INVALID; GUI/GPU MANUAL/PENDING
+[22:11:50] [main/INFO]: [STDOUT]: PASS automatic native tail selection: AMBIGUOUS; GUI/GPU MANUAL/PENDING
+[22:11:50] [main/INFO]: [STDOUT]: PASS automatic native tail selection: MANUAL_INVALID; GUI/GPU MANUAL/PENDING
+[22:11:51] [main/INFO]: [STDOUT]: PASS automatic native tail selection: CYCLE; GUI/GPU MANUAL/PENDING
+[22:11:51] [main/INFO]: [STDOUT]: PASS automatic base fallback: tailtip/hip/Body/native root/entity root and ambiguous-name rejection; CPU matrices only
+[22:11:51] [main/INFO]: [STDOUT]: PASS preview controller trails: native GUI frame/Lua sampling, private slot budget, readonly linked source, replay and retirement; pixels MANUAL/PENDING
+[22:11:51] [main/INFO]: [STDOUT]: PASS world trail sampling: actual Lua/frame bridge, interpolated extraction pose, no replay/GUI effects, target/teleport/world/expiry/retirement cleanup; pixels MANUAL/PENDING
+[22:11:51] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:11:51] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:11:51] [main/WARN]: Outfit accessory allowance exhausted: permission=COMPLEXITY, accessoryMax=8, accessoryRemaining=7, basePermission=8, baseCounter=2/8, sharedUsed=8, observedBase=6
+[22:11:51] [main/WARN]: Outfit accessory allowance exhausted: permission=COMPLEXITY, accessoryMax=8, accessoryRemaining=8, basePermission=8, baseCounter=2/8, sharedUsed=8, observedBase=6
+[22:11:51] [main/INFO]: [STDOUT]: PASS composed YSM base/Figura/YSM face allowance, ordinary vertex preparation; CPU vertices only, GUI/GPU MANUAL/PENDING
+[22:11:51] [main/INFO]: [STDOUT]: PASS asynchronous outfit preview: purpose validation, atomic replacement, newest draft, retained native frames and cleanup
+[22:11:51] [main/INFO]: [STDOUT]: PASS independent Figura drawing: real Lua render, native body vertices, script visibility and no entity layers
+[22:11:51] [main/INFO]: [STDOUT]: PASS detached library preview: actual async Avatar loading, newest selection, restricted permissions, frame lifetime and encrypted runtime; GUI MANUAL/PENDING
+[22:11:51] [main/INFO]: Wardrobe selectLocal name=selected outfit fixture path=D:\Temp\User\figura-native-material-8984593179423680219\outfit-selected reference=D:\Temp\User\figura-native-material-8984593179423680219\outfit-selected tab=OUTFIT source=ALL
+[22:11:51] [main/INFO]: Wardrobe selectOutfitBase path=D:\Temp\User\figura-native-material-8984593179423680219\outfit-selected cloud=null selection=literal{selected outfit fixture} draft=null draftStartDone=null
+[22:11:51] [main/INFO]: Wardrobe selectOutfitBase ready base=ResourceRef[source=LOCAL, localId=087d4a68-b0d8-474c-a797-d007f931a5fb, origin=null, resourceId=null, revision=null, contentHash=0a830ca9b23a17cc19f03e7d76e877c8d24a70fa92e7c6ae037dfb98d42a5467, format=FIGURA] instances=0
+[22:11:51] [main/INFO]: Wardrobe selectLocal name=crypto1.ysm path=D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\resources\ysm\crypto-vectors\crypto1.ysm reference=D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\resources\ysm\crypto-vectors\crypto1.ysm tab=OUTFIT source=ALL
+[22:11:51] [main/INFO]: Wardrobe selectOutfitBase path=D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\test\resources\ysm\crypto-vectors\crypto1.ysm cloud=null selection=literal{crypto1.ysm} draft=top.aihmc.omnimorph.model.outfit.OutfitDraft@74edcc2b draftStartDone=true
+[22:11:51] [main/INFO]: Wardrobe selectOutfitBase ready base=ResourceRef[source=LOCAL, localId=e0c09875-12e2-4028-8982-d3cc83a687fc, origin=null, resourceId=null, revision=null, contentHash=b3fca14b434072ecca6f48a6382e20e2f56df71c1a3ce4e2fab3608c6e963b30, format=YSM_ENCRYPTED] instances=0
+[22:11:51] [main/INFO]: Wardrobe selectLocal name=null path=null reference=null tab=OUTFIT source=ALL
+[22:11:51] [main/INFO]: [STDOUT]: PASS outfit entry preview: actual Figura/encrypted YSM loading, widget binding, matching bones and unchanged equipment
+[22:11:51] [main/INFO]: [STDOUT]: PASS current-player Figura preview: real player, normal host permissions, Lua tick, scoped GUI lookup and deferred lifetime
+
+> Task :common:outfitApplyClientSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+PASS outfit Apply client: both credentials, capability/limit rechecks, vector wire, receipt/conflict isolation, stale retirement and bounded envelopes
+
+> Task :common:cloudAdapterSmokeTest
+PASS cloud adapter mapping: production M7 vectors, all partitions, canonical event clocks, budgets and epoch retirement
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+
+> Task :common:cloudProtocolConfigSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+[22:11:59] [main/WARN]: Unknown cloud_protocol setting; restoring Protobuf
+[22:11:59] [main/WARN]: Unknown cloud_protocol setting; restoring Protobuf
+[22:11:59] [main/WARN]: Unknown cloud_protocol setting; restoring Protobuf
+[22:11:59] [main/WARN]: Unknown cloud_protocol setting; restoring Protobuf
+[22:11:59] [main/WARN]: Unknown cloud_protocol setting; restoring Protobuf
+[22:11:59] [main/WARN]: Unknown cloud_protocol setting; restoring Protobuf
+[22:11:59] [main/WARN]: Invalid cloud_protocol setting; restoring Protobuf
+[22:11:59] [main/WARN]: Invalid cloud_protocol setting; restoring Protobuf
+[22:11:59] [main/WARN]: Invalid cloud_protocol setting; restoring Protobuf
+[22:11:59] [main/WARN]: Invalid cloud_protocol setting; restoring Protobuf
+B7 original address field persistence/Debug validation and actual credential/body log redaction PASS
+PASS B6 configuration: fresh/missing/stable/numeric/unknown/save/reset/undo, address preservation, existing EnumConfig and unsupported-backend no fallback
+
+> Task :common:ysmMaterialNativeSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+[22:12:04] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:04] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:04] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:04] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:04] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:04] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:04] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:05] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:05] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:05] [main/INFO]: [STDOUT]: PASS 1024 actual world particle render submissions: native allocation/bytes plateau=2097200; all 4100 vertices preserved
+[22:12:05] [main/INFO]: [STDOUT]: PASS Layered particles: native UV/tint/light extraction, material selection/native draw order, atomic leases, layer bounds and frame cleanup; real GPU/game MANUAL/PENDING
+[22:12:05] [main/INFO]: [STDOUT]: PASS native Ribbon: Lua mode/settings, world extraction, actual particle vertex bytes, immediate frame replay, frozen replay, shared vertices/trail slots and cleanup; GPU/game MANUAL/PENDING
+[22:12:05] [main/INFO]: [STDOUT]: PASS native particle motion: Lua properties, real acceleration/gravity/tick, all built-ins, native roll interpolation, actual EntityAPI target movement/ID reuse/loss and overflow cleanup
+[22:12:05] [main/INFO]: [STDOUT]: PASS native particle lights: Lua settings, production world hook/region identity, section invalidation, interpolated entities, shared count/settings policy and cleanup; GPU/game MANUAL/PENDING
+[22:12:05] [main/INFO]: [STDOUT]: PASS attached controller Ribbon: actual Lua/frame sampling, native vertices/submission, one history slot, failed transition, target/teleport/retirement and head light; pixels MANUAL/PENDING
+[22:12:05] [main/ERROR]: 
+java.io.IOException: YSM main model is empty
+	at top.aihmc.omnimorph.model.ysm.YsmModelRuntime.fromNbt(YsmModelRuntime.java:172) ~[main/:?]
+	at org.figuramc.figura.avatar.Avatar.load(Avatar.java:1024) ~[main/:?]
+	at org.figuramc.figura.avatar.Avatar.load(Avatar.java:960) ~[main/:?]
+	at org.figuramc.figura.avatar.Avatar.load(Avatar.java:955) ~[main/:?]
+	at org.figuramc.figura.avatar.Avatar.load(Avatar.java:951) ~[main/:?]
+	at top.aihmc.omnimorph.lua.api.particle.PreviewParticleNativeSmokeTest.preparationFence(PreviewParticleNativeSmokeTest.java:234) ~[test/:?]
+	at top.aihmc.omnimorph.lua.api.particle.PreviewParticleNativeSmokeTest.run(PreviewParticleNativeSmokeTest.java:58) ~[test/:?]
+	at top.aihmc.omnimorph.lua.api.particle.CustomParticleNativeSmokeTest.run(CustomParticleNativeSmokeTest.java:60) ~[test/:?]
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:271) ~[test/:?]
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:80) ~[test/:?]
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.main(YsmMaterialNativeSmokeTest.java:53) ~[test/:?]
+[22:12:05] [main/INFO]: [STDOUT]: PASS isolated preview particle lifecycle: public construction, no world engine/light, private budgets, tick/frame callbacks, native expiry, reload/retirement/session cleanup, frozen native GUI geometry; pixels MANUAL/PENDING
+[22:12:05] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:05] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:05] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:05] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:06] [main/INFO]: [STDOUT]: PASS authored cosmetic particles: actual NBT/Lua init, owned PNG name, native animation marker, next-tick creation, duplicate isolation, preview/world routing, reload and retirement; pixels MANUAL/PENDING
+[22:12:06] [main/INFO]: [STDOUT]: PASS created Trail emission: generated package -> authored Lua -> native particles, static/sprite UV, full bright, frame-independent rate, duplicate controls, reload/teleport/expiry and isolated GUI scope; controlled matrices and test-only scale mixin bridge, actual mixin/mounted draw/pixels MANUAL/PENDING
+[22:12:06] [main/WARN]: Avatar b4b5533e-3895-45c1-972b-0895bd28b414 bypassed resource limits with 49 instructions
+[22:12:06] [main/WARN]: Outfit accessory allowance exhausted: permission=RENDER_INST, accessoryMax=64, accessoryRemaining=64, basePermission=-1, baseCounter=-1/-1, sharedUsed=64, observedBase=0
+[22:12:06] [main/WARN]: Avatar b6b68f2d-acdf-43e6-a057-991187d3a630 bypassed resource limits with 128 instructions
+[22:12:06] [main/WARN]: Avatar 8316588c-95bc-4572-9201-61664ace7f32 bypassed resource limits with 64 instructions
+[22:12:06] [main/WARN]: Outfit accessory allowance exhausted: permission=TICK_INST, accessoryMax=64, accessoryRemaining=64, basePermission=-1, baseCounter=-1/-1, sharedUsed=64, observedBase=0
+[22:12:06] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:06] [main/INFO]: [STDOUT]: PASS cosmetic animation events: real Lua registration, native Figura/YSM sources, next-tick queue, generation/instance isolation, shared count/instructions, bounded reentry and reload; game timing MANUAL/PENDING
+[22:12:06] [main/INFO]: [STDOUT]: PASS particle callbacks: real Lua tick/frame hooks, shared count/instruction quotas, epoch/reentry guards, zero limits, removal and VM failure isolation; game MANUAL/PENDING
+[22:12:06] [main/INFO]: [STDOUT]: PASS custom Billboard: actual Lua wrappers/native quad extraction, UV/full-bright, shared capacity, execution cleanup and extracted texture lifetime; GPU/game MANUAL/PENDING
+[22:12:06] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:06] [main/INFO]: [STDOUT]: YSM Figura face complexity: visible/hidden geometry, per-frame draws, permission budget and detached preview PASS
+[22:12:06] [main/WARN]: Outfit accessory allowance exhausted: permission=COMPLEXITY, accessoryMax=8, accessoryRemaining=8, basePermission=8, baseCounter=8/8, sharedUsed=8, observedBase=0
+[22:12:06] [main/INFO]: [STDOUT]: PASS particle/model face budget: actual YSM vertices and layered quads, either order, counter reset, exact/insufficient allowance, hidden-owner refill, duplicate instances and frame retirement
+[22:12:06] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:06] [main/INFO]: [YSM Validation] main.json: 3 bones, 1 roots, 3 cubes, 18 quads, 0 locators - OK
+[22:12:06] [main/INFO]: [STDOUT]: Figura production emitter batch positions/normals/UV and retired deferred draw PASS.
+[22:12:06] [main/INFO]: [STDOUT]: PASS Figura/YSM bone fade: ordinary emitters, selected subtree, deferred alpha and world isolation
+[22:12:06] [main/INFO]: [YSM Validation] main.json: 2 bones, 1 roots, 2 cubes, 12 quads, 0 locators - OK
+[22:12:06] [main/INFO]: [YSM Validation] main.json: 2 bones, 1 roots, 2 cubes, 12 quads, 0 locators - OK
+[22:12:06] [main/INFO]: [STDOUT]: PASS standing preview: controllers and hidden geometry retained, default idle changes vertices, GUI clip inactive
+[22:12:06] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:06] [main/INFO]: [YSM Validation] main.json: 4 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:06] [main/INFO]: [YSM Validation] main.json: 4 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:06] [main/INFO]: [YSM Validation] main.json: 4 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:06] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:06] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:06] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:06] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:06] [main/INFO]: [YSM Validation] main.json: 4 bones, 1 roots, 0 cubes, 0 quads, 2 locators - OK
+[22:12:06] [main/INFO]: [YSM Validation] main.json: 3 bones, 1 roots, 0 cubes, 0 quads, 2 locators - OK
+[22:12:06] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:07] [main/INFO]: [STDOUT]: M6 sub-entity instance foundation: native entity identity, independent clocks/queries/controllers/variables/events, ID reuse, native Boat/tag/passenger lifetime and unload PASS; rendering and native audio lifecycle remain separate.
+[22:12:07] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:07] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:07] [main/INFO]: [STDOUT]: M7 independent native model sync: content/schema identity, control/texture/action/controller/pose and observer authority PASS
+[22:12:07] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:07] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:07] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:07] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:07] [main/INFO]: [STDOUT]: B5 formal runtime CPU replay: loader delay, snapshot/delta, short action, refresh generation and world cleanup PASS
+[22:12:07] [main/INFO]: [STDOUT]: PASS observer idle continuity: control delta, unchanged snapshot and actual sampled bone pose
+[22:12:07] [ForkJoinPool.commonPool-worker-1/INFO]: Authenticating with OmniMorph server
+[22:12:07] [main/INFO]: [STDOUT]: B6 actual Configs lifecycle: switch disconnect/epoch/re-auth, stale callback discard and offline local runtime retention PASS
+[22:12:07] [main/INFO]: [STDOUT]: B7 actual Configs lifecycle: dual-protocol Debug revocation, authentication cancellation, retry/late callback rejection and local retention PASS
+[22:12:07] [ForkJoinPool.commonPool-worker-1/INFO]: Authenticating with OmniMorph server
+[22:12:07] [ForkJoinPool.commonPool-worker-1/INFO]: Authenticating with OmniMorph server
+[22:12:07] [main/INFO]: [STDOUT]: PASS automatic backend recovery: real tick scheduling, fresh epoch, one authentication and manual cancellation
+[22:12:07] [main/INFO]: [STDOUT]: M7 production connection CPU replay: Ping framing/budget, baseline/delta, short actions, late join, model reload, generation and reconnect PASS
+[22:12:07] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:07] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:07] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:07] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:07] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:12:07] [main/INFO]: [STDOUT]: PASS avatar provenance: stable IDs, raw hashes, source mutation/cancellation, archive restart and borrowed filesystem ownership
+[22:12:07] [OmniMorph model loader 1/ERROR]: 
+java.io.IOException: YSM main model is empty
+	at top.aihmc.omnimorph.model.ysm.YsmModelRuntime.fromNbt(YsmModelRuntime.java:172) ~[main/:?]
+	at org.figuramc.figura.avatar.Avatar.load(Avatar.java:1024) ~[main/:?]
+	at org.figuramc.figura.avatar.UserData.lambda$loadAvatar$5(UserData.java:76) ~[main/:?]
+	at java.util.concurrent.CompletableFuture$AsyncSupply.run(CompletableFuture.java:1768) ~[?:?]
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136) ~[?:?]
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635) ~[?:?]
+	at java.lang.Thread.run(Thread.java:840) ~[?:?]
+[22:12:07] [main/INFO]: [STDOUT]: Actual avatar async preparation: nonblocking switch, newest generation, retired scope and failure retention PASS
+[22:12:07] [main/WARN]: Local model broadcast failed: HTTP 503
+[22:12:07] [main/WARN]: Local model broadcast failed: HTTP 429
+[22:12:07] [main/INFO]: [STDOUT]: Actual model broadcast: latest-only upload/equip, mid-upload switch, offline replay, unequip and Reload All source restoration PASS
+[22:12:07] [main/INFO]: [STDOUT]: PASS wardrobe cloud refresh: current UUID, retained authentication/model, Figura resource matching, 404 empty selection and 503 retention; GUI MANUAL/PENDING
+[22:12:07] [main/INFO]: [STDOUT]: Player loading progress: real byte counts, stale cancellation and immediate native label passes PASS; visual GUI pending
+[22:12:07] [main/INFO]: [STDOUT]: M5 native material objects: formal assembly, paired selection, model isolation, channel recreation and deferred NativeImage release PASS; GPU/shader/GUI pending.
+
+> Task :common:modelCacheCodecSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+PASS model cache codec: roundtrip, nonce, authentication, budgets, truncation and key recovery
+
+> Task :common:libraryTransferSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+11月 13, 2026 10:12:10 下午 sun.net.httpserver.ExchangeImpl sendResponseHeaders
+警告: sendResponseHeaders: being invoked with a content length for a HEAD request
+PASS Outfit JSON transfer: separate parsing/storage, live authorization, formal receipts and resumable collection addition
+11月 13, 2026 10:12:13 下午 sun.net.httpserver.ExchangeImpl sendResponseHeaders
+警告: sendResponseHeaders: being invoked with a content length for a HEAD request
+11月 13, 2026 10:12:13 下午 sun.net.httpserver.ExchangeImpl sendResponseHeaders
+警告: sendResponseHeaders: being invoked with a content length for a HEAD request
+PASS library transfer: current permissions on cache hits, fresh formal stream, lengths/digests, encrypted-only disk data, receipt separation and failure cleanup
+
+> Task :common:libraryEquipmentSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+[22:12:20] [OmniMorph model loader 1/ERROR]: 
+java.io.IOException: YSM main model is empty
+	at top.aihmc.omnimorph.model.ysm.YsmModelRuntime.fromNbt(YsmModelRuntime.java:172) ~[main/:?]
+	at org.figuramc.figura.avatar.Avatar.load(Avatar.java:1024) ~[main/:?]
+	at org.figuramc.figura.avatar.Avatar.load(Avatar.java:960) ~[main/:?]
+	at top.aihmc.omnimorph.model.library.LibraryEquipmentService$Operation.lambda$prepare$6(LibraryEquipmentService.java:181) ~[main/:?]
+	at java.util.concurrent.CompletableFuture$AsyncSupply.run(CompletableFuture.java:1768) ~[?:?]
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136) ~[?:?]
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635) ~[?:?]
+	at java.lang.Thread.run(Thread.java:840) ~[?:?]
+[22:12:21] [main/INFO]: [STDOUT]: PASS formal library use: real HTTP download, runtime-before-equip, cache provenance, lost-response replay, identity guard and cancellation; GUI MANUAL/PENDING
+
+> Task :common:navigationTreeSmokeTest
+NavigationTreeSmokeTest passed
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+
+> Task :common:libraryPreviewCacheSmokeTest
+PASS preview cache: independent paths, live authorization, scoped identities, checksum, TTL/LRU budgets and cross-session active leases
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+
+> Task :common:renderLifetimeSmokeTest
+PASS ordinary render lifetime: owner, frame, resource, view and isolation
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+
+> Task :common:modelLibraryLayoutSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+PASS model library layout: responsive columns, scroll anchors, virtualization and clipped hit tests
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_1.20.1/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 56s
+24 actionable tasks: 16 executed, 8 up-to-date

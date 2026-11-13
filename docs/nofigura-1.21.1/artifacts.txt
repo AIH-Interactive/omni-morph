@@ -1,0 +1,9 @@
+Alpha.11 Minecraft 1.21.1 final production artifacts
+Code commit: 9b66a9f211503adceb79dc595acada70375742da
+Production rerun: 59 seconds, 20 executed tasks, exit 0; no tests in final packaging.
+fabric: D:\UserData\Desktop\Project\OMP\OMP_1.21.1\fabric\build\libs\omni-morph-1.0.0-alpha.11+1.21.1-fabric-mc.jar
+SHA256: 443da80a872eb1bf2ef52008ee509e646a6a2bb7cf200568e96ed80fac9f3589
+Version: 1.0.0-alpha.11+1.21.1
+neoforge: D:\UserData\Desktop\Project\OMP\OMP_1.21.1\neoforge\build\libs\omni-morph-1.0.0-alpha.11+1.21.1-neoforge-mc.jar
+SHA256: a5da447e12e149fbe70784a18fef9348c69ca6e26afd42f00a0eadac5c3281ae
+Version: 1.0.0-alpha.11+1.21.1

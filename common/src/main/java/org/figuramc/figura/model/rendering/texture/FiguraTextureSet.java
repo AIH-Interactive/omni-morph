@@ -23,6 +23,9 @@ public class FiguraTextureSet {
         textures[1] = emissiveData;
         textures[2] = specularData;
         textures[3] = normalData;
+        if (mainData != null) {
+            mainData.pairPbrTextures(normalData, specularData);
+        }
     }
 
     public void clean() {
