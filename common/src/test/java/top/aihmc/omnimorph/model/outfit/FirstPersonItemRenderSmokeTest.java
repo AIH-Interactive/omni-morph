@@ -28,6 +28,21 @@ public final class FirstPersonItemRenderSmokeTest {
 
     static void check(org.figuramc.figura.avatar.Avatar avatar,
                       org.figuramc.figura.model.rendering.texture.FiguraTextureSet material) {
+        var setting = org.figuramc.figura.config.Configs.FIRST_PERSON_ITEM_REPLACEMENT;
+        boolean previous = setting.value;
+        require(!setting.defaultValue && !setting.hidden
+                        && setting.parent == org.figuramc.figura.config.Configs.RENDERING,
+                "first-person item replacement is a visible rendering setting, disabled by default");
+        setting.setValue("false");
+        try {
+            checkReplacement(avatar, material);
+        } finally {
+            setting.setValue(Boolean.toString(previous));
+        }
+    }
+
+    private static void checkReplacement(org.figuramc.figura.avatar.Avatar avatar,
+                                         org.figuramc.figura.model.rendering.texture.FiguraTextureSet material) {
         try {
             var unsafeField = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
             unsafeField.setAccessible(true);
@@ -80,6 +95,11 @@ public final class FirstPersonItemRenderSmokeTest {
             var stick = new ItemStack(Items.STICK);
             var pose = new PoseStack();
             FirstPersonItemRender.withAvatar(avatar, () -> {
+                require(!FirstPersonItemRender.submit(stick, ItemDisplayContext.FIRST_PERSON_RIGHT_HAND,
+                        ItemTransform.NO_TRANSFORM, pose, collector, 0xf000f0, 0),
+                        "disabled setting preserves vanilla item and skips ITEM_RENDER");
+                require(submissions.isEmpty(), "disabled setting queues no Figura replacement");
+                org.figuramc.figura.config.Configs.FIRST_PERSON_ITEM_REPLACEMENT.setValue("true");
                 require(FirstPersonItemRender.submit(stick, ItemDisplayContext.FIRST_PERSON_RIGHT_HAND,
                         ItemTransform.NO_TRANSFORM, pose, collector, 0xf000f0, 0),
                         "right-hand ITEM_RENDER replaces a valid Item part");
@@ -89,6 +109,12 @@ public final class FirstPersonItemRenderSmokeTest {
             var sink = OutfitNativeRenderSmokeTest.vertexSink(positions);
             submissions.getFirst().renderer().apply(avatar, null, type -> sink);
             require(positions.size() == 4, "the queued replacement emits the authored quad");
+            org.figuramc.figura.config.Configs.FIRST_PERSON_ITEM_REPLACEMENT.setValue("false");
+            FirstPersonItemRender.withAvatar(avatar, () -> require(
+                    !FirstPersonItemRender.submit(stick, ItemDisplayContext.FIRST_PERSON_RIGHT_HAND,
+                            ItemTransform.NO_TRANSFORM, pose, collector, 0, 0),
+                    "turning replacement off restores vanilla without reloading the avatar"));
+            org.figuramc.figura.config.Configs.FIRST_PERSON_ITEM_REPLACEMENT.setValue("true");
             require(top.aihmc.omnimorph.model.rendering.CameraFov.apply(100, avatar, true) == 50,
                     "item consumption preserves the same Avatar FOV multiplier");
             FirstPersonItemRender.withAvatar(avatar, () -> {

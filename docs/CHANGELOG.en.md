@@ -6,6 +6,7 @@
 
 ## 1.0.0-alpha.11
 
+- Add a First-Person Weapon Replacement toggle under Settings → Rendering, disabled by default. It controls Figura/YSM item replacement without changing arms, third-person rendering or outfits.
 - Native YSM first-person weapon replacement follows authored hand-locator visibility and animation, borrowing held equipment from the body rig while preserving cross-hand swings, glow children, vanilla fallback and independent arm poses.
 - Unify visible-avatar routing for draft camera/FOV, keyboard/mouse/Lua keybinds, fire and block outlines. Preserve vanilla preview scopes, formal equipment/synchronization/permission identity and the formal HUD wheel.
 - Fix first-person item replacement in outfit drafts: item events and hand rendering now use the visible local draft instead of the resident equipped Avatar.

@@ -81,6 +81,8 @@ final class OutfitHandRenderingSmokeTest {
             wrap.setAccessible(true);
             net.minecraft.world.item.Items.AIR.builtInRegistryHolder().bindComponents(
                     net.minecraft.core.component.DataComponentMap.EMPTY);
+            boolean previousItemReplacement = org.figuramc.figura.config.Configs.FIRST_PERSON_ITEM_REPLACEMENT.value;
+            org.figuramc.figura.config.Configs.FIRST_PERSON_ITEM_REPLACEMENT.setValue("true");
             try {
                 com.llamalad7.mixinextras.injector.wrapoperation.Operation<Void> drawing = arguments -> {
                     if (!top.aihmc.omnimorph.model.rendering.FirstPersonItemRender.submit(
@@ -94,6 +96,8 @@ final class OutfitHandRenderingSmokeTest {
                 };
                 wrap.invoke(itemRenderer, 1f, new PoseStack(), collector, client.player, 0, drawing);
             } finally {
+                org.figuramc.figura.config.Configs.FIRST_PERSON_ITEM_REPLACEMENT.setValue(
+                        Boolean.toString(previousItemReplacement));
                 draftBase.loadScript("remove_draft_item_regression",
                         "events.item_render:remove('draftRegression')").call();
                 draftBase.renderer.root.children.remove(itemPart);

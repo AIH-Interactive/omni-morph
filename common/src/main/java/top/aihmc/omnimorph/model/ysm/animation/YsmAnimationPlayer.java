@@ -1215,7 +1215,8 @@ public class YsmAnimationPlayer {
     }
 
     private void sampleBodyItems(ExpressionEvaluator<?> evaluator, boolean firstPerson) {
-        if (firstPerson && runtime.hasArmModel()) {
+        if (firstPerson && runtime.hasArmModel()
+                && org.figuramc.figura.config.Configs.FIRST_PERSON_ITEM_REPLACEMENT.value) {
             sampleAnimations(evaluator, false);
         }
     }

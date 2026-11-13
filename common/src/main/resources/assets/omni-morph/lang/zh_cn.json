@@ -456,6 +456,8 @@
   "omni-morph.config.action_wheel_title.5": "底部",
   "omni-morph.config.action_wheel_title.tooltip": "改变被选择动作的文本名字显示位置",
   "omni-morph.config.allow_fp_hands": "第一人称头",
+  "omni-morph.config.first_person_item_replacement": "第一人称武器替换",
+  "omni-morph.config.first_person_item_replacement.tooltip": "允许 Figura/YSM 模型替换第一人称手持物品外观。默认关闭；关闭时保留原版物品，不影响自定义手臂、第三人称和配装。",
   "omni-morph.config.allow_fp_hands.tooltip": "开/关脚本可否移动，旋转，或缩放第一人称头",
   "omni-morph.config.background_scroll_speed": "背景滚动速度",
   "omni-morph.config.background_scroll_speed.tooltip": "背景动画的滚动速度",
