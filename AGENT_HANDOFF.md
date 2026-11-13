@@ -10,7 +10,7 @@
 - 包检查 PASS：主ZIP及嵌套JAR CRC、关键生产类、设置字段/中英文资源、无SmokeTest发布类；日志 build/receiver-alpha11-artifacts.log。实际游戏、shader/GPU、设置页与双客户端 MANUAL/PENDING，未启动游戏或覆盖安装目录。
 - 本工作树 Fabric：fabric/build/libs/omni-morph-1.0.0-alpha.11+26.1.2-fabric-mc.jar，19101108字节，SHA256 1efeddac1083fcb61b437d72bcfa18706d2bc06808b0721081215f00bf865c90。
 - 本工作树 NeoForge：neoforge/build/libs/omni-morph-1.0.0-alpha.11+26.1.2-neoforge-mc.jar，18714783字节，SHA256 76a33c478f902d758b9c4ed4fc510fbab29fadeab5af4bb83f52642b2d72692d。本节接收包哈希优先于下方源构建历史。
-- 本版本无剩余实施项。本节随独立 main 接收记录提交推送；最终提交和远端核对以 git log / ls-remote 为准。只有推送核对成功后才向26.3发送新指令，不并行派发后续版本；下游实际完成状态以各版本会话为准。
+- 接力发送已完成：在main接收检查点e9364adff421e38380ce13fe51353a9f51baf41f推送并核对远端后，已成功向26.3会话01a1a69c-910c-7390-a5e4-906325964285发送新指令，要求完成后再递进26.2→1.21.1→1.20.1；未同时派发后续版本。本版本无剩余实施项。本节随独立 main 接收记录提交推送；最终提交和远端核对以 git log / ls-remote 为准。只有推送核对成功后才向26.3发送新指令，不并行派发后续版本；下游实际完成状态以各版本会话为准。
 - 周额度已用29%、剩余71%，未触发Luna交接。继续遵守范围控制、CodeGraph优先、前台PowerShell/Tee、禁止Qt offscreen和不擅自启动游戏。
 
 下方为源分支及此前交付历史，不能替代本节接收验证状态。
