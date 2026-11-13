@@ -1,3 +1,5 @@
+> 来源历史：本文件保留26.1.2原始计划／阶段证据与产物。Minecraft 1.21.1的实际实施、验证和最终包以 [NoFigura-1.21.1同步记录.md](NoFigura-1.21.1同步记录.md) 为准，源MANUAL/PENDING不作为本版阻塞条件。本版人工项按用户要求SKIPPED（MANUAL，未验证）。
+
 # NoFigura 功能移植计划书：P1 / P2
 
 日期：2026-11-12。状态：**M0～M6 实施与自动交付完成并推送；实机验收 MANUAL/PENDING**。

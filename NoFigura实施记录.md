@@ -1,3 +1,5 @@
+> 来源历史：本文件保留26.1.2原始计划／阶段证据与产物。Minecraft 1.21.1的实际实施、验证和最终包以 [NoFigura-1.21.1同步记录.md](NoFigura-1.21.1同步记录.md) 为准，源MANUAL/PENDING不作为本版阻塞条件。本版人工项按用户要求SKIPPED（MANUAL，未验证）。
+
 # NoFigura P1/P2 实施记录
 
 ## Alpha.11：第一人称武器替换设置（2026-11-13）
