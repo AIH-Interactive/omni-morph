@@ -103,3 +103,11 @@ MC1.21.1适配GuiGraphics/ResourceLocation/坐标输入/Font/PoseStack/同步截
 ### Alpha.11 当前安全检查点
 
 22个不同自动功能/回归入口全部通过；受控RED捕获默认关闭守卫缺失，源码已逐字节恢复，GREEN及双生产包PASS。docs/nofigura-1.21.1保存完整日志与原版钩子/静态证据，NoFigura-1.21.1同步记录.md记录逐项范围/失败处理。24生产任务图不含测试/JNI；包预检通过但尚不是代码提交交付。基线已有WrapMethod保持，仅本轮新增手渲染作用域使用WrapOperation，不把它写成全项目不存在WrapMethod。周已用32%，无需Luna。下一步仅最终索引暂存/merge提交推送、提交后生产重建/最终哈希、交付并向1.20.1发送新接力。
+
+### Alpha.11 本版最终交付（覆盖此前实施中/待完成状态）
+
+完整功能merge9b66a9f211503adceb79dc595acada70375742da已推送并核对远端。22个不同功能/回归入口、受控RED/GREEN、24生产任务图和最终包检查全部PASS；提交后20个纯生产任务强制重建59秒成功。版本alpha.11+1.21.1，无Git后缀。四语言README/CHANGELOG、本版同步记录与源历史说明更新。无剩余实施/自动验证工作。
+
+实际双包路径/哈希在docs/nofigura-1.21.1/artifacts.json/txt：Fabric443da80a872eb1bf2ef52008ee509e646a6a2bb7cf200568e96ed80fac9f3589；NeoForge a5da447e12e149fbe70784a18fef9348c69ca6e26afd42f00a0eadac5c3281ae。两包位于本根fabric/build/libs和neoforge/build/libs的alpha.11+1.21.1-loader-mc.jar。人工客户端/Mixin启动、像素/shader、多人SKIPPED（MANUAL，用户要求跳过；未验证），不阻塞。
+
+当前仅最终文档提交推送、read_thread核对1.20.1 cwd后发送新Alpha.11完整接力及记录回执待办。收件local/01a1970e-a221-7610-996d-9ef5214db4ce；不改其目录/模型，不创建聊天，不等它完成。原未跟踪三项保留。周已用32%，无需Luna。旧导航交付不能代替本轮Alpha.11。

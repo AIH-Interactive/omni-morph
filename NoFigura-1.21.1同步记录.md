@@ -38,3 +38,15 @@ Minecraft-dev MCP本轮不可用；使用CodeGraph与本地官方映射Minecraft
 ## 待完成交付
 
 暂存所有最终适配以解决索引UU，提交merge并推送当前1.21.1分支，核对远端SHA；从该提交重建双JAR，记录实际绝对路径/SHA256与代码SHA；文档收尾推送后才向1.20.1发送新Alpha.11完整接力。人工项SKIPPED（MANUAL，未验证），不阻塞。
+
+
+## 最终交付（覆盖上节待完成项）
+
+完整merge提交9b66a9f211503adceb79dc595acada70375742da已推送且ls-remote一致，父提交为本版3fc39d2c及固定来源3bd248f2。所有生产/测试适配均在该提交。代码提交后首次调用命中缓存，随后--rerun-tasks真正重建20个纯生产任务，59秒退出0；final-packaging.log保存原始输出。版本1.0.0-alpha.11+1.21.1，release模式，无Git后缀。
+
+- fabric: `D:\UserData\Desktop\Project\OMP\OMP_1.21.1\fabric\build\libs\omni-morph-1.0.0-alpha.11+1.21.1-fabric-mc.jar`；SHA256 `443da80a872eb1bf2ef52008ee509e646a6a2bb7cf200568e96ed80fac9f3589`。
+- neoforge: `D:\UserData\Desktop\Project\OMP\OMP_1.21.1\neoforge\build\libs\omni-morph-1.0.0-alpha.11+1.21.1-neoforge-mc.jar`；SHA256 `a5da447e12e149fbe70784a18fef9348c69ca6e26afd42f00a0eadac5c3281ae`。
+
+最终实际包及嵌套CRC、元数据/Java21、业务资源、功能类/设置、AVIF/许可证、无测试/已撤销专用加速均PASS。最终数据见artifacts.json/txt；提交前NeoForge哈希096a23a8仅是历史预检，最终为a5da447e。原有重映射、依赖semver及过时API警告未扩展处理，无本轮未解决自动失败。收尾脚本初次UTF8编码别名不兼容导致记录未写入，已修正为utf-8-sig后生成；不影响生产包和测试结果。
+
+本版实施、自动验证及产物已完成。客户端/Mixin启动、像素/shader、多人SKIPPED（MANUAL，用户要求跳过；未验证），不阻塞。最终文档推送后才发送1.20.1新Alpha.11接力，回执单记。
