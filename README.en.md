@@ -22,16 +22,16 @@ It supports both Lua and Molang: Lua handles scripting and interaction, while Mo
 
 | Component | Version |
 | --- | --- |
-| Minecraft Java | 26.1.2 |
-| Mod loader | Fabric / NeoForge 26.1.2.126 |
+| Minecraft Java | 26.3 |
+| Mod loader | Fabric / NeoForge 26.3.0.101 |
 | Java | 25 |
-| Mod version | 1.0.0-alpha.10 |
+| Mod version | 1.0.0-alpha.11 |
 
 Build dependency versions are listed in [gradle.properties](gradle.properties). This is a client mod; multiplayer resource distribution and state synchronization require a compatible backend.
 
 ## Installation and usage
 
-1. Install Fabric or NeoForge 26.1.2.126 for Minecraft 26.1.2 and launch the game with Java 25.
+1. Install Fabric or NeoForge 26.3.0.101 for Minecraft 26.3 and launch the game with Java 25.
 2. Download the final mod JAR from a successful workflow run and place it in the game instance's `mods` folder.
 3. Launch the game, open the OmniMorph wardrobe, and place your models in the model folder before selecting them.
 4. Use model-specific settings and the action wheel to interact with models. Use the model library to upload, manage, or download cloud models.
@@ -78,7 +78,7 @@ See [protocol/README.md](protocol/README.md) for the protocol specification.
 
 ### NeoForge
 
-With JDK 25, replace `:fabric:build` in the PowerShell command above with `:neoforge:build -Prelease --no-daemon`. The final JAR is `neoforge/build/libs/omni-morph-1.0.0-alpha.10+26.1.2-neoforge-mc.jar`, targeting Minecraft 26.1.2 and NeoForge 26.1.2.126. Install only the JAR matching your loader. `build` includes `verifyNeoForgeJar`; `remapJar` is a packaging alias because 26.1.2 is unobfuscated.
+With JDK 25, replace `:fabric:build` in the PowerShell command above with `:neoforge:build -Prelease --no-daemon`. The final JAR is `neoforge/build/libs/omni-morph-1.0.0-alpha.11+26.3-neoforge-mc.jar`, targeting Minecraft 26.3 and NeoForge 26.3.0.101. Install only the JAR matching your loader. `build` includes `verifyNeoForgeJar`; `remapJar` is a packaging alias because 26.3 is unobfuscated.
 
 The unified workflow builds and publishes standard Java artifacts for Fabric and NeoForge.
 

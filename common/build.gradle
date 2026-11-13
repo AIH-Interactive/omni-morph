@@ -1198,6 +1198,83 @@ tasks.register('firstPersonArmPoseSmokeTest', JavaExec) {
     mainClass = 'top.aihmc.omnimorph.model.outfit.FirstPersonArmPoseSmokeTest'
 }
 
+tasks.register('firstPersonItemRenderSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks formal first-person ITEM_RENDER routing and deferred native vertex consumption.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.outfit.FirstPersonItemRenderSmokeTest'
+    args rootProject.file('common/src/test/resources/nofigura/avatar').path
+}
+
+tasks.register('ysmFirstPersonWeaponSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Replays an external encrypted YSM sample through first-person weapon submission.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.ysm.YsmFirstPersonWeaponSmokeTest'
+    doFirst {
+        args providers.gradleProperty('ysmWeaponSample').get()
+    }
+}
+
+tasks.register('cameraFovSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks actual Lua FOV settings through the camera multiplier consumer.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.outfit.CameraFovSmokeTest'
+    args rootProject.file('common/src/test/resources/nofigura/avatar').path
+}
+
+tasks.register('figuraPbrSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks formal Figura materials through the actual Iris PBR loader and consumer.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.outfit.FiguraPbrSmokeTest'
+    args rootProject.file('common/src/test/resources/nofigura/avatar').path
+}
+
+tasks.register('figuraWithoutIrisSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Loads actual Figura materials in a JVM whose classpath excludes Iris.'
+    dependsOn testClasses
+    classpath = (sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath).filter {
+        !it.name.toLowerCase(java.util.Locale.ROOT).startsWith('iris-')
+    }
+    mainClass = 'top.aihmc.omnimorph.model.outfit.FiguraWithoutIrisSmokeTest'
+    args rootProject.file('common/src/test/resources/nofigura/avatar').path
+}
+
+tasks.register('firstPersonAvatarSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Opt-in replay of the reported local first-person avatar package.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.outfit.FirstPersonAvatarSmokeTest'
+    args rootProject.file('common/src/test/resources/nofigura/avatar').path
+    args providers.gradleProperty('firstPersonAvatar').getOrElse('')
+}
+
+tasks.register('luaModulePathSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks virtual module names through formal ZIP compilation and Lua require.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.outfit.LuaModulePathSmokeTest'
+    args rootProject.file('common/src/test/resources/nofigura/avatar').path
+}
+
+tasks.register('keyframeDiagnosticSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks authored animation errors through the formal reader and animation player.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.model.outfit.KeyframeDiagnosticSmokeTest'
+    args rootProject.file('common/src/test/resources/nofigura/avatar').path
+}
+
 tasks.register('previewCoverSmokeTest', JavaExec) {
     group = 'verification'
     description = 'Checks the automatic upload cover cut from the preview: region, clipping, crop and PNG.'

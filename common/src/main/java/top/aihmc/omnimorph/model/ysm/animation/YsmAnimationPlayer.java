@@ -1009,6 +1009,7 @@ public class YsmAnimationPlayer {
                 advanceControllerPoseLayers(deltaTime);
                 controllerRuntime.advanceRemoteTime(deltaTime);
             }
+            sampleBodyItems(observerEvaluator, firstPerson);
             sampleAnimations(observerEvaluator, firstPerson);
             return;
         }
@@ -1081,6 +1082,9 @@ public class YsmAnimationPlayer {
 
         }
 
+        // Separate arm models do not contain body-authored held equipment. Sample
+        // its body pose on the same timeline without advancing controllers or events.
+        sampleBodyItems(evaluator, firstPerson);
         sampleAnimations(evaluator, firstPerson);
 
         if (!runtime.isPreviewRuntime() && !runtime.isSubEntityRuntime()) {
@@ -1210,6 +1214,13 @@ public class YsmAnimationPlayer {
         }
     }
 
+    private void sampleBodyItems(ExpressionEvaluator<?> evaluator, boolean firstPerson) {
+        if (firstPerson && runtime.hasArmModel()
+                && org.figuramc.figura.config.Configs.FIRST_PERSON_ITEM_REPLACEMENT.value) {
+            sampleAnimations(evaluator, false);
+        }
+    }
+
     private void sampleAnimationPoses(ExpressionEvaluator<?> evaluator, boolean firstPerson) {
         Avatar.MolangContext molangContext = evaluator != null && evaluator.entity() instanceof Avatar.MolangContext context
                 ? context : null;
@@ -1219,7 +1230,7 @@ public class YsmAnimationPlayer {
             part.resetAnimPose();
             part.setVisible(part.defaultVisibleRaw());
         }
-        applyBaseHiddenDefaults();
+        applyBaseHiddenDefaults(firstPerson);
 
         Map<String, Map<String, YsmBonePose>> controllerPoses = new LinkedHashMap<>();
         Map<Integer, Map<String, YsmBonePose>> nativePoses = new TreeMap<>();
@@ -1898,6 +1909,15 @@ public class YsmAnimationPlayer {
     private void applyBaseHiddenDefaults() {
         for (String boneName : baseHiddenBones) {
             for (YsmModelPart part : runtime.getAnimationParts(boneName)) {
+                part.setDefaultVisible(false);
+                part.setVisible(false);
+            }
+        }
+    }
+
+    private void applyBaseHiddenDefaults(boolean firstPerson) {
+        for (String boneName : baseHiddenBones) {
+            for (YsmModelPart part : runtime.getAnimationParts(boneName, firstPerson)) {
                 part.setDefaultVisible(false);
                 part.setVisible(false);
             }

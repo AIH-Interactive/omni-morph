@@ -6,6 +6,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import top.aihmc.omnimorph.model.rendering.FiguraVertexSource;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.entity.state.LivingEntityRenderState;
 import net.minecraft.world.entity.Pose;
@@ -16,6 +17,9 @@ import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import org.figuramc.figura.math.vector.FiguraVec3;
 import org.figuramc.figura.model.rendering.EntityRenderMode;
+import net.minecraft.world.item.ItemStack;
+import org.joml.Matrix4f;
+import top.aihmc.omnimorph.ducks.NodeCollectorExtension;
 
 import java.util.List;
 
@@ -224,6 +228,129 @@ public class YsmRenderer {
                 return bone;
         }
         return null;
+    }
+
+    /** Replaces only an item explicitly hidden by the authored hand locator. */
+    public boolean submitFirstPersonItem(ItemStack item, boolean left, PoseStack stack,
+                                         SubmitNodeCollector collector, int light) {
+        if (item == null || item.isEmpty()) {
+            return false;
+        }
+        YsmAttachmentPoint point = runtime.getHandAttachmentPoint(left);
+        YsmGeometry.Bone locator = point == null ? null : findAttachmentBone(point.boneName());
+        YsmGeometry.Bone hand = locator == null ? null : findAttachmentBone(locator.parentName);
+        if (hand == null || !YsmBoneMapper.isLocator(locator)) {
+            return false;
+        }
+        YsmModelPart bodyLocator = runtime.getPart(locator.name);
+        YsmModelPart armLocator = runtime.getArmPart(locator.name);
+        if (!hidesItem(bodyLocator) && !hidesItem(armLocator)) {
+            return false;
+        }
+
+        // Borrow hand-attached equipment missing from the arm rig. Body skin and
+        // back/sheathed equipment stay in their own passes.
+        List<YsmGeometry.Bone> branches = new java.util.ArrayList<>();
+        for (YsmGeometry.Bone child : hand.children) {
+            collectFirstPersonItemBranches(child, branches);
+        }
+        YsmAttachmentPoint otherPoint = runtime.getHandAttachmentPoint(!left);
+        if (otherPoint != null && !hidesItem(runtime.getPart(otherPoint.boneName()))
+                && !hidesItem(runtime.getArmPart(otherPoint.boneName()))) {
+            // A one-item animation may transfer the weapon to the other physical hand.
+            // With two authored replacements, each submission owns only its own branches.
+            YsmGeometry.Bone otherLocator = findAttachmentBone(otherPoint.boneName());
+            YsmGeometry.Bone otherHand = otherLocator == null ? null : findAttachmentBone(otherLocator.parentName);
+            if (otherHand != null) {
+                for (YsmGeometry.Bone child : otherHand.children) {
+                    collectFirstPersonItemBranches(child, branches);
+                }
+            }
+        }
+        YsmRenderPose pose = runtime.captureRenderPose(false);
+        PoseStack grip = new PoseStack();
+        pose.applyModelScale(grip);
+        for (YsmGeometry.Bone ancestor : ancestors(locator)) {
+            applyBoneTransform(ancestor, pose.readOnlyPart(ancestor.name), grip);
+        }
+        YsmModelPart gripPart = pose.part(locator.name);
+        if (gripPart != null) {
+            // Zero locator scale is an item visibility instruction, not a singular grip basis.
+            gripPart.setScale(1d, 1d, 1d);
+            gripPart.animScaleRaw().set(1, 1, 1);
+        }
+        applyBoneTransform(locator, gripPart, grip, true);
+        YsmHeldItemTransforms.apply(grip, null, item, left, false);
+        Matrix4f gripMatrix = grip.last().pose();
+        if (!Float.isFinite(gripMatrix.determinant()) || Math.abs(gripMatrix.determinant()) < 1.0e-8f) {
+            return true; // An authored hidden ancestor also hides the replacement.
+        }
+        PoseStack copy = new PoseStack();
+        copy.last().set(stack.last());
+        copy.mulPose(new Matrix4f(gripMatrix).invert());
+        ((NodeCollectorExtension) collector).submitFiguraModel(runtime.owner(), null, (avatar, entity, buffers) -> {
+            renderFirstPersonItems(copy, buffers, light, branches, pose, left);
+            return null;
+        });
+        return true;
+    }
+
+    private static boolean hidesItem(YsmModelPart part) {
+        return part != null && (!part.visibleRaw() || part.hiddenScaleRaw());
+    }
+
+    private void collectFirstPersonItemBranches(YsmGeometry.Bone bone, List<YsmGeometry.Bone> branches) {
+        String name = YsmBoneMapper.normalize(bone.name);
+        YsmBoneRole role = runtime.roleOf(bone.name);
+        // Exporters may bake body fingers into differently named arm-model cubes.
+        // Borrow equipment, never a second set of skin or hand geometry.
+        if (YsmBoneMapper.isLocator(bone) || name.contains("finger") || name.contains("thumb")
+                || role == YsmBoneRole.LEFT_HAND || role == YsmBoneRole.RIGHT_HAND
+                || runtime.hasArmModel() && runtime.getArmGeometry().bones.containsKey(bone.name)) {
+            return;
+        }
+        if (!bone.cubes.isEmpty() || role == YsmBoneRole.BLADE) {
+            branches.add(bone);
+            return;
+        }
+        for (YsmGeometry.Bone child : bone.children) {
+            collectFirstPersonItemBranches(child, branches);
+        }
+    }
+
+    private List<YsmGeometry.Bone> ancestors(YsmGeometry.Bone bone) {
+        var result = new java.util.ArrayList<YsmGeometry.Bone>();
+        for (var parent = findAttachmentBone(bone.parentName); parent != null;
+             parent = findAttachmentBone(parent.parentName)) {
+            result.addFirst(parent);
+        }
+        return result;
+    }
+
+    private void renderFirstPersonItems(PoseStack stack, FiguraVertexSource buffers, int light,
+                                        List<YsmGeometry.Bone> branches, YsmRenderPose pose, boolean left) {
+        if (!pose.isCurrent() || !runtime.owner().renderOwner().isCurrent()) {
+            return;
+        }
+        runtime.recordComplexity(0);
+        runtime.texture().uploadIfDirty(false, false);
+        DrawTarget target = new DrawTarget(buffers, renderType(pose), runtime.texture().getLocation(),
+                left ? "left-hand-item" : "right-hand-item", bodySubmitOrder());
+        for (YsmGeometry.Bone branch : branches) {
+            if (!pose.visibleInHierarchy(branch.name, runtime.geometry())) {
+                continue;
+            }
+            stack.pushPose();
+            try {
+                pose.applyModelScale(stack);
+                for (YsmGeometry.Bone ancestor : ancestors(branch)) {
+                    applyBoneTransform(ancestor, pose.readOnlyPart(ancestor.name), stack);
+                }
+                renderBone(branch, stack, target, light, null, false, pose);
+            } finally {
+                stack.popPose();
+            }
+        }
     }
 
     public boolean renderFirstPersonArm(PoseStack stack, FiguraVertexSource bufferSource, int light, boolean left) {

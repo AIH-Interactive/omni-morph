@@ -1,6 +1,9 @@
 package org.figuramc.figura.mixin.render.renderers;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import top.aihmc.omnimorph.model.rendering.FirstPersonItemRender;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.state.level.PlayerRenderState;
@@ -17,7 +20,6 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.AbstractSkullBlock;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
-import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.ducks.SkullBlockRendererAccessor;
 import org.figuramc.figura.lua.api.vanilla_model.VanillaModelPart;
 import org.figuramc.figura.math.matrix.FiguraMat4;
@@ -38,9 +40,17 @@ public abstract class ItemInHandRendererMixin {
 
     @Unique Avatar avatar;
 
+    @WrapMethod(method = "submitHandsWithItems")
+    private void figura$withFirstPersonItems(float tickDelta, PoseStack matrices, SubmitNodeCollector collector,
+                                             PlayerRenderState playerState, FirstPersonHandsAndItemsRenderState handState,
+                                             Operation<Void> original) {
+        FirstPersonItemRender.withAvatar(top.aihmc.omnimorph.model.outfit.VisibleAvatar.localPlayer(), () ->
+                original.call(tickDelta, matrices, collector, playerState, handState));
+    }
+
     @Inject(method = "submitHandsWithItems", at = @At("HEAD"))
     private void onRenderHandsWithItems(float tickDelta, PoseStack matrices, SubmitNodeCollector submitNodeCollector, PlayerRenderState playerState, FirstPersonHandsAndItemsRenderState handState, CallbackInfo ci) {
-        avatar = AvatarManager.getAvatarForPlayer(Minecraft.getInstance().player.getUUID());
+        avatar = top.aihmc.omnimorph.model.outfit.VisibleAvatar.localPlayer();
         if (avatar == null)
             return;
 
@@ -74,8 +84,8 @@ public abstract class ItemInHandRendererMixin {
             return;
 
         // YSM first-person: replace vanilla arm geometry while preserving vanilla item animations.
-        // submitFiguraModel doesn't work here because FiguraFeatureRenderer only
-        // processes submissions during entity (third-person) rendering, not first-person.
+        // PlayerRendererMixin replaces the arm through its model callback. Native
+        // item replacements are submitted separately by FirstPersonItemRender.
         if (avatar != null && avatar.isYsmNative()) {
             YsmModelRuntime ysm = avatar.getYsmRuntime();
             if (ysm != null) {

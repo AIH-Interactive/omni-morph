@@ -7,8 +7,8 @@ import net.minecraft.client.KeyboardHandler;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
-import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
+import top.aihmc.omnimorph.model.outfit.VisibleAvatar;
 import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.config.Configs;
 import top.aihmc.omnimorph.model.ysm.YsmInputState;
@@ -42,7 +42,7 @@ public class KeyboardHandlerMixin {
             ci.cancel();
         }
 
-        Avatar avatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
+        Avatar avatar = VisibleAvatar.localPlayer();
         if (avatar == null || avatar.luaRuntime == null)
             return;
 
@@ -61,7 +61,7 @@ public class KeyboardHandlerMixin {
 
     @Inject(method = "charTyped", at = @At("HEAD"))
     private void charTyped(long window, CharacterEvent characterEvent, CallbackInfo ci) {
-        Avatar avatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
+        Avatar avatar = VisibleAvatar.localPlayer();
         if (avatar != null)
             avatar.charTypedEvent(Character.toString(characterEvent.codepoint()), 0, characterEvent.codepoint());
     }

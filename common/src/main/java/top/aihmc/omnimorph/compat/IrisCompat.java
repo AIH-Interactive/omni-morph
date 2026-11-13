@@ -6,13 +6,30 @@ import net.irisshaders.iris.pbr.loader.PBRTextureLoaderRegistry;
 import top.aihmc.omnimorph.lua.api.particle.CustomParticlePipelines;
 import top.aihmc.omnimorph.model.rendering.texture.FiguraRenderTypes;
 import top.aihmc.omnimorph.model.ysm.YsmMaterialTexture;
+import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 
 public class IrisCompat {
+    public static void registerFiguraPbr() {
+        PBRTextureLoaderRegistry.INSTANCE.register(FiguraTexture.class, (texture, resources, consumer) -> {
+            var normal = texture.pbrNormalTexture();
+            if (normal != null) {
+                normal.getTexture();
+                consumer.acceptNormalTexture(normal);
+            }
+            var specular = texture.pbrSpecularTexture();
+            if (specular != null) {
+                specular.getTexture();
+                consumer.acceptSpecularTexture(specular);
+            }
+        });
+    }
+
     public static boolean isShadowPass() {
         return IrisApi.getInstance().isRenderingShadowPass();
     }
 
     public static void assignPipelinesToIrisPrograms() {
+        registerFiguraPbr();
         IrisApi.getInstance().assignPipeline(FiguraRenderTypes.FiguraRenderPipelines.FIGURA_SOLID, IrisProgram.ENTITIES);
         // Custom particle layers use dedicated pipelines; without an Iris program they fall back to the
         // unpatched shader and disappear or ignore the pack's lighting/tonemapping.

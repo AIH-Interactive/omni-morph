@@ -64,11 +64,59 @@ final class OutfitHandRenderingSmokeTest {
                     throw new AssertionError("Hand base and composition must come from the same draft snapshot");
                 }
             }
+            var itemRenderer = (HandItemRenderer) unsafe.allocateInstance(HandItemRenderer.class);
+            Avatar draftBase = preview.outfitBase();
+            top.aihmc.omnimorph.model.outfit.OutfitNativeRenderSmokeTest.addQuad(draftBase);
+            var itemPart = draftBase.renderer.root.children.getLast();
+            itemPart.parentType = org.figuramc.figura.model.ParentType.Item;
+            draftBase.renderer.sortParts();
+            draftBase.luaRuntime.setGlobal("draft_item", itemPart);
+            draftBase.loadScript("draft_item_regression", """
+                    events.item_render:register(function() return draft_item end, 'draftRegression')
+                    """).call();
+            var wrap = org.figuramc.figura.mixin.render.renderers.ItemInHandRendererMixin.class.getDeclaredMethod(
+                    "figura$withFirstPersonItems", float.class, PoseStack.class, SubmitNodeCollector.class,
+                    net.minecraft.client.renderer.state.level.PlayerRenderState.class,
+                    net.minecraft.client.renderer.state.level.FirstPersonHandsAndItemsRenderState.class,
+                    com.llamalad7.mixinextras.injector.wrapoperation.Operation.class);
+            wrap.setAccessible(true);
+            net.minecraft.world.item.Items.AIR.builtInRegistryHolder().bindComponents(
+                    net.minecraft.core.component.DataComponentMap.EMPTY);
+            boolean previousItemReplacement = org.figuramc.figura.config.Configs.FIRST_PERSON_ITEM_REPLACEMENT.value;
+            org.figuramc.figura.config.Configs.FIRST_PERSON_ITEM_REPLACEMENT.setValue("true");
+            try {
+                com.llamalad7.mixinextras.injector.wrapoperation.Operation<Void> drawing = arguments -> {
+                    if (!top.aihmc.omnimorph.model.rendering.FirstPersonItemRender.submit(
+                            net.minecraft.world.item.ItemStack.EMPTY,
+                            net.minecraft.world.item.ItemDisplayContext.FIRST_PERSON_RIGHT_HAND,
+                            net.minecraft.client.resources.model.cuboid.ItemTransform.NO_TRANSFORM,
+                            new PoseStack(), collector, 0, 0)) {
+                        throw new AssertionError("First-person item must use the visible local draft, not the resident Avatar");
+                    }
+                    return null;
+                };
+                wrap.invoke(itemRenderer, 1f, new PoseStack(), collector, null, null, drawing);
+            } finally {
+                org.figuramc.figura.config.Configs.FIRST_PERSON_ITEM_REPLACEMENT.setValue(
+                        Boolean.toString(previousItemReplacement));
+                draftBase.loadScript("remove_draft_item_regression",
+                        "events.item_render:remove('draftRegression')").call();
+                draftBase.renderer.root.children.remove(itemPart);
+                draftBase.renderer.sortParts();
+            }
             System.out.println("PASS first-person draft hands: actual Figura submission hook, both arms "
                     + "and matching captured base/composition; real game rendering MANUAL/PENDING");
         } finally {
             timerField.set(client, previousTimer);
             OutfitRenderBinding.finishFrame();
+        }
+    }
+
+    private static final class HandItemRenderer extends org.figuramc.figura.mixin.render.renderers.ItemInHandRendererMixin {
+        @Override
+        protected void renderPlayerArm(PoseStack matrices, SubmitNodeCollector collector, int light,
+                                       float equipProgress, float swingProgress, net.minecraft.world.entity.HumanoidArm arm,
+                                       net.minecraft.client.renderer.state.level.PlayerRenderState state) {
         }
     }
 

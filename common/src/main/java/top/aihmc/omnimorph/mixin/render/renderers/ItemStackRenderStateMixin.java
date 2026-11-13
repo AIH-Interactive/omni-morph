@@ -10,6 +10,7 @@ import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import top.aihmc.omnimorph.ducks.FiguraItemStackRenderStateExtension;
 import top.aihmc.omnimorph.ducks.FiguraSubmitCallBackExtension;
+import top.aihmc.omnimorph.model.rendering.FirstPersonItemRender;
 import org.figuramc.figura.ducks.SkullBlockRendererAccessor;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -96,5 +97,15 @@ public class ItemStackRenderStateMixin implements FiguraItemStackRenderStateExte
     @Inject(method = "submit(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;III)V", at = @At("HEAD"))
     private void figuraStoreDisplayContext(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int light, int overlay, int outlineColor, CallbackInfo ci) {
         SkullBlockRendererAccessor.setDisplayContext(this.displayContext);
+    }
+
+    @Inject(method = "submit(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;III)V",
+            at = @At("HEAD"), cancellable = true)
+    private void figura$firstPersonItem(PoseStack pose, SubmitNodeCollector collector,
+                                       int light, int overlay, int outlineColor, CallbackInfo ci) {
+        if (FirstPersonItemRender.submit(figura$itemStack, displayContext, figura$getItemTransform(),
+                pose, collector, light, overlay)) {
+            ci.cancel();
+        }
     }
 }
