@@ -1,3 +1,26 @@
+# 当前交接：26.2 Alpha.11 NoFigura 完整同步
+
+2026-11-13。分支26.2/origin/26.2，起点4ee8053d，原未跟踪.codex/保留。新接力从26.1.2 main e9364adf重新接收后经26.3完成8403abfa发送，旧停止已由本轮替代；没有旧未提交实施需要覆盖。完整功能源b01fc818，共同基线8faa4b59，直接合并8403abfa后逐hunk保留26.2 API，不倒灌SDL/Renderpearl或恢复加速。
+
+## 当前完成与验证
+
+完整M0-M6及后续草稿ITEM_RENDER、可见Avatar、原生YSM武器、默认false共用设置已实施并通过本版离线自动验收。功能/适配/失败边界权威记录NoFigura-26.2同步记录.md；源计划/源实施记录只作26.1.2历史，不冒充本版PASS。
+
+本版保留Java25/MC26.2、原加载器依赖/普通feature/PIP/Vulkan/中性生命周期和加速撤销；手臂、第三人称、正式装备/同步/权限保持。第一人称使用ItemInHandRenderer/LocalPlayer，FOV在Camera.calculateFov，效果保留本版submitFire等，借用PBR纹理为Blaze3D，新YSM回调FiguraVertexSource。跨版本测试名称/签名差异已修正。
+
+compile.log22秒生产/测试+双loader编译通过；regression.log22个smoke+双release包2m20s全部通过，覆盖NoFigura五功能、可见草稿/正式身份、YSM姿态域、云协议/权限/缓存/装备及普通feature。原芙宁娜只读样本idle0/swing6024。受控去门控RED命中实际Lua禁用断言，原文件逐字节恢复；GREEN39秒Figura/YSM/预览缓存及双包通过。初始编译适配失败不作为功能RED。详见docs/nofigura-26.2日志。
+
+当前剩余最小操作：检查diff/status并合并提交推送核对，然后从正确代码提交复核release双包、JDK/生产任务图及最终CRC/元数据/新功能/设置/无测试类/无加速类，记录最终路径SHA并提交交付文档。无活动构建；此刻未宣称最终Git检查点完成。
+
+## 接力与约束
+
+原始人类授权01a1cf9c-289b-7e12-9fa0-de9f1fbee064已read_thread核验：26.1.2→26.3→26.2→1.21.1→1.20.1，停止后重新从26.1.2开始。e9364adf父b01fc818且生产树一致已核对。完成本版推送/交付后，先读下一站actual cwd，仅发local/01a1948c-5226-7b02-a74c-c9e1fe9edffb（OMP_1.21.1），再由其完成后发local/01a1970e-a221-7610-996d-9ef5214db4ce（OMP_1.20.1）。不创建会话、不改模型/思考、不越级并发或让源会话代做。
+
+游戏/GPU/shader/Mixin启动、特殊物品/ItemTask全链、双客户端MANUAL/PENDING；不擅启游戏，不要求用户复现，不作为受阻。KNOWN_BUGS的26.3 SDL条目是来源历史，不据此推断26.2问题。Actions仍仅生产打包，不触发。新PowerShell先usejdk25/java -version，前台Tee build.log并立即检查退出码，不并发Gradle；CodeGraph优先。可靠剩余70%，未触发Luna。下方旧Alpha.10仅为历史，旧包不是本次交付。
+
+---
+# 历史交接（已被当前 Alpha.11 状态取代）
+
 # 当前交接：26.2 Alpha.10 最终 UI 同步
 
 日期2026-11-11。仅本版26.2，原分支26.2跟踪origin/26.2，原未跟踪.codex/保留。先前Alpha.10基线355cce31/记录4d9cc361已完成，本轮不重复；从4d9cc361直接merge源26.1.2最终8faa4b5954be798d9a0979e14537b5a583d1d9b8（UI代码245d4f3a），仅交接冲突保留本版，无额外生产API适配。

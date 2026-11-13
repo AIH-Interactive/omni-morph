@@ -1,0 +1,161 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/eryth/.gradle/wrapper/dists/gradle-9.4.1-bin/arn2x92ynaizyzdaamcbpbhtj/gradle-9.4.1/lib/native-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Architect Plugin: 3.5.168
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\animation\YsmAnimationPlayer.java:2020: 错误: 找不到符号
+        InteractionHand swingingHand = entity.isSwinging() ? (entity.getCurrentSwing() == null ? InteractionHand.MAIN_HAND : entity.getCurrentSwing().hand()) : InteractionHand.MAIN_HAND;
+                                             ^
+
+> Task :common:compileJava
+  符号:   方法 isSwinging()
+  位置: 类型为LivingEntity的变量 entity
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\animation\YsmAnimationPlayer.java:2020: 错误: 找不到符号
+        InteractionHand swingingHand = entity.isSwinging() ? (entity.getCurrentSwing() == null ? InteractionHand.MAIN_HAND : entity.getCurrentSwing().hand()) : InteractionHand.MAIN_HAND;
+                                                                    ^
+  符号:   方法 getCurrentSwing()
+  位置: 类型为LivingEntity的变量 entity
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\animation\YsmAnimationPlayer.java:2020: 错误: 找不到符号
+        InteractionHand swingingHand = entity.isSwinging() ? (entity.getCurrentSwing() == null ? InteractionHand.MAIN_HAND : entity.getCurrentSwing().hand()) : InteractionHand.MAIN_HAND;
+                                                                                                                                   ^
+  符号:   方法 getCurrentSwing()
+  位置: 类型为LivingEntity的变量 entity
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\animation\YsmAnimationPlayer.java:2021: 错误: 找不到符号
+        float attackProgress = Math.max(readFloat(state, "attackAnim", 0f), entity.getSwingAnimation(0f));
+                                                                                  ^
+  符号:   方法 getSwingAnimation(float)
+  位置: 类型为LivingEntity的变量 entity
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\animation\YsmAnimationPlayer.java:2027: 错误: 找不到符号
+                && usesBuiltinArmPose(false, mainLeft, usingItem, usedHand, entity.isSwinging(), swingingHand)) {
+                                                                                  ^
+  符号:   方法 isSwinging()
+  位置: 类型为LivingEntity的变量 entity
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\animation\YsmAnimationPlayer.java:2033: 错误: 找不到符号
+                && usesBuiltinArmPose(true, mainLeft, usingItem, usedHand, entity.isSwinging(), swingingHand)) {
+                                                                                 ^
+  符号:   方法 isSwinging()
+  位置: 类型为LivingEntity的变量 entity
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\animation\YsmAnimationPlayer.java:2135: 错误: 找不到符号
+            boolean swingOwnHand = (entity.isSwinging() && (entity.getCurrentSwing() == null ? InteractionHand.MAIN_HAND : entity.getCurrentSwing().hand()) == hand) || pulseHand == hand;
+                                          ^
+  符号:   方法 isSwinging()
+  位置: 类型为LivingEntity的变量 entity
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\animation\YsmAnimationPlayer.java:2135: 错误: 找不到符号
+            boolean swingOwnHand = (entity.isSwinging() && (entity.getCurrentSwing() == null ? InteractionHand.MAIN_HAND : entity.getCurrentSwing().hand()) == hand) || pulseHand == hand;
+                                                                  ^
+  符号:   方法 getCurrentSwing()
+  位置: 类型为LivingEntity的变量 entity
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\animation\YsmAnimationPlayer.java:2135: 错误: 找不到符号
+            boolean swingOwnHand = (entity.isSwinging() && (entity.getCurrentSwing() == null ? InteractionHand.MAIN_HAND : entity.getCurrentSwing().hand()) == hand) || pulseHand == hand;
+                                                                                                                                 ^
+  符号:   方法 getCurrentSwing()
+  位置: 类型为LivingEntity的变量 entity
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\animation\YsmAnimationPlayer.java:2241: 错误: 找不到符号
+            animation.sampledTime = Math.clamp(entity.getSwingAnimation(0f), 0f, 1f) * animation.clip.length;
+                                                     ^
+  符号:   方法 getSwingAnimation(float)
+  位置: 类型为LivingEntity的变量 entity
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\local\LocalAvatarLoader.java:423: 警告: ExtendedWatchEventModifier是内部专用 API, 可能会在未来发行版中删除
+            WatchKey key = IS_WINDOWS ? path.register(watcher, events, com.sun.nio.file.ExtendedWatchEventModifier.FILE_TREE) : path.register(watcher, events);
+                                                                                       ^
+注: 某些输入文件使用或覆盖了已过时的 API。
+注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+注: 某些输入文件使用了未经检查或不安全的操作。
+注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+10 个错误
+1 个警告
+
+> Task :common:compileJava FAILED
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_26.2/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:compileJava'.
+> Compilation failed; see the compiler output below.
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\avatar\local\LocalAvatarLoader.java:423: 警告: ExtendedWatchEventModifier是内部专用 API, 可能会在未来发行版中删除
+              WatchKey key = IS_WINDOWS ? path.register(watcher, events, com.sun.nio.file.ExtendedWatchEventModifier.FILE_TREE) : path.register(watcher, events);
+                                                                                         ^
+  注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+  注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+  注: 某些输入文件使用或覆盖了已过时的 API。
+  注: 某些输入文件使用了未经检查或不安全的操作。
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\animation\YsmAnimationPlayer.java:2020: 错误: 找不到符号
+          InteractionHand swingingHand = entity.isSwinging() ? (entity.getCurrentSwing() == null ? InteractionHand.MAIN_HAND : entity.getCurrentSwing().hand()) : InteractionHand.MAIN_HAND;
+                                               ^
+    符号:   方法 isSwinging()
+    位置: 类型为LivingEntity的变量 entity
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\animation\YsmAnimationPlayer.java:2020: 错误: 找不到符号
+          InteractionHand swingingHand = entity.isSwinging() ? (entity.getCurrentSwing() == null ? InteractionHand.MAIN_HAND : entity.getCurrentSwing().hand()) : InteractionHand.MAIN_HAND;
+                                                                      ^
+    符号:   方法 getCurrentSwing()
+    位置: 类型为LivingEntity的变量 entity
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\animation\YsmAnimationPlayer.java:2020: 错误: 找不到符号
+          InteractionHand swingingHand = entity.isSwinging() ? (entity.getCurrentSwing() == null ? InteractionHand.MAIN_HAND : entity.getCurrentSwing().hand()) : InteractionHand.MAIN_HAND;
+                                                                                                                                     ^
+    符号:   方法 getCurrentSwing()
+    位置: 类型为LivingEntity的变量 entity
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\animation\YsmAnimationPlayer.java:2021: 错误: 找不到符号
+          float attackProgress = Math.max(readFloat(state, "attackAnim", 0f), entity.getSwingAnimation(0f));
+                                                                                    ^
+    符号:   方法 getSwingAnimation(float)
+    位置: 类型为LivingEntity的变量 entity
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\animation\YsmAnimationPlayer.java:2027: 错误: 找不到符号
+                  && usesBuiltinArmPose(false, mainLeft, usingItem, usedHand, entity.isSwinging(), swingingHand)) {
+                                                                                    ^
+    符号:   方法 isSwinging()
+    位置: 类型为LivingEntity的变量 entity
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\animation\YsmAnimationPlayer.java:2033: 错误: 找不到符号
+                  && usesBuiltinArmPose(true, mainLeft, usingItem, usedHand, entity.isSwinging(), swingingHand)) {
+                                                                                   ^
+    符号:   方法 isSwinging()
+    位置: 类型为LivingEntity的变量 entity
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\animation\YsmAnimationPlayer.java:2135: 错误: 找不到符号
+              boolean swingOwnHand = (entity.isSwinging() && (entity.getCurrentSwing() == null ? InteractionHand.MAIN_HAND : entity.getCurrentSwing().hand()) == hand) || pulseHand == hand;
+                                            ^
+    符号:   方法 isSwinging()
+    位置: 类型为LivingEntity的变量 entity
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\animation\YsmAnimationPlayer.java:2135: 错误: 找不到符号
+              boolean swingOwnHand = (entity.isSwinging() && (entity.getCurrentSwing() == null ? InteractionHand.MAIN_HAND : entity.getCurrentSwing().hand()) == hand) || pulseHand == hand;
+                                                                    ^
+    符号:   方法 getCurrentSwing()
+    位置: 类型为LivingEntity的变量 entity
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\animation\YsmAnimationPlayer.java:2135: 错误: 找不到符号
+              boolean swingOwnHand = (entity.isSwinging() && (entity.getCurrentSwing() == null ? InteractionHand.MAIN_HAND : entity.getCurrentSwing().hand()) == hand) || pulseHand == hand;
+                                                                                                                                   ^
+    符号:   方法 getCurrentSwing()
+    位置: 类型为LivingEntity的变量 entity
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\ysm\animation\YsmAnimationPlayer.java:2241: 错误: 找不到符号
+              animation.sampledTime = Math.clamp(entity.getSwingAnimation(0f), 0f, 1f) * animation.clip.length;
+                                                       ^
+    符号:   方法 getSwingAnimation(float)
+    位置: 类型为LivingEntity的变量 entity
+  10 个错误
+  1 个警告
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 29s
+4 actionable tasks: 1 executed, 3 up-to-date

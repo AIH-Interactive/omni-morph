@@ -61,6 +61,13 @@ public final class YsmMaterialNativeSmokeTest {
         return () -> device.set(null, previous);
     }
 
+    public static AutoCloseable recordingCameraEntity(net.minecraft.world.entity.Entity entity) {
+        var client = (RecordingClient) Minecraft.getInstance();
+        var previous = client.cameraEntity;
+        client.cameraEntity = entity;
+        return () -> client.cameraEntity = previous;
+    }
+
     /** Existing native sound fixture, needed when bounded callback errors perform ordinary Avatar cleanup. */
     public static AutoCloseable recordingSoundManager(Unsafe unsafe) throws Exception {
         var client = (RecordingClient) Minecraft.getInstance();
@@ -2478,6 +2485,7 @@ public final class YsmMaterialNativeSmokeTest {
     }
 
     private static final class RecordingClient extends Minecraft implements top.aihmc.omnimorph.mixin.MinecraftAccesor {
+        private net.minecraft.world.entity.Entity cameraEntity;
         private RecordingTextures manager;
         private net.minecraft.client.sounds.SoundManager sounds;
         private net.minecraft.client.gui.components.toasts.ToastManager toasts;
@@ -2505,7 +2513,7 @@ public final class YsmMaterialNativeSmokeTest {
 
         @Override
         public net.minecraft.world.entity.Entity getCameraEntity() {
-            return null;
+            return cameraEntity;
         }
 
         @Override

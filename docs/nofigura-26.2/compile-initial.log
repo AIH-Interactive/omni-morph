@@ -1,0 +1,311 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/eryth/.gradle/wrapper/dists/gradle-9.4.1-bin/arn2x92ynaizyzdaamcbpbhtj/gradle-9.4.1/lib/native-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+Architect Plugin: 3.5.168
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+
+> Task :common:compileJava
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendering\texture\FiguraTexture.java:5: 错误: 程序包com.mojang.renderpearl.api.device不存在
+import com.mojang.renderpearl.api.device.GpuDevice;
+                                        ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendering\texture\FiguraTexture.java:7: 错误: 程序包com.mojang.renderpearl.api.textures不存在
+import com.mojang.renderpearl.api.textures.AddressMode;
+                                          ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendering\texture\FiguraTexture.java:8: 错误: 程序包com.mojang.renderpearl.api.textures不存在
+import com.mojang.renderpearl.api.textures.FilterMode;
+                                          ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendering\texture\FiguraTexture.java:9: 错误: 程序包com.mojang.renderpearl.api.textures不存在
+import com.mojang.renderpearl.api.textures.GpuSampler;
+                                          ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendering\texture\FiguraTexture.java:10: 错误: 程序包com.mojang.renderpearl.api.textures不存在
+import com.mojang.renderpearl.api.textures.GpuTexture;
+                                          ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendering\texture\FiguraTexture.java:11: 错误: 程序包com.mojang.renderpearl.api.textures不存在
+import com.mojang.renderpearl.api.textures.GpuTextureView;
+                                          ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendering\texture\FiguraTexture.java:12: 错误: 程序包com.mojang.renderpearl.api不存在
+import com.mojang.renderpearl.api.GpuFormat;
+                                 ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendering\texture\FiguraTexture.java:278: 错误: 找不到符号
+    public GpuTextureView getTextureView() {
+           ^
+  符号:   类 GpuTextureView
+  位置: 类 FiguraTexture
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendering\texture\FiguraTexture.java:287: 错误: 找不到符号
+    public GpuTexture getTexture() {
+           ^
+  符号:   类 GpuTexture
+  位置: 类 FiguraTexture
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendering\texture\FiguraTexture.java:296: 错误: 找不到符号
+    public GpuSampler getSampler() {
+           ^
+  符号:   类 GpuSampler
+  位置: 类 FiguraTexture
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\input\KeyboardHandlerMixin.java:4: 错误: 找不到符号
+import org.figuramc.figura.utils.LegacyInput;
+                                ^
+  符号:   类 LegacyInput
+  位置: 程序包 org.figuramc.figura.utils
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\input\MouseHandlerMixin.java:4: 错误: 找不到符号
+import org.figuramc.figura.utils.LegacyInput;
+                                ^
+  符号:   类 LegacyInput
+  位置: 程序包 org.figuramc.figura.utils
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\LevelRendererMixin.java:4: 错误: 程序包com.mojang.renderpearl.api.buffers不存在
+import com.mojang.renderpearl.api.buffers.GpuBufferSlice;
+                                         ^
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\LevelRendererMixin.java:89: 错误: 找不到符号
+    private void onRenderLevel(GraphicsResourceAllocator graphicsResourceAllocator, boolean renderOutline, CameraRenderState cameraRenderState, GpuBufferSlice gpuBufferSlice, Vector4f fogColor, boolean renderSky, boolean consistentDepth, CallbackInfo ci) {
+                                                                                                                                                ^
+  符号:   类 GpuBufferSlice
+  位置: 类 LevelRendererMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\LevelRendererMixin.java:94: 错误: 找不到符号
+    private void afterRenderLevel(GraphicsResourceAllocator graphicsResourceAllocator, boolean renderOutline, CameraRenderState cameraRenderState, GpuBufferSlice gpuBufferSlice, Vector4f fogColor, boolean renderSky, boolean consistentDepth, CallbackInfo ci) {
+                                                                                                                                                   ^
+  符号:   类 GpuBufferSlice
+  位置: 类 LevelRendererMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:9: 错误: 找不到符号
+import net.minecraft.client.renderer.state.level.PlayerRenderState;
+                                                ^
+  符号:   类 PlayerRenderState
+  位置: 程序包 net.minecraft.client.renderer.state.level
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:10: 错误: 找不到符号
+import net.minecraft.client.renderer.state.level.FirstPersonHandsAndItemsRenderState;
+                                                ^
+  符号:   类 FirstPersonHandsAndItemsRenderState
+  位置: 程序包 net.minecraft.client.renderer.state.level
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:11: 错误: 找不到符号
+import net.minecraft.client.renderer.FirstPersonHandsAndItemsRenderer;
+                                    ^
+  符号:   类 FirstPersonHandsAndItemsRenderer
+  位置: 程序包 net.minecraft.client.renderer
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:39: 错误: 找不到符号
+    protected abstract void renderPlayerArm(PoseStack matrices, SubmitNodeCollector submitNodeCollector, int light, float equipProgress, float swingProgress, HumanoidArm arm, PlayerRenderState playerState);
+                                                                                                                                                                               ^
+  符号:   类 PlayerRenderState
+  位置: 类 ItemInHandRendererMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:45: 错误: 找不到符号
+                                             PlayerRenderState playerState, FirstPersonHandsAndItemsRenderState handState,
+                                             ^
+  符号:   类 PlayerRenderState
+  位置: 类 ItemInHandRendererMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:45: 错误: 找不到符号
+                                             PlayerRenderState playerState, FirstPersonHandsAndItemsRenderState handState,
+                                                                            ^
+  符号:   类 FirstPersonHandsAndItemsRenderState
+  位置: 类 ItemInHandRendererMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:52: 错误: 找不到符号
+    private void onRenderHandsWithItems(float tickDelta, PoseStack matrices, SubmitNodeCollector submitNodeCollector, PlayerRenderState playerState, FirstPersonHandsAndItemsRenderState handState, CallbackInfo ci) {
+                                                                                                                      ^
+  符号:   类 PlayerRenderState
+  位置: 类 ItemInHandRendererMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:52: 错误: 找不到符号
+    private void onRenderHandsWithItems(float tickDelta, PoseStack matrices, SubmitNodeCollector submitNodeCollector, PlayerRenderState playerState, FirstPersonHandsAndItemsRenderState handState, CallbackInfo ci) {
+                                                                                                                                                     ^
+  符号:   类 FirstPersonHandsAndItemsRenderState
+  位置: 类 ItemInHandRendererMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:66: 错误: 找不到符号
+    private void afterRenderHandsWithItems(float tickDelta, PoseStack matrices, SubmitNodeCollector submitNodeCollector, PlayerRenderState playerState, FirstPersonHandsAndItemsRenderState handState, CallbackInfo ci) {
+                                                                                                                         ^
+  符号:   类 PlayerRenderState
+  位置: 类 ItemInHandRendererMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:66: 错误: 找不到符号
+    private void afterRenderHandsWithItems(float tickDelta, PoseStack matrices, SubmitNodeCollector submitNodeCollector, PlayerRenderState playerState, FirstPersonHandsAndItemsRenderState handState, CallbackInfo ci) {
+                                                                                                                                                        ^
+  符号:   类 FirstPersonHandsAndItemsRenderState
+  位置: 类 ItemInHandRendererMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:81: 错误: 找不到符号
+    private void renderArmWithItem(PlayerRenderState playerState, FirstPersonHandsAndItemsRenderState handState, float tickDelta, float pitch, InteractionHand hand, float swingProgress, ItemStack item, float equipProgress, PoseStack matrices, SubmitNodeCollector submitNodeCollector, int light, CallbackInfo ci) {
+                                   ^
+  符号:   类 PlayerRenderState
+  位置: 类 ItemInHandRendererMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:81: 错误: 找不到符号
+    private void renderArmWithItem(PlayerRenderState playerState, FirstPersonHandsAndItemsRenderState handState, float tickDelta, float pitch, InteractionHand hand, float swingProgress, ItemStack item, float equipProgress, PoseStack matrices, SubmitNodeCollector submitNodeCollector, int light, CallbackInfo ci) {
+                                                                  ^
+  符号:   类 FirstPersonHandsAndItemsRenderState
+  位置: 类 ItemInHandRendererMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:133: 错误: 找不到符号
+    private void renderItem(PlayerRenderState playerState, FirstPersonHandsAndItemsRenderState handState,
+                            ^
+  符号:   类 PlayerRenderState
+  位置: 类 ItemInHandRendererMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:133: 错误: 找不到符号
+    private void renderItem(PlayerRenderState playerState, FirstPersonHandsAndItemsRenderState handState,
+                                                           ^
+  符号:   类 FirstPersonHandsAndItemsRenderState
+  位置: 类 ItemInHandRendererMixin
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:35: 错误: 找不到符号
+@Mixin(FirstPersonHandsAndItemsRenderer.class)
+       ^
+  符号: 类 FirstPersonHandsAndItemsRenderer
+30 个错误
+
+> Task :common:compileJava FAILED
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_26.2/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:compileJava'.
+> Compilation failed; see the compiler output below.
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendering\texture\FiguraTexture.java:278: 错误: 找不到符号
+      public GpuTextureView getTextureView() {
+             ^
+    符号:   类 GpuTextureView
+    位置: 类 FiguraTexture
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendering\texture\FiguraTexture.java:287: 错误: 找不到符号
+      public GpuTexture getTexture() {
+             ^
+    符号:   类 GpuTexture
+    位置: 类 FiguraTexture
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendering\texture\FiguraTexture.java:296: 错误: 找不到符号
+      public GpuSampler getSampler() {
+             ^
+    符号:   类 GpuSampler
+    位置: 类 FiguraTexture
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\input\KeyboardHandlerMixin.java:4: 错误: 找不到符号
+  import org.figuramc.figura.utils.LegacyInput;
+                                  ^
+    符号:   类 LegacyInput
+    位置: 程序包 org.figuramc.figura.utils
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\input\MouseHandlerMixin.java:4: 错误: 找不到符号
+  import org.figuramc.figura.utils.LegacyInput;
+                                  ^
+    符号:   类 LegacyInput
+    位置: 程序包 org.figuramc.figura.utils
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\LevelRendererMixin.java:89: 错误: 找不到符号
+      private void onRenderLevel(GraphicsResourceAllocator graphicsResourceAllocator, boolean renderOutline, CameraRenderState cameraRenderState, GpuBufferSlice gpuBufferSlice, Vector4f fogColor, boolean renderSky, boolean consistentDepth, CallbackInfo ci) {
+                                                                                                                                                  ^
+    符号:   类 GpuBufferSlice
+    位置: 类 LevelRendererMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\LevelRendererMixin.java:94: 错误: 找不到符号
+      private void afterRenderLevel(GraphicsResourceAllocator graphicsResourceAllocator, boolean renderOutline, CameraRenderState cameraRenderState, GpuBufferSlice gpuBufferSlice, Vector4f fogColor, boolean renderSky, boolean consistentDepth, CallbackInfo ci) {
+                                                                                                                                                     ^
+    符号:   类 GpuBufferSlice
+    位置: 类 LevelRendererMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:9: 错误: 找不到符号
+  import net.minecraft.client.renderer.state.level.PlayerRenderState;
+                                                  ^
+    符号:   类 PlayerRenderState
+    位置: 程序包 net.minecraft.client.renderer.state.level
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:10: 错误: 找不到符号
+  import net.minecraft.client.renderer.state.level.FirstPersonHandsAndItemsRenderState;
+                                                  ^
+    符号:   类 FirstPersonHandsAndItemsRenderState
+    位置: 程序包 net.minecraft.client.renderer.state.level
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:11: 错误: 找不到符号
+  import net.minecraft.client.renderer.FirstPersonHandsAndItemsRenderer;
+                                      ^
+    符号:   类 FirstPersonHandsAndItemsRenderer
+    位置: 程序包 net.minecraft.client.renderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:39: 错误: 找不到符号
+      protected abstract void renderPlayerArm(PoseStack matrices, SubmitNodeCollector submitNodeCollector, int light, float equipProgress, float swingProgress, HumanoidArm arm, PlayerRenderState playerState);
+                                                                                                                                                                                 ^
+    符号:   类 PlayerRenderState
+    位置: 类 ItemInHandRendererMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:45: 错误: 找不到符号
+                                               PlayerRenderState playerState, FirstPersonHandsAndItemsRenderState handState,
+                                               ^
+    符号:   类 PlayerRenderState
+    位置: 类 ItemInHandRendererMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:45: 错误: 找不到符号
+                                               PlayerRenderState playerState, FirstPersonHandsAndItemsRenderState handState,
+                                                                              ^
+    符号:   类 FirstPersonHandsAndItemsRenderState
+    位置: 类 ItemInHandRendererMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:52: 错误: 找不到符号
+      private void onRenderHandsWithItems(float tickDelta, PoseStack matrices, SubmitNodeCollector submitNodeCollector, PlayerRenderState playerState, FirstPersonHandsAndItemsRenderState handState, CallbackInfo ci) {
+                                                                                                                        ^
+    符号:   类 PlayerRenderState
+    位置: 类 ItemInHandRendererMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:52: 错误: 找不到符号
+      private void onRenderHandsWithItems(float tickDelta, PoseStack matrices, SubmitNodeCollector submitNodeCollector, PlayerRenderState playerState, FirstPersonHandsAndItemsRenderState handState, CallbackInfo ci) {
+                                                                                                                                                       ^
+    符号:   类 FirstPersonHandsAndItemsRenderState
+    位置: 类 ItemInHandRendererMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:66: 错误: 找不到符号
+      private void afterRenderHandsWithItems(float tickDelta, PoseStack matrices, SubmitNodeCollector submitNodeCollector, PlayerRenderState playerState, FirstPersonHandsAndItemsRenderState handState, CallbackInfo ci) {
+                                                                                                                           ^
+    符号:   类 PlayerRenderState
+    位置: 类 ItemInHandRendererMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:66: 错误: 找不到符号
+      private void afterRenderHandsWithItems(float tickDelta, PoseStack matrices, SubmitNodeCollector submitNodeCollector, PlayerRenderState playerState, FirstPersonHandsAndItemsRenderState handState, CallbackInfo ci) {
+                                                                                                                                                          ^
+    符号:   类 FirstPersonHandsAndItemsRenderState
+    位置: 类 ItemInHandRendererMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:81: 错误: 找不到符号
+      private void renderArmWithItem(PlayerRenderState playerState, FirstPersonHandsAndItemsRenderState handState, float tickDelta, float pitch, InteractionHand hand, float swingProgress, ItemStack item, float equipProgress, PoseStack matrices, SubmitNodeCollector submitNodeCollector, int light, CallbackInfo ci) {
+                                     ^
+    符号:   类 PlayerRenderState
+    位置: 类 ItemInHandRendererMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:81: 错误: 找不到符号
+      private void renderArmWithItem(PlayerRenderState playerState, FirstPersonHandsAndItemsRenderState handState, float tickDelta, float pitch, InteractionHand hand, float swingProgress, ItemStack item, float equipProgress, PoseStack matrices, SubmitNodeCollector submitNodeCollector, int light, CallbackInfo ci) {
+                                                                    ^
+    符号:   类 FirstPersonHandsAndItemsRenderState
+    位置: 类 ItemInHandRendererMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:133: 错误: 找不到符号
+      private void renderItem(PlayerRenderState playerState, FirstPersonHandsAndItemsRenderState handState,
+                              ^
+    符号:   类 PlayerRenderState
+    位置: 类 ItemInHandRendererMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:133: 错误: 找不到符号
+      private void renderItem(PlayerRenderState playerState, FirstPersonHandsAndItemsRenderState handState,
+                                                             ^
+    符号:   类 FirstPersonHandsAndItemsRenderState
+    位置: 类 ItemInHandRendererMixin
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\renderers\ItemInHandRendererMixin.java:35: 错误: 找不到符号
+  @Mixin(FirstPersonHandsAndItemsRenderer.class)
+         ^
+    符号: 类 FirstPersonHandsAndItemsRenderer
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendering\texture\FiguraTexture.java:5: 错误: 程序包com.mojang.renderpearl.api.device不存在
+  import com.mojang.renderpearl.api.device.GpuDevice;
+                                          ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendering\texture\FiguraTexture.java:7: 错误: 程序包com.mojang.renderpearl.api.textures不存在
+  import com.mojang.renderpearl.api.textures.AddressMode;
+                                            ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendering\texture\FiguraTexture.java:8: 错误: 程序包com.mojang.renderpearl.api.textures不存在
+  import com.mojang.renderpearl.api.textures.FilterMode;
+                                            ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendering\texture\FiguraTexture.java:9: 错误: 程序包com.mojang.renderpearl.api.textures不存在
+  import com.mojang.renderpearl.api.textures.GpuSampler;
+                                            ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendering\texture\FiguraTexture.java:10: 错误: 程序包com.mojang.renderpearl.api.textures不存在
+  import com.mojang.renderpearl.api.textures.GpuTexture;
+                                            ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendering\texture\FiguraTexture.java:11: 错误: 程序包com.mojang.renderpearl.api.textures不存在
+  import com.mojang.renderpearl.api.textures.GpuTextureView;
+                                            ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\model\rendering\texture\FiguraTexture.java:12: 错误: 程序包com.mojang.renderpearl.api不存在
+  import com.mojang.renderpearl.api.GpuFormat;
+                                   ^
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\org\figuramc\figura\mixin\render\LevelRendererMixin.java:4: 错误: 程序包com.mojang.renderpearl.api.buffers不存在
+  import com.mojang.renderpearl.api.buffers.GpuBufferSlice;
+                                           ^
+  30 个错误
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 30s
+4 actionable tasks: 1 executed, 3 up-to-date

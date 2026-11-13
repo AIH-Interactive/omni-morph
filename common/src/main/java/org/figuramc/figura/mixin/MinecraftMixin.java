@@ -11,6 +11,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
+import top.aihmc.omnimorph.model.outfit.VisibleAvatar;
 import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.backend2.NetworkStuff;
 import org.figuramc.figura.config.Configs;
@@ -100,7 +101,7 @@ public abstract class MinecraftMixin {
         }
 
         // unlock cursor :p
-        Avatar avatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
+        Avatar avatar = VisibleAvatar.localPlayer();
         if (avatar != null && avatar.luaRuntime != null && avatar.luaRuntime.host.unlockCursor) {
             this.mouseHandler.releaseMouse();
             scriptMouseUnlock = true;

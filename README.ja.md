@@ -22,16 +22,16 @@ Lua と Molang の両ランタイムに対応しています。Lua はスクリ�
 
 | 項目 | バージョン |
 | --- | --- |
-| Minecraft Java | 26.1.2 |
-| Mod ローダー | Fabric / NeoForge 26.1.2.126 |
+| Minecraft Java | 26.2 |
+| Mod ローダー | Fabric / NeoForge 26.2.0.93 |
 | Java | 25 |
-| Mod バージョン | 1.0.0-alpha.10 |
+| Mod バージョン | 1.0.0-alpha.11 |
 
 ビルド依存関係のバージョンは [gradle.properties](gradle.properties) を参照してください。本 Mod はクライアント用です。マルチプレイでのリソース配信と状態同期には、対応バックエンドが必要です。
 
 ## インストールと使い方
 
-1. Minecraft 26.1.2 用の Fabric または NeoForge 26.1.2.126 をインストールし、Java 25 でゲームを起動します。
+1. Minecraft 26.2 用の Fabric または NeoForge 26.2.0.93 をインストールし、Java 25 でゲームを起動します。
 2. 成功したワークフロー実行から最終成果物の Mod JAR をダウンロードし、対象のゲームインスタンスの `mods` フォルダーに配置します。
 3. ゲームを起動して OmniMorph のワードローブを開き、モデルフォルダーにモデルを置いて選択します。
 4. モデル専用設定とアクションホイールでモデルを操作します。モデルライブラリでは、クラウドモデルのアップロード、管理、ダウンロードができます。
@@ -78,7 +78,7 @@ if ($buildExitCode -ne 0) {
 
 ### NeoForge
 
-JDK 25 を使用し、上の PowerShell コマンドの `:fabric:build` を `:neoforge:build -Prelease --no-daemon` に置き換えてください。Minecraft 26.1.2 / NeoForge 26.1.2.126 用の成果物は `neoforge/build/libs/omni-morph-1.0.0-alpha.10+26.1.2-neoforge-mc.jar` です。ローダーに合う JAR を一つだけ導入してください。`build` は `verifyNeoForgeJar` による内容検証を含みます。
+JDK 25 を使用し、上の PowerShell コマンドの `:fabric:build` を `:neoforge:build -Prelease --no-daemon` に置き換えてください。Minecraft 26.2 / NeoForge 26.2.0.93 用の成果物は `neoforge/build/libs/omni-morph-1.0.0-alpha.11+26.2-neoforge-mc.jar` です。ローダーに合う JAR を一つだけ導入してください。`build` は `verifyNeoForgeJar` による内容検証を含みます。
 
 統合ワークフローは Fabric と NeoForge の通常の Java 配布 JAR をビルドし、公開します。
 
