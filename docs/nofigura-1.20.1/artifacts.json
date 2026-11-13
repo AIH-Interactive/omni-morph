@@ -1,0 +1,26 @@
+[
+  {
+    "loader": "forge",
+    "minecraft": "1.20.1",
+    "java": 17,
+    "code_commit": "5b382d9ed8623dc03b213d0afc07a45f00846017",
+    "version": "1.0.0-alpha.11+1.20.1",
+    "path": "D:\\UserData\\Desktop\\Project\\OMP\\OMP_1.20.1\\build\\distributions\\nofigura-alpha11\\omni-morph-1.0.0-alpha.11+1.20.1-minecraftforge-mc.jar",
+    "bytes": 16614174,
+    "sha256": "3fff9d96b9feb4bb26f1b0baa1a9ceaa0b8292bc24f6915dce218cfa72c316f8",
+    "nested_jars": 14,
+    "windows_native": "AVIF amd64 PE x86_64"
+  },
+  {
+    "loader": "neoforge",
+    "minecraft": "1.20.1",
+    "java": 17,
+    "code_commit": "5b382d9ed8623dc03b213d0afc07a45f00846017",
+    "version": "1.0.0-alpha.11+1.20.1",
+    "path": "D:\\UserData\\Desktop\\Project\\OMP\\OMP_1.20.1\\build\\distributions\\nofigura-alpha11\\omni-morph-1.0.0-alpha.11+1.20.1-neoforge-mc.jar",
+    "bytes": 16614177,
+    "sha256": "88bd1797efac6f7cf3c13d1b98432101c4fabab3379a60eebca365e9376e53ad",
+    "nested_jars": 14,
+    "windows_native": "AVIF amd64 PE x86_64"
+  }
+]

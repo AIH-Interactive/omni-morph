@@ -1,0 +1,58 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+
+> Configure project :
+Architect Plugin: 3.4.164
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+Mod was built with a newer version of Loom (1.16.3), you are using Loom (1.14.476)
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto
+> Task :common:extractProto
+> Task :common:generateProto
+
+> Task :common:compileJava
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\main\java\org\figuramc\figura\avatar\local\LocalAvatarLoader.java:425: 警告: ExtendedWatchEventModifier是内部专用 API, 可能会在未来发行版中删除
+            WatchKey key = IS_WINDOWS ? path.register(watcher, events, com.sun.nio.file.ExtendedWatchEventModifier.FILE_TREE) : path.register(watcher, events);
+                                                                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_1.20.1\common\src\main\java\top\aihmc\omnimorph\compat\LambDynamicLightsCompat.java:26: 警告: [removal] DynamicLightsInitializer 中的 onInitializeDynamicLights(ItemLightSourceManager) 已过时, 且标记为待删除
+    public void onInitializeDynamicLights(ItemLightSourceManager itemLightSourceManager) {
+                ^
+注: 某些输入文件使用或覆盖了已过时的 API。
+注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+注: 某些输入文件使用了未经检查或不安全的操作。
+注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+2 个警告
+
+> Task :common:processResources
+> Task :common:classes
+> Task :common:jar
+> Task :forge:compileJava
+> Task :forge:processResources
+> Task :forge:classes
+> Task :forge:jar
+> Task :forge:processIncludeJars
+
+> Task :common:transformProductionForge
+[Architectury Transformer] Read classpath in 1.499 s
+[Architectury Transformer] Transformed jar with 7 transformer(s) in 3.413 s
+
+> Task :forge:shadowJar
+Cannot remap entityRenderTranslations because it does not exists in any of the targets [] or their parents.
+Cannot remap modelRenderTranslations because it does not exists in any of the targets [] or their parents.
+Cannot remap scaleWidth because it does not exists in any of the targets [] or their parents.
+Cannot remap scaleHeight because it does not exists in any of the targets [] or their parents.
+Cannot remap renderRaw because it does not exists in any of the targets [net/minecraft/client/renderer/BlockEntityWithoutLevelRenderer]
+> Task :forge:remapJar
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_1.20.1/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 36s
+13 actionable tasks: 13 executed
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.4.1/userguide/configuration_cache_enabling.html

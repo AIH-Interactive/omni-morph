@@ -54,3 +54,21 @@ Java17集合用索引/add(0)；Camera.move三轴double。YSM握持逆变换在1.
 - static-checks.log / actionlint.log：翻译键/JSON/YAML、冲突标记/索引、无新增WrapMethod、平台配置不变及actionlint通过。git diff --check排除来源历史日志后通过。
 
 自动范围均已完成，无未解决自动检查失败。剩余为代码merge提交push、从提交真正重建正式包、最终审计与文档收尾；不是新的开发阶段。既有可选voicechat目标和renderRaw静态缺失、映射/Unsafe/过时API警告按原边界记录，不冒称运行时Mixin已验证。
+
+
+## 最终交付完成（覆盖上节收尾事项）
+
+完整代码merge `5b382d9ed8623dc03b213d0afc07a45f00846017` 已push1.20.1并核验ls-remote一致，父提交为本版57a19059f1bf4a69e1354fc46e1bc07785b02286与固定来源86e47ee7a4b1eb569c2c034cd1c19f31c6835abd。所有必要生产/测试/API适配和FOV最小修正在该提交内。
+
+从该代码提交执行-Prelease --rerun-tasks真正重建，final-forge.log为39秒退出0、final-neoforge.log为36秒退出0，各13个实际生产任务全部执行，没有编译测试。版本均1.0.0-alpha.11+1.20.1，无Git后缀。后续只交付文档提交，生产代码来源固定5b382d9e；未使用命中缓存的包作为最终证据。
+
+final-artifact-audit.log与artifacts.json记录最终绝对路径、完整源码SHA、字节数、版本与SHA256。最终外包和14个嵌套CRC/清单、依赖/许可证、MC1.20.1/Java17/Forge家族FML元数据、Alpha.11全部新功能类/默认关闭设置资源、Windows AVIF AMD64 PE架构、导航Logo/footer保留、无测试或专用加速均PASS。审计可按项目Tee规范运行audit-artifacts.py，参数为代码SHA、输出目录和JSON路径。
+
+- forge：`D:\UserData\Desktop\Project\OMP\OMP_1.20.1\build\distributions\nofigura-alpha11\omni-morph-1.0.0-alpha.11+1.20.1-minecraftforge-mc.jar`；SHA256 `3fff9d96b9feb4bb26f1b0baa1a9ceaa0b8292bc24f6915dce218cfa72c316f8`；16614174字节。
+- neoforge：`D:\UserData\Desktop\Project\OMP\OMP_1.20.1\build\distributions\nofigura-alpha11\omni-morph-1.0.0-alpha.11+1.20.1-neoforge-mc.jar`；SHA256 `88bd1797efac6f7cf3c13d1b98432101c4fabab3379a60eebca365e9376e53ad`；16614177字节。
+
+旧Alpha.10与导航验收包均保留。候选包9c673429仅历史预检，不能替代上述最终哈希。不同加载器分别真正重建，最终哈希按实际文件记录。
+
+全部实施、规定自动验证及实际产物完成，无新开发阶段或剩余实施；人工游戏/Mixin加载、像素/shader/CJK、多人仍SKIPPED（MANUAL，用户要求跳过；未验证），不冒称PASS、不等待其结果。不触发Actions、不启动游戏/覆盖mods、不改其他版本或后端、不再发送接力。本地原未跟踪.codex/保留，最终文档与手册同名分支提交push核对远端后正常交付。
+
+最后可靠额度窗口10080分钟已用32%、剩余68%，未触发Luna。正常完成交接由当前Agent整理。

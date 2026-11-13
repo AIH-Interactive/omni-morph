@@ -1,14 +1,35 @@
-# 当前任务：Alpha.11 NoFigura完整1.20.1接力
+# 当前交接：Alpha.11 NoFigura 1.20.1完成
 
-停止后重新从26.1.2开始的新接力，1.20.1最后一站；本轮独立于下方旧导航/Alpha.10交付。当前1.20.1，起点57a19059；已直接merge固定源86e47ee7，全部冲突按本版Java17/Gradle JDK21/Forge47.1.3/历史NeoForge47.1.106解决。完整内容见NoFigura-1.20.1同步记录.md和docs/nofigura-1.20.1。保留所有既有导航、普通渲染/加速撤销、AVIF/加载与粒子修复；未改其他版本/后端/wiki/CI或依赖。
+## 最终状态与Git
 
-ITEM_RENDER左右手、VisibleAvatar草稿相机/FOV/输入/火焰/轮廓/手部与正式身份隔离、Figura PBR借用/无Iris、关键帧诊断与版本继承、Lua虚拟路径、YSM作者locator武器/跨手/姿态快照/去重及默认关闭设置全部完成。修正本版Java17集合、Camera.move double、Iris texture.pbr包和握持逆矩阵/法线。实际FOV钩子RED发现旧tick覆盖与最终乘法冲突，已删除旧覆盖GREEN，保持实时原版FOV。
+新串行接力1.20.1最后一站已完成完整实施、自动验证、代码push和从代码提交真正重建的双包。当前分支1.20.1，代码merge5b382d9ed8623dc03b213d0afc07a45f00846017已核验远端同值；父提交57a19059与固定来源86e47ee7。源b01fc818/e9364adf→8403abfa→e17d6eae/3bd248f2→9b66a9f2/86e47ee7保留祖先。最终文档/手册随本次收尾提交push，具体最终HEAD见git和交付回复；包代码来源固定5b382d9e。
 
-7新入口58秒、15回归56秒PASS；原始加密芙宁娜样本idle0/swing6024顶点，私有资源不提交。默认关闭受控RED捕获失败，finally逐字节恢复155a365ac129a1b98869e83edbd00d128b76fe6bc2fe09c24935568a4b5c9d13；后续功能GREEN+Forge包/模块/Mixin48秒、Neo13秒PASS。两个生产图各16任务无测试/JNI/探针，JSON/YAML/actionlint/diff/候选包CRC依赖/Java17/native/功能类与无测试或专用加速PASS。
+没有剩余实施任务或新阶段，不等待人工或向其他版本继续发指令。原.codex/未跟踪保留，不清理/重置/回滚；下方旧导航/Alpha.10为历史，不替代当前状态。
 
-当前最小收尾：提交push这个完整目标版本并核验远端；从代码提交--rerun-tasks真正重建双包，审计并记录路径/版本/CRC/SHA256/代码SHA，最终文档和此手册更新push。全部实施已完成，没有新开发阶段。原.codex/保留；不reset/abort/切换分支/清理，不自动启动游戏/覆盖mods/触发Actions，不再向其他版本转发。前台PowerShell Tee build.log立即检查LASTEXITCODE，Gradle串行。
+## 完成范围和本版边界
 
-实机游戏/Mixin、像素/CJK/shader、双客户端多人按用户要求SKIPPED（MANUAL，未验证），不计PASS/不作受阻。minecraft-dev不可用，已CodeGraph和官方映射JAR核验，不冒称调用。额度可靠主要窗口10080分钟已用32%、剩余68%，未触发Luna；正常完成由当前Agent更新交接。
+全部NoFigura ITEM_RENDER左右手/回退/重入与生命周期，VisibleAvatar草稿相机/FOV/键鼠/Lua/火焰/轮廓/手部及正式身份/HUD隔离，Figura PBR借用/无Iris，作者关键帧诊断与版本继承，Lua虚拟模块路径，YSM作者locator武器/跨手/发光后代/快照/双手去重，默认关闭FIRST_PERSON_ITEM_REPLACEMENT设置均适配。
+
+保留Java17/Gradle JDK21、Forge47.1.3/历史NeoForge47.1.106、普通原版缓冲渲染/RenderLifetime/加速撤销、导航Logo/blit/Z400、AVIF/加载和粒子修复。未改CI/依赖/其他工作区/后端/wiki。1.20.1矩阵分别处理位置与法线逆转置、Iris texture.pbr包、Camera.move double、Java17集合；移除与新最终FOV乘法冲突的旧tick覆盖，实际钩子RED→GREEN。
+
+## 实际验证
+
+详见NoFigura-1.20.1同步记录.md及docs/nofigura-1.20.1。7新入口58秒PASS，15回归56秒PASS；只读加密芙宁娜样本idle0/swing6024顶点，私有资源不提交。默认关闭受控RED捕获失败且finally逐字节恢复，再GREEN功能/Forge包/98Mixin静态契约/8typed Local/16模块13桥接与AVIF实际解码48秒PASS，Neo13秒PASS。两生产图各16任务无测试/JNI/探针；JSON/YAML/actionlint/diff和最终包审计PASS。初轮API编译/文档匹配错误均已解决，不冒称行为RED。来源计划和docs/nofigura-1.21.1只代表历史。
+
+## 最终产物
+
+从5b382d9e执行-Prelease --rerun-tasks，Forge39秒/Neo36秒各13实际生产任务全执行，版本1.0.0-alpha.11+1.20.1。build/distributions/nofigura-alpha11/两个常规文件名分别以minecraftforge-mc.jar和neoforge-mc.jar结尾；完整绝对路径/字节数/代码SHA在docs/nofigura-1.20.1/artifacts.json。
+
+- Forge SHA256：3fff9d96b9feb4bb26f1b0baa1a9ceaa0b8292bc24f6915dce218cfa72c316f8。
+- NeoForge SHA256：88bd1797efac6f7cf3c13d1b98432101c4fabab3379a60eebca365e9376e53ad。
+
+外包/14嵌套CRC及jarjar清单、版本/MC/Java17/FML、功能类/设置/资源/许可证、Windows AVIF x86_64 DLL PE架构、无测试或撤销专用加速通过；旧包保留。
+
+## 未验证与接续规则
+
+游戏/Mixin运行时、像素/CJK/shader、双客户端多人：SKIPPED（MANUAL，用户要求跳过；未验证）。可选外部Figura作者ZIP入口未运行，标准资源和ZIP夹具覆盖。可选voicechat/renderRaw静态缺失及既有警告保留，不冒称真实加载PASS。没有未解决自动检查失败。
+
+先读AGENTS.md和此文档、当前同步记录并核对Git，不重复移植。后续只接受新任务；不自动启动游戏/覆盖mods/触发Actions/修改其他版本，不扩大功能。所有本地build/test/package前台PowerShell Tee build.log立即检查LASTEXITCODE，Gradle串行。额度可靠剩68%，未触发Luna，当前Agent整理完成手册；minecraft-dev不可用，未冒称调用。
 
 ---
 
