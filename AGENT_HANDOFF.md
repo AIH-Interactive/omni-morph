@@ -1,5 +1,21 @@
 # Agent 交接手册
 
+## 当前接收任务：26.1.2 main 接收 Alpha.11（2026-11-13）
+
+- 用户授权来源：会话 01a1cf9c-289b-7e12-9fa0-de9f1fbee064 的人类指令“停止，然后重新从26.1.2开始”。顺序为本版接收完成后，26.3→26.2→1.21.1→1.20.1，各版本完成验证、提交推送后只通知下一版本。已核实原始授权及26.3旧流程停止状态；26.3保留未完成合并和测试适配错误，不在本目录代为实施。
+- 接收工作树：D:/UserData/Desktop/Project/OMP/OMP_26.1.2/.worktrees/alpha11-main，分支 main 跟踪 origin/main。源工作区仍为 dev / origin/dev，原有未跟踪资料保留；本次工作树通过本地 info/exclude 排除，不污染源状态。
+- main 从 8faa4b5954be798d9a0979e14537b5a583d1d9b8 快进到固定源 b01fc818c7578eab3f198b3bc3a3256ebc9b5f35，无冲突、无生产代码适配。接收 NoFigura M0～M6 全部交付，以及草稿物品、可见 Avatar、YSM 原生武器和默认关闭的共用开关；四语言 Alpha.11 更新日志及作者说明随源接收，历史 Alpha.10 UI 仍保留。
+- 接收验证 PASS：20项 smoke 回归、Fabric/NeoForge build -Prelease，退出0，BUILD SUCCESSFUL in 2m 19s，53任务；日志 build/receiver-alpha11-green.log。覆盖第一人称/FOV/PBR/无Iris/虚拟模块/动画诊断、YSM武器/控制器/手部/延迟姿态、配装预览与Apply、云适配/协议、YSM材质、缓存、模型库传输/装备及导航。原始芙宁娜回放待机0、挥剑6024顶点。
+- 首次接收验证失败于隔离工作树缺少 refs 样本，并非功能RED，保留 build/receiver-initial-missing-fixture.log。已用绝对路径 junction 复用现有 avatars，未改模型、未导出解密资源，重跑全部通过。源功能RED原始日志只作为上游证据复制到 build/upstream-evidence，本次无生产改动，不冒称接收分支重新执行RED。
+- 包检查 PASS：主ZIP及嵌套JAR CRC、关键生产类、设置字段/中英文资源、无SmokeTest发布类；日志 build/receiver-alpha11-artifacts.log。实际游戏、shader/GPU、设置页与双客户端 MANUAL/PENDING，未启动游戏或覆盖安装目录。
+- 本工作树 Fabric：fabric/build/libs/omni-morph-1.0.0-alpha.11+26.1.2-fabric-mc.jar，19101108字节，SHA256 1efeddac1083fcb61b437d72bcfa18706d2bc06808b0721081215f00bf865c90。
+- 本工作树 NeoForge：neoforge/build/libs/omni-morph-1.0.0-alpha.11+26.1.2-neoforge-mc.jar，18714783字节，SHA256 76a33c478f902d758b9c4ed4fc510fbab29fadeab5af4bb83f52642b2d72692d。本节接收包哈希优先于下方源构建历史。
+- 本版本无剩余实施项。本节随独立 main 接收记录提交推送；最终提交和远端核对以 git log / ls-remote 为准。只有推送核对成功后才向26.3发送新指令，不并行派发后续版本；下游实际完成状态以各版本会话为准。
+- 周额度已用29%、剩余71%，未触发Luna交接。继续遵守范围控制、CodeGraph优先、前台PowerShell/Tee、禁止Qt offscreen和不擅自启动游戏。
+
+下方为源分支及此前交付历史，不能替代本节接收验证状态。
+
+
 ## 最新任务：第一人称武器替换开关（2026-11-13，已完成）
 
 - 用户已确认放在“设置 → 渲染”，名称“第一人称武器替换”，默认关闭；统一控制 Figura/YSM 第一人称替换，手臂、第三人称和配装保持原有功能。实施完成，无剩余开发任务。

@@ -1,5 +1,10 @@
 # NoFigura P1/P2 实施记录
 
+## 26.1.2 main 接收检查点（2026-11-13）
+
+固定源 b01fc818，main 从 8faa4b59 无冲突快进接收完整 Alpha.11，不重写源实现。隔离工作树20项smoke及Fabric/NeoForge构建全部通过（退出0，2m19s，53任务），build/receiver-alpha11-green.log；初次缺少外部样本失败已保留并修复路径后重跑。包CRC/关键类/资源检查通过，build/receiver-alpha11-artifacts.log。源RED与接收GREEN证据分开记录；真实游戏MANUAL/PENDING。接收产物、哈希、分支和接力约束见本工作树AGENT_HANDOFF.md首节；只有main推送核对后通知26.3，不同时派发其他版本。
+
+
 ## Alpha.11：第一人称武器替换设置（2026-11-13）
 
 - 用户确认位置为“设置 → 渲染”，名称“第一人称武器替换”，默认关闭，Figura/YSM 共用。注册为现有可见 BoolConfig，沿 ConfigList 分类显示及 ConfigManager 应用/保存机制持久化，补齐中英文名称和说明；不增加独立配置文件或同步字段。
