@@ -1,5 +1,14 @@
 # NoFigura P1/P2 实施记录
 
+## Alpha.11：第一人称武器替换设置（2026-11-13）
+
+- 用户确认位置为“设置 → 渲染”，名称“第一人称武器替换”，默认关闭，Figura/YSM 共用。注册为现有可见 BoolConfig，沿 ConfigList 分类显示及 ConfigManager 应用/保存机制持久化，补齐中英文名称和说明；不增加独立配置文件或同步字段。
+- 关闭时共享物品入口直接返回原有路径，不运行 Figura ITEM_RENDER、不提交 YSM 替换，也不执行为原生武器新增的身体姿态补采；自定义手臂、第三人称、配装身份和权限实现未修改。
+- RED：已有可替换模型在关闭设置时仍接管物品，断言 `disabled setting preserves vanilla item and skips ITEM_RENDER` 失败；`build/firstperson-setting-red.log`。接入共享入口开关后 GREEN：默认值/可见分类、关闭不提交、开启实际顶点、再次关闭即时恢复、嵌套/生命周期及原版回退通过。测试启用设置后恢复原值，不改变其他回归默认状态。
+- 最终前台构建：`:common:firstPersonItemRenderSmokeTest :common:ysmFirstPersonWeaponSmokeTest :common:firstPersonArmPoseSmokeTest :common:ysmDeferredPoseSmokeTest :common:ysmFirstPersonControllerSmokeTest :common:libraryPreviewRuntimeSmokeTest :common:outfitApplyClientSmokeTest :fabric:build :neoforge:build -Prelease -PysmWeaponSample=<原芙宁娜绝对路径>`。`build/firstperson-setting-green.log`：退出码 0，BUILD SUCCESSFUL in 1m 23s，40 个任务。原始 YSM 开启后仍为待机 0、挥剑 6024 顶点，关闭时保留原版物品；手臂、草稿和配装回归通过。
+- `build/firstperson-setting-artifacts.log`：两平台 JAR CRC、设置消费者字段及中英文文案检查 PASS。版本保持 alpha.11；以下为最新产物，覆盖历史哈希：Fabric 19101108 字节，SHA256 `1efeddac1083fcb61b437d72bcfa18706d2bc06808b0721081215f00bf865c90`；NeoForge 18714780 字节，SHA256 `683c61817f4aa92809beaa4fd7dbae4087282d1d6e813fda879082a1946e2a50`。
+- 实施和自动验证完成；真实设置页视觉/点击及游戏画面 **MANUAL/PENDING**，未启动游戏或修改用户模型。提交推送检查点和最终分支状态见 AGENT_HANDOFF.md。
+
 ## Alpha.11：YSM 原生第一人称武器替换（2026-11-13）
 
 - 用户授权：补齐 YSM 通用第一人称武器替换，用指定芙宁娜原样本 RED/GREEN，保持手臂、第三人称及配装，编译并提交推送。不修改或发布作者模型。

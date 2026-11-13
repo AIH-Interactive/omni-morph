@@ -6,6 +6,7 @@ import net.minecraft.client.resources.model.cuboid.ItemTransform;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.lua.api.world.ItemStackAPI;
 import org.figuramc.figura.math.vector.FiguraVec3;
 
@@ -30,7 +31,8 @@ public final class FirstPersonItemRender {
     public static boolean submit(ItemStack item, ItemDisplayContext context, ItemTransform transform,
                                  PoseStack pose, SubmitNodeCollector collector, int light, int overlay) {
         Avatar avatar = currentAvatar;
-        if (avatar == null || eventActive || !avatar.renderOwner().isCurrent()
+        if (!Configs.FIRST_PERSON_ITEM_REPLACEMENT.value
+                || avatar == null || eventActive || !avatar.renderOwner().isCurrent()
                 || context != ItemDisplayContext.FIRST_PERSON_LEFT_HAND
                 && context != ItemDisplayContext.FIRST_PERSON_RIGHT_HAND) {
             return false;

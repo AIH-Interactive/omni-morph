@@ -564,6 +564,8 @@
     "omni-morph.config.iris_compatibility_fix.2.tooltip": "Offset special render types a tiny bit, to make sure they're rendered on top of other render types",
     "omni-morph.config.iris_compatibility_fix.3.tooltip": "When a shader pack is active, change the way the emissive render type works to a more compatible system that uses fully-lit textures instead of the vanilla eyes type",
     "omni-morph.config.allow_fp_hands": "First Person Hands",
+    "omni-morph.config.first_person_item_replacement": "First-Person Weapon Replacement",
+    "omni-morph.config.first_person_item_replacement.tooltip": "Allow Figura/YSM avatars to replace first-person held item appearances. Disabled by default. Turning this off preserves vanilla items without changing custom arms, third-person rendering or outfits.",
     "omni-morph.config.allow_fp_hands.tooltip": "Toggles if scripts can move around, rotate or scale the First Person Hand parent type groups",
     "omni-morph.config.render_debug_parts_pivot": "Render Parts Pivot",
     "omni-morph.config.render_debug_parts_pivot.tooltip": "Render the Pivots from %d and %d when the hitbox debug rendering is enabled",

@@ -27,6 +27,18 @@ public final class YsmFirstPersonWeaponSmokeTest {
     }
 
     private static void check(YsmModelRuntime runtime) {
+        var setting = org.figuramc.figura.config.Configs.FIRST_PERSON_ITEM_REPLACEMENT;
+        boolean previous = setting.value;
+        require(!setting.defaultValue, "native weapon replacement defaults to disabled");
+        setting.setValue("false");
+        try {
+            checkReplacement(runtime);
+        } finally {
+            setting.setValue(Boolean.toString(previous));
+        }
+    }
+
+    private static void checkReplacement(YsmModelRuntime runtime) {
         try {
             var field = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
             field.setAccessible(true);
@@ -51,6 +63,12 @@ public final class YsmFirstPersonWeaponSmokeTest {
         List<FiguraSubmission> queue = new ArrayList<>();
         var collector = collector(runtime, queue);
         FirstPersonItemRender.withAvatar(runtime.owner(), () -> {
+            require(!FirstPersonItemRender.submit(sword, ItemDisplayContext.FIRST_PERSON_RIGHT_HAND,
+                    ItemTransform.NO_TRANSFORM, new PoseStack(), collector, 0xf000f0, 0),
+                    "disabled setting preserves the vanilla YSM item");
+            require(queue.isEmpty(), "disabled setting queues no YSM replacement");
+            org.figuramc.figura.config.Configs.FIRST_PERSON_ITEM_REPLACEMENT.setValue("true");
+            runtime.updateAnimations(state, null, true);
             require(FirstPersonItemRender.submit(sword, ItemDisplayContext.FIRST_PERSON_RIGHT_HAND,
                     ItemTransform.NO_TRANSFORM, new PoseStack(), collector, 0xf000f0, 0),
                     "YSM authored hidden hand locator replaces the vanilla first-person sword");

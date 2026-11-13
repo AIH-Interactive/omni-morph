@@ -23,6 +23,17 @@ import java.util.UUID;
 /** Opt-in local corpus replay: never copies the author's package into the repository. */
 public final class FirstPersonAvatarSmokeTest {
     public static void main(String[] args) throws Exception {
+        var setting = org.figuramc.figura.config.Configs.FIRST_PERSON_ITEM_REPLACEMENT;
+        boolean previous = setting.value;
+        setting.setValue("true");
+        try {
+            replay(args);
+        } finally {
+            setting.setValue(Boolean.toString(previous));
+        }
+    }
+
+    private static void replay(String[] args) throws Exception {
         try (var fs = FileSystems.newFileSystem(Path.of(args[1]))) {
             YsmMaterialNativeSmokeTest.replayFiguraAcceleration(Path.of(args[0]), ignored -> {
                 Avatar avatar = Avatar.createLibraryPreview(UUID.randomUUID(), "first-person corpus");
