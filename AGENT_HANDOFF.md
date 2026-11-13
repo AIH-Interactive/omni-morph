@@ -111,3 +111,10 @@ MC1.21.1适配GuiGraphics/ResourceLocation/坐标输入/Font/PoseStack/同步截
 实际双包路径/哈希在docs/nofigura-1.21.1/artifacts.json/txt：Fabric443da80a872eb1bf2ef52008ee509e646a6a2bb7cf200568e96ed80fac9f3589；NeoForge a5da447e12e149fbe70784a18fef9348c69ca6e26afd42f00a0eadac5c3281ae。两包位于本根fabric/build/libs和neoforge/build/libs的alpha.11+1.21.1-loader-mc.jar。人工客户端/Mixin启动、像素/shader、多人SKIPPED（MANUAL，用户要求跳过；未验证），不阻塞。
 
 当前仅最终文档提交推送、read_thread核对1.20.1 cwd后发送新Alpha.11完整接力及记录回执待办。收件local/01a1970e-a221-7610-996d-9ef5214db4ce；不改其目录/模型，不创建聊天，不等它完成。原未跟踪三项保留。周已用32%，无需Luna。旧导航交付不能代替本轮Alpha.11。
+
+
+## Alpha.11 新接力发送完成
+
+本版代码9b66a9f2及最终产物记录86e47ee7已推送且核验origin/1.21.1一致。交付双包绝对路径后，read_thread再次确认local/01a1970e-a221-7610-996d-9ef5214db4ce实际cwd为OMP_1.20.1、状态idle、最新旧停止消息。随后send_message_to_thread成功返回isError=false及同threadId。新消息包含已核验人类重启串行授权、全部固定来源/完整功能范围、本版API差异、22入口/RED-GREEN/生产包证据和最终JAR哈希，明确其为最后版本、在自身会话完成后结束；旧导航发送不算本轮。未创建聊天/覆盖模型设置/改其他目录。
+
+本版实施、自动验证、实际产物与已授权通信全部完成，无剩余任务，不等待1.20.1或人工验收。人工项仍SKIPPED（MANUAL，用户要求跳过；未验证），不作为阻塞。后续仅本条收件回执记录提交，不改变生产包代码9b66a9f2；原未跟踪三项保留。
