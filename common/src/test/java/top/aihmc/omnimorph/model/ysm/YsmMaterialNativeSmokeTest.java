@@ -42,6 +42,13 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 /** Native resource fixtures; texture contexts use visible GL windows without claiming GUI appearance. */
 public final class YsmMaterialNativeSmokeTest {
+    public static AutoCloseable recordingCameraEntity(net.minecraft.world.entity.Entity entity) {
+        var client = (RecordingClient) Minecraft.getInstance();
+        var previous = client.cameraEntity;
+        client.cameraEntity = entity;
+        return () -> client.cameraEntity = previous;
+    }
+
     public static void main(String[] args) throws Exception {
         run(args, null);
     }
@@ -1878,6 +1885,7 @@ public final class YsmMaterialNativeSmokeTest {
     }
 
     private static final class RecordingClient extends Minecraft implements top.aihmc.omnimorph.mixin.MinecraftAccesor {
+        private net.minecraft.world.entity.Entity cameraEntity;
         @Override
         public net.minecraft.util.profiling.ProfilerFiller getProfiler() {
             return net.minecraft.util.profiling.InactiveProfiler.INSTANCE;
@@ -1915,7 +1923,7 @@ public final class YsmMaterialNativeSmokeTest {
 
         @Override
         public net.minecraft.world.entity.Entity getCameraEntity() {
-            return null;
+            return cameraEntity;
         }
 
         @Override

@@ -5,12 +5,14 @@ import net.minecraft.client.MouseHandler;
 import net.minecraft.client.Options;
 import net.minecraft.client.gui.screens.ReceivingLevelScreen;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.Gui;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
+import top.aihmc.omnimorph.model.outfit.VisibleAvatar;
 import org.figuramc.figura.avatar.AvatarManager;
 import org.figuramc.figura.backend2.NetworkStuff;
 import org.figuramc.figura.config.Configs;
@@ -38,7 +40,7 @@ public abstract class MinecraftMixin {
     @Shadow public LocalPlayer player;
     @Shadow public Entity cameraEntity;
 
-    @Shadow public abstract void setScreen(@Nullable Screen screen);
+    @Shadow @Final public Gui gui;
 
     @Unique
     private boolean scriptMouseUnlock = false;
@@ -57,7 +59,7 @@ public abstract class MinecraftMixin {
 
         // reload avatar button
         if (Configs.WARDROBE_BUTTON.keyBind.consumeClick())
-            this.setScreen(new WardrobeScreen(null));
+            Minecraft.getInstance().setScreen(new WardrobeScreen(null));
 
         // action wheel button
         Boolean wheel = null;
@@ -98,7 +100,7 @@ public abstract class MinecraftMixin {
         }
 
         // unlock cursor :p
-        Avatar avatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
+        Avatar avatar = VisibleAvatar.localPlayer();
         if (avatar != null && avatar.luaRuntime != null && avatar.luaRuntime.host.unlockCursor) {
             this.mouseHandler.releaseMouse();
             scriptMouseUnlock = true;
@@ -114,15 +116,6 @@ public abstract class MinecraftMixin {
             PopupMenu.hotbarKeyPressed(i);
         if (ActionWheel.isEnabled())
             ActionWheel.hotbarKeyPressed(i);
-    }
-
-    @Inject(at = @At("HEAD"), method = "setScreen")
-    private void setScreen(Screen screen, CallbackInfo ci) {
-        if (ActionWheel.isEnabled())
-            ActionWheel.setEnabled(false);
-
-        if (PopupMenu.isEnabled())
-            PopupMenu.run();
     }
 
     @Inject(at = @At("RETURN"), method = "clearClientLevel")

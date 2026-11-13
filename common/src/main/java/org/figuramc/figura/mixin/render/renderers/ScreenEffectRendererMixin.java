@@ -22,7 +22,7 @@ public class ScreenEffectRendererMixin {
 
     @Inject(method = "renderFire", at = @At("HEAD"), cancellable = true)
     private static void renderFire(Minecraft client, PoseStack matrices, CallbackInfo ci) {
-        Avatar a = AvatarManager.getAvatar(client.getCameraEntity());
+        Avatar a = top.aihmc.omnimorph.model.outfit.VisibleAvatar.forEntity(client.getCameraEntity());
         if (RenderUtils.vanillaModelAndScript(a)) {
             if (!a.luaRuntime.renderer.renderFire) {
                 ci.cancel();

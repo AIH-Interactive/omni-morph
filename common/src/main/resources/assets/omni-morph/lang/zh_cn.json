@@ -1,4 +1,5 @@
 {
+    "omni-morph.animation.keyframe_migration_hint": "若模型由 Blockbench 4.12 迁移到 5.0，请检查作者表达式：旋转 X/Y 和位置 X 可能需要修正符号。请手动修复源模型。",
     "omni-morph.gui.wardrobe.outfit_presets": "装扮预设",
     "omni-morph.gui.wardrobe.preset_personal_cloud": "个人云端",
     "omni-morph.gui.wardrobe.preset_storage_help": "本地预设保存在此设备；个人云端预设仅本人可读，不会公开或上传依赖模型。本地引用仍需对应设备资源。",
@@ -455,6 +456,8 @@
   "omni-morph.config.action_wheel_title.5": "底部",
   "omni-morph.config.action_wheel_title.tooltip": "改变被选择动作的文本名字显示位置",
   "omni-morph.config.allow_fp_hands": "第一人称头",
+  "omni-morph.config.first_person_item_replacement": "第一人称武器替换",
+  "omni-morph.config.first_person_item_replacement.tooltip": "允许 Figura/YSM 模型替换第一人称手持物品外观。默认关闭；关闭时保留原版物品，不影响自定义手臂、第三人称和配装。",
   "omni-morph.config.allow_fp_hands.tooltip": "开/关脚本可否移动，旋转，或缩放第一人称头",
   "omni-morph.config.background_scroll_speed": "背景滚动速度",
   "omni-morph.config.background_scroll_speed.tooltip": "背景动画的滚动速度",

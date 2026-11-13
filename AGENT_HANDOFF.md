@@ -86,3 +86,20 @@ MC1.21.1适配GuiGraphics/ResourceLocation/坐标输入/Font/PoseStack/同步截
 - 最终Logo引用存在/不再引用缺失路径、双包/嵌套CRC、MC/Java/加载器元数据、AVIF/业务依赖/许可证、无测试或自建加速均PASS；证据docs/navigation-render-fix/artifacts.json/txt及final-packaging.log。源码diff检查通过，原始red.log JVM Exception行尾空格作为原始日志保留，不格式化证据。
 - 已按用户本会话直接授权，通过send_message_to_thread发送至hostId local、threadId 01a1970e-a221-7610-996d-9ef5214db4ce；返回isError=false及相同threadId。包含修复SHA、三根因、正确接口/层级、RED/GREEN与最终包证据，要求1.20.1按其实际版本核查，不假定同故障、不照抄Java21测试/配置。未修改其工作区或模型设置，未创建新聊天。
 - 本版无剩余实施/自动验证/通信待办；1.20.1在自身会话核查，本版不等待或代做。人工实机验收仍SKIPPED（MANUAL，未验证），未启动游戏/覆盖mods。原未跟踪.codex/、.mcp.json、.omc/保留。当前任务已完成。
+
+
+## 2026-11-13 Alpha.11 NoFigura 新接力（当前有效，实施中）
+
+本轮任务不是历史导航修复。新链条已核验源会话人类授权：26.1.2 e9364adf（开发b01fc818）→26.3 8403abfa→26.2 3bd248f2393597f856875e762c2c332dd76a0ca3→本版→1.20.1。当前分支1.21.1，起点3fc39d2c，已开始merge固定源3bd248f2，尚未提交；不要重复merge、abort/reset或清理工作区。保留原未跟踪.codex/、.mcp.json、.omc/。
+
+已完成生产适配：NoFigura M0–M6及后续草稿ITEM_RENDER、VisibleAvatar相机/FOV/输入/火焰/轮廓、Figura Iris借用PBR生命周期、动画诊断/版本迁移、Lua虚拟模块、YSM原生第一人称武器及默认false的FIRST_PERSON_ITEM_REPLACEMENT。保留本版导航、AVIF、取消加载修复、正式装备同步/权限和HUD轮盘身份。恢复396个与功能无关的平台边界，未引入26.x Java25/SDL/渲染命令队列/专用加速。原计划书与实施记录作为源历史导入。
+
+本版JDK21、MultiBufferSource、原生ItemTransform、double FOV、GL纹理ID与native输入API；MixinExtras0.3.6无WrapMethod，使用GameRenderer原生renderHandsWithItems调用的WrapOperation作用域。YSM用不可变姿态立即准备顶点再交原版缓冲，不声称新版命令队列验证。
+
+验证：common:testClasses和双加载器compileJava PASS（build/tmp/nofigura-compile.log）。7个新增入口PASS（nofigura-new-feature-initial.log）：ITEM_RENDER、FOV、PBR、无Iris、动画诊断、Lua模块、原始YSM作者样本；YSM idle=0/swing=6024顶点。当前执行15个受影响回归，日志build/tmp/nofigura-regression.log。尚需检查回归、受控RED/GREEN、生产包/依赖图/静态检查、暂存解决索引UU、提交推送远端核验、从代码提交构建最终双JAR和哈希、最终记录推送。
+
+本版真正交付后再read_thread核对1.20.1实际cwd，向local/01a1970e-a221-7610-996d-9ef5214db4ce发送完整Alpha.11接力；旧导航发送不能算本轮转发。禁止提前发送、直接改其他目录、创建会话或修改模型设置。人工客户端/像素/Mixin启动/多人验收SKIPPED（MANUAL，用户要求跳过；未验证），不阻塞。不启动游戏/覆盖mods/触发Actions。上一条错误收尾只是旧导航状态，本轮尚未完成。
+
+### Alpha.11 当前安全检查点
+
+22个不同自动功能/回归入口全部通过；受控RED捕获默认关闭守卫缺失，源码已逐字节恢复，GREEN及双生产包PASS。docs/nofigura-1.21.1保存完整日志与原版钩子/静态证据，NoFigura-1.21.1同步记录.md记录逐项范围/失败处理。24生产任务图不含测试/JNI；包预检通过但尚不是代码提交交付。基线已有WrapMethod保持，仅本轮新增手渲染作用域使用WrapOperation，不把它写成全项目不存在WrapMethod。周已用32%，无需Luna。下一步仅最终索引暂存/merge提交推送、提交后生产重建/最终哈希、交付并向1.20.1发送新接力。

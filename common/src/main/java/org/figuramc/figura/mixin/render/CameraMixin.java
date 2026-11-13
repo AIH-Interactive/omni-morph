@@ -30,7 +30,7 @@ public abstract class CameraMixin {
 
     @Inject(method = "setup", at = @At(value = "HEAD"))
     private void setupAvatarVar(BlockGetter area, Entity focusedEntity, boolean thirdPerson, boolean inverseView, float tickDelta, CallbackInfo ci) {
-        avatar = AvatarManager.getAvatar(focusedEntity);
+        avatar = top.aihmc.omnimorph.model.outfit.VisibleAvatar.forEntity(focusedEntity);
     }
 
     // Neo adds roll in addition to pitch and yaw

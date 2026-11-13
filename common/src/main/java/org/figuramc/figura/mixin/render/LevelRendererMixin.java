@@ -128,7 +128,7 @@ public abstract class LevelRendererMixin {
 
     @ModifyArg(method = "renderHitOutline", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;renderShape(Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;Lnet/minecraft/world/phys/shapes/VoxelShape;DDDFFFF)V"), index = 6)
     private float renderHitOutlineX(float x) {
-        Avatar avatar = AvatarManager.getAvatar(this.minecraft.getCameraEntity());
+        Avatar avatar = top.aihmc.omnimorph.model.outfit.VisibleAvatar.forEntity(this.minecraft.getCameraEntity());
         FiguraVec4 color;
 
         if (avatar == null || avatar.luaRuntime == null || (color = avatar.luaRuntime.renderer.blockOutlineColor) == null)
@@ -139,7 +139,7 @@ public abstract class LevelRendererMixin {
 
     @ModifyArg(method = "renderHitOutline", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;renderShape(Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;Lnet/minecraft/world/phys/shapes/VoxelShape;DDDFFFF)V"), index = 7)
     private float renderHitOutlineY(float y) {
-        Avatar avatar = AvatarManager.getAvatar(this.minecraft.getCameraEntity());
+        Avatar avatar = top.aihmc.omnimorph.model.outfit.VisibleAvatar.forEntity(this.minecraft.getCameraEntity());
         FiguraVec4 color;
 
         if (avatar == null || avatar.luaRuntime == null || (color = avatar.luaRuntime.renderer.blockOutlineColor) == null)
@@ -150,7 +150,7 @@ public abstract class LevelRendererMixin {
 
     @ModifyArg(method = "renderHitOutline", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;renderShape(Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;Lnet/minecraft/world/phys/shapes/VoxelShape;DDDFFFF)V"), index = 8)
     private float renderHitOutlineZ(float z) {
-        Avatar avatar = AvatarManager.getAvatar(this.minecraft.getCameraEntity());
+        Avatar avatar = top.aihmc.omnimorph.model.outfit.VisibleAvatar.forEntity(this.minecraft.getCameraEntity());
         FiguraVec4 color;
 
         if (avatar == null || avatar.luaRuntime == null || (color = avatar.luaRuntime.renderer.blockOutlineColor) == null)
@@ -161,7 +161,7 @@ public abstract class LevelRendererMixin {
 
     @ModifyArg(method = "renderHitOutline", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/LevelRenderer;renderShape(Lcom/mojang/blaze3d/vertex/PoseStack;Lcom/mojang/blaze3d/vertex/VertexConsumer;Lnet/minecraft/world/phys/shapes/VoxelShape;DDDFFFF)V"), index = 9)
     private float renderHitOutlineW(float w) {
-        Avatar avatar = AvatarManager.getAvatar(this.minecraft.getCameraEntity());
+        Avatar avatar = top.aihmc.omnimorph.model.outfit.VisibleAvatar.forEntity(this.minecraft.getCameraEntity());
         FiguraVec4 color;
 
         if (avatar == null || avatar.luaRuntime == null || (color = avatar.luaRuntime.renderer.blockOutlineColor) == null)
@@ -172,7 +172,7 @@ public abstract class LevelRendererMixin {
 
     @Inject(method = "renderLevel", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/RenderBuffers;bufferSource()Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;"))
     public void applyFiguraNormals(DeltaTracker deltaTracker, boolean bl, Camera camera, GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f matrix4f, Matrix4f matrix4f2, CallbackInfo ci, @Local PoseStack poseStack) {
-        Avatar avatar = AvatarManager.getAvatar(this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity());
+        Avatar avatar = top.aihmc.omnimorph.model.outfit.VisibleAvatar.forEntity(this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity());
         if (!RenderUtils.vanillaModelAndScript(avatar)) return;
 
         FiguraMat3 normal = avatar.luaRuntime.renderer.cameraNormal;

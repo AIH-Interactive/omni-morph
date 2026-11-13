@@ -1,0 +1,91 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+
+> Configure project :
+Architect Plugin: 3.4.164
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+Mod was built with a newer version of Loom (1.16.3), you are using Loom (1.14.476)
+Mod was built with a newer version of Loom (1.17.21), you are using Loom (1.14.476)
+Mod was built with a newer version of Loom (1.17.493), you are using Loom (1.14.476)
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+
+> Task :common:compileJava
+注: D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\main\java\org\figuramc\figura\mixin\render\GameRendererMixin.java使用了未经检查或不安全的操作。
+注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes
+> Task :common:extractIncludeTestProto UP-TO-DATE
+> Task :common:extractTestProto UP-TO-DATE
+> Task :common:generateTestProto NO-SOURCE
+> Task :common:compileTestJava
+> Task :common:processTestResources UP-TO-DATE
+> Task :common:testClasses
+
+> Task :common:firstPersonItemRenderSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+[21:56:45] [main/INFO]: [STDOUT]: PASS first-person item: formal Lua event, direct replacement and native vertices; game pending
+
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+> Task :common:ysmFirstPersonWeaponSmokeTest
+[21:57:01] [main/INFO]: [STDOUT]: Author sample vertices: idle=0, swing=6024
+[21:57:01] [main/INFO]: [STDOUT]: PASS YSM first-person weapon: authored hold/swing, native buffered vertices and fallback
+
+> Task :common:jar UP-TO-DATE
+> Task :fabric:compileJava UP-TO-DATE
+> Task :fabric:processResources
+> Task :fabric:classes
+> Task :fabric:jar
+> Task :fabric:processIncludeJars UP-TO-DATE
+
+> Task :common:transformProductionFabric
+[Architectury Transformer] Read classpath in 1.637 s
+[Architectury Transformer] Transformed jar with 5 transformer(s) in 3.239 s
+
+> Task :fabric:shadowJar
+> Task :neoforge:compileJava UP-TO-DATE
+> Task :neoforge:processResources
+> Task :neoforge:classes
+> Task :neoforge:jar
+> Task :neoforge:processIncludeJars UP-TO-DATE
+
+> Task :common:transformProductionNeoForge
+[Architectury Transformer] Read classpath in 1.814 s
+
+Cannot remap renderRaw because it does not exists in any of the targets [net/minecraft/client/renderer/BlockEntityWithoutLevelRenderer]
+Cannot remap lambda$renderSignText$2 because it does not exists in any of the targets [net/minecraft/client/renderer/blockentity/SignRenderer]
+Cannot remap lambda$selectProviders$5 because it does not exists in any of the targets [net/minecraft/client/gui/font/FontSet]
+Cannot remap entityRenderTranslations because it does not exists in any of the targets [] or their parents.
+Cannot remap modelRenderTranslations because it does not exists in any of the targets [] or their parents.
+Cannot remap scaleWidth because it does not exists in any of the targets [] or their parents.
+Cannot remap scaleHeight because it does not exists in any of the targets [] or their parents.
+
+> Task :common:transformProductionNeoForge
+[Architectury Transformer] Transformed jar with 5 transformer(s) in 4.501 s
+
+> Task :fabric:remapJar
+> Task :neoforge:shadowJar
+Cannot remap lambda$selectProviders$5 because it does not exists in any of the targets [net/minecraft/client/gui/font/FontSet]
+Cannot remap entityRenderTranslations because it does not exists in any of the targets [] or their parents.
+Cannot remap modelRenderTranslations because it does not exists in any of the targets [] or their parents.
+Cannot remap renderRaw because it does not exists in any of the targets [net/minecraft/client/renderer/BlockEntityWithoutLevelRenderer]
+Cannot remap scaleWidth because it does not exists in any of the targets [] or their parents.
+Cannot remap scaleHeight because it does not exists in any of the targets [] or their parents.
+Cannot remap lambda$renderSignText$2 because it does not exists in any of the targets [net/minecraft/client/renderer/blockentity/SignRenderer]
+> Task :neoforge:remapJar
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_1.21.1/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 1m
+26 actionable tasks: 14 executed, 12 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.4.1/userguide/configuration_cache_enabling.html

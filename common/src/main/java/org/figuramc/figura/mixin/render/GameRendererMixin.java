@@ -92,7 +92,7 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
             at = @At(value = "INVOKE",
                     target = "Lorg/joml/Matrix4f;rotation(Lorg/joml/Quaternionfc;)Lorg/joml/Matrix4f;"))
     private Matrix4f onCameraRotation(Matrix4f instance, Quaternionfc quat, Operation<Matrix4f> original) {
-        Avatar avatar = AvatarManager.getAvatar(this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity());
+        Avatar avatar = top.aihmc.omnimorph.model.outfit.VisibleAvatar.forEntity(this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity());
         if (!RenderUtils.vanillaModelAndScript(avatar)) {
             original.call(instance, quat);
             return instance;
@@ -221,7 +221,7 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
             at = @At(value = "INVOKE",
                     target = "Lnet/minecraft/client/renderer/GameRenderer;bobHurt(Lcom/mojang/blaze3d/vertex/PoseStack;F)V"))
     private PoseStack renderLevelBobHurt(PoseStack stack) {
-        Avatar avatar = AvatarManager.getAvatar(this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity());
+        Avatar avatar = top.aihmc.omnimorph.model.outfit.VisibleAvatar.forEntity(this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity());
         if (!RenderUtils.vanillaModelAndScript(avatar) || hasShaders) {
             return stack;
         }
@@ -234,7 +234,7 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
             at = @At(value = "INVOKE",
                     target = "Lnet/minecraft/client/renderer/GameRenderer;bobView(Lcom/mojang/blaze3d/vertex/PoseStack;F)V"))
     private void figura$stopBobView(GameRenderer instance, PoseStack stack, float f, Operation<Void> original) {
-        Avatar avatar = AvatarManager.getAvatar(this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity());
+        Avatar avatar = top.aihmc.omnimorph.model.outfit.VisibleAvatar.forEntity(this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity());
         if (!RenderUtils.vanillaModelAndScript(avatar) || hasShaders) {
             original.call(instance, stack, f);
         }
@@ -244,7 +244,7 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
             at = @At(value = "INVOKE",
                     target = "Lnet/minecraft/client/renderer/GameRenderer;bobHurt(Lcom/mojang/blaze3d/vertex/PoseStack;F)V"))
     private void figura$stopBobHurt(GameRenderer instance, PoseStack stack, float f, Operation<Void> original) {
-        Avatar avatar = AvatarManager.getAvatar(this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity());
+        Avatar avatar = top.aihmc.omnimorph.model.outfit.VisibleAvatar.forEntity(this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity());
         if (!RenderUtils.vanillaModelAndScript(avatar) || hasShaders) {
             original.call(instance, stack, f);
         }
@@ -255,7 +255,28 @@ public abstract class GameRendererMixin implements GameRendererAccessor {
             at = @At(value = "INVOKE",
                     target = "Lnet/minecraft/client/OptionInstance;get()Ljava/lang/Object;", ordinal = 1))
     private<T> T figura$disableConfusionOnMatrix(OptionInstance<T> instance, Operation<T> original) {
-        Avatar avatar = AvatarManager.getAvatar(this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity());
+        Avatar avatar = top.aihmc.omnimorph.model.outfit.VisibleAvatar.forEntity(this.minecraft.getCameraEntity() == null ? this.minecraft.player : this.minecraft.getCameraEntity());
         return (!RenderUtils.vanillaModelAndScript(avatar) || hasShaders) ? original.call(instance) : (T) (Object) 0.0;
     }
+    @Inject(method = "getFov", at = @At("RETURN"), cancellable = true)
+    private void figura$avatarFov(Camera camera, float delta, boolean changingFov,
+                                  org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable<Double> cir) {
+        float multiplier = top.aihmc.omnimorph.model.rendering.CameraFov.apply(1f,
+                top.aihmc.omnimorph.model.outfit.VisibleAvatar.forEntity(camera.getEntity()),
+                camera.getEntity() == this.minecraft.player);
+        cir.setReturnValue(cir.getReturnValue() * multiplier);
+    }
+
+    @WrapOperation(method = "renderItemInHand", at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/client/renderer/ItemInHandRenderer;renderHandsWithItems(FLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;Lnet/minecraft/client/player/LocalPlayer;I)V"))
+    private void figura$withFirstPersonItems(net.minecraft.client.renderer.ItemInHandRenderer renderer,
+                                             float delta, PoseStack pose,
+                                             net.minecraft.client.renderer.MultiBufferSource.BufferSource buffers,
+                                             net.minecraft.client.player.LocalPlayer player, int light,
+                                             Operation<Void> original) {
+        top.aihmc.omnimorph.model.rendering.FirstPersonItemRender.withAvatar(
+                top.aihmc.omnimorph.model.outfit.VisibleAvatar.forEntity(player),
+                () -> original.call(renderer, delta, pose, buffers, player, light));
+    }
+
 }

@@ -1854,6 +1854,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                             && top.aihmc.omnimorph.model.outfit.OutfitRenderBinding.composition(worldFrame) != null,
                     "local draft replaces only the current player's extracted render frame");
             OutfitHandRenderingSmokeTest.run(unsafe, preview);
+            VisibleAvatarRoutingSmokeTest.run(unsafe, preview, drain, editor);
             String handModel = System.getenv("OMNIMORPH_TEST_HAND_AVATAR");
             if (handModel != null && !handModel.isBlank()) {
                 try (var provided = new LibraryPreviewSession()) {

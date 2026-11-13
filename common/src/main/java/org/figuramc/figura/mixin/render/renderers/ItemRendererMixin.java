@@ -46,6 +46,17 @@ public abstract class ItemRendererMixin {
             });
         }
 
+        if (itemDisplayContext == ItemDisplayContext.FIRST_PERSON_LEFT_HAND
+                || itemDisplayContext == ItemDisplayContext.FIRST_PERSON_RIGHT_HAND) {
+            ItemTransform transform = getModel(itemStack, world, livingEntity, seed)
+                    .getTransforms().getTransform(itemDisplayContext);
+            if (top.aihmc.omnimorph.model.rendering.FirstPersonItemRender.submit(
+                    itemStack, itemDisplayContext, transform, stack, buffer, light, overlay)) {
+                ci.cancel();
+            }
+            return;
+        }
+
         EntityFrame frame = EntityFrame.current();
         Avatar avatar = frame != null && frame.entity() == livingEntity
                 ? AvatarManager.getAvatar(frame) : AvatarManager.getAvatar(livingEntity);

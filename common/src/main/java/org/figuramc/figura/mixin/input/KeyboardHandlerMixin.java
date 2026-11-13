@@ -35,7 +35,7 @@ public class KeyboardHandlerMixin {
             ci.cancel();
         }
 
-        Avatar avatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
+        Avatar avatar = top.aihmc.omnimorph.model.outfit.VisibleAvatar.localPlayer();
         if (avatar == null || avatar.luaRuntime == null)
             return;
 
@@ -52,7 +52,7 @@ public class KeyboardHandlerMixin {
 
     @Inject(method = "charTyped", at = @At("HEAD"))
     private void charTyped(long window, int codePoint, int modifiers, CallbackInfo ci) {
-        Avatar avatar = AvatarManager.getAvatarForPlayer(FiguraMod.getLocalPlayerUUID());
+        Avatar avatar = top.aihmc.omnimorph.model.outfit.VisibleAvatar.localPlayer();
         if (avatar != null)
             avatar.charTypedEvent(Character.toString(codePoint), modifiers, codePoint);
     }
