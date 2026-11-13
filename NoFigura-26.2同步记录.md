@@ -37,3 +37,14 @@
 ## 交付检查点
 
 本轮代码、适配及记录在合并提交后推送核对，再从该生产树执行release双包/生产任务图/最终artifact检查，最终值追加本段。剩余串行操作仅：本26.2完成推送交付后核对下一会话cwd，只发1.21.1，再由其完成后发1.20.1；不并行、不跳级、不代改其他目录、不更改模型/思考设置。可靠额度当前剩余70%，未触发Luna交接。
+
+最终交付检查点：完整合并e17d6eaed0e16c65f5d0aac57f199fd04cf77e00已push并ls-remote核对；全部代码/适配确实包含在该提交。提交后release双remapJar12秒成功（20个生产任务up-to-date，生产树一致），生产任务图11秒成功且无测试/JNI/探测；jvm.log确认Gradle Launcher/Daemon JVM25。最终artifacts.log/json通过CRC/嵌套依赖、Alpha.11+26.2版本、新类/设置/中英资源、AVIF及无测试/旧加速/26.3 Renderpearl类检查。最后记录提交不改生产代码，本版无剩余开发或自动检查。
+
+| 平台 | 绝对路径 | 字节 | SHA256 |
+| --- | --- | ---: | --- |
+| Fabric | D:/UserData/Desktop/Project/OMP/OMP_26.2/fabric/build/libs/omni-morph-1.0.0-alpha.11+26.2-fabric-mc.jar | 19107603 | b71a1a6d56b9e595d7d857bdcf485deadc6621e4b7ddbf0c67da3b58b0f80ac1 |
+| NeoForge | D:/UserData/Desktop/Project/OMP/OMP_26.2/neoforge/build/libs/omni-morph-1.0.0-alpha.11+26.2-neoforge-mc.jar | 18718839 | 09aea8fbf9c8be6c2a5a6b95438b8b3f0823dcc15182502b23180325fe1fcca9 |
+
+包采用release元数据1.0.0-alpha.11+26.2，无Git后缀，对应e17d6eae生产树。本版完成并交付后只发已核对cwd的既有1.21.1会话，不提前并发或越级。人工项仍MANUAL/PENDING。
+
+最终检查点可靠额度剩余69%，未触发Luna；没有因人工项等待或标记受阻。

@@ -10,13 +10,22 @@
 
 compile.log22秒生产/测试+双loader编译通过；regression.log22个smoke+双release包2m20s全部通过，覆盖NoFigura五功能、可见草稿/正式身份、YSM姿态域、云协议/权限/缓存/装备及普通feature。原芙宁娜只读样本idle0/swing6024。受控去门控RED命中实际Lua禁用断言，原文件逐字节恢复；GREEN39秒Figura/YSM/预览缓存及双包通过。初始编译适配失败不作为功能RED。详见docs/nofigura-26.2日志。
 
-当前剩余最小操作：检查diff/status并合并提交推送核对，然后从正确代码提交复核release双包、JDK/生产任务图及最终CRC/元数据/新功能/设置/无测试类/无加速类，记录最终路径SHA并提交交付文档。无活动构建；此刻未宣称最终Git检查点完成。
+## 最终交付检查点
+
+完整合并e17d6eaed0e16c65f5d0aac57f199fd04cf77e00已推送并核对origin/26.2一致，双亲4ee8053d和26.3固定8403abfa。全部实现和适配已提交，无剩余开发或自动验收。原.codex/仍未跟踪，无活动构建。
+
+提交后final-packaging.log双release remapJar12秒退出0（生产树未变，20任务up-to-date）；production-tasks.log11秒退出0，无测试/JNI/探测。jvm.log明确Launcher/Daemon JVM25。artifacts.log/json最终版本1.0.0-alpha.11+26.2，无Git后缀；主ZIP及嵌套CRC、依赖/新功能/默认关闭设置与中英资源/AVIF、无测试及旧加速或26.3 Renderpearl类全部通过。
+
+- D:/UserData/Desktop/Project/OMP/OMP_26.2/fabric/build/libs/omni-morph-1.0.0-alpha.11+26.2-fabric-mc.jar，19107603字节，SHA256 b71a1a6d56b9e595d7d857bdcf485deadc6621e4b7ddbf0c67da3b58b0f80ac1。
+- D:/UserData/Desktop/Project/OMP/OMP_26.2/neoforge/build/libs/omni-morph-1.0.0-alpha.11+26.2-neoforge-mc.jar，18718839字节，SHA256 09aea8fbf9c8be6c2a5a6b95438b8b3f0823dcc15182502b23180325fe1fcca9。
+
+最后仅交付记录提交，生产包来源仍e17d6eae；记录提交SHA以本文件所在HEAD为准。该记录推送和本会话交付后仅剩已授权向1.21.1转发，不等待下一版本或人工，不在其他目录代做。
 
 ## 接力与约束
 
 原始人类授权01a1cf9c-289b-7e12-9fa0-de9f1fbee064已read_thread核验：26.1.2→26.3→26.2→1.21.1→1.20.1，停止后重新从26.1.2开始。e9364adf父b01fc818且生产树一致已核对。完成本版推送/交付后，先读下一站actual cwd，仅发local/01a1948c-5226-7b02-a74c-c9e1fe9edffb（OMP_1.21.1），再由其完成后发local/01a1970e-a221-7610-996d-9ef5214db4ce（OMP_1.20.1）。不创建会话、不改模型/思考、不越级并发或让源会话代做。
 
-游戏/GPU/shader/Mixin启动、特殊物品/ItemTask全链、双客户端MANUAL/PENDING；不擅启游戏，不要求用户复现，不作为受阻。KNOWN_BUGS的26.3 SDL条目是来源历史，不据此推断26.2问题。Actions仍仅生产打包，不触发。新PowerShell先usejdk25/java -version，前台Tee build.log并立即检查退出码，不并发Gradle；CodeGraph优先。可靠剩余70%，未触发Luna。下方旧Alpha.10仅为历史，旧包不是本次交付。
+游戏/GPU/shader/Mixin启动、特殊物品/ItemTask全链、双客户端MANUAL/PENDING；不擅启游戏，不要求用户复现，不作为受阻。KNOWN_BUGS的26.3 SDL条目是来源历史，不据此推断26.2问题。Actions仍仅生产打包，不触发。新PowerShell先usejdk25/java -version，前台Tee build.log并立即检查退出码，不并发Gradle；CodeGraph优先。可靠剩余69%，未触发Luna。下方旧Alpha.10仅为历史，旧包不是本次交付。
 
 ---
 # 历史交接（已被当前 Alpha.11 状态取代）

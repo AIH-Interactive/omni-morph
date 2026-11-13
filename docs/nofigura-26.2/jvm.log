@@ -1,0 +1,21 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/eryth/.gradle/wrapper/dists/gradle-9.4.1-bin/arn2x92ynaizyzdaamcbpbhtj/gradle-9.4.1/lib/native-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+
+------------------------------------------------------------
+Gradle 9.4.1
+------------------------------------------------------------
+
+Build time:    2026-03-19 08:46:28 UTC
+Revision:      2d6327017519d23b96af35865dc997fcb544fb40
+
+Kotlin:        2.3.0
+Groovy:        4.0.29
+Ant:           Apache Ant(TM) version 1.10.15 compiled on August 25 2024
+Launcher JVM:  25.0.2 (Oracle Corporation 25.0.2+10-LTS-69)
+Daemon JVM:    D:\Program Files\Java\25 (no Daemon JVM specified, using current Java home)
+OS:            Windows 11 10.0 amd64
+
