@@ -1,28 +1,21 @@
 package top.aihmc.omnimorph.config;
 
 import org.figuramc.figura.config.ConfigType;
+import org.figuramc.figura.config.InputType;
 
-/** Exact persisted integer with a logarithmic settings slider. */
-public final class InstructionCeilingConfig extends ConfigType.PositiveIntConfig {
-    public InstructionCeilingConfig(String name, ConfigType.Category category) {
-        super(name, category, 32768);
+/** Validated integer input for client render instruction limits. */
+public final class InstructionCeilingConfig extends ConfigType.InputConfig<Integer> {
+    public InstructionCeilingConfig(String name, ConfigType.Category category, int defaultValue) {
+        super(name, category, defaultValue, InputType.RENDER_INSTRUCTIONS);
     }
 
     @Override
     public Integer parseValue(String value) {
         int parsed = Integer.parseInt(value);
-        if (parsed < 1) {
-            throw new IllegalArgumentException("Instruction ceiling must be positive");
+        if (parsed < 8192) {
+            throw new IllegalArgumentException("Instruction limit must be between 8192 and 2147483647");
         }
         return parsed;
     }
 
-    public static double sliderPosition(int value) {
-        return Math.log(Math.max(1, value)) / Math.log(2) / 31;
-    }
-
-    public static int sliderValue(double position) {
-        double clamped = Math.clamp(position, 0, 1);
-        return (int) Math.min(Integer.MAX_VALUE, Math.round(Math.pow(2, clamped * 31)));
-    }
 }

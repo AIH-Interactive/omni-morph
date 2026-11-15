@@ -26,6 +26,13 @@ public enum InputType {
             return false;
         }
     }),
+    RENDER_INSTRUCTIONS(s -> {
+        try {
+            return Integer.parseInt(s) >= 8192;
+        } catch (NumberFormatException invalid) {
+            return false;
+        }
+    }, TextField.HintType.POSITIVE_INT),
     FLOAT(s -> {
         try {
             Float f = Float.parseFloat(s);

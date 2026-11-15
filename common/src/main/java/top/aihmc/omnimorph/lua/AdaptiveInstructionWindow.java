@@ -7,11 +7,15 @@ public final class AdaptiveInstructionWindow {
     private int threshold;
 
     public AdaptiveInstructionWindow(int hardLimit) {
-        if (hardLimit < 1) {
-            throw new IllegalArgumentException("Instruction ceiling must be positive");
+        this(INITIAL_LIMIT, hardLimit);
+    }
+
+    public AdaptiveInstructionWindow(int baseLimit, int hardLimit) {
+        if (baseLimit < 1 || hardLimit < 1) {
+            throw new IllegalArgumentException("Instruction limits must be positive");
         }
         this.hardLimit = hardLimit;
-        threshold = Math.min(INITIAL_LIMIT, hardLimit);
+        threshold = Math.min(baseLimit, hardLimit);
     }
 
     public int threshold() {

@@ -466,7 +466,7 @@ public class FiguraLuaRuntime {
         setInstructionLimit(available);
         if (instructions == owner.render && available > 0
                 && Configs.ADAPTIVE_RENDER_BUDGET.value) {
-            adaptiveWindow = new AdaptiveInstructionWindow(available);
+            adaptiveWindow = new AdaptiveInstructionWindow(Configs.RENDER_INSTRUCTION_BASE.value, available);
             setHookFunction.invoke(LuaValue.varargsOf(onReachedLimit, LuaValue.EMPTYSTRING,
                     LuaValue.valueOf(adaptiveWindow.threshold())));
         }

@@ -16,8 +16,15 @@ public final class AdaptiveRenderBudgetSmokeTest {
     public static void verify() throws Exception {
         boolean enabled = Configs.ADAPTIVE_RENDER_BUDGET.value;
         int ceiling = Configs.RENDER_INSTRUCTION_CEILING.value;
+        int base = Configs.RENDER_INSTRUCTION_BASE.value;
         try {
             require(Configs.RENDER_INSTRUCTION_CEILING.defaultValue == 32768, "Default hard ceiling");
+            require(Configs.RENDER_INSTRUCTION_BASE.defaultValue == 8192, "Default base limit");
+            require(Configs.RENDER_INSTRUCTION_BASE.parent == Configs.PERFORMANCE
+                            && Configs.RENDER_INSTRUCTION_CEILING.parent == Configs.PERFORMANCE
+                            && Configs.ADAPTIVE_RENDER_BUDGET.parent == Configs.PERFORMANCE,
+                    "All budget controls belong in Performance settings");
+            Configs.RENDER_INSTRUCTION_BASE.value = 8192;
             Configs.ADAPTIVE_RENDER_BUDGET.value = true;
             Configs.RENDER_INSTRUCTION_CEILING.value = 32768;
             try (var fixture = new Owner()) {
@@ -50,20 +57,38 @@ public final class AdaptiveRenderBudgetSmokeTest {
                 previous = window.threshold();
             }
             require(window.threshold() == Integer.MAX_VALUE, "Largest signed-int ceiling remains exact");
-            require(InstructionCeilingConfig.sliderValue(1) == Integer.MAX_VALUE,
-                    "Slider endpoint reaches 2147483647");
-            for (int value : new int[]{1, 8192, 32768, 65536, Integer.MAX_VALUE}) {
-                require(InstructionCeilingConfig.sliderValue(InstructionCeilingConfig.sliderPosition(value)) == value,
-                        "Slider conversion preserves representative configured ceilings");
+            for (InstructionCeilingConfig input : new InstructionCeilingConfig[]{
+                    Configs.RENDER_INSTRUCTION_BASE, Configs.RENDER_INSTRUCTION_CEILING}) {
+                for (int value : new int[]{8192, 32768, 65536, Integer.MAX_VALUE}) {
+                    require(input.parseValue(Integer.toString(value)) == value,
+                            "Integer input accepts exact configured limits");
+                    require(input.inputType.validator.test(Integer.toString(value)),
+                            "Settings field accepts in-range values");
+                }
+                for (String invalid : new String[]{"8", "8191", "0", "-1", "2147483648", "1.5"}) {
+                    require(!input.inputType.validator.test(invalid),
+                            "Settings field must reject invalid intermediate text before updating config");
+                    try {
+                        input.parseValue(invalid);
+                        throw new AssertionError("Input accepted an out-of-range limit: " + invalid);
+                    } catch (IllegalArgumentException expected) {
+                        // Exact bounds are enforced for UI, file loading and programmatic updates.
+                    }
+                }
             }
+            require(new AdaptiveInstructionWindow(16384, 32768).threshold() == 16384,
+                    "Configured base controls the initial instruction window");
+            require(new AdaptiveInstructionWindow(65536, 32768).threshold() == 32768,
+                    "Hard ceiling takes precedence when the base is larger");
             require(AdaptiveInstructionWindow.ceiling(0, true, 32768) == 0
                             && AdaptiveInstructionWindow.ceiling(4096, true, 32768) == 4096,
                     "Adaptation cannot grant script execution to blocked or low-trust models");
         } finally {
             Configs.ADAPTIVE_RENDER_BUDGET.value = enabled;
             Configs.RENDER_INSTRUCTION_CEILING.value = ceiling;
+            Configs.RENDER_INSTRUCTION_BASE.value = base;
         }
-        System.out.println("OMM_NATIVE_ADAPTIVE_BUDGET_OK default=32768 maximum=2147483647");
+        System.out.println("OMM_NATIVE_ADAPTIVE_BUDGET_OK base=8192 hard=32768 range=8192..2147483647");
     }
 
     private static final class Owner implements AutoCloseable {

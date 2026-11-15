@@ -56,6 +56,7 @@ public class Configs {
             NAMEPLATE = new ConfigType.Category("nameplate"),
             SCRIPT = new ConfigType.Category("script"),
             RENDERING = new ConfigType.Category("rendering"),
+            PERFORMANCE = new ConfigType.Category("performance"),
             ACTION_WHEEL = new ConfigType.Category("action_wheel"),
             UI = new ConfigType.Category("ui"),
             PAPERDOLL = new ConfigType.Category("paperdoll"),
@@ -107,9 +108,10 @@ public class Configs {
 
 
     public static final ConfigType.BoolConfig ADAPTIVE_RENDER_BUDGET =
-            new ConfigType.BoolConfig("adaptive_render_budget", SCRIPT, true);
-    public static final InstructionCeilingConfig RENDER_INSTRUCTION_CEILING =
-            new InstructionCeilingConfig("render_instruction_ceiling", SCRIPT);
+            new ConfigType.BoolConfig("adaptive_render_budget", PERFORMANCE, true);
+    public static final InstructionCeilingConfig
+            RENDER_INSTRUCTION_BASE = new InstructionCeilingConfig("render_instruction_base", PERFORMANCE, 8192),
+            RENDER_INSTRUCTION_CEILING = new InstructionCeilingConfig("render_instruction_ceiling", PERFORMANCE, 32768);
 
     // -- script -- // 
 
