@@ -26,10 +26,13 @@ public final class CustomParticlePipelines {
     }
 
     private static final int HARD_MAX_LAYERS = 8;
+    private static final int MAX_CUTOFF_VARIANTS = 4096;
+    private static int cutoffVariants;
+    static final float DEFAULT_ALPHA_CUTOFF = 0.1f;
     private static final Map<RenderPipeline, Integer> ORDER = new IdentityHashMap<>();
     private static final Map<Variant, RenderPipeline> VARIANTS = new java.util.LinkedHashMap<>();
 
-    private record Variant(int layer, Blend blend, int order, boolean depthTest) {}
+    private record Variant(int layer, Blend blend, int order, boolean depthTest, boolean cull, float alphaCutoff) {}
 
     private CustomParticlePipelines() {
     }
@@ -42,19 +45,37 @@ public final class CustomParticlePipelines {
     }
 
     public static RenderPipeline pipeline(int layer, Blend blend, int order, boolean depthTest) {
-        if (layer < 0 || layer >= HARD_MAX_LAYERS || order < -128 || order > 127) {
-            throw new IllegalArgumentException("CUSTOM_PARTICLE_ORDER_LIMIT");
+        return pipeline(layer, blend, order, depthTest,
+                SingleQuadParticle.Layer.TRANSLUCENT.pipeline().isCull(), DEFAULT_ALPHA_CUTOFF);
+    }
+
+    public static RenderPipeline pipeline(int layer, Blend blend, int order, boolean depthTest,
+                                           boolean cull, float alphaCutoff) {
+        if (layer < 0 || layer >= HARD_MAX_LAYERS || order < -128 || order > 127
+                || !Float.isFinite(alphaCutoff) || alphaCutoff < 0 || alphaCutoff > 1) {
+            throw new IllegalArgumentException("CUSTOM_PARTICLE_STATE_LIMIT");
         }
-        if (order == 0 && depthTest) {
+        if (order == 0 && depthTest && cull == SingleQuadParticle.Layer.TRANSLUCENT.pipeline().isCull()
+                && alphaCutoff == DEFAULT_ALPHA_CUTOFF) {
             return pipeline(layer, blend);
         }
-        return VARIANTS.computeIfAbsent(new Variant(layer, blend, order, depthTest), variant -> {
-            var pipeline = createPipeline(variant.layer(), variant.blend(), variant.order(), variant.depthTest());
-            if (org.figuramc.figura.utils.PlatformUtils.isModLoaded("iris")) {
-                top.aihmc.omnimorph.compat.IrisCompat.assignParticlePipeline(pipeline, variant.blend());
-            }
-            return pipeline;
-        });
+        var key = new Variant(layer, blend, order, depthTest, cull, alphaCutoff);
+        var existing = VARIANTS.get(key);
+        if (existing != null) {
+            return existing;
+        }
+        if (alphaCutoff != DEFAULT_ALPHA_CUTOFF && cutoffVariants >= MAX_CUTOFF_VARIANTS) {
+            throw new IllegalArgumentException("CUSTOM_PARTICLE_PIPELINE_VARIANT_LIMIT");
+        }
+        var pipeline = createPipeline(layer, blend, order, depthTest, cull, alphaCutoff);
+        if (org.figuramc.figura.utils.PlatformUtils.isModLoaded("iris")) {
+            top.aihmc.omnimorph.compat.IrisCompat.assignParticlePipeline(pipeline, blend);
+        }
+        VARIANTS.put(key, pipeline);
+        if (alphaCutoff != DEFAULT_ALPHA_CUTOFF) {
+            cutoffVariants++;
+        }
+        return pipeline;
     }
 
     public static int sortOrder(RenderPipeline pipeline) {
@@ -97,7 +118,8 @@ public final class CustomParticlePipelines {
         return result;
     }
 
-    private static RenderPipeline createPipeline(int layer, Blend blend, int order, boolean depthTest) {
+    private static RenderPipeline createPipeline(int layer, Blend blend, int order, boolean depthTest,
+                                                   boolean cull, float alphaCutoff) {
         RenderPipeline base = SingleQuadParticle.Layer.TRANSLUCENT.pipeline();
         var snippet = new RenderPipeline.Snippet(Optional.of(base.getVertexShader()),
                 Optional.of(base.getFragmentShader()), Optional.of(base.getShaderDefines()),
@@ -116,13 +138,21 @@ public final class CustomParticlePipelines {
         if (order != 0 || !depthTest) {
             location += "/order_" + order + "/depth_" + (depthTest ? "on" : "off");
         }
+        if (cull != base.isCull() || alphaCutoff != DEFAULT_ALPHA_CUTOFF) {
+            location += "/cull_" + cull + "/alpha_" + Integer.toHexString(Float.floatToIntBits(alphaCutoff));
+        }
         // Custom layers share the translucent pass and never write depth, preserving their order.
-        RenderPipeline pipeline = RenderPipelines.register(RenderPipeline.builder(snippet)
+        var builder = RenderPipeline.builder(snippet)
                 .withLocation(new FiguraIdentifier(location))
                 .withColorTargetState(color)
+                .withCull(cull)
                 .withDepthStencilState(new DepthStencilState(depthTest
-                        ? base.getDepthStencilState().depthTest() : CompareOp.ALWAYS_PASS, false))
-                .build());
+                        ? base.getDepthStencilState().depthTest() : CompareOp.ALWAYS_PASS, false));
+        if (alphaCutoff != DEFAULT_ALPHA_CUTOFF) {
+            builder.withFragmentShader(new FiguraIdentifier("core/custom_particle"))
+                    .withShaderDefine("ALPHA_CUTOFF", alphaCutoff);
+        }
+        RenderPipeline pipeline = RenderPipelines.register(builder.build());
         ORDER.put(pipeline, order * HARD_MAX_LAYERS + layer);
         return pipeline;
     }
@@ -134,7 +164,8 @@ public final class CustomParticlePipelines {
             var pipelines = new RenderPipeline[HARD_MAX_LAYERS][Blend.values().length];
             for (int layer = 0; layer < HARD_MAX_LAYERS; layer++) {
                 for (Blend blend : Blend.values()) {
-                    pipelines[layer][blend.ordinal()] = createPipeline(layer, blend, 0, true);
+                    pipelines[layer][blend.ordinal()] = createPipeline(layer, blend, 0, true,
+                            SingleQuadParticle.Layer.TRANSLUCENT.pipeline().isCull(), DEFAULT_ALPHA_CUTOFF);
                 }
             }
             return pipelines;
