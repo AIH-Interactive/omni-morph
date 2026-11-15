@@ -1195,5 +1195,9 @@
   "omni-morph.gui.wardrobe.local_preview_missing": "该资源尚未缓存，请先在形象集中获取，再进行本地配装。",
   "omni-morph.gui.wardrobe.instance_unmount": "取消挂载",
   "omni-morph.gui.library.tab_avatar": "形象",
-  "omni-morph.gui.library.tab_accessory": "装饰"
+  "omni-morph.gui.library.tab_accessory": "装饰",
+  "omni-morph.config.adaptive_render_budget": "自适应渲染预算",
+  "omni-morph.config.adaptive_render_budget.tooltip": "在硬上限内按需增加渲染指令预算，适用于所有 Lua 模型。禁用及低信任权限仍保留限制。",
+  "omni-morph.config.render_instruction_ceiling": "渲染指令硬上限",
+  "omni-morph.config.render_instruction_ceiling.tooltip": "每渲染帧的指令硬上限，服装组合共用。默认 32768，最大 2147483647。拖动对数滑块调整。"
 }

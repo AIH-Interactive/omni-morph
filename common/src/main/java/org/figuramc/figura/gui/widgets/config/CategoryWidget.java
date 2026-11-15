@@ -5,6 +5,8 @@ import net.minecraft.network.chat.Component;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.config.ConfigType;
 import org.figuramc.figura.config.Configs;
+import top.aihmc.omnimorph.config.InstructionCeilingConfig;
+import top.aihmc.omnimorph.gui.widgets.InstructionCeilingElement;
 import org.figuramc.figura.gui.screens.ConfigScreen;
 import org.figuramc.figura.gui.widgets.AbstractContainerElement;
 import org.figuramc.figura.gui.widgets.ContainerButton;
@@ -69,6 +71,8 @@ public class CategoryWidget extends AbstractContainerElement {
             element = new BooleanElement(width, boolConfig, parent, this);
         } else if (config instanceof ConfigType.EnumConfig enumConfig) {
             element = new EnumElement(width, enumConfig, parent, this);
+        } else if (config instanceof InstructionCeilingConfig ceiling) {
+            element = new InstructionCeilingElement(width, ceiling, parent, this);
         } else if (config instanceof ConfigType.InputConfig<?> inputConfig) {
             element = new InputElement(width, inputConfig, parent, this);
         } else if (config instanceof ConfigType.KeybindConfig keybindConfig) {

@@ -2,6 +2,7 @@ package top.aihmc.omnimorph.model.outfit;
 
 import org.luaj.vm2.LuaError;
 import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.lua.FiguraLuaRuntime;
 import org.figuramc.figura.lua.api.TextureAPI;
 import top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock;
 import org.figuramc.figura.permissions.Permissions;
@@ -174,10 +175,10 @@ public final class OutfitInstructionBudget {
     public int allowance(Avatar avatar, Avatar.Instructions instructions) {
         Permissions permission = channel(avatar, instructions);
         Avatar baseAvatar = base.get();
-        int maximum = avatar.permissions.get(permission);
+        int maximum = FiguraLuaRuntime.instructionCeiling(avatar, permission);
         Usage value = usage(permission);
         if (baseAvatar != null) {
-            maximum = Math.min(maximum, baseAvatar.permissions.get(permission));
+            maximum = Math.min(maximum, FiguraLuaRuntime.instructionCeiling(baseAvatar, permission));
             var baseInstructions = instructions(baseAvatar, permission);
             long baseUsed = Math.max(0L, (long) baseInstructions.max - baseInstructions.remaining);
             // Import work performed before this scope; counter resets never refund shared work.
