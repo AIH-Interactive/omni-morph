@@ -95,6 +95,13 @@ public class LuaParticle {
     }
 
     @LuaWhitelist
+    @LuaMethodDoc("particle.set_quads")
+    public LuaParticle setQuads(LuaTable vertices) {
+        custom().setQuads(vertices);
+        return this;
+    }
+
+    @LuaWhitelist
     @LuaMethodDoc("particle.get_quad")
     public FiguraMat4 getQuad() {
         return custom().getQuad();

@@ -43,6 +43,7 @@ public final class CustomParticle extends SingleQuadParticle {
     private RenderMode mode = RenderMode.BILLBOARD;
     private boolean anchorTrail;
     private FiguraMat4 quadTransform;
+    private ParticleQuads authoredQuads;
     private CustomParticlePipelines.Blend blend = CustomParticlePipelines.Blend.ALPHA;
     private ParticleSpriteSheet sheet;
     private ParticleSpriteSheet.Uv uv = new ParticleSpriteSheet.Uv(0, 1, 0, 1);
@@ -216,6 +217,7 @@ public final class CustomParticle extends SingleQuadParticle {
     public void setQuad(FiguraMat4 transform) {
         if (transform == null) {
             quadTransform = null;
+            authoredQuads = null;
             return;
         }
         var matrix = transform.toMatrix4f();
@@ -228,6 +230,18 @@ public final class CustomParticle extends SingleQuadParticle {
             throw new LuaError("Particle quad requires an affine matrix");
         }
         quadTransform = transform.copy();
+        authoredQuads = null;
+    }
+
+    public void setQuads(LuaTable vertices) {
+        if (vertices == null) {
+            authoredQuads = null;
+            quadTransform = null;
+            return;
+        }
+        var replacement = ParticleQuads.read(vertices, limits().maxRibbonVertices() / layerCount());
+        authoredQuads = replacement;
+        quadTransform = null;
     }
 
     public FiguraMat4 getQuad() {
@@ -235,11 +249,12 @@ public final class CustomParticle extends SingleQuadParticle {
     }
 
     boolean usesGeometry() {
-        return ribbon() || quadTransform != null;
+        return ribbon() || quadTransform != null || authoredQuads != null;
     }
 
     int availableGeometryVertices() {
-        return ribbon() ? CustomParticleRuntime.availableRibbonVertices(this) : layerCount() * 4;
+        return ribbon() || authoredQuads != null
+                ? CustomParticleRuntime.availableRibbonVertices(this) : layerCount() * 4;
     }
 
     boolean ribbon() {
@@ -651,6 +666,9 @@ public final class CustomParticle extends SingleQuadParticle {
             if (!Float.isFinite(partialTick)) {
                 throw new IllegalArgumentException("INVALID_RIBBON_TIME");
             }
+            if (!ribbon() && authoredQuads != null) {
+                return extractAuthoredQuads(camera, frustum, partialTick, availableVertices);
+            }
             if (!ribbon()) {
                 return extractQuad(camera, frustum, partialTick, availableVertices);
             }
@@ -723,8 +741,8 @@ public final class CustomParticle extends SingleQuadParticle {
         }
         var state = new RibbonRenderState(mesh, materials, camera.position());
         // Fixed quads have four vertices per charged face, like Billboard particles.
-        // Variable ribbon geometry also reserves the shared trail vertex allowance.
-        if (ribbon()) {
+        // Variable author geometry shares the same bounded vertex allowance as ribbons.
+        if (ribbon() || authoredQuads != null) {
             CustomParticleRuntime.chargeRibbonVertices(this, mesh.submittedVertices());
         }
         budget.charge(owner, owner.complexity, mesh.submittedFaces());
@@ -734,6 +752,27 @@ public final class CustomParticle extends SingleQuadParticle {
             CustomParticleRuntime.retainFrame(layer.texture(), textureLeases.get(layer.texture()));
         }
         return state;
+    }
+
+    private RibbonRenderState extractAuthoredQuads(Camera camera, Frustum frustum, float partialTick,
+                                                  int availableVertices) {
+        int vertices = authoredQuads.vertexCount();
+        if (vertices == 0) {
+            return null;
+        }
+        int faces = vertices / 4 * layerCount();
+        if ((long) vertices * layerCount() > availableVertices) {
+            throw new IllegalArgumentException("RIBBON_VERTEX_LIMIT");
+        }
+        owner.prepareComplexityFrame();
+        if (OutfitInstructionBudget.currentFaces(owner).allowance(owner, owner.complexity) < faces) {
+            throw new IllegalArgumentException("RIBBON_FACE_LIMIT");
+        }
+        var center = lightPosition(partialTick);
+        if (frustum != null && !frustum.isVisible(authoredQuads.bounds(center))) {
+            return null;
+        }
+        return submitGeometry(authoredQuads.at(center, layerCount()), camera, partialTick);
     }
 
     private RibbonRenderState extractQuad(Camera camera, Frustum frustum, float partialTick,
@@ -777,6 +816,7 @@ public final class CustomParticle extends SingleQuadParticle {
         callbacks.close();
         motion = null;
         quadTransform = null;
+        authoredQuads = null;
         if (ribbonTrail != null) {
             ribbonTrail.clear();
             ribbonTrail = null;
