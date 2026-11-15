@@ -4,6 +4,7 @@ import com.mojang.blaze3d.pipeline.BlendFunction;
 import com.mojang.blaze3d.pipeline.ColorTargetState;
 import com.mojang.blaze3d.pipeline.DepthStencilState;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.platform.CompareOp;
 import com.mojang.blaze3d.platform.DestFactor;
 import com.mojang.blaze3d.platform.SourceFactor;
 import com.mojang.blaze3d.shaders.ShaderType;
@@ -69,6 +70,8 @@ public final class AvatarMaterial {
                     DestFactor.ONE, SourceFactor.ONE, DestFactor.ONE_MINUS_SRC_ALPHA));
             default -> throw new LuaError("Unknown shader blend: " + blend);
         };
+        CompareOp depthTest = definition.get("depth_test").optboolean(true)
+                ? DepthStencilState.DEFAULT.depthTest() : CompareOp.ALWAYS_PASS;
         String key = digest(vertexSource + "\n" + fragmentSource);
         var builder = RenderPipeline.builder(RenderPipelines.MATRICES_FOG_SNIPPET,
                         RenderPipelines.GLOBALS_SNIPPET)
@@ -78,7 +81,7 @@ public final class AvatarMaterial {
                 .withVertexFormat(MaterialVertexFormat.FORMAT, VertexFormat.Mode.QUADS)
                 .withCull(definition.get("cull").optboolean(false))
                 .withColorTargetState(color)
-                .withDepthStencilState(new DepthStencilState(DepthStencilState.DEFAULT.depthTest(),
+                .withDepthStencilState(new DepthStencilState(depthTest,
                         definition.get("depth_write").optboolean(!blend.equals("ALPHA"))));
         textures.keySet().forEach(builder::withSampler);
         if (definition.get("lightmap").optboolean(false)) {
@@ -90,7 +93,7 @@ public final class AvatarMaterial {
         fadedPipeline = blend.equals("OPAQUE")
                 ? builder.withLocation(new FiguraIdentifier("avatar_material/" + key + "/fade"))
                         .withColorTargetState(new ColorTargetState(BlendFunction.TRANSLUCENT))
-                        .withDepthStencilState(new DepthStencilState(DepthStencilState.DEFAULT.depthTest(), false))
+                        .withDepthStencilState(new DepthStencilState(depthTest, false))
                         .build()
                 : pipeline;
         fadedRenderType = fadedPipeline == pipeline ? renderType : renderType(fadedPipeline, lightmap, true);
