@@ -950,6 +950,7 @@
     "omni-morph.docs.animation.restart": "Restarts the animation\nPlays the animation if it was stopped\nThis behavior can also be reproduced by stopping then playing the animation",
     "omni-morph.docs.animation.set_playing": "A function that merges \"play\" and \"stop\" together\nTakes a boolean parameter, where if true, the animation will play, and when false, the animation will stop",
     "omni-morph.docs.animation.get_time": "Get the animation's playback current time",
+    "omni-morph.docs.animation.set_keyframe_boundary": "Selects PRE (default Figura semantics) or POST (use the new keyframe post value at its exact timestamp) for discontinuous keys.",
     "omni-morph.docs.animation.set_time": "Sets the animation's playback current time",
     "omni-morph.docs.animation.get_play_state": "Get the animation's playback state",
     "omni-morph.docs.animation.new_code": "Adds a string to run in a determinant time\nIf there's already code to run at that time, it is overwritten",
@@ -1437,6 +1438,7 @@
     "omni-morph.docs.model_part.get_position_matrix_raw": "Returns the position matrix for this model part\nThe Raw version of the function is different in that it doesn't recalculate the matrix before getting it",
     "omni-morph.docs.model_part.get_normal_matrix": "Recalculates the normal matrix for this model part, based on its current position, rotation, scale, and pivot, then returns this matrix",
     "omni-morph.docs.model_part.get_normal_matrix_raw": "Returns the normal matrix for this model part\nThe Raw version of the function is different in that it doesn't recalculate the matrix before returning it",
+    "omni-morph.docs.model_part.set_inverse_bind_matrix": "Sets an explicit affine inverse bind matrix for one bone of a skinned mesh. The matrix is copied; the ordinary skinning renderer consumes it. Unknown or unresolved bones fail with a Lua error.",
     "omni-morph.docs.model_part.set_matrix": "Sets the given matrix as the position matrix for this model part\nThe normal matrix is automatically calculated as the inverse transpose of this matrix\nCalling this DOES NOT CHANGE the values of position, rot, or scale in the model part\nIf you call setPos() or a similar function, the effects of setMatrix() will be overwritten",
     "omni-morph.docs.model_part.get_visible": "Gets whether or not this model part is visible\nWorks recursivly. If a parent of this part is invisible, this part will also return false",
     "omni-morph.docs.model_part.set_visible": "Sets this part to be visible or invisible\nChildren of invisible parts are also not visible and will not be processed",
@@ -2426,5 +2428,11 @@
   "omni-morph.gui.wardrobe.local_preview_missing": "This resource is not cached. Acquire it in your collection before editing locally.",
   "omni-morph.gui.wardrobe.instance_unmount": "Unmount accessory",
     "omni-morph.gui.library.tab_avatar": "Avatar",
-    "omni-morph.gui.library.tab_accessory": "Parts"
+    "omni-morph.gui.library.tab_accessory": "Parts",
+  "figura.docs.model_part.set_shader_material": "Sets an avatar-owned native shader material, or nil to clear it. Textures must belong to this avatar. Uses native complexity and resource lifetimes.",
+  "figura.docs.model_part.set_material_time": "Sets shader animation time in seconds. Requires a shader material and a finite number.",
+  "figura.docs.matrices.compose4": "Composes translation, normalized quaternion (x,y,z,w), and scale into a new matrix. Requires finite vectors and a nonzero quaternion.",
+  "figura.docs.matrices.sample4": "Samples sorted TRS keyframes into a matrix. Rest uses position/quaternion/scale arrays; frames use time and the same optional channels. Channel bits: position=1, quaternion=2, scale=4. Translation/scale interpolate linearly; quaternion uses normalized shortest-path slerp. Nil/empty frames retain rest. Time clamps at endpoints; looping is caller-controlled.",
+  "figura.docs.particle.set_quad": "Copies an affine matrix mapping a unit quad centered at the particle position into world-unit offsets. Supports independent width/height, rotation, shear and local translation. The explicit transform replaces Billboard size/roll; native particle position and motion still apply. Nil restores ordinary Billboard geometry. Ribbon mode uses its own geometry. Texture layers, sprite playback, permissions, complexity and cleanup remain unchanged.",
+  "figura.docs.particle.get_quad": "Returns a copy of the particle quad transform, or nil for ordinary Billboard geometry."
 }

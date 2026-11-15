@@ -5,6 +5,7 @@ import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.SingleQuadParticle;
 import net.minecraft.client.particle.WakeParticle;
 import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.math.matrix.FiguraMat4;
 import org.figuramc.figura.ducks.SingleQuadParticleAccessor;
 import org.figuramc.figura.lua.LuaWhitelist;
 import org.figuramc.figura.lua.docs.LuaMethodDoc;
@@ -84,6 +85,19 @@ public class LuaParticle {
             return custom;
         }
         throw new LuaError("This setting requires a custom particle");
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("particle.set_quad")
+    public LuaParticle setQuad(FiguraMat4 transform) {
+        custom().setQuad(transform);
+        return this;
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("particle.get_quad")
+    public FiguraMat4 getQuad() {
+        return custom().getQuad();
     }
 
     @LuaWhitelist

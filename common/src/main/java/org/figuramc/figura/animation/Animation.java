@@ -30,6 +30,8 @@ public class Animation {
     @LuaFieldDoc("animation.name")
     public final String name;
 
+    public boolean postKeyframeBoundary;
+
     // -- keyframes -- // 
 
     protected final List<Map.Entry<FiguraModelPart, List<Animation.AnimationChannel>>> animationParts = new ArrayList<>();
@@ -75,6 +77,25 @@ public class Animation {
     /** Cached Molang evaluator for this animation's context */
     private ExpressionEvaluator<?> molangEvaluator;
 
+    @LuaWhitelist
+    @LuaMethodDoc(
+            overloads = @LuaMethodOverload(
+                    argumentTypes = String.class,
+                    argumentNames = "boundary"
+            ),
+            value = "animation.set_keyframe_boundary"
+    )
+    public Animation setKeyframeBoundary(@LuaNotNil String boundary) {
+        if ("POST".equalsIgnoreCase(boundary)) {
+            postKeyframeBoundary = true;
+        } else if ("PRE".equalsIgnoreCase(boundary)) {
+            postKeyframeBoundary = false;
+        } else {
+            throw new LuaError("Keyframe boundary must be PRE or POST");
+        }
+        return this;
+    }
+
     // -- java methods -- // 
 
     public Animation(Avatar owner, String modelName, String name, LoopMode loop, boolean override, float length, float offset, float blend, float startDelay, float loopDelay) {
@@ -119,7 +140,7 @@ public class Animation {
      */
     public ExpressionEvaluator<?> getMolangEvaluator() {
         if (molangEvaluator == null && owner != null) {
-            molangEvaluator = ExpressionEvaluator.evaluator(owner);
+            molangEvaluator = ExpressionEvaluator.evaluator(owner.getMolangContext());
         }
         return molangEvaluator;
     }

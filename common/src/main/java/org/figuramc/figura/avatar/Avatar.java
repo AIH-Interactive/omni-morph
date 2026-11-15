@@ -1897,6 +1897,7 @@ public class Avatar {
      * also closes and stops this avatar sounds
      */
     public void clean() {
+        top.aihmc.omnimorph.model.rendering.material.AvatarMaterial.release(this);
         outfitSource = null;
         outfitSourceNbt = null;
         if (cosmeticAnimations != null) {
