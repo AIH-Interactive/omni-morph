@@ -1,51 +1,66 @@
 # HTTP 性能快照采集与 CSV 记录
 
-工具：`tools/performance_capture.py`，仅使用 Python 标准库。OMM `dev` 中维护同路径脚本及对应测试。
+工具：`tools/performance_capture.py`，仅使用 Python 标准库。所有运行参数集中在 `tools/performance_capture.json`，也可用 `--config` 指定另一份配置。
 
-P4.5 内置 HTTP 服务尚未实现。该工具先按计划中的 JSON 快照结构提供客户端；URL 必须使用服务最终显示的实际完整地址。当前验证使用真实本机 HTTP 测试夹具，不代表已经从游戏采集到数据。
+P4.5 内置 HTTP 服务尚未实现。工具先按计划的 JSON 快照契约提供客户端；示例 URL 必须在服务实现后改成实际地址。本轮用真实本机 HTTP 夹具验证请求和 CSV，不代表已采集游戏数据。
+
+## 配置文件
+
+```json
+{
+  "url": "http://127.0.0.1:18081/debug/performance",
+  "csv_path": "../performance-captures/{model_name}-{model_type}-{timestamp}.csv",
+  "interval_ms": 500,
+  "timeout_ms": 5000,
+  "request_count": 30
+}
+```
+
+| 配置项 | 含义 |
+| --- | --- |
+| `url` | 实际 HTTP JSON 快照地址；示例端口与路径不表示服务已实现 |
+| `csv_path` | 完整 CSV 路径模板，包含模型名、类型、时间戳三个占位符；相对路径以配置文件所在目录为基准 |
+| `interval_ms` | 每次记录完成后，到下次请求前等待的**毫秒数**；500 表示0.5秒 |
+| `timeout_ms` | 单次请求超时，单位同样是毫秒 |
+| `request_count` | 计划请求次数，正整数；设为1时只采集一条 |
 
 ## 调用
 
-将 `$snapshotUrl` 设置为实际快照 URL，再运行：
+修改配置中的地址和输出位置后运行：
 
 ```powershell
-& python tools/performance_capture.py --url $snapshotUrl `
-    --output-dir reports/performance --count 30 --interval 0.5 `
+& python tools/performance_capture.py --config tools/performance_capture.json `
     2>&1 | Tee-Object -FilePath capture.log
 $captureExitCode = $LASTEXITCODE
 if ($captureExitCode -ne 0) { exit $captureExitCode }
 ```
 
-省略 `--count` 时只请求一次；`--interval` 是上次响应结束到下次请求之间的等待秒数，默认 1 秒；`--timeout` 默认 5 秒。请求始终顺序执行，无并发采集、主动重试或后台循环。
+脚本始终顺序请求；每次成功取得一份 JSON 后，**只追加一行 CSV**。没有并发采集、自动重试或隐藏的额外取样。
 
 ## 自动分文件
 
-文件名固定为：
+默认文件名为：
 
 ```text
 模型名-类型-时间戳.csv
 青鸾-figura-20261115T120000.123456Z.csv
 ```
 
-模型名优先使用 `currentSelection.name`，其次是 `activeModel.name`；名称缺失时使用对应 `modelId`。类型优先使用选中模型的 `type`，其次 `format`，再读取生效模型对应字段。都没有时记为 `unknown`，不猜测类型。时间戳来自采集端 UTC，精确到微秒。仅替换 Windows 文件名禁止的字符。
+模型名优先取 `currentSelection.name`，其次 `activeModel.name`，缺失时使用对应 `modelId`。类型依次取选中模型的 `type` / `format` 和生效模型对应字段；仍没有时为 `unknown`。时间戳为采集端 UTC，精确到微秒。仅替换 Windows 文件名禁止的字符。
 
-每次响应比较 `(选中模型 ID, 实际生效模型 ID, 加载代次)`。任一变化就关闭当前 CSV 并创建新文件；切回之前的模型也另起新文件。无模型阶段单独记录。旧文件使用独占创建方式保护，不覆盖，也不追加不同模型的数据。
+每份响应比较 `(选中模型 ID, 实际生效模型 ID, 加载代次)`。任一变化即关闭当前 CSV，新建文件；切回旧模型也重新建文件，不追加旧记录。无模型阶段单独记录。文件使用独占创建，旧文件不会被覆盖。
 
 ## CSV 内容
 
-采用长表：每个指标一行，同一次请求先写一行 `kind=snapshot`，随后是 `metric` 和 `reference` 行。可按 `request_index` 合并同一快照，按模型/代次区分不同记录。
+CSV 是宽表，**一次成功请求对应一行**，包含请求/接收/采集时间、快照帧号、模型 ID、加载代次，以及展开后的指标列。
 
-| 字段组 | 内容 |
-| --- | --- |
-| 请求与时间 | 请求序号、请求/接收时间、服务端请求 ID、采集时间 |
-| 新鲜度 | 快照帧号、指标自身帧号，保留两者差异 |
-| 观察对象 | 选中模型 ID、实际生效模型 ID、加载代次、装饰实例 ID |
-| 指标 | 类型、作用域、名称、数值、值类型、单位、可用状态 |
-| 参考 | `references` 中的预算等参考数据，按字段路径展开 |
+- `metric.lua.render.instructions.value` 等列保存数值，相邻 `.unit` / `.status` / `.frame` / `.scope` 列保留口径。
+- `instance.<实例ID>.<指标名>.value` 保存各实例数据；`reference.<路径>` 保存预算等参考数据。
+- `snapshot_json` 保留该次完整 JSON，便于核对未展开字段。
 
-`null` 保存为空单元格，并保留 `value_type=null` 与 `unsupported` / `not_collected` 等状态；不转成 0。数组/对象值以 JSON 文本保存在单元格中。CSV 使用 UTF-8 BOM 和标准 CSV 转义，适合 Windows Excel 与 Python 读取。
+缺失值为空单元格，保留 `unsupported` / `not_collected` 等状态，不转成0。后续请求新增指标时，安全扩展表头、保留已有行，新列在旧行留空；不会为新增指标多写一条采集记录。CSV 使用 UTF-8 BOM 和标准 CSV 转义。
 
-每份快照写完即刷新文件。HTTP/JSON/文件错误时停止，返回非零退出码并保留已写记录；Ctrl+C 返回 130 并关闭文件。平均值、P95/P99、趋势与 GC 差分由调用方根据 CSV 计算，脚本不触发模型执行或额外取样。
+每行完成即刷新。HTTP/JSON/文件错误时停止并返回非零退出码，已写记录保留；Ctrl+C 返回130。均值、P95/P99、趋势和 GC 差分由调用方根据 CSV 计算。
 
 ## 验证
 
@@ -56,4 +71,4 @@ $buildExitCode = $LASTEXITCODE
 if ($buildExitCode -ne 0) { Get-Content build.log -Tail 25; exit $buildExitCode }
 ```
 
-测试使用本机临时 HTTP 端口，覆盖逐次请求、切换/切回/重载/预览选择分文件、中文命名、CSV 编码、缺失值/单位/帧号、实例指标、参考数据以及错误后保留记录。需要允许测试进程访问本机回环端口。
+测试使用本机临时 HTTP 端口，覆盖一请求一行、毫秒换算、相对配置路径、切换/切回/重载/预览选择分文件、中文文件名、缺失数据、动态列扩展及错误保留。需要允许测试进程访问本机回环端口。

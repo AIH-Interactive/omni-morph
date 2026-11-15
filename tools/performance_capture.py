@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Record sequential OMM JSON snapshots, starting a CSV for each model segment."""
+"""Record one CSV row per OMM JSON request, with a new file per model segment."""
 
 import argparse
 import csv
@@ -8,32 +8,12 @@ import json
 import math
 from pathlib import Path
 import re
+import string
 import sys
+import tempfile
 import time
-from urllib.error import URLError
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
-
-FIELDS = (
-    "request_index",
-    "requested_at",
-    "received_at",
-    "request_id",
-    "captured_at",
-    "captured_frame",
-    "metric_frame",
-    "selected_model_id",
-    "active_model_id",
-    "generation",
-    "instance_id",
-    "kind",
-    "scope",
-    "metric",
-    "value",
-    "value_type",
-    "unit",
-    "status",
-)
 
 
 def utc_now():
@@ -54,7 +34,7 @@ def filename_component(value):
     return re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", str(value)).strip(" .") or "unknown"
 
 
-def filename(snapshot):
+def output_path(template, snapshot):
     selected = mapping(snapshot.get("currentSelection"))
     active = mapping(snapshot.get("activeModel"))
     name = (
@@ -72,7 +52,13 @@ def filename(snapshot):
         or "unknown"
     )
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
-    return f"{filename_component(name)}-{filename_component(kind)}-{stamp}.csv"
+    return Path(
+        template.format(
+            model_name=filename_component(name),
+            model_type=filename_component(kind),
+            timestamp=stamp,
+        )
+    )
 
 
 def flattened(values, prefix=""):
@@ -88,19 +74,15 @@ def flattened(values, prefix=""):
 
 def cell(value):
     if value is None:
-        return "", "null"
-    if isinstance(value, bool):
-        return str(value).lower(), "boolean"
-    if isinstance(value, (int, float)):
-        return value, "number"
-    if isinstance(value, str):
-        return value, "string"
-    return json.dumps(value, ensure_ascii=False, separators=(",", ":")), "json"
+        return ""
+    if isinstance(value, (dict, list, bool)):
+        return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+    return value
 
 
-def snapshot_rows(snapshot, request_index, requested_at, received_at):
+def snapshot_row(snapshot, request_index, requested_at, received_at):
     selected, active, generation = identity(snapshot)
-    common = {
+    row = {
         "request_index": request_index,
         "requested_at": requested_at,
         "received_at": received_at,
@@ -111,37 +93,81 @@ def snapshot_rows(snapshot, request_index, requested_at, received_at):
         "active_model_id": active,
         "generation": generation,
     }
-    yield {**common, "kind": "snapshot", "status": "ok"}
-    groups = [("metric", "activeModel", "", mapping(snapshot.get("metrics")))]
+    groups = [("metric", mapping(snapshot.get("metrics")))]
     for instance in snapshot.get("instances", []):
         if isinstance(instance, dict):
             groups.append(
                 (
-                    "metric",
-                    "instance",
-                    instance.get("instanceId", ""),
+                    f"instance.{instance.get('instanceId', '')}",
                     mapping(instance.get("metrics")),
                 )
             )
-    groups.append(("reference", "reference", "", mapping(snapshot.get("references"))))
-    for kind, scope, instance_id, values in groups:
+    for prefix, values in groups:
         for name, raw in flattened(values):
             sample = raw if isinstance(raw, dict) else {"value": raw}
-            value, value_type = cell(sample.get("value"))
-            yield {
-                **common,
-                "kind": kind,
-                "scope": sample.get("scope", scope),
-                "instance_id": instance_id,
-                "metric": name,
-                "value": value,
-                "value_type": value_type,
-                "unit": sample.get("unit", ""),
-                "status": sample.get(
-                    "status", "not_collected" if value_type == "null" else "ok"
-                ),
-                "metric_frame": sample.get("frame"),
-            }
+            value = sample.get("value")
+            base = f"{prefix}.{name}"
+            row[base + ".value"] = cell(value)
+            row[base + ".unit"] = sample.get("unit", "")
+            row[base + ".status"] = sample.get(
+                "status", "not_collected" if value is None else "ok"
+            )
+            row[base + ".frame"] = sample.get("frame")
+            row[base + ".scope"] = sample.get("scope", "")
+    for name, value in flattened(mapping(snapshot.get("references"))):
+        row["reference." + name] = cell(value)
+    row["snapshot_json"] = json.dumps(
+        snapshot, ensure_ascii=False, separators=(",", ":")
+    )
+    return row
+
+
+class CsvSegment:
+    """Stream rows; extend the header atomically if a later snapshot adds metrics."""
+
+    def __init__(self, path):
+        self.path = path
+        self.fields = []
+        path.parent.mkdir(parents=True, exist_ok=True)
+        self.stream = path.open("x", encoding="utf-8-sig", newline="")
+        self.writer = None
+
+    def append(self, row):
+        additions = [name for name in row if name not in self.fields]
+        if self.writer is None:
+            self.fields = list(row)
+            self.writer = csv.DictWriter(self.stream, fieldnames=self.fields)
+            self.writer.writeheader()
+        elif additions:
+            self.stream.close()
+            fields = self.fields + additions
+            temporary = None
+            try:
+                with tempfile.NamedTemporaryFile(
+                    mode="w",
+                    encoding="utf-8-sig",
+                    newline="",
+                    dir=self.path.parent,
+                    suffix=".tmp",
+                    delete=False,
+                ) as output:
+                    temporary = Path(output.name)
+                    writer = csv.DictWriter(output, fieldnames=fields)
+                    writer.writeheader()
+                    with self.path.open(encoding="utf-8-sig", newline="") as previous:
+                        writer.writerows(csv.DictReader(previous))
+                temporary.replace(self.path)
+            finally:
+                if temporary is not None:
+                    temporary.unlink(missing_ok=True)
+            self.fields = fields
+            self.stream = self.path.open("a", encoding="utf-8", newline="")
+            self.writer = csv.DictWriter(self.stream, fieldnames=self.fields)
+        self.writer.writerow(row)
+        self.stream.flush()
+
+    def close(self):
+        self.stream.close()
 
 
 def finite_number(value, minimum, inclusive=True):
@@ -151,79 +177,91 @@ def finite_number(value, minimum, inclusive=True):
         or number < minimum
         or (not inclusive and number == minimum)
     ):
-        raise argparse.ArgumentTypeError(
+        raise ValueError(
             f"Value must be {'at least' if inclusive else 'greater than'} {minimum}"
         )
     return number
 
 
-def parse_arguments(argv):
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--url", required=True, help="Actual JSON snapshot URL shown by the OMM service"
-    )
-    parser.add_argument("--output-dir", type=Path, default=Path("performance-captures"))
-    parser.add_argument(
-        "--count", type=int, default=1, help="Number of sequential requests; default 1"
-    )
-    parser.add_argument(
-        "--interval",
-        type=lambda value: finite_number(value, 0),
-        default=1.0,
-        help="Seconds to wait after a response before the next request",
-    )
-    parser.add_argument(
-        "--timeout", type=lambda value: finite_number(value, 0, False), default=5.0
-    )
-    args = parser.parse_args(argv)
-    if args.count < 1:
-        parser.error("--count must be at least 1")
-    if urlsplit(args.url).scheme not in {"http", "https"}:
-        parser.error("--url must use http or https")
-    return args
+def load_config(path):
+    with path.open(encoding="utf-8-sig") as source:
+        config = json.load(source)
+    if not isinstance(config, dict):
+        raise ValueError("Configuration must be a JSON object")
+    url = config["url"]
+    if not isinstance(url, str) or urlsplit(url).scheme not in {"http", "https"}:
+        raise ValueError("url must use http or https")
+    pattern = config["csv_path"]
+    if not isinstance(pattern, str):
+        raise ValueError("csv_path must be a filename template")
+    fields = {name for _, name, _, _ in string.Formatter().parse(pattern) if name}
+    if fields != {"model_name", "model_type", "timestamp"}:
+        raise ValueError(
+            "csv_path must contain {model_name}, {model_type} and {timestamp}"
+        )
+    template = Path(pattern)
+    if not template.is_absolute():
+        template = path.resolve().parent / template
+    count = config.get("request_count", 30)
+    if type(count) is not int or count < 1:
+        raise ValueError("request_count must be a positive integer")
+    return {
+        "url": url,
+        "csv_path": str(template),
+        "request_count": count,
+        "interval": finite_number(config["interval_ms"], 0) / 1000,
+        "timeout": finite_number(config.get("timeout_ms", 5000), 0, False) / 1000,
+    }
 
 
 def main(argv=None):
-    args = parse_arguments(argv)
-    stream = None
-    previous = object()
-    writer = None
-    segment = 0
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=Path(__file__).with_name("performance_capture.json"),
+    )
+    args = parser.parse_args(argv)
     try:
-        args.output_dir.mkdir(parents=True, exist_ok=True)
-        for index in range(1, args.count + 1):
+        config = load_config(args.config)
+    except (OSError, ValueError, TypeError, KeyError) as error:
+        print(f"Configuration error: {error}", file=sys.stderr)
+        return 2
+    segment = None
+    previous = object()
+    files = 0
+    try:
+        for index in range(1, config["request_count"] + 1):
             requested_at = utc_now()
-            request = Request(args.url, headers={"Accept": "application/json"})
-            with urlopen(request, timeout=args.timeout) as response:
+            request = Request(config["url"], headers={"Accept": "application/json"})
+            with urlopen(request, timeout=config["timeout"]) as response:
                 snapshot = json.load(response)
             received_at = utc_now()
             if not isinstance(snapshot, dict):
                 raise ValueError("Snapshot must be a JSON object")
+            row = snapshot_row(snapshot, index, requested_at, received_at)
             current = identity(snapshot)
             if current != previous:
-                if stream is not None:
-                    stream.close()
-                segment += 1
-                path = args.output_dir / filename(snapshot)
-                stream = path.open("x", encoding="utf-8-sig", newline="")
-                writer = csv.DictWriter(stream, fieldnames=FIELDS)
-                writer.writeheader()
+                if segment is not None:
+                    segment.close()
+                path = output_path(config["csv_path"], snapshot)
+                segment = CsvSegment(path)
                 previous = current
+                files += 1
                 print(f"Recording {path}", flush=True)
-            writer.writerows(snapshot_rows(snapshot, index, requested_at, received_at))
-            stream.flush()
-            if index < args.count:
-                time.sleep(args.interval)
+            segment.append(row)
+            if index < config["request_count"]:
+                time.sleep(config["interval"])
     except KeyboardInterrupt:
-        print("Stopped; completed snapshots remain in CSV.", file=sys.stderr)
+        print("Stopped; completed rows remain in CSV.", file=sys.stderr)
         return 130
-    except (OSError, URLError, ValueError, TypeError) as error:
+    except (OSError, ValueError, TypeError) as error:
         print(f"Capture failed: {error}", file=sys.stderr)
         return 1
     finally:
-        if stream is not None:
-            stream.close()
-    print(f"Captured {args.count} snapshots in {segment} CSV files.")
+        if segment is not None:
+            segment.close()
+    print(f"Captured {config['request_count']} snapshots in {files} CSV files.")
     return 0
 
 
