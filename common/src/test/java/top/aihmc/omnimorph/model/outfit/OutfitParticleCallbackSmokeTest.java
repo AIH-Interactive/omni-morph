@@ -37,6 +37,7 @@ public final class OutfitParticleCallbackSmokeTest {
             instructionLimitAndIsolation();
             registrationDuringExecution();
             CosmeticAnimationEventSmokeTest.run();
+            AdaptiveRenderBudgetSmokeTest.verify();
         }
         System.out.println("PASS particle callbacks: real Lua tick/frame hooks, shared count/instruction quotas, "
                 + "epoch/reentry guards, zero limits, removal and VM failure isolation; game MANUAL/PENDING");

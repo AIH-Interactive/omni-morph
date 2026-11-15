@@ -5,6 +5,8 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.world.entity.Entity;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.config.Configs;
+import top.aihmc.omnimorph.lua.AdaptiveInstructionWindow;
 import org.figuramc.figura.lua.api.AvatarAPI;
 import top.aihmc.omnimorph.lua.api.CosmeticPlayerAPI;
 import org.figuramc.figura.lua.api.HostAPI;
@@ -447,9 +449,38 @@ public class FiguraLuaRuntime {
 
     // avatar limiting //
 
+    private AdaptiveInstructionWindow adaptiveWindow;
+
+    /** Client-local ceiling; explicit blocked/low trust permissions retain their limits. */
+    public static int instructionCeiling(Avatar avatar, Permissions permission) {
+        int permitted = avatar.permissions.get(permission);
+        if (permission != Permissions.RENDER_INST) {
+            return permitted;
+        }
+        return AdaptiveInstructionWindow.ceiling(permitted,
+                Configs.ADAPTIVE_RENDER_BUDGET.value,
+                Configs.RENDER_INSTRUCTION_CEILING.value);
+    }
+
+    private void setExecutionInstructionLimit(int available, Avatar.Instructions instructions) {
+        setInstructionLimit(available);
+        if (instructions == owner.render && available > 0
+                && Configs.ADAPTIVE_RENDER_BUDGET.value) {
+            adaptiveWindow = new AdaptiveInstructionWindow(available);
+            setHookFunction.invoke(LuaValue.varargsOf(onReachedLimit, LuaValue.EMPTYSTRING,
+                    LuaValue.valueOf(adaptiveWindow.threshold())));
+        }
+    }
+
     private final ZeroArgFunction onReachedLimit = new ZeroArgFunction() {
         @Override
         public LuaValue call() {
+            if (adaptiveWindow != null && adaptiveWindow.grow(getInstructions())) {
+                // Re-arm the hook on the same monotonically increasing bytecode counter.
+                setHookFunction.invoke(LuaValue.varargsOf(onReachedLimit, LuaValue.EMPTYSTRING,
+                        LuaValue.valueOf(adaptiveWindow.threshold())));
+                return LuaValue.NIL;
+            }
             FiguraMod.LOGGER.warn("Avatar {} bypassed resource limits with {} instructions", owner.owner, getInstructions());
             LuaError error = new LuaError("Script overran resource limits!");
             owner.noPermissions.add(Permissions.INIT_INST);
@@ -461,6 +492,7 @@ public class FiguraLuaRuntime {
     };
 
     public void setInstructionLimit(int limit) {
+        adaptiveWindow = null;
         exhaustedInstructions = 0;
         userGlobals.running.state.bytecodes = 0;
         setHookFunction.invoke(LuaValue.varargsOf(onReachedLimit, LuaValue.EMPTYSTRING, LuaValue.valueOf(Math.max(limit, 1))));
@@ -481,6 +513,9 @@ public class FiguraLuaRuntime {
     }
 
     public Varargs run(Object toRun, Avatar.Instructions limit, Object... args) {
+        if (limit == owner.render && limit.remaining == limit.max) {
+            limit.reset(instructionCeiling(owner, Permissions.RENDER_INST));
+        }
         prepareParticleCallbackInstructions(limit);
         // parse args
         LuaValue[] values = new LuaValue[args.length];
@@ -495,7 +530,7 @@ public class FiguraLuaRuntime {
         }
 
         // set instructions limit
-        setInstructionLimit(limit.remaining);
+        setExecutionInstructionLimit(limit.remaining, limit);
 
         // get and call event
         sharedExecutionDepth++;
@@ -547,7 +582,7 @@ public class FiguraLuaRuntime {
         } else if (limit == owner.render) {
             long epoch = top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.currentFrame();
             if (particleFrameInstructions != epoch && OutfitInstructionBudget.hasParticleCallbacks(owner)) {
-                limit.reset(owner.permissions.get(Permissions.RENDER_INST));
+                limit.reset(instructionCeiling(owner, Permissions.RENDER_INST));
             }
             particleFrameInstructions = epoch;
         }
@@ -584,7 +619,7 @@ public class FiguraLuaRuntime {
         if (available <= 0) {
             return null;
         }
-        setInstructionLimit(available);
+        setExecutionInstructionLimit(available, limit);
         sharedExecutionDepth++;
         try {
             return action.get();

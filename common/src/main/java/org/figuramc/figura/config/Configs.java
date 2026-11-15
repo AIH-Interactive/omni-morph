@@ -1,5 +1,7 @@
 package org.figuramc.figura.config;
 
+import top.aihmc.omnimorph.config.InstructionCeilingConfig;
+
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -103,6 +105,11 @@ public class Configs {
                 this.enumTooltip = NAMEPLATE_TOOLTIP;
             }};
 
+
+    public static final ConfigType.BoolConfig ADAPTIVE_RENDER_BUDGET =
+            new ConfigType.BoolConfig("adaptive_render_budget", SCRIPT, true);
+    public static final InstructionCeilingConfig RENDER_INSTRUCTION_CEILING =
+            new InstructionCeilingConfig("render_instruction_ceiling", SCRIPT);
 
     // -- script -- // 
 
