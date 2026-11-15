@@ -24,12 +24,21 @@ public final class RibbonMesh {
         }
     }
 
-    public record Vertex(Vec3 position, double u, double v, float alpha) {
+    public record Vertex(Vec3 position, double u, double v, float red, float green, float blue, float alpha) {
+        public Vertex(Vec3 position, double u, double v, float alpha) {
+            this(position, u, v, 1, 1, 1, alpha);
+        }
+
         public Vertex {
             finite(position);
+            require(unit(red) && unit(green) && unit(blue), "INVALID_RIBBON_VERTEX");
             require(Double.isFinite(u) && u >= 0 && u <= 1 && Double.isFinite(v) && v >= 0 && v <= 1
                     && Float.isFinite(alpha) && alpha >= 0 && alpha <= 1, "INVALID_RIBBON_VERTEX");
         }
+    }
+
+    private static boolean unit(float value) {
+        return Float.isFinite(value) && value >= 0 && value <= 1;
     }
 
     public record Quad(Vertex tailLeft, Vertex tailRight, Vertex headRight, Vertex headLeft) {
