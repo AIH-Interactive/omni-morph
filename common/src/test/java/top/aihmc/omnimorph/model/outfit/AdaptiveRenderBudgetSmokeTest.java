@@ -62,8 +62,12 @@ public final class AdaptiveRenderBudgetSmokeTest {
                 for (int value : new int[]{8192, 32768, 65536, Integer.MAX_VALUE}) {
                     require(input.parseValue(Integer.toString(value)) == value,
                             "Integer input accepts exact configured limits");
+                    require(input.inputType.validator.test(Integer.toString(value)),
+                            "Settings field accepts in-range values");
                 }
-                for (String invalid : new String[]{"8191", "0", "-1", "2147483648", "1.5"}) {
+                for (String invalid : new String[]{"8", "8191", "0", "-1", "2147483648", "1.5"}) {
+                    require(!input.inputType.validator.test(invalid),
+                            "Settings field must reject invalid intermediate text before updating config");
                     try {
                         input.parseValue(invalid);
                         throw new AssertionError("Input accepted an out-of-range limit: " + invalid);
