@@ -188,16 +188,16 @@ public final class CustomParticleRuntime {
     public static void extractRibbons(ParticlesRenderState state, Frustum frustum, Camera camera, float partialTick) {
         // Activation order makes competition for the shared frame quota deterministic.
         for (CustomParticle particle : LIVE.keySet().toArray(CustomParticle[]::new)) {
-            if (!particle.ribbon() || particle.preview() != null) {
+            if (!particle.usesGeometry() || particle.preview() != null) {
                 continue;
             }
             UUID wearer = LIVE.get(particle);
             if (particle.world() != Minecraft.getInstance().level
-                    || OutfitTrailBudget.count(wearer) > particle.limits().maxTrails()) {
+                    || particle.ribbon() && OutfitTrailBudget.count(wearer) > particle.limits().maxTrails()) {
                 particle.remove();
                 continue;
             }
-            var ribbon = particle.extractRibbon(camera, frustum, partialTick, availableRibbonVertices(particle));
+            var ribbon = particle.extractRibbon(camera, frustum, partialTick, particle.availableGeometryVertices());
             if (ribbon != null) {
                 state.add(ribbon);
             }

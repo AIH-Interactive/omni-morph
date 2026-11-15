@@ -46,7 +46,10 @@ public class AnimationPlayer {
                     return limit;
                 }
 
-                int currentIndex = Math.max(0, Mth.binarySearch(0, keyframes.length, index -> anim.frameTime <= keyframes[index].getTime()) - 1);
+                int currentIndex = Math.max(0, Mth.binarySearch(0, keyframes.length,
+                        index -> anim.postKeyframeBoundary
+                                ? anim.frameTime < keyframes[index].getTime()
+                                : anim.frameTime <= keyframes[index].getTime()) - 1);
                 int nextIndex = Math.min(keyframes.length - 1, currentIndex + 1);
 
                 Keyframe current = keyframes[currentIndex];

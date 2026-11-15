@@ -138,6 +138,17 @@ public class Keyframe implements Comparable<Keyframe> {
             if (molangAst != null && index < molangAst.length && molangAst[index] != null) {
                 ExpressionEvaluator<?> evaluator = animation.getMolangEvaluator();
                 if (evaluator != null) {
+                    var context = owner.getMolangContext();
+                    if (context != null) {
+                        float previousTime = context.anim_time;
+                        try {
+                            // Keyframes read this clip's sampled time, not avatar lifetime.
+                            context.anim_time = animation.frameTime;
+                            return evaluator.evalAsFloat(molangAst[index]);
+                        } finally {
+                            context.anim_time = previousTime;
+                        }
+                    }
                     return evaluator.evalAsFloat(molangAst[index]);
                 }
             }
