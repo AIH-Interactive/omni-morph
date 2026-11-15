@@ -2429,7 +2429,7 @@
   "omni-morph.gui.wardrobe.instance_unmount": "Unmount accessory",
     "omni-morph.gui.library.tab_avatar": "Avatar",
     "omni-morph.gui.library.tab_accessory": "Parts",
-  "figura.docs.model_part.set_shader_material": "Sets an avatar-owned native shader material, or nil to clear it. Textures must belong to this avatar. Uses native complexity and resource lifetimes.",
+  "figura.docs.model_part.set_shader_material": "Sets an avatar-owned native shader material, or nil to clear it. Textures must belong to this avatar. depth_test defaults to true and controls depth comparison independently of depth_write, including GUI fading. Uses native complexity and resource lifetimes.",
   "figura.docs.model_part.set_material_time": "Sets shader animation time in seconds. Requires a shader material and a finite number.",
   "figura.docs.matrices.compose4": "Composes translation, normalized quaternion (x,y,z,w), and scale into a new matrix. Requires finite vectors and a nonzero quaternion.",
   "figura.docs.matrices.sample4": "Samples sorted TRS keyframes into a matrix. Rest uses position/quaternion/scale arrays; frames use time and the same optional channels. Channel bits: position=1, quaternion=2, scale=4. Translation/scale interpolate linearly; quaternion uses normalized shortest-path slerp. Nil/empty frames retain rest. Time clamps at endpoints; looping is caller-controlled.",
