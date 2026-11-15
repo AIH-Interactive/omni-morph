@@ -11,6 +11,7 @@ import org.luaj.vm2.LuaError;
 import org.luaj.vm2.LuaFunction;
 import org.luaj.vm2.LuaTable;
 import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.math.matrix.FiguraMat3;
 import org.figuramc.figura.math.matrix.FiguraMat4;
 import org.figuramc.figura.model.rendering.texture.FiguraTexture;
 import top.aihmc.omnimorph.model.outfit.OutfitLimits;
@@ -44,6 +45,7 @@ public final class CustomParticle extends SingleQuadParticle {
     private boolean anchorTrail;
     private FiguraMat4 quadTransform;
     private ParticleQuads authoredQuads;
+    private ParticleQuads transformedQuads;
     private CustomParticlePipelines.Blend blend = CustomParticlePipelines.Blend.ALPHA;
     private ParticleSpriteSheet sheet;
     private ParticleSpriteSheet.Uv uv = new ParticleSpriteSheet.Uv(0, 1, 0, 1);
@@ -218,6 +220,7 @@ public final class CustomParticle extends SingleQuadParticle {
         if (transform == null) {
             quadTransform = null;
             authoredQuads = null;
+            transformedQuads = null;
             return;
         }
         var matrix = transform.toMatrix4f();
@@ -231,17 +234,29 @@ public final class CustomParticle extends SingleQuadParticle {
         }
         quadTransform = transform.copy();
         authoredQuads = null;
+        transformedQuads = null;
     }
 
     public void setQuads(LuaTable vertices) {
         if (vertices == null) {
             authoredQuads = null;
+            transformedQuads = null;
             quadTransform = null;
             return;
         }
         var replacement = ParticleQuads.read(vertices, limits().maxRibbonVertices() / layerCount());
         authoredQuads = replacement;
+        transformedQuads = null;
         quadTransform = null;
+    }
+
+    public void setQuadsTransform(FiguraMat4 position, FiguraMat3 uv) {
+        if (authoredQuads == null) {
+            throw new LuaError("setQuadsTransform requires authored quad geometry");
+        }
+        // Always transform the copied source, never the previous transformed result.
+        var replacement = position == null && uv == null ? null : authoredQuads.transformed(position, uv);
+        transformedQuads = replacement;
     }
 
     public FiguraMat4 getQuad() {
@@ -756,7 +771,8 @@ public final class CustomParticle extends SingleQuadParticle {
 
     private RibbonRenderState extractAuthoredQuads(Camera camera, Frustum frustum, float partialTick,
                                                   int availableVertices) {
-        int vertices = authoredQuads.vertexCount();
+        var geometry = transformedQuads == null ? authoredQuads : transformedQuads;
+        int vertices = geometry.vertexCount();
         if (vertices == 0) {
             return null;
         }
@@ -769,10 +785,10 @@ public final class CustomParticle extends SingleQuadParticle {
             throw new IllegalArgumentException("RIBBON_FACE_LIMIT");
         }
         var center = lightPosition(partialTick);
-        if (frustum != null && !frustum.isVisible(authoredQuads.bounds(center))) {
+        if (frustum != null && !frustum.isVisible(geometry.bounds(center))) {
             return null;
         }
-        return submitGeometry(authoredQuads.at(center, layerCount()), camera, partialTick);
+        return submitGeometry(geometry.at(center, layerCount()), camera, partialTick);
     }
 
     private RibbonRenderState extractQuad(Camera camera, Frustum frustum, float partialTick,
@@ -817,6 +833,7 @@ public final class CustomParticle extends SingleQuadParticle {
         motion = null;
         quadTransform = null;
         authoredQuads = null;
+        transformedQuads = null;
         if (ribbonTrail != null) {
             ribbonTrail.clear();
             ribbonTrail = null;

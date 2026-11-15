@@ -2,7 +2,12 @@ package top.aihmc.omnimorph.lua.api.particle;
 
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import org.figuramc.figura.math.matrix.FiguraMat3;
+import org.figuramc.figura.math.matrix.FiguraMat4;
 import org.figuramc.figura.math.vector.FiguraVec2;
+import org.joml.Matrix3f;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.figuramc.figura.math.vector.FiguraVec3;
 import org.figuramc.figura.math.vector.FiguraVec4;
 import org.luaj.vm2.LuaError;
@@ -65,6 +70,46 @@ final class ParticleQuads {
             bounds = bounds == null ? pointBounds : bounds.minmax(pointBounds);
         }
         return new ParticleQuads(vertices, bounds);
+    }
+
+    ParticleQuads transformed(FiguraMat4 position, FiguraMat3 texture) {
+        Matrix4f geometry = position == null ? new Matrix4f() : position.toMatrix4f();
+        Matrix3f uv = texture == null ? new Matrix3f() : texture.toMatrix3f();
+        for (float component : geometry.get(new float[16])) {
+            if (!Float.isFinite(component)) {
+                throw new LuaError("Particle quad transform requires finite float components");
+            }
+        }
+        for (float component : uv.get(new float[9])) {
+            if (!Float.isFinite(component)) {
+                throw new LuaError("Particle quad UV transform requires finite float components");
+            }
+        }
+        if (geometry.m03() != 0 || geometry.m13() != 0 || geometry.m23() != 0 || geometry.m33() != 1
+                || uv.m02() != 0 || uv.m12() != 0 || uv.m22() != 1) {
+            throw new LuaError("Particle quad transforms must be affine");
+        }
+        var transformed = new ArrayList<RibbonMesh.Vertex>(vertices.size());
+        AABB transformedBounds = null;
+        for (var vertex : vertices) {
+            var source = vertex.position();
+            var point = geometry.transformPosition(new Vector3f((float) source.x,
+                    (float) source.y, (float) source.z));
+            var coordinate = uv.transform(new Vector3f((float) vertex.u(), (float) vertex.v(), 1));
+            if (!Float.isFinite(point.x) || !Float.isFinite(point.y) || !Float.isFinite(point.z)) {
+                throw new LuaError("Transformed particle positions require finite float components");
+            }
+            if (!Float.isFinite(coordinate.x) || !Float.isFinite(coordinate.y)
+                    || coordinate.x < 0 || coordinate.x > 1 || coordinate.y < 0 || coordinate.y > 1) {
+                throw new LuaError("Transformed particle UVs must remain between zero and one");
+            }
+            var offset = new Vec3(point.x, point.y, point.z);
+            transformed.add(new RibbonMesh.Vertex(offset, coordinate.x, coordinate.y,
+                    vertex.red(), vertex.green(), vertex.blue(), vertex.alpha()));
+            var pointBounds = new AABB(offset, offset);
+            transformedBounds = transformedBounds == null ? pointBounds : transformedBounds.minmax(pointBounds);
+        }
+        return new ParticleQuads(transformed, transformedBounds);
     }
 
     int vertexCount() {
