@@ -122,6 +122,7 @@ public class LuaParticle {
     }
 
     @LuaWhitelist
+    @LuaMethodDoc("particle.set_layers")
     public LuaParticle setLayers(LuaTable layers) {
         custom().setLayers(layers);
         return this;

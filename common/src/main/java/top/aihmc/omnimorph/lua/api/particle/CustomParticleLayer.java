@@ -16,7 +16,7 @@ import org.figuramc.figura.lua.api.particle.ParticleAPI;
 record CustomParticleLayer(FiguraTexture texture, ParticleSpriteSheet sheet, ParticleSpriteSheet.Uv crop,
                            Tint tint, Boolean emissive, SingleQuadParticle.Layer renderLayer) {
     private static final Set<String> KEYS = Set.of("texture", "spriteSheet", "uv", "color",
-            "alpha", "blend", "emissive");
+            "alpha", "blend", "emissive", "order", "depth_test");
     private static final ParticleSpriteSheet.Uv FULL_UV = new ParticleSpriteSheet.Uv(0, 1, 0, 1);
 
     record Tint(float red, float green, float blue, float alpha) {
@@ -58,8 +58,15 @@ record CustomParticleLayer(FiguraTexture texture, ParticleSpriteSheet sheet, Par
         LuaValue blendValue = value.rawget("blend");
         require(blendValue.isnil() || blendValue.type() == LuaValue.TSTRING, "blend must be a string");
         CustomParticlePipelines.Blend blend = blend(blendValue.optjstring("alpha"));
+        LuaValue orderValue = value.rawget("order");
+        require(orderValue.isnil() || orderValue.type() == LuaValue.TNUMBER, "order must be an integer");
+        double order = orderValue.optdouble(0);
+        require(Double.isFinite(order) && order == Math.rint(order) && order >= -128 && order <= 127,
+                "order must be an integer from -128 to 127");
+        LuaValue depth = value.rawget("depth_test");
+        require(depth.isnil() || depth.isboolean(), "depth_test must be a boolean");
         return new CustomParticleLayer(texture, sheet, crop, tint, emissive,
-                new SingleQuadParticle.Layer(true, texture.getLocation(), CustomParticlePipelines.pipeline(index, blend)));
+                new SingleQuadParticle.Layer(true, texture.getLocation(), CustomParticlePipelines.pipeline(index, blend, (int) order, depth.optboolean(true))));
     }
 
     static CustomParticlePipelines.Blend blend(String value) {

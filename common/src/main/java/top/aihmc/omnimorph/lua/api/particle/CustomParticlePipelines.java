@@ -4,6 +4,7 @@ import com.mojang.blaze3d.pipeline.BlendFunction;
 import com.mojang.blaze3d.pipeline.ColorTargetState;
 import com.mojang.blaze3d.pipeline.DepthStencilState;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
+import com.mojang.blaze3d.platform.CompareOp;
 import com.mojang.blaze3d.platform.DestFactor;
 import com.mojang.blaze3d.platform.SourceFactor;
 import net.minecraft.client.particle.SingleQuadParticle;
@@ -18,7 +19,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-/** Fixed pipelines preserve author layer order without changing vanilla particle ordering. */
+/** Bounded pipeline variants preserve custom priorities without reordering vanilla particles. */
 public final class CustomParticlePipelines {
     public enum Blend {
         ALPHA, ADDITIVE, OPAQUE
@@ -26,6 +27,9 @@ public final class CustomParticlePipelines {
 
     private static final int HARD_MAX_LAYERS = 8;
     private static final Map<RenderPipeline, Integer> ORDER = new IdentityHashMap<>();
+    private static final Map<Variant, RenderPipeline> VARIANTS = new java.util.LinkedHashMap<>();
+
+    private record Variant(int layer, Blend blend, int order, boolean depthTest) {}
 
     private CustomParticlePipelines() {
     }
@@ -37,6 +41,26 @@ public final class CustomParticlePipelines {
         return Pipelines.VALUES[layer][blend.ordinal()];
     }
 
+    public static RenderPipeline pipeline(int layer, Blend blend, int order, boolean depthTest) {
+        if (layer < 0 || layer >= HARD_MAX_LAYERS || order < -128 || order > 127) {
+            throw new IllegalArgumentException("CUSTOM_PARTICLE_ORDER_LIMIT");
+        }
+        if (order == 0 && depthTest) {
+            return pipeline(layer, blend);
+        }
+        return VARIANTS.computeIfAbsent(new Variant(layer, blend, order, depthTest), variant -> {
+            var pipeline = createPipeline(variant.layer(), variant.blend(), variant.order(), variant.depthTest());
+            if (org.figuramc.figura.utils.PlatformUtils.isModLoaded("iris")) {
+                top.aihmc.omnimorph.compat.IrisCompat.assignParticlePipeline(pipeline, variant.blend());
+            }
+            return pipeline;
+        });
+    }
+
+    public static int sortOrder(RenderPipeline pipeline) {
+        return ORDER.getOrDefault(pipeline, 0);
+    }
+
     /** Every registered pipeline with its blend, so Iris can map it to the matching particle program. */
     public static Map<RenderPipeline, Blend> registered() {
         var pipelines = new java.util.LinkedHashMap<RenderPipeline, Blend>();
@@ -45,6 +69,7 @@ public final class CustomParticlePipelines {
                 pipelines.put(Pipelines.VALUES[layer][blend.ordinal()], blend);
             }
         }
+        VARIANTS.forEach((variant, pipeline) -> pipelines.put(pipeline, variant.blend()));
         return pipelines;
     }
 
@@ -72,36 +97,44 @@ public final class CustomParticlePipelines {
         return result;
     }
 
+    private static RenderPipeline createPipeline(int layer, Blend blend, int order, boolean depthTest) {
+        RenderPipeline base = SingleQuadParticle.Layer.TRANSLUCENT.pipeline();
+        var snippet = new RenderPipeline.Snippet(Optional.of(base.getVertexShader()),
+                Optional.of(base.getFragmentShader()), Optional.of(base.getShaderDefines()),
+                Optional.of(base.getSamplers()), Optional.of(base.getUniforms()),
+                Optional.of(base.getColorTargetState()), Optional.of(base.getDepthStencilState()),
+                Optional.of(base.getPolygonMode()), Optional.of(base.isCull()),
+                Optional.of(base.getVertexFormat()), Optional.of(base.getVertexFormatMode()));
+        ColorTargetState color = switch (blend) {
+            case ALPHA -> new ColorTargetState(BlendFunction.TRANSLUCENT);
+            case ADDITIVE -> new ColorTargetState(new BlendFunction(SourceFactor.SRC_ALPHA,
+                    DestFactor.ONE, SourceFactor.ONE, DestFactor.ONE_MINUS_SRC_ALPHA));
+            case OPAQUE -> ColorTargetState.DEFAULT;
+        };
+        String location = "pipeline/custom_particle/" + layer + "/"
+                + blend.name().toLowerCase(java.util.Locale.ROOT);
+        if (order != 0 || !depthTest) {
+            location += "/order_" + order + "/depth_" + (depthTest ? "on" : "off");
+        }
+        // Custom layers share the translucent pass and never write depth, preserving their order.
+        RenderPipeline pipeline = RenderPipelines.register(RenderPipeline.builder(snippet)
+                .withLocation(new FiguraIdentifier(location))
+                .withColorTargetState(color)
+                .withDepthStencilState(new DepthStencilState(depthTest
+                        ? base.getDepthStencilState().depthTest() : CompareOp.ALWAYS_PASS, false))
+                .build());
+        ORDER.put(pipeline, order * HARD_MAX_LAYERS + layer);
+        return pipeline;
+    }
+
     private static final class Pipelines {
         private static final RenderPipeline[][] VALUES = create();
 
         private static RenderPipeline[][] create() {
-            RenderPipeline base = SingleQuadParticle.Layer.TRANSLUCENT.pipeline();
-            var snippet = new RenderPipeline.Snippet(Optional.of(base.getVertexShader()),
-                    Optional.of(base.getFragmentShader()), Optional.of(base.getShaderDefines()),
-                    Optional.of(base.getSamplers()), Optional.of(base.getUniforms()),
-                    Optional.of(base.getColorTargetState()), Optional.of(base.getDepthStencilState()),
-                    Optional.of(base.getPolygonMode()), Optional.of(base.isCull()),
-                    Optional.of(base.getVertexFormat()), Optional.of(base.getVertexFormatMode()));
             var pipelines = new RenderPipeline[HARD_MAX_LAYERS][Blend.values().length];
             for (int layer = 0; layer < HARD_MAX_LAYERS; layer++) {
                 for (Blend blend : Blend.values()) {
-                    ColorTargetState color = switch (blend) {
-                        case ALPHA -> new ColorTargetState(BlendFunction.TRANSLUCENT);
-                        case ADDITIVE -> new ColorTargetState(new BlendFunction(SourceFactor.SRC_ALPHA,
-                                DestFactor.ONE, SourceFactor.ONE, DestFactor.ONE_MINUS_SRC_ALPHA));
-                        case OPAQUE -> ColorTargetState.DEFAULT;
-                    };
-                    // All custom layers share the translucent pass, with depth testing but no depth writes.
-                    // Otherwise a later opaque layer would be moved before an earlier alpha layer.
-                    RenderPipeline pipeline = RenderPipelines.register(RenderPipeline.builder(snippet)
-                            .withLocation(new FiguraIdentifier("pipeline/custom_particle/" + layer + "/"
-                                    + blend.name().toLowerCase(java.util.Locale.ROOT)))
-                            .withColorTargetState(color)
-                            .withDepthStencilState(new DepthStencilState(base.getDepthStencilState().depthTest(), false))
-                            .build());
-                    pipelines[layer][blend.ordinal()] = pipeline;
-                    ORDER.put(pipeline, layer);
+                    pipelines[layer][blend.ordinal()] = createPipeline(layer, blend, 0, true);
                 }
             }
             return pipelines;
