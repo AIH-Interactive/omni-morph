@@ -16,7 +16,7 @@ import org.figuramc.figura.lua.api.particle.ParticleAPI;
 record CustomParticleLayer(FiguraTexture texture, ParticleSpriteSheet sheet, ParticleSpriteSheet.Uv crop,
                            Tint tint, Boolean emissive, SingleQuadParticle.Layer renderLayer) {
     private static final Set<String> KEYS = Set.of("texture", "spriteSheet", "uv", "color",
-            "alpha", "blend", "emissive", "order", "depth_test");
+            "alpha", "blend", "emissive", "order", "depth_test", "cull", "alpha_cutoff");
     private static final ParticleSpriteSheet.Uv FULL_UV = new ParticleSpriteSheet.Uv(0, 1, 0, 1);
 
     record Tint(float red, float green, float blue, float alpha) {
@@ -65,8 +65,18 @@ record CustomParticleLayer(FiguraTexture texture, ParticleSpriteSheet sheet, Par
                 "order must be an integer from -128 to 127");
         LuaValue depth = value.rawget("depth_test");
         require(depth.isnil() || depth.isboolean(), "depth_test must be a boolean");
+        LuaValue cull = value.rawget("cull");
+        require(cull.isnil() || cull.isboolean(), "cull must be a boolean");
+        float alphaCutoff = unit(value.rawget("alpha_cutoff"), CustomParticlePipelines.DEFAULT_ALPHA_CUTOFF);
+        com.mojang.blaze3d.pipeline.RenderPipeline pipeline;
+        try {
+            pipeline = CustomParticlePipelines.pipeline(index, blend, (int) order, depth.optboolean(true),
+                    cull.optboolean(SingleQuadParticle.Layer.TRANSLUCENT.pipeline().isCull()), alphaCutoff);
+        } catch (IllegalArgumentException error) {
+            throw new LuaError(error.getMessage());
+        }
         return new CustomParticleLayer(texture, sheet, crop, tint, emissive,
-                new SingleQuadParticle.Layer(true, texture.getLocation(), CustomParticlePipelines.pipeline(index, blend, (int) order, depth.optboolean(true))));
+                new SingleQuadParticle.Layer(true, texture.getLocation(), pipeline));
     }
 
     static CustomParticlePipelines.Blend blend(String value) {
