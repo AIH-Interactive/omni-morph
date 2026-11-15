@@ -127,6 +127,35 @@ public class MatricesAPI {
 
     @LuaWhitelist
     @LuaMethodDoc(
+            value = "matrices.compose_euler_xyz",
+            overloads = @LuaMethodOverload(
+                    argumentTypes = {FiguraVec3.class, FiguraVec3.class},
+                    argumentNames = {"first", "second"}
+            )
+    )
+    public static FiguraVec3 composeEulerXYZ(FiguraVec3 first, FiguraVec3 second) {
+        if (first == null || second == null) {
+            throw new LuaError("composeEulerXYZ requires two rotation vectors");
+        }
+        for (double component : new double[]{first.x, first.y, first.z, second.x, second.y, second.z}) {
+            if (!Float.isFinite((float) component)) {
+                throw new LuaError("composeEulerXYZ requires finite float rotation components");
+            }
+        }
+        float radiansPerDegree = (float) (Math.PI / 180);
+        var composition = eulerXYZRotation(first, radiansPerDegree)
+                .mul(eulerXYZRotation(second, radiansPerDegree));
+        var angles = composition.getEulerAnglesXYZ(new org.joml.Vector3f()).div(radiansPerDegree);
+        return FiguraVec3.of(angles.x, angles.y, angles.z);
+    }
+
+    private static org.joml.Quaternionf eulerXYZRotation(FiguraVec3 angles, float radiansPerDegree) {
+        return new org.joml.Quaternionf().rotationXYZ((float) angles.x * radiansPerDegree,
+                (float) angles.y * radiansPerDegree, (float) angles.z * radiansPerDegree);
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc(
             value = "matrices.sample4",
             overloads = @LuaMethodOverload(
                     argumentTypes = {org.luaj.vm2.LuaTable.class, org.luaj.vm2.LuaTable.class,
