@@ -24,6 +24,10 @@ public final class MaterialVertexFormat {
             .add("MaterialOrigin", ORIGIN)
             .build();
 
+    /** Explicit no-draw sink: custom attributes are discarded together with ordinary vertex fields. */
+    public interface DiscardingConsumer extends VertexConsumer {
+    }
+
     private MaterialVertexFormat() {
     }
 
@@ -39,6 +43,9 @@ public final class MaterialVertexFormat {
 
     public static void write(VertexConsumer consumer, float u, float v, float time,
                              float originX, float originY, float originZ) {
+        if (consumer instanceof DiscardingConsumer) {
+            return;
+        }
         if (!(consumer instanceof BufferBuilder builder)) {
             throw new IllegalStateException("Shader material requires the native BufferBuilder");
         }
