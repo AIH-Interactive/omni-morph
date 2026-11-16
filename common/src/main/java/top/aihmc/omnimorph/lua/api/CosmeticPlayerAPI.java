@@ -59,6 +59,11 @@ public final class CosmeticPlayerAPI {
     }
 
     @LuaWhitelist
+    public boolean isSprinting() {
+        return wearer.isSprinting();
+    }
+
+    @LuaWhitelist
     public boolean isOnGround() {
         return wearer.onGround();
     }

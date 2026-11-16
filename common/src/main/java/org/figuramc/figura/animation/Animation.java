@@ -30,6 +30,8 @@ public class Animation {
     @LuaFieldDoc("animation.name")
     public final String name;
 
+    public boolean postKeyframeBoundary;
+
     // -- keyframes -- // 
 
     protected final List<Map.Entry<FiguraModelPart, List<Animation.AnimationChannel>>> animationParts = new ArrayList<>();
@@ -75,6 +77,85 @@ public class Animation {
     /** Cached Molang evaluator for this animation's context */
     private ExpressionEvaluator<?> molangEvaluator;
 
+    @LuaWhitelist
+    @LuaMethodDoc(
+            overloads = @LuaMethodOverload(
+                    argumentTypes = String.class,
+                    argumentNames = "boundary"
+            ),
+            value = "animation.set_keyframe_boundary"
+    )
+    public Animation setKeyframeBoundary(@LuaNotNil String boundary) {
+        if ("POST".equalsIgnoreCase(boundary)) {
+            postKeyframeBoundary = true;
+        } else if ("PRE".equalsIgnoreCase(boundary)) {
+            postKeyframeBoundary = false;
+        } else {
+            throw new LuaError("Keyframe boundary must be PRE or POST");
+        }
+        return this;
+    }
+
+    private boolean sampling;
+
+    boolean isSampling() {
+        return sampling;
+    }
+
+    /** Samples this clip alone, retaining authored part transforms but no live animation channels. */
+    @LuaWhitelist
+    @LuaMethodDoc(
+            value = "animation.sample",
+            overloads = @LuaMethodOverload(
+                    argumentTypes = {FiguraModelPart.class, Double.class},
+                    argumentNames = {"part", "time"},
+                    returnType = org.figuramc.figura.math.matrix.FiguraMat4.class
+            )
+    )
+    public org.figuramc.figura.math.matrix.FiguraMat4 sample(@LuaNotNil FiguraModelPart part, double seconds) {
+        if (!Float.isFinite((float) seconds)) {
+            throw new LuaError("Animation sample time must be a finite float");
+        }
+        List<AnimationChannel> channels = null;
+        for (var entry : animationParts) {
+            if (entry.getKey() == part) {
+                channels = entry.getValue();
+                break;
+            }
+        }
+        if (channels == null) {
+            return null;
+        }
+        float previousTime = frameTime;
+        boolean previousSampling = sampling;
+        frameTime = (float) seconds;
+        sampling = true;
+        try {
+            var pose = new org.figuramc.figura.model.PartCustomization();
+            part.customization.copyTo(pose);
+            pose.needsMatrixRecalculation = true;
+            for (var channel : channels) {
+                if (channel.keyframes().length == 0) {
+                    continue;
+                }
+                var value = AnimationPlayer.sampleChannel(this, channel, frameTime);
+                switch (channel.type()) {
+                    case POSITION -> pose.setAnimPos(-value.x, value.y, value.z);
+                    case ROTATION, GLOBAL_ROT -> pose.setAnimRot(-value.x, -value.y, value.z);
+                    case SCALE -> pose.setAnimScale(value.x, value.y, value.z);
+                }
+            }
+            if (owner.scriptError) {
+                throw new LuaError("Animation sample keyframe failed");
+            }
+            pose.recalculate();
+            return pose.getPositionMatrix();
+        } finally {
+            frameTime = previousTime;
+            sampling = previousSampling;
+        }
+    }
+
     // -- java methods -- // 
 
     public Animation(Avatar owner, String modelName, String name, LoopMode loop, boolean override, float length, float offset, float blend, float startDelay, float loopDelay) {
@@ -119,7 +200,7 @@ public class Animation {
      */
     public ExpressionEvaluator<?> getMolangEvaluator() {
         if (molangEvaluator == null && owner != null) {
-            molangEvaluator = ExpressionEvaluator.evaluator(owner);
+            molangEvaluator = ExpressionEvaluator.evaluator(owner.getMolangContext());
         }
         return molangEvaluator;
     }

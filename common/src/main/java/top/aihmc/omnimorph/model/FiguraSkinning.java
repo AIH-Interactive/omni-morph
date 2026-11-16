@@ -218,6 +218,21 @@ public final class FiguraSkinning {
     public static FiguraMat4 localMatrix(FiguraModelPart part, boolean includeAnimation, boolean asBone) {
         PartCustomization customization = part.customization;
 
+        if (includeAnimation) {
+            // Honor the same authored matrix used by ordinary part rendering,
+            // including ModelPart:setMatrix overrides. Rest-pose resolution below
+            // deliberately excludes animation and retains its existing semantics.
+            customization.recalculate();
+            FiguraMat4 result = customization.positionMatrix.copy();
+            if (asBone) {
+                FiguraVec3 pivot = customization.getPivot();
+                FiguraVec3 offsetPivot = customization.getOffsetPivot();
+                result.translateFirst(pivot.x + offsetPivot.x, pivot.y + offsetPivot.y,
+                        pivot.z + offsetPivot.z);
+            }
+            return result;
+        }
+
         FiguraVec3 pivot = customization.getPivot();
         FiguraVec3 offsetPivot = customization.getOffsetPivot();
         FiguraVec3 offsetPos = customization.getOffsetPos();

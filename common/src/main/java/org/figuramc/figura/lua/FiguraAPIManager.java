@@ -7,6 +7,8 @@ import org.figuramc.figura.lua.api.AvatarAPI;
 import org.figuramc.figura.lua.api.ClientAPI;
 import org.figuramc.figura.lua.api.ConfigAPI;
 import top.aihmc.omnimorph.lua.api.CosmeticAnimationsAPI;
+import top.aihmc.omnimorph.lua.api.CosmeticClientAPI;
+import top.aihmc.omnimorph.lua.api.CosmeticTextureAPI;
 import top.aihmc.omnimorph.lua.api.CosmeticPlayerAPI;
 import top.aihmc.omnimorph.lua.api.CosmeticStateAPI;
 import org.figuramc.figura.lua.api.FileAPI;
@@ -278,6 +280,10 @@ public class FiguraAPIManager {
         }
         if (cosmetic) {
             runtime.registerClass(CosmeticPlayerAPI.class);
+            runtime.registerClass(CosmeticClientAPI.class);
+            runtime.registerClass(CosmeticTextureAPI.class);
+            runtime.setGlobal("client", new CosmeticClientAPI());
+            runtime.setGlobal("textures", new CosmeticTextureAPI(runtime.owner));
             runtime.registerClass(CosmeticAnimationsAPI.class);
             runtime.registerClass(CosmeticStateAPI.class);
             runtime.setGlobal("cosmetic_state", new CosmeticStateAPI(runtime.owner.cosmeticContext));

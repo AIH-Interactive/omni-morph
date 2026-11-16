@@ -1,5 +1,19 @@
 # Agent 交接手册
 
+## 当前任务：dev 合并到 main / Alpha.12（2026-11-16）
+
+- 用户要求“dev更新内容合并到main，优先merge，冲突再参考适配”。在已有隔离工作树 `.worktrees/alpha11-main` 的 `main` 分支，从 `0b3986b1a25613ccb888d0758fd729fd125c0006` 直接合并固定源 `dev` 提交 `d19483c24c1ff7bbb90b92afa44b603351fd2c4b`，无冲突，无生产代码适配。原目录仍在 `dev`，保留其已有修改及未跟踪资料。
+- 完整接收源分支22个提交：Figura蒙皮/法线/第二UV/自定义shader材质；粒子四边形、颜色、变换、图层与深度设置；动画姿态采样和旋转组合；装饰只读疾跑/相机/自有纹理API；七种内置装饰；初始化及渲染自适应预算与输入校验；Debug按请求HTTP快照及CSV工具；第一人称shader材质丢弃通道修复。版本为 `1.0.0-alpha.12`，MC仍为26.1.2。未包含PSF支持，未操作已归档patch会话，未派发其他版本。
+- 合并后生产代码、平台代码、工具及测试与固定源完全一致。本次新增内容仅此接收记录；不因合并重写源实现、不扩大功能范围。原四语言CHANGELOG仍停在Alpha.11，Alpha.12功能摘要以本节及源提交为准；该文档欠缺不冒称已补齐。
+- 自动验证 PASS：8项显式Gradle smoke任务（第一人称材质、装饰创建、粒子基础、YSM原生材质、配装预览、Apply、第一人称物品及FOV）与Fabric/NeoForge build `-Prelease`，退出0，`BUILD SUCCESSFUL in 2m 39s`，41任务。日志 `build/main-alpha12-merge-green.log`；NeoForge分发检查为145 mixins、13 libraries、13 resolved platform bridges。测试宿主/CPU提交证据不代替游戏画面。
+- Python采集器7项测试 PASS：`build/python-validation/build.log`。首次沙箱执行6项因Windows临时目录权限出错，保留 `build/python-validation/initial-permission-failure.log`；在正常Windows临时目录和回环权限下完整重跑，7项全部通过，无代码绕过。
+- 包完整性 PASS：主ZIP及嵌套JAR CRC、关键新增生产类、七套模板脚本、无测试类/PSF类，日志 `build/artifact-validation/build.log`。Fabric包19259605字节，SHA256 `be42272d1bbe128c8fdb9bac21ddea972f64c8753c6d00236eac31add082ca39`；NeoForge包18871371字节，SHA256 `eed7717c618d1cdaa1e46f136fa5b0d3ad26076ab17d6a2400559deb2251d82b`。文件位于本隔离工作树各平台 `build/libs/omni-morph-1.0.0-alpha.12+26.1.2-<平台>-mc.jar`。
+- 实机GUI、shader/GPU画面为 `MANUAL/PENDING`；未启动游戏、覆盖安装包或修改用户模型。本次无新增功能修复，不将上游RED记作本次重新执行的RED。
+- 实施及自动验证完成，无剩余实施任务。本记录随本次双父merge提交保存，提交后推送 `origin/main` 并用 `git ls-remote` 核对；最终合并提交以本工作树 `git log -1` 为准。保留隔离工作树及日志，后续不自动跨版本同步。
+- 相关文档：`docs/performance-http.md`、`docs/performance-capture.md`、`docs/p4.5-performance-http-plan.md`。继续遵守范围控制、CodeGraph优先、Windows原生前台PowerShell/Tee构建、禁止WSL/本地非Windows构建、禁止Qt offscreen及人工项如实记录。开始时可靠周额度已用41%、剩余59%，未触发Luna交接。
+
+下方是历史交付记录，当前任务与产物以上述Alpha.12接收节为准。
+
 ## 当前接收任务：26.1.2 main 接收 Alpha.11（2026-11-13）
 
 - 用户授权来源：会话 01a1cf9c-289b-7e12-9fa0-de9f1fbee064 的人类指令“停止，然后重新从26.1.2开始”。顺序为本版接收完成后，26.3→26.2→1.21.1→1.20.1，各版本完成验证、提交推送后只通知下一版本。已核实原始授权及26.3旧流程停止状态；26.3保留未完成合并和测试适配错误，不在本目录代为实施。
