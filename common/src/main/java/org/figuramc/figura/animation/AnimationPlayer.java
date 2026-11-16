@@ -40,31 +40,11 @@ public class AnimationPlayer {
                 TransformType type = channel.type();
                 FiguraMod.pushProfiler(type.name());
 
-                Keyframe[] keyframes = channel.keyframes();
-                if (keyframes.length == 0) {
+                if (channel.keyframes().length == 0) {
                     FiguraMod.popProfiler(3);
                     return limit;
                 }
-
-                int currentIndex = Math.max(0, Mth.binarySearch(0, keyframes.length,
-                        index -> anim.postKeyframeBoundary
-                                ? anim.frameTime < keyframes[index].getTime()
-                                : anim.frameTime <= keyframes[index].getTime()) - 1);
-                int nextIndex = Math.min(keyframes.length - 1, currentIndex + 1);
-
-                Keyframe current = keyframes[currentIndex];
-                Keyframe next = keyframes[nextIndex];
-
-                float delta;
-                if (current == next) {
-                    delta = 0;
-                } else {
-                    float timeDiff = anim.frameTime - current.getTime();
-                    delta = Math.min(Math.max(timeDiff / (next.getTime() - current.getTime()), 0), 1);
-                }
-
-                Interpolation interpolation = next.getInterpolation() == Interpolation.BEZIER ? Interpolation.BEZIER : current.getInterpolation();
-                FiguraVec3 transform = interpolation.generate(keyframes, currentIndex, nextIndex, anim.blend, delta, type);
+                FiguraVec3 transform = sampleChannel(anim, channel, anim.frameTime);
                 type.apply(part, transform, merge);
 
                 switch (type) {
@@ -100,6 +80,31 @@ public class AnimationPlayer {
 
         FiguraMod.popProfiler();
         return limit;
+    }
+
+    /** Shared curve evaluation for playback and explicit pose sampling. */
+    static FiguraVec3 sampleChannel(Animation anim, Animation.AnimationChannel channel, float time) {
+        Keyframe[] keyframes = channel.keyframes();
+        TransformType type = channel.type();
+        int currentIndex = Math.max(0, Mth.binarySearch(0, keyframes.length,
+                index -> anim.postKeyframeBoundary
+                        ? time < keyframes[index].getTime()
+                        : time <= keyframes[index].getTime()) - 1);
+        int nextIndex = Math.min(keyframes.length - 1, currentIndex + 1);
+
+        Keyframe current = keyframes[currentIndex];
+        Keyframe next = keyframes[nextIndex];
+
+        float delta;
+        if (current == next) {
+            delta = 0;
+        } else {
+            float timeDiff = time - current.getTime();
+            delta = Math.min(Math.max(timeDiff / (next.getTime() - current.getTime()), 0), 1);
+        }
+
+        Interpolation interpolation = next.getInterpolation() == Interpolation.BEZIER ? Interpolation.BEZIER : current.getInterpolation();
+        return interpolation.generate(keyframes, currentIndex, nextIndex, anim.blend, delta, type);
     }
 
     public static void clear(Animation anim) {
