@@ -1,4 +1,5 @@
 {
+  "omni-morph.docs.animation.sample": "Samples this clip alone at explicit seconds into a bound part local matrix, using native interpolation and current blend. Includes authored transforms, leaves live pose/playback unchanged, and dispatches no timeline events. Returns nil for unbound parts. Requires finite float time; does not wrap. Lua keyframes inherit the running caller budget.",
   "figura.docs.matrices.compose_euler_xyz": "Composes two XYZ Euler rotations in degrees as R(first) * R(second). Returns canonical XYZ degrees without changing either input. Uses float32 quaternion composition; equivalent rotations can have different Euler representations. Both vec3 inputs must have finite float components.",
     "omni-morph.animation.keyframe_migration_hint": "If this model was migrated from Blockbench 4.12 to 5.0, check the authored expressions: rotation X/Y and position X may need sign correction. Fix the source model manually.",
     "omni-morph.gui.wardrobe.outfit_presets": "Outfit presets",

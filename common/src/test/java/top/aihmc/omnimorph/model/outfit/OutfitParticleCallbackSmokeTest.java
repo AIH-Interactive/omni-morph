@@ -40,6 +40,7 @@ public final class OutfitParticleCallbackSmokeTest {
             CosmeticAnimationEventSmokeTest.run();
             AdaptiveRenderBudgetSmokeTest.verify();
             sharedInitialization();
+            AnimationSampleSmokeTest.verify();
             top.aihmc.omnimorph.lua.api.math.EulerRotationSmokeTest.verify();
         }
         System.out.println("PASS particle callbacks: real Lua tick/frame hooks, shared count/instruction quotas, "

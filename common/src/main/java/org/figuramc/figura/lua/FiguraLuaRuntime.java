@@ -520,6 +520,17 @@ public class FiguraLuaRuntime {
         return userGlobals.load(src, name, userGlobals);
     }
 
+    /** Lua keyframes sampled by Lua inherit its running hook and shared ledger. */
+    public Varargs runAnimationExpression(LuaValue expression, float delta,
+                                         org.figuramc.figura.animation.Animation animation) {
+        if (sharedExecutionDepth == 0) {
+            return run(expression, owner.animation, delta, animation);
+        }
+        return expression.invoke(LuaValue.varargsOf(new LuaValue[]{
+                LuaValue.valueOf(delta), typeManager.javaToLua(animation).arg1()
+        }));
+    }
+
     public Varargs run(Object toRun, Avatar.Instructions limit, Object... args) {
         if (limit == owner.render && limit.remaining == limit.max) {
             limit.reset(instructionCeiling(owner, Permissions.RENDER_INST));

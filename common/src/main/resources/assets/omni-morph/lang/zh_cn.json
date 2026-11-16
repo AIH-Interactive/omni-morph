@@ -1,4 +1,5 @@
 {
+  "omni-morph.docs.animation.sample": "在指定秒数采样此动画绑定部件的局部矩阵，复用原生插值及当前blend。保留作者变换，不含其他动画，不改变当前部件或播放状态，不触发时间轴事件。未绑定部件返回nil。时间必须为有限float；不自动循环。Lua关键帧沿用调用者正在执行的额度。",
   "figura.docs.matrices.compose_euler_xyz": "将两组以度为单位的 XYZ 欧拉旋转按 R(first) * R(second) 组合，返回规范 XYZ 欧拉角，不修改输入。使用 float32 四元数组合；等价旋转的欧拉角表示可不同。两个 vec3 的分量必须是有限 float 值。",
     "omni-morph.animation.keyframe_migration_hint": "若模型由 Blockbench 4.12 迁移到 5.0，请检查作者表达式：旋转 X/Y 和位置 X 可能需要修正符号。请手动修复源模型。",
     "omni-morph.gui.wardrobe.outfit_presets": "装扮预设",
