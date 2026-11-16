@@ -2041,9 +2041,6 @@ public class Avatar {
         if (renderer != null && renderer.root != null)
             runtime.setGlobal("models", renderer.root);
 
-        init.reset(permissions.get(Permissions.INIT_INST));
-        runtime.setInstructionLimit(init.remaining);
-
         events.offer(() -> {
             if (runtime.init(autoScripts)
                     && top.aihmc.omnimorph.model.outfit.OutfitInstructionBudget.current(this) == null) {

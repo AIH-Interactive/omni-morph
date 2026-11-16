@@ -113,6 +113,10 @@ public class Configs {
             RENDER_INSTRUCTION_BASE = new InstructionCeilingConfig("render_instruction_base", PERFORMANCE, 8192),
             RENDER_INSTRUCTION_CEILING = new InstructionCeilingConfig("render_instruction_ceiling", PERFORMANCE, 32768);
 
+    public static final InstructionCeilingConfig
+            INIT_INSTRUCTION_BASE = new InstructionCeilingConfig("init_instruction_base", PERFORMANCE, 65536),
+            INIT_INSTRUCTION_CEILING = new InstructionCeilingConfig("init_instruction_ceiling", PERFORMANCE, 262144);
+
     // -- script -- // 
 
 
