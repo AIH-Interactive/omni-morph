@@ -2,7 +2,7 @@
 
 工具：`tools/performance_capture.py`，仅使用 Python 标准库。所有运行参数集中在 `tools/performance_capture.json`，也可用 `--config` 指定另一份配置。
 
-P4.5 内置 HTTP 服务尚未实现。工具先按计划的 JSON 快照契约提供客户端；示例 URL 必须在服务实现后改成实际地址。本轮用真实本机 HTTP 夹具验证请求和 CSV，不代表已采集游戏数据。
+P4.5 内置 HTTP 服务适用于OMM alpha.12：开启Debug模式，在性能设置中配置端口，默认地址为配置示例。实际字段和计数口径见[HTTP快照契约](performance-http.md)。已验证真实服务到Python/CSV链路；游戏画面仍为MANUAL/PENDING。
 
 ## 配置文件
 
@@ -18,7 +18,7 @@ P4.5 内置 HTTP 服务尚未实现。工具先按计划的 JSON 快照契约提
 
 | 配置项 | 含义 |
 | --- | --- |
-| `url` | 实际 HTTP JSON 快照地址；示例端口与路径不表示服务已实现 |
+| `url` | 实际 HTTP JSON 快照地址，端口需与客户端性能设置一致 |
 | `csv_path` | 完整 CSV 路径模板，包含模型名、类型、时间戳三个占位符；相对路径以配置文件所在目录为基准 |
 | `interval_ms` | 每次记录完成后，到下次请求前等待的**毫秒数**；500 表示0.5秒 |
 | `timeout_ms` | 单次请求超时，单位同样是毫秒 |

@@ -231,6 +231,36 @@ public final class OutfitInstructionBudget {
         return value;
     }
 
+    /** Copy retained ledgers; unlike allowance/usage, this never imports work or resets an epoch. */
+    public com.google.gson.JsonObject performanceSnapshot() {
+        var result = new com.google.gson.JsonObject();
+        for (var entry : usage.entrySet()) {
+            var permission = entry.getKey();
+            var value = entry.getValue();
+            long current;
+            String clock;
+            if (permission == Permissions.INIT_INST) {
+                current = 0;
+                clock = "load";
+            } else if (permission == Permissions.TICK_INST || permission == Permissions.WORLD_TICK_INST) {
+                current = particleTickClock ? particleTick : tick;
+                clock = particleTickClock ? "particle_tick" : "composition_tick";
+            } else {
+                current = YsmRenderFrameClock.currentFrame();
+                clock = "render_frame";
+            }
+            var item = new com.google.gson.JsonObject();
+            item.addProperty("used", value.instructions);
+            item.addProperty("observedBase", value.observedBase);
+            item.addProperty("epoch", value.epoch);
+            item.addProperty("current", value.epoch == current);
+            item.addProperty("clock", clock);
+            item.addProperty("unit", permission == Permissions.COMPLEXITY ? "faces" : "instructions");
+            result.add(permission.name, item);
+        }
+        return result;
+    }
+
     private static Permissions channel(Avatar avatar, Avatar.Instructions instructions) {
         if (instructions == avatar.complexity) {
             return Permissions.COMPLEXITY;

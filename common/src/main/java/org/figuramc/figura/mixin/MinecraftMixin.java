@@ -38,6 +38,11 @@ public abstract class MinecraftMixin {
     @Shadow @Final public Options options;
     @Shadow public LocalPlayer player;
 
+    @Inject(at = @At("HEAD"), method = "destroy")
+    private void figura$closePerformanceHttp(CallbackInfo ci) {
+        top.aihmc.omnimorph.debug.PerformanceDebug.close();
+    }
+
     @Shadow public abstract Entity getCameraEntity();
 
     @Shadow public abstract void setScreen(@Nullable Screen screen);
