@@ -19,7 +19,7 @@ public final class AdaptiveRenderBudgetSmokeTest {
         int base = Configs.RENDER_INSTRUCTION_BASE.value;
         try {
             verifyInitialization();
-            require(Configs.RENDER_INSTRUCTION_CEILING.defaultValue == 32768, "Default hard ceiling");
+            require(Configs.RENDER_INSTRUCTION_CEILING.defaultValue == Integer.MAX_VALUE, "Default hard ceiling");
             require(Configs.RENDER_INSTRUCTION_BASE.defaultValue == 8192, "Default base limit");
             require(Configs.RENDER_INSTRUCTION_BASE.parent == Configs.PERFORMANCE
                             && Configs.RENDER_INSTRUCTION_CEILING.parent == Configs.PERFORMANCE
@@ -90,7 +90,7 @@ public final class AdaptiveRenderBudgetSmokeTest {
             Configs.RENDER_INSTRUCTION_CEILING.value = ceiling;
             Configs.RENDER_INSTRUCTION_BASE.value = base;
         }
-        System.out.println("OMM_NATIVE_ADAPTIVE_BUDGET_OK base=8192 hard=32768 range=8192..2147483647");
+        System.out.println("OMM_NATIVE_ADAPTIVE_BUDGET_OK base=8192 test_hard=32768 default_hard=2147483647 range=8192..2147483647");
     }
 
     private static void verifyInitialization() {
@@ -99,8 +99,8 @@ public final class AdaptiveRenderBudgetSmokeTest {
         try {
             require(Configs.INIT_INSTRUCTION_BASE.defaultValue == 65536,
                     "Initialization base defaults to 65536");
-            require(Configs.INIT_INSTRUCTION_CEILING.defaultValue == 262144,
-                    "Initialization ceiling defaults to 262144");
+            require(Configs.INIT_INSTRUCTION_CEILING.defaultValue == Integer.MAX_VALUE,
+                    "Initialization ceiling defaults to Integer.MAX_VALUE");
             require(Configs.INIT_INSTRUCTION_BASE.parent == Configs.PERFORMANCE
                             && Configs.INIT_INSTRUCTION_CEILING.parent == Configs.PERFORMANCE,
                     "Both initialization inputs belong in Performance");
@@ -145,7 +145,7 @@ public final class AdaptiveRenderBudgetSmokeTest {
             Configs.INIT_INSTRUCTION_BASE.value = base;
             Configs.INIT_INSTRUCTION_CEILING.value = ceiling;
         }
-        System.out.println("OMM_NATIVE_ADAPTIVE_INIT_OK base=65536 hard=262144");
+        System.out.println("OMM_NATIVE_ADAPTIVE_INIT_OK base=65536 test_hard=262144 default_hard=2147483647");
     }
 
     private static final class Owner implements AutoCloseable {
