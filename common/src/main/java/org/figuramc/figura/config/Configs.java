@@ -117,6 +117,9 @@ public class Configs {
             INIT_INSTRUCTION_BASE = new InstructionCeilingConfig("init_instruction_base", PERFORMANCE, 65536),
             INIT_INSTRUCTION_CEILING = new InstructionCeilingConfig("init_instruction_ceiling", PERFORMANCE, 262144);
 
+    public static final top.aihmc.omnimorph.debug.PerformancePortConfig PERFORMANCE_HTTP_PORT =
+            new top.aihmc.omnimorph.debug.PerformancePortConfig("performance_http_port", PERFORMANCE, 18081);
+
     // -- script -- // 
 
 
@@ -278,6 +281,7 @@ public class Configs {
                 public void onChange() {
                     if (!ConfigManager.isInitializing()) {
                         NetworkStuff.debugPermissionChanged();
+                        top.aihmc.omnimorph.debug.PerformanceDebug.reconcile();
                     }
                 }
             };

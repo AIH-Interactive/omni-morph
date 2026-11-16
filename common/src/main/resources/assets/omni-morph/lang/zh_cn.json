@@ -1209,5 +1209,7 @@
   "omni-morph.config.init_instruction_base": "初始化指令基础上限",
   "omni-morph.config.init_instruction_base.tooltip": "每次初始化从此窗口重新开始，按需临时增长，不重跑脚本。输入范围 8192–2147483647，默认 65536；最高上限优先。",
   "omni-morph.config.init_instruction_ceiling": "初始化指令最高上限",
-  "omni-morph.config.init_instruction_ceiling.tooltip": "初始化自适应增长的最高额度，服装组合共用。输入范围 8192–2147483647，默认 262144。禁用及低信任权限仍保留限制。"
+  "omni-morph.config.init_instruction_ceiling.tooltip": "初始化自适应增长的最高额度，服装组合共用。输入范围 8192–2147483647，默认 262144。禁用及低信任权限仍保留限制。",
+  "omni-morph.config.performance_http_port": "性能数据 HTTP 端口",
+  "omni-morph.config.performance_http_port.tooltip": "仅在 Debug 模式开启时运行。只读快照：http://127.0.0.1:端口/debug/performance，范围1–65535。"
 }

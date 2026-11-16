@@ -27,7 +27,12 @@ def mapping(value):
 def identity(snapshot):
     selected = mapping(snapshot.get("currentSelection"))
     active = mapping(snapshot.get("activeModel"))
-    return selected.get("modelId"), active.get("modelId"), active.get("generation")
+    return (
+        selected.get("modelId"),
+        active.get("modelId"),
+        active.get("generation"),
+        selected.get("generation"),
+    )
 
 
 def filename_component(value):
@@ -81,7 +86,7 @@ def cell(value):
 
 
 def snapshot_row(snapshot, request_index, requested_at, received_at):
-    selected, active, generation = identity(snapshot)
+    selected, active, generation, selected_generation = identity(snapshot)
     row = {
         "request_index": request_index,
         "requested_at": requested_at,
@@ -92,6 +97,7 @@ def snapshot_row(snapshot, request_index, requested_at, received_at):
         "selected_model_id": selected,
         "active_model_id": active,
         "generation": generation,
+        "selected_generation": selected_generation,
     }
     groups = [("metric", mapping(snapshot.get("metrics")))]
     for instance in snapshot.get("instances", []):
