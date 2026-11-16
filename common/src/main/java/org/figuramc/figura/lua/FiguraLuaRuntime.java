@@ -392,6 +392,7 @@ public class FiguraLuaRuntime {
 
     public boolean init(ListTag autoScripts) {
         owner.luaRuntime = this;
+        owner.init.reset(instructionCeiling(owner, Permissions.INIT_INST));
 
         try {
             var budget = OutfitInstructionBudget.current(owner);
@@ -404,6 +405,7 @@ public class FiguraLuaRuntime {
                     return LuaValue.TRUE;
                 }, budget) != null;
             }
+            setExecutionInstructionLimit(owner.init.remaining, owner.init);
             sharedExecutionDepth++;
             try {
                 initializeScripts(autoScripts);
@@ -454,6 +456,10 @@ public class FiguraLuaRuntime {
     /** Client-local ceiling; explicit blocked/low trust permissions retain their limits. */
     public static int instructionCeiling(Avatar avatar, Permissions permission) {
         int permitted = avatar.permissions.get(permission);
+        if (permission == Permissions.INIT_INST) {
+            // Initialization has its own trust baseline; explicitly restricted models stay restricted.
+            return permitted < 65536 ? permitted : Configs.INIT_INSTRUCTION_CEILING.value;
+        }
         if (permission != Permissions.RENDER_INST) {
             return permitted;
         }
@@ -464,9 +470,11 @@ public class FiguraLuaRuntime {
 
     private void setExecutionInstructionLimit(int available, Avatar.Instructions instructions) {
         setInstructionLimit(available);
-        if (instructions == owner.render && available > 0
-                && Configs.ADAPTIVE_RENDER_BUDGET.value) {
-            adaptiveWindow = new AdaptiveInstructionWindow(Configs.RENDER_INSTRUCTION_BASE.value, available);
+        boolean initialization = instructions == owner.init;
+        boolean adaptiveRender = instructions == owner.render && Configs.ADAPTIVE_RENDER_BUDGET.value;
+        if (available > 0 && (initialization || adaptiveRender)) {
+            int base = initialization ? Configs.INIT_INSTRUCTION_BASE.value : Configs.RENDER_INSTRUCTION_BASE.value;
+            adaptiveWindow = new AdaptiveInstructionWindow(base, available);
             setHookFunction.invoke(LuaValue.varargsOf(onReachedLimit, LuaValue.EMPTYSTRING,
                     LuaValue.valueOf(adaptiveWindow.threshold())));
         }

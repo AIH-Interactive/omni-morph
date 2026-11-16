@@ -2446,5 +2446,9 @@
     "omni-morph.config.render_instruction_base": "Base Render Instruction Limit",
     "omni-morph.config.render_instruction_base.tooltip": "Initial render instruction window before adaptive growth. Enter 8192 to 2147483647; default 8192. Clamped to the hard ceiling during execution.",
     "omni-morph.config.performance": "Performance",
-    "omni-morph.config.performance.tooltip": "Client-wide model rendering budgets"
+    "omni-morph.config.performance.tooltip": "Client-wide model rendering budgets",
+  "omni-morph.config.init_instruction_base": "Base Initialization Instruction Limit",
+  "omni-morph.config.init_instruction_base.tooltip": "Start each initialization at this window and grow temporarily without replaying scripts. Enter 8192 to 2147483647; default 65536. The ceiling takes precedence.",
+  "omni-morph.config.init_instruction_ceiling": "Maximum Initialization Instruction Limit",
+  "omni-morph.config.init_instruction_ceiling.tooltip": "Maximum adaptive initialization allowance, shared by an outfit. Enter 8192 to 2147483647; default 262144. Disabled and low-trust permissions stay restricted."
 }

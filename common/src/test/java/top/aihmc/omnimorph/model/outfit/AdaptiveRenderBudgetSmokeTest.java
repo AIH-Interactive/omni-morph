@@ -18,6 +18,7 @@ public final class AdaptiveRenderBudgetSmokeTest {
         int ceiling = Configs.RENDER_INSTRUCTION_CEILING.value;
         int base = Configs.RENDER_INSTRUCTION_BASE.value;
         try {
+            verifyInitialization();
             require(Configs.RENDER_INSTRUCTION_CEILING.defaultValue == 32768, "Default hard ceiling");
             require(Configs.RENDER_INSTRUCTION_BASE.defaultValue == 8192, "Default base limit");
             require(Configs.RENDER_INSTRUCTION_BASE.parent == Configs.PERFORMANCE
@@ -58,7 +59,8 @@ public final class AdaptiveRenderBudgetSmokeTest {
             }
             require(window.threshold() == Integer.MAX_VALUE, "Largest signed-int ceiling remains exact");
             for (InstructionCeilingConfig input : new InstructionCeilingConfig[]{
-                    Configs.RENDER_INSTRUCTION_BASE, Configs.RENDER_INSTRUCTION_CEILING}) {
+                    Configs.RENDER_INSTRUCTION_BASE, Configs.RENDER_INSTRUCTION_CEILING,
+                    Configs.INIT_INSTRUCTION_BASE, Configs.INIT_INSTRUCTION_CEILING}) {
                 for (int value : new int[]{8192, 32768, 65536, Integer.MAX_VALUE}) {
                     require(input.parseValue(Integer.toString(value)) == value,
                             "Integer input accepts exact configured limits");
@@ -89,6 +91,61 @@ public final class AdaptiveRenderBudgetSmokeTest {
             Configs.RENDER_INSTRUCTION_BASE.value = base;
         }
         System.out.println("OMM_NATIVE_ADAPTIVE_BUDGET_OK base=8192 hard=32768 range=8192..2147483647");
+    }
+
+    private static void verifyInitialization() {
+        int base = Configs.INIT_INSTRUCTION_BASE.value;
+        int ceiling = Configs.INIT_INSTRUCTION_CEILING.value;
+        try {
+            require(Configs.INIT_INSTRUCTION_BASE.defaultValue == 65536,
+                    "Initialization base defaults to 65536");
+            require(Configs.INIT_INSTRUCTION_CEILING.defaultValue == 262144,
+                    "Initialization ceiling defaults to 262144");
+            require(Configs.INIT_INSTRUCTION_BASE.parent == Configs.PERFORMANCE
+                            && Configs.INIT_INSTRUCTION_CEILING.parent == Configs.PERFORMANCE,
+                    "Both initialization inputs belong in Performance");
+            Configs.INIT_INSTRUCTION_BASE.value = 8192;
+            Configs.INIT_INSTRUCTION_CEILING.value = 262144;
+            for (int attempt = 0; attempt < 2; attempt++) {
+                try (var owner = new Owner()) {
+                    var runtime = new FiguraLuaRuntime(owner.avatar, Map.of("main",
+                            "hits=(hits or 0)+1; start=avatar:getCurrentInstructions(); "
+                                    + "for i=1,30000 do hits=hits+1 end; "
+                                    + "finish=avatar:getCurrentInstructions(); "
+                                    + "assert(hits==30001); assert(start<8192); assert(finish>65536); assert(avatar:getMaxInitCount()==262144)"));
+                    require(runtime.init(null), "Initialization grows in the actual Lua VM");
+                    require(owner.avatar.init.max == 262144,
+                            "The actual initialization counter uses the client ceiling");
+                }
+            }
+            Configs.INIT_INSTRUCTION_CEILING.value = 8192;
+            try (var owner = new Owner()) {
+                var runtime = new FiguraLuaRuntime(owner.avatar, Map.of("main", "while true do end"));
+                require(!runtime.init(null) && owner.avatar.scriptError,
+                        "The configured initialization ceiling stops runaway scripts");
+            }
+            Configs.INIT_INSTRUCTION_CEILING.value = Integer.MAX_VALUE;
+            for (int permission : new int[]{0, 4096}) {
+                try (var owner = new Owner()) {
+                    owner.avatar.permissions.insert(Permissions.INIT_INST, permission,
+                            org.figuramc.figura.FiguraMod.MOD_ID);
+                    require(FiguraLuaRuntime.instructionCeiling(owner.avatar, Permissions.INIT_INST) == permission,
+                            "Initialization settings preserve explicit low-trust restrictions");
+                    var runtime = new FiguraLuaRuntime(owner.avatar, Map.of("main", "while true do end"));
+                    require(!runtime.init(null) && owner.avatar.scriptError,
+                            "Restricted initialization cannot borrow the configured maximum");
+                }
+            }
+            for (InstructionCeilingConfig input : new InstructionCeilingConfig[]{
+                    Configs.INIT_INSTRUCTION_BASE, Configs.INIT_INSTRUCTION_CEILING}) {
+                require(input.parseValue("2147483647") == Integer.MAX_VALUE,
+                        "Both initialization inputs accept the largest signed integer");
+            }
+        } finally {
+            Configs.INIT_INSTRUCTION_BASE.value = base;
+            Configs.INIT_INSTRUCTION_CEILING.value = ceiling;
+        }
+        System.out.println("OMM_NATIVE_ADAPTIVE_INIT_OK base=65536 hard=262144");
     }
 
     private static final class Owner implements AutoCloseable {

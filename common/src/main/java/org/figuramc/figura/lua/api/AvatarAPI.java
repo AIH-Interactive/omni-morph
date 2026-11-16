@@ -201,7 +201,7 @@ public class AvatarAPI {
     @LuaWhitelist
     @LuaMethodDoc("avatar.get_max_init_count")
     public int getMaxInitCount() {
-        return avatar.permissions.get(Permissions.INIT_INST);
+        return org.figuramc.figura.lua.FiguraLuaRuntime.instructionCeiling(avatar, Permissions.INIT_INST);
     }
 
     @LuaWhitelist
