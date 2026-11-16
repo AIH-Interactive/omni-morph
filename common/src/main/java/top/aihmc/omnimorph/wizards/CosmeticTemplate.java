@@ -14,14 +14,36 @@ public enum CosmeticTemplate {
     HAIR("Hair", "hair_anchor"),
     TAIL("Tail", "hip"),
     TRAIL("Trail", "tailtip"),
-    WINGS("Wings", "wing_anchor");
+    WINGS("Wings", "wing_anchor"),
+    FLEXIBLE_PENNANT("Back", "back_anchor", "flexible-pennant"),
+    ORBITAL_CHARMS("Back", "back_anchor", "orbital-charms"),
+    SAMPLED_LANTERN("Back", "back_anchor", "sampled-lantern"),
+    PRISMATIC_BADGE("Face", "face_anchor", "prismatic-badge"),
+    VIEW_SIGIL("Head", "head_anchor", "view-sigil"),
+    PAINTED_RIBBON("Trail", "tailtip", "painted-ribbon"),
+    SPRINT_LIGHT("Back", "back_anchor", "sprint-light");
 
     private final String category;
     private final String anchor;
+    private final String resourceId;
 
     CosmeticTemplate(String category, String anchor) {
+        this(category, anchor, null);
+    }
+
+    CosmeticTemplate(String category, String anchor, String resourceId) {
         this.category = category;
         this.anchor = anchor;
+        this.resourceId = resourceId;
+    }
+
+    public String resourceId() {
+        return resourceId;
+    }
+
+    public String displayKey() {
+        return resourceId == null ? "gui.cosmetic_wizard.category." + category
+                : "gui.cosmetic_wizard.template." + resourceId;
     }
 
     public String category() {
@@ -33,6 +55,9 @@ public enum CosmeticTemplate {
     }
 
     public BlockBenchModel model(String baseTexture) {
+        if (resourceId != null) {
+            throw new IllegalStateException("Bundled templates use their authored model resource");
+        }
         var model = new BlockBenchModel("free");
         model.setResolution(32, 32);
         if (this != TRAIL) {

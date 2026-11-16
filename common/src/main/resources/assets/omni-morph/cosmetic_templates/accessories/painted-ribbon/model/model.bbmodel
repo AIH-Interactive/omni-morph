@@ -1,0 +1,90 @@
+{
+  "meta": {
+    "format_version": "5.0",
+    "model_format": "free"
+  },
+  "name": "model",
+  "resolution": {
+    "width": 64,
+    "height": 64
+  },
+  "elements": [
+    {
+      "name": "Marker",
+      "type": "mesh",
+      "uuid": "50e2e4ce-bb05-5176-b209-15c33ff529f3",
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "vertices": {
+        "v0": [
+          -2,
+          -2,
+          0
+        ],
+        "v1": [
+          2,
+          -2,
+          0
+        ],
+        "v2": [
+          2,
+          2,
+          0
+        ],
+        "v3": [
+          -2,
+          2,
+          0
+        ]
+      },
+      "faces": {
+        "surface": {
+          "vertices": [
+            "v0",
+            "v1",
+            "v2",
+            "v3"
+          ],
+          "uv": {
+            "v0": [
+              0,
+              64
+            ],
+            "v1": [
+              64,
+              64
+            ],
+            "v2": [
+              64,
+              0
+            ],
+            "v3": [
+              0,
+              0
+            ]
+          },
+          "texture": 0
+        }
+      }
+    }
+  ],
+  "groups": [],
+  "outliner": [
+    "50e2e4ce-bb05-5176-b209-15c33ff529f3"
+  ],
+  "textures": [
+    {
+      "name": "art",
+      "uuid": "b624e2ec-905b-53f6-8b63-d09afe7c5fad",
+      "width": 64,
+      "height": 64,
+      "uv_width": 64,
+      "uv_height": 64,
+      "source": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAn0lEQVR4nO3asQ3EQAgAwb0V/XfzRX3qzH/BfRkO1lMBSAgEYp1zDmESJ3ESJ3ESJ3ESJ3ESJ3ESJ3ESJ3ESJ3ESJ3ESJ3ESJ3HzSx/FYT4XaXPXK2DRJnESJ3ESJ3ESJ3ESJ3ESJ3FT3wVmx7fB9d3tP8FVf5ScdPa8TZD8GJQ4iZM4iZM4iZM4iZM4iZM4iZM4iZM4iZM4ifPpAJ72BzpMFPxEZu0gAAAAAElFTkSuQmCC"
+    }
+  ],
+  "animations": []
+}

@@ -120,6 +120,15 @@ tasks.register('localOutfitPresetsSmokeTest', JavaExec) {
     mainClass = 'top.aihmc.omnimorph.model.outfit.LocalOutfitPresetsSmokeTest'
 }
 
+tasks.register('cosmeticCreationSmokeTest', JavaExec) {
+    group = 'verification'
+    description = 'Checks all built-in accessory presets through the existing creator and native Lua loader.'
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath + sourceSets.main.compileClasspath
+    mainClass = 'top.aihmc.omnimorph.wizards.CosmeticCreationSmokeTest'
+    maxHeapSize = '1g'
+}
+
 tasks.register('cosmeticSourceSmokeTest', JavaExec) {
     group = 'verification'
     description = 'Checks native accessory preparation, stable skeleton bindings and encrypted cosmetic caches; no GUI.'

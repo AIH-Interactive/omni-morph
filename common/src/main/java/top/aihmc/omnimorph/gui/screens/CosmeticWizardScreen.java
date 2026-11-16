@@ -42,11 +42,11 @@ public final class CosmeticWizardScreen extends AvatarWizardScreen {
         int x = (this.width - width) / 2;
         addRenderableWidget(new LibraryDropdown(x, 28, width,
                 () -> Arrays.stream(CosmeticTemplate.values())
-                        .map(value -> (Component) FiguraText.of("gui.cosmetic_wizard.category." + value.category())).toList(),
+                        .map(value -> (Component) FiguraText.of(value.displayKey())).toList(),
                 () -> cosmetic.template().ordinal(), option -> {
                     cosmetic.template(CosmeticTemplate.values()[option]);
                     rebuildWidgets();
-                }));
+                }, 8));
         addRenderableWidget(new LibraryDropdown(x, 52, width,
                 () -> anchors().stream().map(value -> (Component) Component.literal(value)).toList(),
                 () -> anchors().indexOf(cosmetic.anchor()), option -> {
