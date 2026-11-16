@@ -111,11 +111,11 @@ public class Configs {
             new ConfigType.BoolConfig("adaptive_render_budget", PERFORMANCE, true);
     public static final InstructionCeilingConfig
             RENDER_INSTRUCTION_BASE = new InstructionCeilingConfig("render_instruction_base", PERFORMANCE, 8192),
-            RENDER_INSTRUCTION_CEILING = new InstructionCeilingConfig("render_instruction_ceiling", PERFORMANCE, 32768);
+            RENDER_INSTRUCTION_CEILING = new InstructionCeilingConfig("render_instruction_ceiling", PERFORMANCE, Integer.MAX_VALUE);
 
     public static final InstructionCeilingConfig
             INIT_INSTRUCTION_BASE = new InstructionCeilingConfig("init_instruction_base", PERFORMANCE, 65536),
-            INIT_INSTRUCTION_CEILING = new InstructionCeilingConfig("init_instruction_ceiling", PERFORMANCE, 262144);
+            INIT_INSTRUCTION_CEILING = new InstructionCeilingConfig("init_instruction_ceiling", PERFORMANCE, Integer.MAX_VALUE);
 
     public static final top.aihmc.omnimorph.debug.PerformancePortConfig PERFORMANCE_HTTP_PORT =
             new top.aihmc.omnimorph.debug.PerformancePortConfig("performance_http_port", PERFORMANCE, 18081);
