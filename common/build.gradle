@@ -273,6 +273,23 @@ tasks.register('deferredMaterialSmokeTest', JavaExec) {
     mainClass = 'top.aihmc.omnimorph.testing.DeferredMaterialSmokeTest'
 }
 
+// Local-only regression: apply the released Mixin bytes to each loader's actual Minecraft class.
+['fabric', 'neoforge'].each { platform ->
+    tasks.register("${platform}MinecraftLifecycleMixinSmokeTest", JavaExec) {
+        group = 'verification'
+        description = "Applies the packaged Minecraft lifecycle Mixin to the ${platform} target without starting a client."
+        dependsOn testClasses, ":${platform}:remapJar"
+        mainClass = 'top.aihmc.omnimorph.testing.MinecraftLifecycleMixinSmokeTest'
+        maxHeapSize = '1g'
+        doFirst {
+            def platformProject = project(":${platform}")
+            def artifact = platformProject.tasks.named('remapJar').get().archiveFile.get().asFile
+            classpath = files(artifact) + sourceSets.test.output + platformProject.sourceSets.main.compileClasspath
+            args platform, artifact.absolutePath
+        }
+    }
+}
+
 [
         'deferredMaterialSmokeTest',
         'nativePipFailureSmokeTest',

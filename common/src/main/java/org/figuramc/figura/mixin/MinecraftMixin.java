@@ -39,7 +39,7 @@ public abstract class MinecraftMixin {
     @Shadow @Final public Options options;
     @Shadow public LocalPlayer player;
 
-    @Inject(at = @At("HEAD"), method = "destroy")
+    @Inject(at = @At("HEAD"), method = "close()V")
     private void figura$closePerformanceHttp(CallbackInfo ci) {
         top.aihmc.omnimorph.debug.PerformanceDebug.close();
     }
