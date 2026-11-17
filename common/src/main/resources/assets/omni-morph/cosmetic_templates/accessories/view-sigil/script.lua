@@ -2,7 +2,8 @@
 accessory = {options={size=0.35, height=1.4, lean=0.025}, time=0}
 local image = assert(textures:getTextures()[1], "The sigil needs its own model texture")
 local particle, original
-models.model.model.Marker:setVisible(false)
+local root = models.model.model.Cosmetic
+models.model.model.Cosmetic.Marker:setVisible(false)
 
 function accessory.clear()
     if particle then
@@ -16,7 +17,7 @@ function accessory.update(time)
         accessory.clear()
         return
     end
-    local origin = player:getPos() + vectors.vec3(0.35, accessory.options.height, 0)
+    local origin = root:partToWorldMatrix():apply(0.35 * 16, accessory.options.height * 16, 0)
     local direction = client:getCameraPos() - origin
     if direction:length() > 0 then
         origin = origin + direction:normalize() * accessory.options.lean
@@ -38,6 +39,6 @@ end
 events.TICK:register(function()
     accessory.time = accessory.time + 1/20
 end)
-events.RENDER:register(function(delta)
+events.POST_RENDER:register(function(delta)
     accessory.update(accessory.time + delta/20)
 end)

@@ -3,7 +3,11 @@ accessory = {options={samples=12, width=0.08, radius=0.3}, time=0}
 local history = {}
 local image = assert(textures:getTextures()[1], "The ribbon needs its own texture")
 local particle
-models.model.model.Marker:setVisible(false)
+local root = models.model.model.Cosmetic
+models.model.model.Cosmetic.Marker:setVisible(false)
+local recordedTime
+cosmetic_controls:newSlider("lifetime"):setTitle("Lifetime (ticks) / 寿命（tick）")
+    :setRange(1, 300, 1):setDefault(20)
 
 function accessory.clear()
     if particle then
@@ -18,8 +22,8 @@ local function record()
         return
     end
     local t = accessory.time
-    local point = player:getPos() + vectors.vec3(math.cos(t * 3) * accessory.options.radius,
-        1 + math.sin(t * 2) * 0.15, math.sin(t * 3) * accessory.options.radius)
+    local point = root:partToWorldMatrix():apply(math.cos(t * 3) * accessory.options.radius * 16,
+        (1 + math.sin(t * 2) * 0.15) * 16, math.sin(t * 3) * accessory.options.radius * 16)
     history[#history + 1] = point
     if #history > accessory.options.samples then
         table.remove(history, 1)
@@ -32,7 +36,8 @@ function accessory.update(time)
     end
     local origin = history[#history]
     if not particle or not particle:isAlive() then
-        particle = particles:newCustomParticle(image, origin):setLifetime(20):setEmissive(true)
+        particle = particles:newCustomParticle(image, origin)
+            :setLifetime(cosmetic_controls:get("lifetime")):setEmissive(true)
         particle:setLayers({{blend="alpha", cull=false, alpha_cutoff=0.001,
             depth_test=true, order=1, emissive=true}})
     end
@@ -56,8 +61,11 @@ end
 
 events.TICK:register(function()
     accessory.time = accessory.time + 1/20
-    record()
 end)
-events.RENDER:register(function(delta)
+events.POST_RENDER:register(function(delta)
+    if recordedTime ~= accessory.time then
+        recordedTime = accessory.time
+        record()
+    end
     accessory.update(accessory.time + delta/20)
 end)
