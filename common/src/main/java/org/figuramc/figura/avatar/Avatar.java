@@ -2244,7 +2244,9 @@ public class Avatar {
                 performanceTick = FiguraMod.ticks;
                 performanceNanos = System.nanoTime();
             }
-            remaining -= amount;
+            if (max != -1) {
+                remaining -= amount;
+            }
 
             if (!inverted) {
                 currPre += amount;

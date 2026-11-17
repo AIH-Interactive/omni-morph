@@ -178,15 +178,16 @@ public final class OutfitInstructionBudget {
         int maximum = FiguraLuaRuntime.instructionCeiling(avatar, permission);
         Usage value = usage(permission);
         if (baseAvatar != null) {
-            maximum = Math.min(maximum, FiguraLuaRuntime.instructionCeiling(baseAvatar, permission));
+            maximum = minimumLimit(maximum, FiguraLuaRuntime.instructionCeiling(baseAvatar, permission));
             var baseInstructions = instructions(baseAvatar, permission);
-            long baseUsed = Math.max(0L, (long) baseInstructions.max - baseInstructions.remaining);
+            long baseUsed = used(baseInstructions);
             // Import work performed before this scope; counter resets never refund shared work.
             value.instructions += Math.max(0, baseUsed - value.observedBase);
             value.observedBase = baseUsed;
         }
-        long available = (long) maximum - value.instructions;
-        int remaining = (int) Math.max(0, Math.min(instructions.remaining, available));
+        int available = maximum == -1 ? -1 : (int) Math.max(0, (long) maximum - value.instructions);
+        int local = instructions.max == -1 ? -1 : Math.max(0, instructions.remaining);
+        int remaining = minimumLimit(local, available);
         if (remaining == 0 && avatar.cosmeticContext != null && DIAGNOSED.add(System.identityHashCode(avatar) + ":" + permission)) {
             // Diagnostic only: an accessory found no shared allowance; record every input of the computation.
             var baseInstructions = baseAvatar == null ? null : instructions(baseAvatar, permission);
@@ -211,8 +212,20 @@ public final class OutfitInstructionBudget {
         value.instructions += consumed;
         if (avatar == base.get()) {
             // Called immediately before the VM updates the base's own counter.
-            value.observedBase = Math.max(0L, (long) instructions.max - instructions.remaining) + consumed;
+            value.observedBase = used(instructions) + consumed;
         }
+    }
+
+    private static int minimumLimit(int first, int second) {
+        if (first == -1) {
+            return second;
+        }
+        return second == -1 ? first : Math.min(first, second);
+    }
+
+    private static long used(Avatar.Instructions instructions) {
+        return instructions.max == -1 ? Math.max(0, instructions.getTotal())
+                : Math.max(0L, (long) instructions.max - instructions.remaining);
     }
 
     private Usage usage(Permissions permission) {

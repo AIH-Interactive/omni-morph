@@ -88,7 +88,7 @@ final class CustomParticleCallbacks implements AutoCloseable {
             error = "CALLBACK_OWNER_INACTIVE";
             return;
         }
-        if (runtime.particleCallbackAllowance(perFrame) <= 0) {
+        if (runtime.particleCallbackAllowance(perFrame) == 0) {
             error = "CALLBACK_INSTRUCTION_LIMIT";
             return;
         }

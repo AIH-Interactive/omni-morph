@@ -113,11 +113,11 @@ public final class PerformanceSnapshot {
         var render = new JsonObject();
         render.addProperty("adaptive", Configs.ADAPTIVE_RENDER_BUDGET.value);
         render.addProperty("base", Configs.RENDER_INSTRUCTION_BASE.value);
-        render.addProperty("hardCeiling", Configs.RENDER_INSTRUCTION_CEILING.value);
+        render.addProperty("hardCeiling", Configs.RENDER_INSTRUCTION_CEILING);
         references.add("renderBudget", render);
         var init = new JsonObject();
         init.addProperty("base", Configs.INIT_INSTRUCTION_BASE.value);
-        init.addProperty("hardCeiling", Configs.INIT_INSTRUCTION_CEILING.value);
+        init.addProperty("hardCeiling", Configs.INIT_INSTRUCTION_CEILING);
         references.add("initBudget", init);
         var catalog = new JsonArray();
         for (var entry : metrics.entrySet()) {

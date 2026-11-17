@@ -101,7 +101,7 @@ public final class FirstPersonMaterialSmokeTest {
             for (Avatar avatar : List.of(base, accessory)) {
                 lua(avatar, """
                         fp_pre, fp_post = 0, 0
-                        local badge = models.model.model.Badge
+                        local badge = models.model.model.Cosmetic.Badge
                         badge:setPreRender(function()
                             fp_pre = fp_pre + 1
                             badge:setPos(fp_pre * 16, 0, 0)

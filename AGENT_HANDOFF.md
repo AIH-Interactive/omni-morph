@@ -1,5 +1,51 @@
 # Agent 交接手册
 
+## 当前接收任务：main 合并本轮 dev 更新（2026-11-17）
+
+- 用户明确要求优先merge，冲突再参考适配，验证后提交推送。在现有隔离工作树 `.worktrees/alpha11-main` 的main，从 `bf4379b7a7679c8934ef13602e43ee05c132fd57` 合并固定dev提交 `8cc2ede97a3af5cb109444586a05167322b58fb5`，采用双父merge。源目录仍为dev，已有gradle.properties状态和未跟踪资料未修改、未纳入提交。
+- 接收3个提交：6a6c977c（五套装饰Cosmetic根骨骼及新拖尾1–300 tick寿命／默认20）、19005abd（取消初始化与自适应渲染硬上限，保留可配置基础和受限权限共享计费）、8cc2ede9（新渐变拖尾独立自发光/动态光源及亮度、半径、1–64粒子发光间隔与即时更新）。保持alpha.12 / MC26.1.2，没有PSF、Wiki修改或其他版本派发。
+- 唯一冲突在AGENT_HANDOFF.md，保留main历史接收记录和dev实施记录，并以本节作为最新接收状态。功能代码、平台代码、测试及工具与固定dev提交完全一致，无生产适配、无额外修复。源RED证据保留其历史身份，不冒称本次接收重新执行RED。
+- main接收验证PASS：cosmeticCreation、ysmMaterialNative（含真实新拖尾粒子、无限预算与受限共享账本）、firstPersonMaterial、firstPersonItemRender、outfitApplyClient，以及Fabric/NeoForge build -Prelease。前台Windows PowerShell/Tee，退出0，BUILD SUCCESSFUL in 2m1s，39任务；日志build/main-alpha12-latest-merge.log。NeoForge分发检查145 mixins、13 libraries、13 resolved platform bridges通过；既有预览回归也通过。
+- 包检查PASS：主ZIP和嵌套JAR CRC、五个Cosmetic根、脚本与源码一致、寿命/光源控件、无限常量与基础输入、无PSF/测试类；日志build/main-alpha12-latest-artifacts/build.log。Fabric：19261398字节，SHA256 `7a8842091d6deb4f5d7d8dd19a1d11d2df93f64af9b3e1a22ac74d57edd37b3a`；NeoForge：18873152字节，SHA256 `db7b597b82b60724fe32d0072e299861e6a8eb1494c14fb8492111ccfe4543ca`。包在本隔离工作树各平台build/libs/omni-morph-1.0.0-alpha.12+26.1.2-<平台>-mc.jar，本节接收包哈希覆盖下方历史产物。
+- 接收实施和自动验证完成，无剩余实施项。此记录随merge提交到main并推送origin/main，最终提交见本工作树git log -1，推送后以ls-remote核对。保留已有未跟踪Python缓存和本地证据；不自动合并回dev、不发送跨版本指令、不覆盖用户安装包或模型。
+- 实机GUI、Mixin启动、实际光源及shader/GPU画面MANUAL/PENDING，未启动游戏。相关说明为本手册下方源交付节、四语言CHANGELOG、docs/performance-http.md、模板README。继续遵守范围控制、CodeGraph优先、原生Windows前台构建、禁止WSL/本地非Windows目标和Qt offscreen；人工项不作为受阻条件。开始检查点可靠周额度已用43%，未触发Luna交接。
+
+下方为dev实施及此前main接收历史，本轮交付状态和产物以本节为准。
+
+## 当前任务：新渐变拖尾光效设置，预算修改已交付（2026-11-17）
+
+- 当前分支dev跟踪origin/dev。初始化/自适应渲染取消硬上限的独立检查点 `19005abd11ae55c591f3b05b03f0fa857e2430e2` 已提交推送，ls-remote核对一致；保留可配置基础窗口、受限权限和共享计费。随后按用户追加要求，仅为新渐变拖尾（painted-ribbon）增加光效设置，不修改旧拖尾模板或其他模板。
+- 新增独立自发光（默认true）、动态光源（默认false）、亮度0–15（默认15）、半径0.5–16方块（默认7.5）、发光间隔1–64个粒子（默认1）。间隔沿用原生API的每N个粒子选择光源语义，和寿命1–300 tick／默认20 tick分别计量。控件修改直接更新现有存活粒子；移除图层强制emissive=true，避免关掉自发光后仍发光。光源继续经过原有权限、半径/亮度及数量预算检查。
+- 实际生成模板→Lua→原生粒子的测试PASS：默认与300 tick寿命、Cosmetic起点位置变化、独立自发光/光源切换、亮度/半径、间隔1与64、即时修改及清理。测试只替代穿戴者isLoaded和未注入的ParticleAccessor位置字段桥，保留原生粒子/光源消费者；不是游戏实际Mixin/GPU画面验证。
+- 夹具准备失败保留：build/painted-ribbon-lighting-fixture-compile.log（误用原生粒子getPos，改走现有字段读取）、build/painted-ribbon-lighting-fixture-mixin.log（独立JVM缺ParticleAccessor注入，补测试字段桥）。没有改生产API绕过失败。最终build/painted-ribbon-lighting-green.log，退出0，BUILD SUCCESSFUL in 1m6s，36任务；cosmeticCreation、ysmMaterialNative（含预算/共享账本/粒子及既有预览回归）、Fabric/NeoForge build -Prelease通过。
+- 最终包：fabric/build/libs/omni-morph-1.0.0-alpha.12+26.1.2-fabric-mc.jar，19261398字节，SHA256 `7a8842091d6deb4f5d7d8dd19a1d11d2df93f64af9b3e1a22ac74d57edd37b3a`；neoforge/build/libs/omni-morph-1.0.0-alpha.12+26.1.2-neoforge-mc.jar，18873151字节，SHA256 `c91a5af51456432a5362d581bea3b163de1bb22e4ea54e5a1e491ea837f63c5a`。build/painted-ribbon-lighting-artifacts/build.log核对主ZIP/嵌套JAR CRC、模板脚本与源码一致、光效/寿命控件、两个无限常量与中英文硬上限输入文案移除，全部PASS；覆盖下方历史哈希。
+- 本任务实施、自动验证、新包和四语言更新记录完成，无剩余实施项。此节随光效资源/测试/文档提交推送dev，最终提交以git log及远端核对为准。原gradle.properties状态与未跟踪资料保留，main/Wiki/其他版本未操作；用户旧装饰不自动迁移。
+- 游戏内控件界面、实际发光/遮挡画面和Mixin启动为MANUAL/PENDING，未擅自启动游戏或覆盖安装包/模型。相关文件为painted-ribbon的script.lua/README、CosmeticCreationSmokeTest、CreatedTrailParticleSmokeTest、四语言CHANGELOG。继续遵守CodeGraph优先、原生Windows前台Tee构建、禁止WSL与Qt offscreen。最近可靠周额度已用43%、剩余57%，未触发Luna交接。
+
+下方为预算和此前任务的历史记录；交付完成状态和新包以本节为准。
+
+## 当前任务：初始化与渲染取消硬上限（2026-11-17）
+
+- 用户明确基础保持可设置，初始化与渲染不需要硬上限，也不要求使用特定数值。实施在dev，源提交6a6c977c；初始化和自适应渲染使用内部-1表示无限，移除两个可编辑硬上限配置。基础默认仍为渲染8192、初始化65536，范围8192–2147483647。关闭渲染自适应恢复原权限；禁用、低信任权限及其他通道仍保持有限。
+- 修改实际VM钩子、共享账本、粒子回调门槛和计数消费者；无限remaining不递减、不当作耗尽，同帧反复调用不会重置累计计数。LuaJ最大int钩子范围不作为无限脚本的停止条件；基础窗口按需扩展，不重放脚本。性能HTTP保留原字段，hardCeiling=-1表示无限，基础仍来自设置。中英文提示、实际HTTP契约、AGENTS相关预算说明和四语言更新记录同步。
+- RED：build/unlimited-budget-red.log，真实VM回归在“初始化/渲染固定无限”断言失败。GREEN：build/unlimited-budget-green.log，真实初始化/渲染超过基础窗口且不重跑、剩余无限、粒子回调、低信任有限共享初始化与关闭自适应保留限制均通过。
+- 最终：build/unlimited-budget-final.log，ysmMaterialNative、firstPersonMaterial、cosmeticCreation、firstPersonItemRender、outfitApplyClient与双平台build -Prelease通过，退出0，1m40s，39任务。未启动游戏，设置页、实际脚本画面和真实HTTP与渲染画面的对应关系MANUAL/PENDING；没有运行无限死循环作为无限路径测试，死循环仅用于有限权限回归。
+- 本阶段实施/自动验证完成，工作在dev；提交推送以git log及ls-remote为准，原gradle.properties状态和未跟踪资料保留。用户追加了“新拖尾加入自发光和动态光源相关设置”，预算检查点提交后继续该项；不操作main、Wiki或其他版本。
+- 持续约束：CodeGraph优先、Windows原生前台PowerShell/Tee、禁止WSL/Qt offscreen、范围控制。最近可靠周额度已用42%，未触发Luna交接。
+
+## 当前任务：装饰模板绑定起点与新拖尾寿命（2026-11-17）
+
+- 用户授权：五种没有独立骨骼的新装饰像原拖尾一样增加绑定起点；新拖尾增加寿命滑块，最大300、默认20，单位tick；完成后提交推送并编译新包。任务在当前 `dev` / `origin/dev` 实施，起点 `d19483c24c1ff7bbb90b92afa44b603351fd2c4b`。本次未操作main或其他版本；此前Alpha.12合并到main的检查点是 `bf4379b7`。
+- 轨道挂饰、棱彩徽章、观察者符印、渐变拖尾、疾跑光饰均增加零位移的 `Cosmetic` 根分组，原网格与纹理保留在其下。脚本改为 `models.model.model.Cosmetic` 路径，创建器既有原生骨架扫描自动把根骨骼列入可编辑声明；没有伪造hash或修改骨骼协议。柔性背旗与采样灯饰不改。
+- 三种粒子效果在POST_RENDER从根骨骼实际世界矩阵采样，跟随挂载/骨骼编辑，保留配置偏移并换算像素到世界单位；新拖尾每tick最多记录一次。新拖尾 `lifetime` 滑块范围1–300 tick、默认20 tick，新创建粒子读取该值；存活粒子沿用创建时寿命。模板README与四语言Alpha.12更新记录已补齐本次内容。
+- RED：`build/cosmetic-origin-red.log`，真实创建与原生加载后断言缺少 `ORBITAL_CHARMS` 的可绑定Cosmetic根骨骼。GREEN：五种根骨骼存在、声明可编辑且原网格保留；全部16种模板的实际Lua初始化/tick、寿命默认20及设置300通过。第一人称材质回归夹具曾引用旧 `Badge` 路径导致失败，日志 `build/cosmetic-origin-stale-fixture.log`；更新为 `Cosmetic.Badge` 后重跑通过，没有改生产渲染逻辑。
+- 最终命令：`:common:cosmeticCreationSmokeTest :common:firstPersonMaterialSmokeTest :common:customParticleSmokeTest :fabric:build :neoforge:build -Prelease`，前台Windows PowerShell/Tee，退出0，BUILD SUCCESSFUL in 53s，37任务；日志 `build/cosmetic-origin-final.log`。构建包含的配装预览回归与NeoForge分发检查通过。实际绑定后的游戏画面、粒子位置和滑块GUI为 `MANUAL/PENDING`；未启动游戏或覆盖用户模型/安装包。
+- 产物：`fabric/build/libs/omni-morph-1.0.0-alpha.12+26.1.2-fabric-mc.jar`，19260786字节，SHA256 `5f3f25fc6b91defb1cfa36ed2ea0b359d8f2336661d583c1a5d24a07b4479906`；`neoforge/build/libs/omni-morph-1.0.0-alpha.12+26.1.2-neoforge-mc.jar`，18872551字节，SHA256 `8e95825e87f46c91077ef3d4f5c662a57b1ebc21f622dbfe242805d16a2fbdb2`。`build/cosmetic-origin-artifacts/build.log`核对主ZIP/嵌套JAR CRC、五套模型/脚本与源码逐字节一致、根骨骼结构及寿命消费表达式全部PASS。
+- 本次只影响新建模板，已创建的用户装饰不自动迁移。本轮实施和自动验证完成，无剩余实施任务。本节与资源、回归和更新记录一起提交到dev并推送；实际最终提交见 `git log -1`，推送后用 `git ls-remote`核对。保留开始时已有的gradle.properties状态和未跟踪资料，不纳入本次提交。
+- 相关路径：`common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/`、`CosmeticCreationSmokeTest.java`、`FirstPersonMaterialSmokeTest.java`、四语言 `docs/CHANGELOG*`。继续遵守CodeGraph优先、范围控制、Windows原生前台构建、禁止WSL/本地非Windows目标和Qt offscreen。可靠周额度已用42%、剩余58%，未触发Luna交接。
+
+下方为历史交付状态；本轮模板及产物以本节为准。
+
 ## 当前任务：dev 合并到 main / Alpha.12（2026-11-16）
 
 - 用户要求“dev更新内容合并到main，优先merge，冲突再参考适配”。在已有隔离工作树 `.worktrees/alpha11-main` 的 `main` 分支，从 `0b3986b1a25613ccb888d0758fd729fd125c0006` 直接合并固定源 `dev` 提交 `d19483c24c1ff7bbb90b92afa44b603351fd2c4b`，无冲突，无生产代码适配。原目录仍在 `dev`，保留其已有修改及未跟踪资料。

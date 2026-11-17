@@ -1,6 +1,6 @@
 -- Quaternion bobbing plus an independently composed local Euler adjustment.
 accessory = {options={period=2, tilt={12, 20, 0}}, time=0}
-local charm = models.model.model.Charm
+local charm = models.model.model.Cosmetic.Charm
 local rest = {position={0, 10, 3}, quaternion={0, 0, 0, 1}, scale={1, 1, 1}}
 local frames = {
     {time=0, position={-3, 10, 3}, quaternion={0, 0, 0, 1}, scale={1, 1, 1}},
