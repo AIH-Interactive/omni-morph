@@ -1,135 +1,45 @@
-# Agent 交接手册
+# 当前交接：dev完整合并到Minecraft 1.21.1（2026-11-17，已完成）
 
-## 最终状态（2026-11-11）
+## 任务和Git
 
-Minecraft 1.21.1 的 Alpha.10 完整移植已完成。已恢复并完成暂停前合并，包含缺失的Alpha.9界面前置和源Alpha.10全部条目/后续修正，无剩余授权实施或自动检查。未启动其他版本、未改后端、未启动游戏或覆盖mods。
+用户目标是“将dev分支的更新内容合并到当前版本，优先直接合并，冲突再参考迁移”。在当前1.21.1分支从b7b51a9a直接merge固定dev8cc2ede97a3af5cb109444586a05167322b58fb5，12个冲突按目标API解决。完整代码merge为e5dae35e5a7d6b445d5a847ae2256277223d6896，两个父提交为b7b51a9a和8cc2ede9；已推送并ls-remote核对一致，源dev是祖先。
 
-## Git 与提交推送
+本任务已完成全部实施、自动验证和实际产物。后续只提交本次最终文档收尾；具体最新文档HEAD以git log和远端核对为准，生产代码来源始终e5dae35e。没有新开发阶段或其他版本转发任务，不把历史Alpha.11串行授权套到本轮。原未跟踪.codex/、.mcp.json、.omc/保留，未纳入提交。工作区无其他未提交生产修改。
 
-当前分支1.21.1，跟踪origin/1.21.1。代码merge提交ba72f27d7aba85bce4e89475b317dc1323dd0e74，父提交74f64875f9665bebca96c792ddf0577bb0f15990及源8879d1218a56b9a6c4a265854371504f41b3d6dc，源为最终代码祖先。所有API适配和测试修改都已进入代码提交；已提交推送并核对远端SHA。
+## 完成范围
 
-最终HEAD与推送核对见下方自动追加值。生产代码无未提交修改。原有未跟踪.codex/、.mcp.json、.omc/保留，未纳入提交。根AGENTS/handoff ignored，维持本版约定不强制入库。最终文档提交未改变生产代码，最终JAR仍来自ba72f27d，不需要因为文档提交重复打包。
+- Alpha.12完整dev更新：通用蒙皮/作者法线/UV2、自定义材质与时间/起点/所属纹理、独立深度/混合/剔除；粒子有界四边形/逐顶点RGBA/位置UV变换/排序/深度/剔除/cutoff。
+- 原生动画采样与关键帧边界、float32 XYZ Euler；装饰疾跑/相机/纹理API；初始化与自适应render取消客户端硬上限、保留可配置基础窗口及低信任/禁用/其他通道/共享计费。
+- 原9模板+7新模板；5项Cosmetic根绑定，新渐变拖尾寿命1–300 tick及独立自发光/动态光源/亮度/半径/间隔，当前存活粒子实时更新。
+- Debug只读按请求HTTP性能快照和Python JSON配置/按模型代次CSV采集工具；第一人称shader材质discard正确处理自定义属性。
+- 保留1.21.1/Java21和双加载器，既有NoFigura/导航/AVIF/取消加载/正式装备同步和权限身份；未恢复自建GPU/JNI/SIMD，未改后端、其他版本或Actions。
 
-## 实施与记录
+## 本版API与证据边界
 
-根Alpha.10更新内容.md汇总全部行为；docs/alpha10-port/record.md记录逐项实现、冲突/API适配、回归、失败处理及人工证据缺口。四语言CHANGELOG新增Alpha.10/9前置与本版说明，保留原1.21.1历史。
+现代RenderPipeline/ShaderManager/SubmitNodeCollector映射为原生ShaderInstance/RenderType/MultiBufferSource，作者shader内存资源、所属GL程序、reloadShaders关闭/重编译；浮点额外属性使用本版GENERIC和真实beginElement AW/NeoForge AT。棱彩模板用GLSL150和普通ModelViewMat/ProjMat uniform，不照抄26.x UBO。
 
-已完成：共享Logo左导航与真实输入分发、路由/管理员可见性、紧凑信息/公告/控件布局、方卡/状态/三点菜单/分页、授权佩戴与私有展示选择保留、不可逆手臂矩阵、三类投稿封面/编辑框选清除、形象集资源保留与请求节流、真实上传校验/审核/结果进度条。
-
-MC1.21.1适配GuiGraphics/ResourceLocation/坐标输入/Font/PoseStack/同步截图和ABGR转ARGB。删除源已移除且无引用的两个旧Tab；手臂夹具改为本版真实HEAD/RETURN钩子和记录回调。保留普通RenderLifetime及既有YSM/AVIF修复，不恢复自建GPU/JNI/SIMD。未实施26.3额外已知bug修复。
+Iris1.8.8公开API不存在assignPipeline，保持本版GameRenderer默认粒子shader钩子和PBR/shadow排除；自定义cutoff编译过原生GL程序，Iris shader pack组合画面未验证。不得把源平台PASS或本版GL编译冒称游戏画面PASS。
 
 ## 验证
 
-- PASS：JDK21 :common:testClasses、:fabric:compileJava、:neoforge:compileJava，compile.log。
-- PASS：17个功能/回归入口，regression.log：navigationTree、firstPersonArmPose、previewCover、libraryModelEdit、libraryCollectionBurst、libraryUploadProgress、cloudUploadProgress、modelLibraryLayout、modelLibraryCatalog、wardrobeTransition、libraryPreviewRuntime、libraryEquipment、libraryUpload、modelCacheCodec、libraryPreviewCache、ysmDeferredPose、renderLifetime。
-- PASS：新增实际页面鼠标分发后libraryPreviewRuntime再跑，input-regression.log（含双手草稿快照/回调清理）；回调不冒充GPU像素。
-- PASS：提交前双remapJar25秒；代码提交后最终双remapJar13秒，final-packaging.log。
-- PASS：24任务生产依赖图无测试/JNI/探针，production-tasks.log；JSON、YAML、PowerShell AST、actionlint及源码diff检查，static-checks.txt。Actions未触发，生产workflow保持原样。
-- PASS：最终两包与嵌套依赖CRC、MC/Java/加载器元数据、新功能与业务类、AVIF依赖/本机native、许可证、无测试或自建加速类；artifacts.json/txt记录SHA256和绝对路径。
-- 编译早期API错误、夹具约束/测量错误、UTF8脚本读取和检查器类名大小写均已解决，详情记录中保留，不当作生产行为RED。
-- 旧DECOMPRESS_FAILED误报修复已在1d25e186并核验解码回归通过；本轮没有重复修改此生产实现。
+- PASS：公共/全部测试/Fabric/NeoForge编译；11个不同JavaExec入口firstPersonMaterial、cosmeticCreation、ysmMaterialNative、performanceHttp、firstPersonItemRender、outfitApplyClient、cameraFov、figuraPbr、figuraWithoutIris、ysmDeferredPose、renderLifetime。
+- 原生材质入口内含新quad位置/UV/RGBA真实字节、图层状态、拖尾光效/生命周期、无限/受限Lua预算、共享初始化、动画采样、Euler和既有预览/同步回归。
+- PASS：既有可见Windows GLFW窗口实际编译/链接两份作者材质和粒子cutoff，释放/重编译；第一人称真实drawFigura链路/回调/姿态和普通属性保留。不是Qt/offscreen，也未启动游戏。
+- PASS：Java真实回环HTTP+已加载Avatar collector+客户端执行器、每请求一份/序号/Debug关闭/POST拒绝；7项Python真实回环/CSV测试。
+- PASS：24生产任务图不含测试/JNI/探针；提交后20纯生产任务强制重建45秒；最终双包和嵌套CRC、MC/Java/加载器、七模板源字节、功能/配置类、AW/AT、AVIF/许可证、无测试/专用加速检查。
+- 已解决失败：冲突脚本匹配截断两文件后从三方索引恢复；6个主API及32个测试平台API差异；旧法线夹具改为斜向法线同时验证矩阵方向/归一化；AW检查器按Fabric remap/制表符和NeoForge AT包装修正。原始日志保留，不伪称产品RED。既有remap/semver/过时API警告保留，无未解决自动失败。
 
 ## 最终产物
 
-版本1.0.0-alpha.10+1.21.1-ba72f27d，代码ba72f27d7aba85bce4e89475b317dc1323dd0e74。
+代码e5dae35e，版本1.0.0-alpha.12+1.21.1，无Git后缀。路径/字节数/完整检查见docs/dev-sync-1.21.1/artifacts.json和artifacts.txt。
 
-- D:/UserData/Desktop/Project/OMP/OMP_1.21.1/fabric/build/libs/omni-morph-1.0.0-alpha.10+1.21.1-fabric-mc.jar
-  SHA256 79f381ad3039d67f5d459c4a9479ac7f115425db0abdd208bdd4646f309f010f
-- D:/UserData/Desktop/Project/OMP/OMP_1.21.1/neoforge/build/libs/omni-morph-1.0.0-alpha.10+1.21.1-neoforge-mc.jar
-  SHA256 1e4cf01ac6c5f4530d3e5da9f05dd23dc7142c97df6e7c293f0edec0a8582b23
+- fabric: `D:\UserData\Desktop\Project\OMP\OMP_1.21.1\fabric\build\libs\omni-morph-1.0.0-alpha.12+1.21.1-fabric-mc.jar`；SHA256 `24a4fa659955e25388cbbc66c58c00f5c35b3650a0cc719e55edce5895652e08`。
+- neoforge: `D:\UserData\Desktop\Project\OMP\OMP_1.21.1\neoforge\build\libs\omni-morph-1.0.0-alpha.12+1.21.1-neoforge-mc.jar`；SHA256 `9b44b97cb37e2a063f5888a7411525f60d8bcc87b47db05d9153aaa0ab03bd0a`。
 
-真实客户端启动/Mixin运行时、GUI/字体/像素、TaCZ/整合包、双客户端多人：SKIPPED（MANUAL，用户要求跳过；未验证）。没有实际阻碍；这些项目不作为阻塞，也不计PASS。保留本版原有remap与过时事件总线构建警告，不宣称运行时已验收。
+## 记录、未验证与下一步
 
-可靠额度安全检查周已用16%，未触发额度阈值，没有委派Luna。下一步仅等待用户新任务，不能凭历史待办创建额外阶段。其他Agent接续时先核对Git和实际文件，禁止重做此已完成移植。
+当前完整记录为docs/dev-sync-1.21.1/record.md，117源路径覆盖source-coverage.json，编译/功能/最终GL回归/Python/生产任务图/最终打包日志均在同目录。历史NoFigura和导航记录保留在原路径，不是本轮交付依据。
 
-最终文档HEAD：d455e164bd45955835c02ca6660fa2ffe1400a85；origin/1.21.1远端SHA核验一致。
+游戏/Mixin启动、实际穿戴与Iris shader pack组合、各模板世界效果、GUI/字体、多人：SKIPPED（MANUAL，用户要求跳过；未验证），不得记PASS或当作阻塞。没有剩余实施或自动验证，不因为人工项重复构建、等待或新增阶段。下一步仅等待用户新任务。
 
-## 2026-11-11 本轮后续UI同步（当前有效；以上为前轮历史）
-
-用户逐级授权已在源会话原始userMessage核验。本版在1.21.1直接merge源8faa4b59，起点d455e164。配装/集合/目录双类型Tab、装饰专用操作和发布首位、紧凑选择/挂载、信息公告等宽、80×98卡/80×80封面且仅水平居中、展开导航底部四状态、分页前resource_kind条件均已实现。详见docs/alpha10-ui-sync/record.md；根Alpha.10更新内容和四语言CHANGELOG更新且保留本版历史。
-
-本版必要适配：GuiGraphics/drawString/ResourceLocation/旧blit参数；新增测试坐标145,35和本版mouseClicked(double,double,int)、onPress()；新夹具显式绑定Screen.minecraft，保留实际重建验证。公共/测试/双加载器编译PASS；16入口（14 smoke及双remapJar）全部PASS，1分17秒；生产任务图和静态检查/预检PASS。原始失败及自动审批拒绝git rm --cached的事实见记录，改为安全保留并跟踪本版handoff，不整体覆盖源手册。原未跟踪3项保留。
-
-待完成最小交付操作：显式暂存全部适配和记录，提交merge、push同名1.21.1并核对远端；从已提交代码SHA重建双JAR、校验并记录哈希路径，文档收尾提交推送后，向1.20.1现有会话01a1970e-a221-7610-996d-9ef5214db4ce发送完整逐级指令。不得提前或并发启动它，不改模型设置。
-
-本版实机项按项目要求SKIPPED（MANUAL，未验证），不阻塞；源26.1.2用户验收不等于本版实机PASS；未启动游戏/覆盖mods，不改后端/其他版本/Actions。周已用20%，未触发Luna。当前merge尚未提交，前轮产物哈希已不代表本轮最终JAR，最终数据待提交后重建追加。
-
-
-### 本轮最终交付状态（覆盖上节待办）
-
-- 代码merge 2b82deea32d58dbb371fa555439b2f255ce0449b 已推送核验，源8faa4b59为祖先，全部适配真正包含在merge内。
-- 从代码提交重建双JAR12秒成功，版本1.0.0-alpha.10+1.21.1-2b82deea。最终CRC/嵌套依赖、元数据、Java21、AVIF/许可证、新Tab/footer/horizontalInset且无verticalInset、无测试/自建加速均PASS；minecraft-dev元数据读取成功。
-- Fabric SHA256：6cae514b6ae682f7df6476d743193a230cbd7b0d73f763fedb74f722a5f0393f。NeoForge SHA256：6eb20b77ee77a1944d3e2f70900e2412a36f3fc1cc2f4847a0a849257c0cb8af。路径为本根fabric/build/libs及neoforge/build/libs的alpha.10+1.21.1-对应loader-mc.jar；完整绝对路径与哈希以docs/alpha10-ui-sync/artifacts.json为准，以上前轮ba72f27d哈希已是历史。
-- 本版所有授权实施/自动验证完成，未验证人工项仍SKIPPED（MANUAL），不作为受阻；无额外开发阶段。周额度已用20%，未触发Luna。
-- 当前仅本次最终文档提交待推送，完成后立即按已核验原始用户授权发送至1.20.1现有会话01a1970e-a221-7610-996d-9ef5214db4ce；保留设置，不触碰其工作区。发送结果后续追加。
-
-### 逐级交接已发送（本轮最终状态）
-
-- 本版代码2b82deea及交付记录b355bcf5已推送并核对origin/1.21.1一致。
-- 已在本会话交付两包路径与本版结果，然后通过send_message_to_thread成功发送完整指令至hostId local、threadId 01a1970e-a221-7610-996d-9ef5214db4ce（1.20.1现有会话）。工具返回isError=false及相同threadId。
-- 消息包含已核验用户原始逐级授权、原始源8faa/245d、全部最终UI规格、后端依赖、本版适配/测试/提交/最终JAR哈希、项目约束和剩余链条。未设置模型/思考覆盖，未创建新聊天，未修改1.20.1工作区，未越级或代做。
-- 本版任务已完整收尾，无剩余开发/自动验证/通信待办。1.20.1需在自身会话完成后结束，不在本版等待它或人工结果。后续此手册仅收件记录提交，不改变已交付包的生产代码SHA。
-
-## 2026-11-12 导航图标与菜单覆盖修复（当前任务）
-
-用户在只读分析后明确要求修复，并在完成后发1.20.1核查同问题。起点3c5e9e9b，分支1.21.1，保留原未跟踪三项。已修复：Logo改复用包内icon.png；五项导航图标blit顺序改为1.21.1实际宽高/UV顺序；整个导航独立Z=400作用域，域内flush、finally恢复，盖过正文/预览且低于右键菜单。
-
-新增实际绘制调用回归，先RED捕获缺Logo/五项高度0/菜单Z0，再GREEN；初版夹具原生背景初始化失败已修正。libraryPreviewRuntime（含新绘制、既有输入与原生预览）、navigationTree、modelLibraryLayout、modelLibraryCatalog及双remapJar全部通过，1分13秒退出0；包预检和diff检查通过。详细记录docs/navigation-render-fix/record.md，RED/GREEN日志同目录。测试不声称游戏像素验证；人工客户端项SKIPPED（MANUAL，未验证），未启动游戏或覆盖mods。
-
-本次修复实施与规定回归已完成，尚需：提交推送当前代码→从代码提交重建双包并校验记录哈希→按用户授权发送修复到1.20.1现有会话01a1970e-a221-7610-996d-9ef5214db4ce核查→记录交付及发送结果并推送。不要代改1.20.1或自行扩大修复。周已用20%，未触发Luna。以上历史产物SHA不再是本轮最终产物，稍后追加新值。
-
-### 最终修复交付与1.20.1发送结果（覆盖上节待办）
-
-- 修复代码c12c0408702a3e91e462123b3dff19c40f6c5545已提交推送并ls-remote核对一致，所有生产修复与回归均包含在此提交。提交后双remapJar12秒成功，包版本1.0.0-alpha.10+1.21.1-c12c0408；后续仅文档记录提交，不改变生产代码来源。
-- 最终包路径：D:/UserData/Desktop/Project/OMP/OMP_1.21.1/fabric/build/libs/omni-morph-1.0.0-alpha.10+1.21.1-fabric-mc.jar；SHA256 49c1f8dd04801d6673b8dec8b9b3e106e9ee32523a281ded3fc7beb15f9a06ee。
-- NeoForge：D:/UserData/Desktop/Project/OMP/OMP_1.21.1/neoforge/build/libs/omni-morph-1.0.0-alpha.10+1.21.1-neoforge-mc.jar；SHA256 5eec88400a261eb2990e9ac8f8c1e3976817dfb7e3c2c558ea9bfcaebdc6ce8c。
-- 最终Logo引用存在/不再引用缺失路径、双包/嵌套CRC、MC/Java/加载器元数据、AVIF/业务依赖/许可证、无测试或自建加速均PASS；证据docs/navigation-render-fix/artifacts.json/txt及final-packaging.log。源码diff检查通过，原始red.log JVM Exception行尾空格作为原始日志保留，不格式化证据。
-- 已按用户本会话直接授权，通过send_message_to_thread发送至hostId local、threadId 01a1970e-a221-7610-996d-9ef5214db4ce；返回isError=false及相同threadId。包含修复SHA、三根因、正确接口/层级、RED/GREEN与最终包证据，要求1.20.1按其实际版本核查，不假定同故障、不照抄Java21测试/配置。未修改其工作区或模型设置，未创建新聊天。
-- 本版无剩余实施/自动验证/通信待办；1.20.1在自身会话核查，本版不等待或代做。人工实机验收仍SKIPPED（MANUAL，未验证），未启动游戏/覆盖mods。原未跟踪.codex/、.mcp.json、.omc/保留。当前任务已完成。
-
-
-## 2026-11-13 Alpha.11 NoFigura 新接力（当前有效，实施中）
-
-本轮任务不是历史导航修复。新链条已核验源会话人类授权：26.1.2 e9364adf（开发b01fc818）→26.3 8403abfa→26.2 3bd248f2393597f856875e762c2c332dd76a0ca3→本版→1.20.1。当前分支1.21.1，起点3fc39d2c，已开始merge固定源3bd248f2，尚未提交；不要重复merge、abort/reset或清理工作区。保留原未跟踪.codex/、.mcp.json、.omc/。
-
-已完成生产适配：NoFigura M0–M6及后续草稿ITEM_RENDER、VisibleAvatar相机/FOV/输入/火焰/轮廓、Figura Iris借用PBR生命周期、动画诊断/版本迁移、Lua虚拟模块、YSM原生第一人称武器及默认false的FIRST_PERSON_ITEM_REPLACEMENT。保留本版导航、AVIF、取消加载修复、正式装备同步/权限和HUD轮盘身份。恢复396个与功能无关的平台边界，未引入26.x Java25/SDL/渲染命令队列/专用加速。原计划书与实施记录作为源历史导入。
-
-本版JDK21、MultiBufferSource、原生ItemTransform、double FOV、GL纹理ID与native输入API；MixinExtras0.3.6无WrapMethod，使用GameRenderer原生renderHandsWithItems调用的WrapOperation作用域。YSM用不可变姿态立即准备顶点再交原版缓冲，不声称新版命令队列验证。
-
-验证：common:testClasses和双加载器compileJava PASS（build/tmp/nofigura-compile.log）。7个新增入口PASS（nofigura-new-feature-initial.log）：ITEM_RENDER、FOV、PBR、无Iris、动画诊断、Lua模块、原始YSM作者样本；YSM idle=0/swing=6024顶点。当前执行15个受影响回归，日志build/tmp/nofigura-regression.log。尚需检查回归、受控RED/GREEN、生产包/依赖图/静态检查、暂存解决索引UU、提交推送远端核验、从代码提交构建最终双JAR和哈希、最终记录推送。
-
-本版真正交付后再read_thread核对1.20.1实际cwd，向local/01a1970e-a221-7610-996d-9ef5214db4ce发送完整Alpha.11接力；旧导航发送不能算本轮转发。禁止提前发送、直接改其他目录、创建会话或修改模型设置。人工客户端/像素/Mixin启动/多人验收SKIPPED（MANUAL，用户要求跳过；未验证），不阻塞。不启动游戏/覆盖mods/触发Actions。上一条错误收尾只是旧导航状态，本轮尚未完成。
-
-### Alpha.11 当前安全检查点
-
-22个不同自动功能/回归入口全部通过；受控RED捕获默认关闭守卫缺失，源码已逐字节恢复，GREEN及双生产包PASS。docs/nofigura-1.21.1保存完整日志与原版钩子/静态证据，NoFigura-1.21.1同步记录.md记录逐项范围/失败处理。24生产任务图不含测试/JNI；包预检通过但尚不是代码提交交付。基线已有WrapMethod保持，仅本轮新增手渲染作用域使用WrapOperation，不把它写成全项目不存在WrapMethod。周已用32%，无需Luna。下一步仅最终索引暂存/merge提交推送、提交后生产重建/最终哈希、交付并向1.20.1发送新接力。
-
-### Alpha.11 本版最终交付（覆盖此前实施中/待完成状态）
-
-完整功能merge9b66a9f211503adceb79dc595acada70375742da已推送并核对远端。22个不同功能/回归入口、受控RED/GREEN、24生产任务图和最终包检查全部PASS；提交后20个纯生产任务强制重建59秒成功。版本alpha.11+1.21.1，无Git后缀。四语言README/CHANGELOG、本版同步记录与源历史说明更新。无剩余实施/自动验证工作。
-
-实际双包路径/哈希在docs/nofigura-1.21.1/artifacts.json/txt：Fabric443da80a872eb1bf2ef52008ee509e646a6a2bb7cf200568e96ed80fac9f3589；NeoForge a5da447e12e149fbe70784a18fef9348c69ca6e26afd42f00a0eadac5c3281ae。两包位于本根fabric/build/libs和neoforge/build/libs的alpha.11+1.21.1-loader-mc.jar。人工客户端/Mixin启动、像素/shader、多人SKIPPED（MANUAL，用户要求跳过；未验证），不阻塞。
-
-当前仅最终文档提交推送、read_thread核对1.20.1 cwd后发送新Alpha.11完整接力及记录回执待办。收件local/01a1970e-a221-7610-996d-9ef5214db4ce；不改其目录/模型，不创建聊天，不等它完成。原未跟踪三项保留。周已用32%，无需Luna。旧导航交付不能代替本轮Alpha.11。
-
-
-## Alpha.11 新接力发送完成
-
-本版代码9b66a9f2及最终产物记录86e47ee7已推送且核验origin/1.21.1一致。交付双包绝对路径后，read_thread再次确认local/01a1970e-a221-7610-996d-9ef5214db4ce实际cwd为OMP_1.20.1、状态idle、最新旧停止消息。随后send_message_to_thread成功返回isError=false及同threadId。新消息包含已核验人类重启串行授权、全部固定来源/完整功能范围、本版API差异、22入口/RED-GREEN/生产包证据和最终JAR哈希，明确其为最后版本、在自身会话完成后结束；旧导航发送不算本轮。未创建聊天/覆盖模型设置/改其他目录。
-
-本版实施、自动验证、实际产物与已授权通信全部完成，无剩余任务，不等待1.20.1或人工验收。人工项仍SKIPPED（MANUAL，用户要求跳过；未验证），不作为阻塞。后续仅本条收件回执记录提交，不改变生产包代码9b66a9f2；原未跟踪三项保留。
-
-
-## 2026-11-17 dev完整合并（当前任务，实施中）
-
-目标：将dev更新完整合并当前Minecraft1.21.1，优先直接合并，冲突再移植。分支1.21.1，起点b7b51a9a，固定来源8cc2ede97a3af5cb109444586a05167322b58fb5，merge-base b01fc818。已直接merge --no-commit --no-ff，12个冲突；正在原生API适配。不要重复merge/abort/reset/清理；原未跟踪.codex/、.mcp.json、.omc/保留。
-
-完整范围117个源变更文件：Alpha.12、七个装饰模板及绑定起点/新拖尾寿命与光效、动画取样/Euler API、粒子几何/材质/光照、可见Avatar与第一人称材质、无硬上限的可配置基础指令窗口及共享计费、Debug按请求HTTP性能快照与Python采集工具。保持目标Java21/MC1.21.1、现有导航/原生渲染及双加载器；源26.1现代渲染API须映射而非直接替换。源AGENT_HANDOFF不可当成本版结果；新AGENTS中dev工作区偏好不允许切离用户目标当前版本。
-
-尚未编译/测试本轮；所有Alpha.11记录为历史。下一步解决剩余冲突和现代材质/粒子API，编译→实际功能回归→双生产包/证据→提交推送当前分支并核对远端→更新最终交接。不得将源测试PASS当目标PASS。人工客户端按用户此前要求SKIPPED（MANUAL，未验证），不阻塞。禁止WSL，本机只用Windows工具链；前台PowerShell Tee build.log/立即退出码检查。可靠周额度已用45%，未触发Luna。
-
-### dev合并安全检查点（2026-11-17，覆盖上节尚未编译状态）
-
-当前1.21.1正在merge固定dev8cc2ede9，生产/测试适配完整；12处冲突正文全部解决，索引尚待git add。公共/全部测试/双加载器编译PASS；firstPersonMaterial实际drawFigura+GLSL编译链接/重载、16模板、完整原生材质/粒子/新quad字节/拖尾灯光/无限预算/动画/Euler、FOV/PBR/无Iris/pose/lifetime/Apply和真实HTTP均通过；Python7项PASS。docs/dev-sync-1.21.1保存日志/117路径覆盖/适配和失败处理。源IrisCompat新版assignPipeline在本版API无对应，原生default shader钩子及PBR保持，shader pack实景SKIPPED（MANUAL，未验证）。
-
-双生产包预检PASS，版本alpha.12+1.21.1；24纯生产任务，未改/触发Actions。Java21/MC1.21.1及目标平台边界保持，无WSL/跨目标/自建GPU/JNI。仍有索引UU是未暂存状态，不代表正文冲突。下一步只需提交当前merge并推送核对远端，从代码提交强制双包重建/记录真实绝对路径和SHA256、最终文档收尾。代码未提交前产物只作预检，不能当最终交付。原未跟踪三项保留；本任务生成pycache已清除。周已用46%，无需Luna。无其他版本转发任务。
+继续遵守用户最新AGENTS指令和本版目标：当前分支、不覆盖已有工作；CodeGraph优先；原生Windows/JDK21前台PowerShell构建2>&1 | Tee-Object build.log并立即检查退出码；禁止WSL及本机非Windows目标；禁止Qt offscreen。不自动启动游戏/覆盖mods或用户模型。当前无可用minecraft-dev工具，不冒称调用；本轮CodeGraph与官方本地映射JAR用于API查证。最近可靠周额度已用46%（剩54%），未触发Luna交接。

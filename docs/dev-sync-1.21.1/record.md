@@ -4,7 +4,7 @@
 
 ## 完整范围与覆盖
 
-source-coverage.json逐项记录117个源变更路径及最终内容哈希。差异范围覆盖dev从ecf283fd到8cc2ede9的25个提交；不重复开发已在本版的Alpha.11。
+source-coverage.json逐项记录117个源变更路径及代码检查点工作区摘要（后续纯文档收尾另记）。差异范围覆盖dev从ecf283fd到8cc2ede9的25个提交；不重复开发已在本版的Alpha.11。
 
 | 能力 | 本版实现及证据 |
 | --- | --- |
@@ -48,3 +48,17 @@ MinecraftMixin合入HTTP关闭钩子同时保留原生Gui/Screen；FiguraModelPa
 本轮不增加硬件加速，也不改变实际依赖版本。既有重映射、外部依赖semver及过时API警告保留。四语言README保持Alpha.12与产物名称一致。格式检查限于本轮变更，源SVG/BBMODEL等生成数据和原始失败日志保留。可靠周额度已用46%，未触发Luna。
 
 所有实施/自动验证与预检已完成；下一步仅暂存解索引UU、真实merge提交推送/核对远端、提交后最终双包重建/哈希和交接收尾。本任务没有其他版本接力授权，不因历史链条发送新消息。
+
+
+## 最终交付（覆盖此前正在构建/待提交状态）
+
+完整双父merge代码提交e5dae35e5a7d6b445d5a847ae2256277223d6896，父提交b7b51a9a及固定来源8cc2ede9；已推送origin/1.21.1并核对SHA一致，git merge-base --is-ancestor证明固定dev来源确实进入历史。没有待解决冲突、未提交生产修改或未完成实施。
+
+从该代码提交--rerun-tasks强制执行20项纯生产任务，45秒退出0；final-packaging.log为本次真实日志。版本1.0.0-alpha.12+1.21.1（release无Git后缀），最终包在artifacts.json/txt记录并通过同一实际包检查器。
+
+- fabric: `D:\UserData\Desktop\Project\OMP\OMP_1.21.1\fabric\build\libs\omni-morph-1.0.0-alpha.12+1.21.1-fabric-mc.jar`；16946928字节；SHA256 `24a4fa659955e25388cbbc66c58c00f5c35b3650a0cc719e55edce5895652e08`。
+- neoforge: `D:\UserData\Desktop\Project\OMP\OMP_1.21.1\neoforge\build\libs\omni-morph-1.0.0-alpha.12+1.21.1-neoforge-mc.jar`；16591420字节；SHA256 `9b44b97cb37e2a063f5888a7411525f60d8bcc87b47db05d9153aaa0ab03bd0a`。
+
+11个不同JavaExec功能/兼容入口（含真实GL、HTTP、模板、原生粒子/预算/动画/Euler、FOV/PBR及生命周期）和7个Python测试均通过。源性能计划和来源历史不冒充本版实机结果。最终NeoForge哈希以9b44b97c为准，49d34e40只是历史预检。项目只有workflow_dispatch workflow，未触发Actions。
+
+Minecraft-dev工具本轮实际工具清单无可用入口；已使用CodeGraph与本地官方映射JAR/javap，不冒称调用。周窗口最近46%已用、54%剩余，未触发Luna。人工游戏/Mixin/GUI/shader pack/多人按用户决定SKIPPED（MANUAL，未验证）；没有实际阻碍，不等待这些项目。任务完整收尾，不追加阶段或操作其他版本。最终仅此文档/手册提交，不改变JAR代码来源。

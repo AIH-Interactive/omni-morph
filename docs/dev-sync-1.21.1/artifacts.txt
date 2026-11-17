@@ -1,0 +1,8 @@
+Minecraft 1.21.1 Alpha.12 — final Windows-native production packaging
+Source dev: 8cc2ede97a3af5cb109444586a05167322b58fb5
+Code merge: e5dae35e5a7d6b445d5a847ae2256277223d6896
+20 production tasks rerun, 45s, exit 0.
+fabric: D:\UserData\Desktop\Project\OMP\OMP_1.21.1\fabric\build\libs\omni-morph-1.0.0-alpha.12+1.21.1-fabric-mc.jar
+SHA256: 24a4fa659955e25388cbbc66c58c00f5c35b3650a0cc719e55edce5895652e08
+neoforge: D:\UserData\Desktop\Project\OMP\OMP_1.21.1\neoforge\build\libs\omni-morph-1.0.0-alpha.12+1.21.1-neoforge-mc.jar
+SHA256: 9b44b97cb37e2a063f5888a7411525f60d8bcc87b47db05d9153aaa0ab03bd0a
