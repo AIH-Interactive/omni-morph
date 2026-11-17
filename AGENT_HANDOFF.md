@@ -1,26 +1,7 @@
-# 当前交接：26.2 合并 dev Alpha.12 已交付
+# 当前交接：26.3修复同步26.2（进行中）
 
-2026-11-17。当前分支26.2跟踪origin/26.2，未创建或切换分支。直接merge dev固定8cc2ede97a3af5cb109444586a05167322b58fb5，合并提交911ad48c1b4912aa00a7fe451959faefa46c59b1已推送并核对远端一致；双亲为3bd248f2和8cc2ede9。本手册及最终产物证据作为后续文档提交推送，最终记录SHA见git log。
+2026-11-17。分支26.2/origin/26.2，起点a5bae220。来源26.3 9a7a394a；装饰修复来源dev e2962c33（c1084296）。原未跟踪.codex/保留，不开分支、不改其他版本。详见SYNC-26.3-FIXES.md。
 
-## 已完成及已验证
+检查点1：生产close()V原已修好，26.3 PipelineCache构造器static修复不适用于26.2 ShaderManager。移植双端Minecraft实际Mixin应用检查，并按本版ShaderManager目标增加双端检查。初始四项18秒通过；受控改回destroy时双端实际InvalidInjectionException RED，26秒；finally还原后四项+材质+HTTP GREEN34秒。生产源码未改。下一步在当前检查点提交推送核对后，直接合并dev e2962c33并执行装饰恢复/名称设置/复活重绑RED/GREEN及最终双包。
 
-全部dev新增功能合入：通用蒙皮法线/次级UV/材质、可创作粒子几何与图层状态、动画采样/Euler数学、装饰相机/纹理/疾跑API、可配置基础预算及初始化/自适应渲染无限、Debug按请求HTTP/CSV、七种新装饰预设、绑定起点/拖尾寿命和即时光效设置。逐项范围、测试映射和失败日志见docs/dev-alpha12-26.2/record.md。
-
-三处源码冲突保留26.2 API和中性RenderLifetime；新材质使用26.2 bind group、原生命名顶点格式及offset，不重复Globals。第一人称discard保留材质回调；性能页面改gui.screen()，关闭Mixin使用实际close()V。原加载器依赖、普通feature/PIP/Vulkan、AVIF和自定义加速撤销保持；后端/协议/Actions未改。
-
-regression-initial.log双加载器生产/测试编译及六项核心回归1m8s通过。受控移除discard标记，实际原生材质调用链RED（19秒退出1），finally逐字节恢复。green.log十二个smoke与双release包1m52s退出0；含真实Lua/顶点、粒子与共享预算、动画、预设光效、第一人称/FOV/PBR/草稿预览/普通feature，以及真实生产HTTP回环请求。Python七项HTTP/CSV测试2.624秒通过。关闭Mixin适配后packaging-final.log HTTP与双包38秒通过；提交后post-commit-packaging.log3秒双生产包up-to-date。发布dry-run无测试依赖，diff检查通过。
-
-初始API/夹具编译失败与Python沙箱临时目录失败如实留档，不作功能RED；Python改仓库内临时目录通过。旧PIP/scaleWidth/scaleHeight remap提示未扩大处理。最终产物主ZIP/嵌套CRC、版本/依赖、新类及全模板逐字节、Windows amd64/arm64 AVIF DLL、无测试/旧加速/Renderpearl类全部核验通过，见artifacts.json/artifacts.log。
-
-## 本地交付
-
-- D:\UserData\Desktop\Project\OMP\OMP_26.2\fabric\build\libs\omni-morph-1.0.0-alpha.12+26.2-fabric-mc.jar；19267820字节，SHA256 `90845a2d4d2f382d60dc46536e4cd68b7a69b9acc6c3313b981795649d7645a7`。
-- D:\UserData\Desktop\Project\OMP\OMP_26.2\neoforge\build\libs\omni-morph-1.0.0-alpha.12+26.2-neoforge-mc.jar；18877147字节，SHA256 `90377fe8e31ef4c486ac0c933c1a0bc390f54b839157f157f3c0bac29b8ebbae`。
-
-版本均1.0.0-alpha.12+26.2，生产代码来源911ad48c；收尾只有文档变动，不改变包。原未跟踪.codex/保留；本轮产生的Python缓存已清理，不清理用户资料。
-
-## 未验证与后续
-
-游戏启动、真实Mixin应用、GPU/shader像素、GUI/实际光照遮挡、双客户端MANUAL/PENDING；未启动游戏、不计PASS，也不作为受阻条件。无剩余实施或自动验收任务，不自动扩展到其他版本、后端或Actions。源HTTP计划及说明保留，源实机结论不冒充26.2验证。
-
-当前可靠额度剩余55%（10080分钟窗口，reset1795302460），未触发Luna。继续遵守CodeGraph优先；新PowerShell先usejdk25/java -version；Windows原生前台Tee构建并立即检查退出码；禁止WSL/本地非Windows构建/Qt offscreen及擅自启动游戏。若有新的用户任务，先检查AGENTS、此手册和实际Git状态，从新目标继续，不重复移植本轮内容。
+游戏完整启动、实际Mixin宿主Knot/FML启动与GPU/GUI/复活画面MANUAL/PENDING；离线真实Mixin已验证目标应用，不冒称客户端启动。人工不作为受阻。Java25/原生Windows前台Tee、CodeGraph与Minecraft-dev优先、禁止WSL/Qt offscreen，Actions仅生产、不擅启游戏。最近可靠额度剩余46%，未触发Luna。上一轮Alpha.12包路径仍在docs/dev-alpha12-26.2/artifacts.json，本轮最终包尚未交付。

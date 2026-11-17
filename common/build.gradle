@@ -273,6 +273,28 @@ def offlineMixinAgent = tasks.register('offlineMixinAgent', Jar) {
     manifest.attributes('Premain-Class': 'top.aihmc.omnimorph.testing.OfflineMixinAgent')
 }
 
+// Local-only checks consume final production JARs; packaging never depends on these tests.
+['fabric', 'neoforge'].each { platform ->
+    [
+            MinecraftLifecycle: 'MinecraftLifecycleMixinSmokeTest',
+            ShaderManager: 'ShaderManagerMixinSmokeTest'
+    ].each { label, testClass ->
+        tasks.register("${platform}${label}MixinSmokeTest", JavaExec) {
+            group = 'verification'
+            description = "Applies the packaged ${label} Mixin to the actual ${platform} Minecraft bytes."
+            dependsOn testClasses, ":${platform}:remapJar"
+            mainClass = "top.aihmc.omnimorph.testing.${testClass}"
+            maxHeapSize = '1g'
+            doFirst {
+                def platformProject = project(":${platform}")
+                def artifact = platformProject.tasks.named('remapJar').get().archiveFile.get().asFile
+                classpath = files(artifact) + sourceSets.test.output + platformProject.sourceSets.main.compileClasspath
+                args platform, artifact.absolutePath
+            }
+        }
+    }
+}
+
 [
         'nativePipFailureSmokeTest',
         'ysmMaterialNativeSmokeTest'
