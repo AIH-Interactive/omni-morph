@@ -41,4 +41,4 @@
 
 ## 检查点
 
-合并提交911ad48c1b4912aa00a7fe451959faefa46c59b1已推送并ls-remote核对origin/26.2一致，双亲为本版起点与dev固定8cc2ede9。提交后post-commit-packaging.log双生产包全部up-to-date、2秒退出0，最终CRC/模板/Windows native核验仍通过。无剩余实施或自动验收；当前收尾只提交交付记录，生产包来源保持911ad48c。最终交付状态见AGENT_HANDOFF.md。原未跟踪.codex/保持。源性能计划docs/p4.5-performance-http-plan.md及HTTP/采集说明随功能保留，源历史验收不冒充本版实机结果。
+合并提交911ad48c1b4912aa00a7fe451959faefa46c59b1已推送并ls-remote核对origin/26.2一致，双亲为本版起点与dev固定8cc2ede9。提交后post-commit-packaging.log双生产包全部up-to-date、3秒退出0，最终CRC/模板/Windows native核验仍通过。无剩余实施或自动验收；当前收尾只提交交付记录，生产包来源保持911ad48c。最终交付状态见AGENT_HANDOFF.md。原未跟踪.codex/保持。源性能计划docs/p4.5-performance-http-plan.md及HTTP/采集说明随功能保留，源历史验收不冒充本版实机结果。

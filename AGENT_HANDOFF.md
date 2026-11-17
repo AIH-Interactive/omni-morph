@@ -8,7 +8,7 @@
 
 三处源码冲突保留26.2 API和中性RenderLifetime；新材质使用26.2 bind group、原生命名顶点格式及offset，不重复Globals。第一人称discard保留材质回调；性能页面改gui.screen()，关闭Mixin使用实际close()V。原加载器依赖、普通feature/PIP/Vulkan、AVIF和自定义加速撤销保持；后端/协议/Actions未改。
 
-regression-initial.log双加载器生产/测试编译及六项核心回归1m8s通过。受控移除discard标记，实际原生材质调用链RED（19秒退出1），finally逐字节恢复。green.log十二个smoke与双release包1m52s退出0；含真实Lua/顶点、粒子与共享预算、动画、预设光效、第一人称/FOV/PBR/草稿预览/普通feature，以及真实生产HTTP回环请求。Python七项HTTP/CSV测试2.624秒通过。关闭Mixin适配后packaging-final.log HTTP与双包38秒通过；提交后post-commit-packaging.log2秒双生产包up-to-date。发布dry-run无测试依赖，diff检查通过。
+regression-initial.log双加载器生产/测试编译及六项核心回归1m8s通过。受控移除discard标记，实际原生材质调用链RED（19秒退出1），finally逐字节恢复。green.log十二个smoke与双release包1m52s退出0；含真实Lua/顶点、粒子与共享预算、动画、预设光效、第一人称/FOV/PBR/草稿预览/普通feature，以及真实生产HTTP回环请求。Python七项HTTP/CSV测试2.624秒通过。关闭Mixin适配后packaging-final.log HTTP与双包38秒通过；提交后post-commit-packaging.log3秒双生产包up-to-date。发布dry-run无测试依赖，diff检查通过。
 
 初始API/夹具编译失败与Python沙箱临时目录失败如实留档，不作功能RED；Python改仓库内临时目录通过。旧PIP/scaleWidth/scaleHeight remap提示未扩大处理。最终产物主ZIP/嵌套CRC、版本/依赖、新类及全模板逐字节、Windows amd64/arm64 AVIF DLL、无测试/旧加速/Renderpearl类全部核验通过，见artifacts.json/artifacts.log。
 
