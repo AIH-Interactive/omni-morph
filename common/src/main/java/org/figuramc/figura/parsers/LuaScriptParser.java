@@ -79,14 +79,14 @@ public class LuaScriptParser {
                 }
                 case '\'', '"' -> {
                     Matcher matcher = string.matcher(builder);
-                    if (!matcher.find(i) || !(matcher.start() == i))
+                    if (!matcher.region(i, builder.length()).lookingAt())
                         return builder.toString();
 
                     i = matcher.end() - 1;
                 }
                 case '[' -> {
                     Matcher matcher = multilineString.matcher(builder);
-                    if (matcher.find(i) && matcher.start() == i)
+                    if (matcher.region(i, builder.length()).lookingAt())
                         i = matcher.end() - 1;
                 }
                 case '-' -> {
@@ -94,7 +94,7 @@ public class LuaScriptParser {
                         return builder.toString();
 
                     Matcher multiline = multilineComment.matcher(builder);
-                    if (multiline.find(i) && multiline.start() == i) {
+                    if (multiline.region(i, builder.length()).lookingAt()) {
                         int breaks = builder.substring(i, multiline.end()).split("\n").length - 1;
                         builder.delete(i, multiline.end()).insert(i, "\n".repeat(breaks));
                         i--;
@@ -102,22 +102,22 @@ public class LuaScriptParser {
                     }
 
                     Matcher comment = comments.matcher(builder);
-                    if (comment.find(i) && comment.start() == i) {
+                    if (comment.region(i, builder.length()).lookingAt()) {
                         builder.delete(comment.start(), comment.end());
                         i--;
                     }
                 }
                 case ' ', '\t', '\n', '\r' -> {
-                    Matcher newline = newlines.matcher(builder.substring(i));
-                    if (newline.find())
-                        if (newline.start() == 0)
-                            builder.delete(i, i + newline.end()).insert(i, Optional.ofNullable(newline.group(1)).map(t -> "\n").orElse(" "));
-                        else
-                            FiguraMod.LOGGER.warn("script TODO appears to have invalid new line configuration");
+                    Matcher newline = newlines.matcher(builder).region(i, builder.length());
+                    if (newline.lookingAt()) {
+                        String replacement = Optional.ofNullable(newline.group(1))
+                                .map(t -> "\n").orElse(" ");
+                        builder.delete(i, newline.end()).insert(i, replacement);
+                    }
                 }
                 default -> {
                     Matcher word = words.matcher(builder);
-                    if (word.find(i) && word.start() == i)
+                    if (word.region(i, builder.length()).lookingAt())
                         i = word.end() - 1;
                 }
             }
@@ -142,13 +142,13 @@ public class LuaScriptParser {
             switch (builder.charAt(i)) {
                 case '\'', '"', '[' -> {
                     Matcher matcher = allStrings.matcher(builder);
-                    if (matcher.find(i) && matcher.start() == i)
+                    if (matcher.region(i, builder.length()).lookingAt())
                         i = matcher.end() - 1;
                 }
                 case ' ', '\n' -> {
                     Matcher matcher = whitespacePlus.matcher(builder);
                     int matchStart;
-                    if (matcher.find(i) && (matchStart = matcher.start()) == i) {
+                    if (matcher.region(i, builder.length()).lookingAt() && (matchStart = matcher.start()) == i) {
                         builder.delete(i, matcher.end());
                         if (matchStart > 0 && matchStart + 1 < builder.length())
                             if (nameOops.matcher(builder.substring(matchStart - 1, matchStart + 1)).matches())
@@ -159,7 +159,7 @@ public class LuaScriptParser {
                 }
                 default -> {
                     Matcher word = words.matcher(builder);
-                    if (word.find(i) && word.start() == i)
+                    if (word.region(i, builder.length()).lookingAt())
                         i = word.end() - 1;
                 }
             }

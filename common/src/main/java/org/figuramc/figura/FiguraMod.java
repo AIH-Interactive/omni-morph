@@ -103,6 +103,7 @@ public class FiguraMod {
 
 
     public static void tick() {
+        top.aihmc.omnimorph.debug.PerformanceDebug.reconcile();
         YsmInputState.device().tick(Minecraft.getInstance());
         pushProfiler("network");
         NetworkStuff.tick();

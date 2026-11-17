@@ -13,6 +13,7 @@ import org.luaj.vm2.lib.ZeroArgFunction;
 import sun.misc.Unsafe;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.config.Configs;
 import org.figuramc.figura.lua.FiguraLuaRuntime;
 import top.aihmc.omnimorph.lua.api.particle.CustomParticle;
 import top.aihmc.omnimorph.lua.api.particle.CustomParticleRuntime;
@@ -37,9 +38,50 @@ public final class OutfitParticleCallbackSmokeTest {
             instructionLimitAndIsolation();
             registrationDuringExecution();
             CosmeticAnimationEventSmokeTest.run();
+            AdaptiveRenderBudgetSmokeTest.verify();
+            sharedInitialization();
+            AnimationSampleSmokeTest.verify();
+            top.aihmc.omnimorph.lua.api.math.EulerRotationSmokeTest.verify();
         }
         System.out.println("PASS particle callbacks: real Lua tick/frame hooks, shared count/instruction quotas, "
                 + "epoch/reentry guards, zero limits, removal and VM failure isolation; game MANUAL/PENDING");
+    }
+
+    private static void sharedInitialization() throws Exception {
+        int base = Configs.INIT_INSTRUCTION_BASE.value;
+        Configs.INIT_INSTRUCTION_BASE.value = 8192;
+        try (var fixture = new Fixture()) {
+            var budget = new OutfitInstructionBudget(() -> null);
+            UUID wearer = UUID.randomUUID();
+            Avatar first = fixture.cosmetic(wearer, limits(64, 32), budget);
+            Avatar second = fixture.cosmetic(wearer, limits(64, 32), budget);
+            String script = "hits=0; for i=1,30000 do hits=hits+1 end; assert(hits==30000)";
+            var firstRuntime = new FiguraLuaRuntime(first, Map.of("main", script));
+            require(firstRuntime.init(null) && first.init.pre > 65536,
+                    "First accessory grows its initialization inside the shared allowance");
+            var secondRuntime = new FiguraLuaRuntime(second, Map.of("main", script));
+            require(secondRuntime.init(null) && second.init.pre > 65536,
+                    "Unlimited shared initialization permits both accessories without a finite stop");
+            require(budget.allowance(first, first.init) == -1 && budget.allowance(second, second.init) == -1,
+                    "Shared instruction accounting preserves unlimited allowance after consumption");
+        } finally {
+            Configs.INIT_INSTRUCTION_BASE.value = base;
+        }
+        try (var fixture = new Fixture()) {
+            var budget = new OutfitInstructionBudget(() -> null);
+            UUID wearer = UUID.randomUUID();
+            Avatar first = fixture.cosmetic(wearer, limits(64, 32), budget);
+            Avatar second = fixture.cosmetic(wearer, limits(64, 32), budget);
+            first.permissions.insert(Permissions.INIT_INST, 4096, FiguraMod.MOD_ID);
+            second.permissions.insert(Permissions.INIT_INST, 4096, FiguraMod.MOD_ID);
+            String script = "local n=0; for i=1,1200 do n=n+1 end; assert(n==1200)";
+            var firstRuntime = new FiguraLuaRuntime(first, Map.of("main", script));
+            var secondRuntime = new FiguraLuaRuntime(second, Map.of("main", script));
+            require(firstRuntime.init(null), "First restricted accessory stays inside the shared finite budget");
+            require(!secondRuntime.init(null) && second.scriptError,
+                    "Restricted accessories still share one finite initialization budget");
+        }
+        System.out.println("OMM_NATIVE_SHARED_INIT_BUDGET_OK maximum=unlimited");
     }
 
     private static void ordinaryCallbacks() throws Exception {

@@ -91,6 +91,153 @@ public class MatricesAPI {
         );
     }
 
+    @LuaWhitelist
+    @LuaMethodDoc(
+            value = "matrices.compose4",
+            overloads = @LuaMethodOverload(
+                    argumentTypes = {FiguraVec3.class, FiguraVec4.class, FiguraVec3.class},
+                    argumentNames = {"translation", "quaternion", "scale"}
+            )
+    )
+    public static FiguraMat4 compose4(FiguraVec3 position, FiguraVec4 quaternion, FiguraVec3 scale) {
+        if (position == null || quaternion == null || scale == null) {
+            throw new LuaError("compose4 requires translation, quaternion and scale vectors");
+        }
+        for (double value : new double[]{position.x, position.y, position.z,
+                quaternion.x, quaternion.y, quaternion.z, quaternion.w, scale.x, scale.y, scale.z}) {
+            if (!Double.isFinite(value)) {
+                throw new LuaError("compose4 requires finite vector components");
+            }
+        }
+        double lengthSquared = quaternion.x * quaternion.x + quaternion.y * quaternion.y
+                + quaternion.z * quaternion.z + quaternion.w * quaternion.w;
+        if (!(lengthSquared > 0) || !Double.isFinite(lengthSquared)) {
+            throw new LuaError("compose4 requires a nonzero finite quaternion");
+        }
+        var rotation = new org.joml.Quaterniond(quaternion.x, quaternion.y, quaternion.z, quaternion.w)
+                .normalize();
+        var matrix = new org.joml.Matrix4d().translation(position.x, position.y, position.z)
+                .rotate(rotation).scale(scale.x, scale.y, scale.z);
+        return FiguraMat4.of(
+                matrix.m00(), matrix.m01(), matrix.m02(), matrix.m03(),
+                matrix.m10(), matrix.m11(), matrix.m12(), matrix.m13(),
+                matrix.m20(), matrix.m21(), matrix.m22(), matrix.m23(),
+                matrix.m30(), matrix.m31(), matrix.m32(), matrix.m33());
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc(
+            value = "matrices.compose_euler_xyz",
+            overloads = @LuaMethodOverload(
+                    argumentTypes = {FiguraVec3.class, FiguraVec3.class},
+                    argumentNames = {"first", "second"}
+            )
+    )
+    public static FiguraVec3 composeEulerXYZ(FiguraVec3 first, FiguraVec3 second) {
+        if (first == null || second == null) {
+            throw new LuaError("composeEulerXYZ requires two rotation vectors");
+        }
+        for (double component : new double[]{first.x, first.y, first.z, second.x, second.y, second.z}) {
+            if (!Float.isFinite((float) component)) {
+                throw new LuaError("composeEulerXYZ requires finite float rotation components");
+            }
+        }
+        float radiansPerDegree = (float) (Math.PI / 180);
+        var composition = eulerXYZRotation(first, radiansPerDegree)
+                .mul(eulerXYZRotation(second, radiansPerDegree));
+        var angles = composition.getEulerAnglesXYZ(new org.joml.Vector3f()).div(radiansPerDegree);
+        return FiguraVec3.of(angles.x, angles.y, angles.z);
+    }
+
+    private static org.joml.Quaternionf eulerXYZRotation(FiguraVec3 angles, float radiansPerDegree) {
+        return new org.joml.Quaternionf().rotationXYZ((float) angles.x * radiansPerDegree,
+                (float) angles.y * radiansPerDegree, (float) angles.z * radiansPerDegree);
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc(
+            value = "matrices.sample4",
+            overloads = @LuaMethodOverload(
+                    argumentTypes = {org.luaj.vm2.LuaTable.class, org.luaj.vm2.LuaTable.class,
+                            Double.class, Integer.class},
+                    argumentNames = {"rest", "keyframes", "time", "channels"}
+            )
+    )
+    public static FiguraMat4 sample4(org.luaj.vm2.LuaTable rest, org.luaj.vm2.LuaTable frames,
+                                    double time, int channels) {
+        if (!Double.isFinite(time) || channels < 0 || channels > 7) {
+            throw new LuaError("sample4 requires finite time and a channel mask from 0 to 7");
+        }
+        double[] position = transformComponents(rest.get("position"), 3);
+        double[] rotation = transformComponents(rest.get("quaternion"), 4);
+        double[] scale = transformComponents(rest.get("scale"), 3);
+        if (frames != null && frames.length() > 0) {
+            int low = 1;
+            int high = frames.length();
+            while (low < high) {
+                int middle = (low + high + 1) >>> 1;
+                if (frames.get(middle).get("time").checkdouble() <= time) {
+                    low = middle;
+                } else {
+                    high = middle - 1;
+                }
+            }
+            var first = frames.get(low).checktable();
+            var last = frames.get(Math.min(low + 1, frames.length())).checktable();
+            double start = first.get("time").checkdouble();
+            double duration = last.get("time").checkdouble() - start;
+            double amount = duration == 0 ? 0 : Math.clamp((time - start) / duration, 0, 1);
+            if ((channels & 1) != 0 && !first.get("position").isnil()) {
+                position = interpolateComponents(first, last, "position", 3, amount);
+            }
+            if ((channels & 2) != 0 && !first.get("quaternion").isnil()) {
+                double[] a = transformComponents(first.get("quaternion"), 4);
+                double[] b = last.get("quaternion").isnil()
+                        ? a : transformComponents(last.get("quaternion"), 4);
+                var quaternion = normalizedQuaternion(a).slerp(normalizedQuaternion(b), amount);
+                rotation = new double[]{quaternion.x, quaternion.y, quaternion.z, quaternion.w};
+            }
+            if ((channels & 4) != 0 && !first.get("scale").isnil()) {
+                scale = interpolateComponents(first, last, "scale", 3, amount);
+            }
+        }
+        return compose4(FiguraVec3.of(position[0], position[1], position[2]),
+                FiguraVec4.of(rotation[0], rotation[1], rotation[2], rotation[3]),
+                FiguraVec3.of(scale[0], scale[1], scale[2]));
+    }
+
+    private static double[] transformComponents(org.luaj.vm2.LuaValue value, int count) {
+        var table = value.checktable();
+        double[] result = new double[count];
+        for (int index = 0; index < count; index++) {
+            result[index] = table.get(index + 1).checkdouble();
+            if (!Double.isFinite(result[index])) {
+                throw new LuaError("sample4 requires finite transform components");
+            }
+        }
+        return result;
+    }
+
+    private static org.joml.Quaterniond normalizedQuaternion(double[] components) {
+        var quaternion = new org.joml.Quaterniond(
+                components[0], components[1], components[2], components[3]);
+        if (!(quaternion.lengthSquared() > 0) || !Double.isFinite(quaternion.lengthSquared())) {
+            throw new LuaError("sample4 requires a nonzero finite quaternion");
+        }
+        return quaternion.normalize();
+    }
+
+    private static double[] interpolateComponents(org.luaj.vm2.LuaTable first,
+                                                  org.luaj.vm2.LuaTable last,
+                                                  String channel, int count, double amount) {
+        double[] a = transformComponents(first.get(channel), count);
+        double[] b = last.get(channel).isnil() ? a : transformComponents(last.get(channel), count);
+        for (int index = 0; index < count; index++) {
+            a[index] += (b[index] - a[index]) * amount;
+        }
+        return a;
+    }
+
     // -- ROTATION MATRICES --// 
     @LuaWhitelist
     @LuaMethodDoc(

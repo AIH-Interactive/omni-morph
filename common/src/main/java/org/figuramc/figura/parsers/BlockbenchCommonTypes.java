@@ -357,6 +357,8 @@ public class BlockbenchCommonTypes {
         Map<String, MeshFace> faces;
         /// map of vertex ID to offsets
         Map<String, Vector3f> vertices;
+        @Nullable Map<String, Vector3f> vertex_normals;
+        @Nullable Map<String, Vector2f> vertex_uv2;
 
         // default "flat", alternative "smooth"
         // smooth: set 'smo' to true (note: since meshes aren't groups, only setting it if true is fine)
@@ -377,6 +379,8 @@ public class BlockbenchCommonTypes {
             HashMap<String, Integer> vert2idx = new HashMap<>();
             HashMap<String, Vector3f> vert2pos = new HashMap<>();
             ListTag vtx = new ListTag();
+            ListTag normals = new ListTag();
+            ListTag secondaryUVs = new ListTag();
 
             int i = 0;
             for (Map.Entry<String, Vector3f> entry : vertices.entrySet()) {
@@ -387,6 +391,23 @@ public class BlockbenchCommonTypes {
                 vtx.add(FloatTag.valueOf(combined.x));
                 vtx.add(FloatTag.valueOf(combined.y));
                 vtx.add(FloatTag.valueOf(combined.z));
+                if (vertex_uv2 != null) {
+                    Vector2f uv = vertex_uv2.get(entry.getKey());
+                    if (uv == null || !uv.isFinite()) {
+                        throw new IllegalArgumentException("Invalid secondary UV: " + entry.getKey());
+                    }
+                    secondaryUVs.add(FloatTag.valueOf(uv.x));
+                    secondaryUVs.add(FloatTag.valueOf(uv.y));
+                }
+                if (vertex_normals != null) {
+                    Vector3f normal = vertex_normals.get(entry.getKey());
+                    if (normal == null || !normal.isFinite()) {
+                        throw new IllegalArgumentException("Invalid authored normal: " + entry.getKey());
+                    }
+                    normals.add(FloatTag.valueOf(normal.x));
+                    normals.add(FloatTag.valueOf(normal.y));
+                    normals.add(FloatTag.valueOf(normal.z));
+                }
             }
 
             if (skinData != null && !skinData.isEmpty())
@@ -434,6 +455,12 @@ public class BlockbenchCommonTypes {
             }
 
             meshData.put("vtx", vtx);
+            if (vertex_uv2 != null) {
+                meshData.put("uv2", secondaryUVs);
+            }
+            if (vertex_normals != null) {
+                meshData.put("normals", normals);
+            }
             meshData.put("tex", tex);
             meshData.put("fac", fac);
             meshData.put("uvs", uvs);

@@ -17,6 +17,8 @@ public class Vertex {
 
     public float x, y, z;
     public float u, v;
+    public float u2, v2;
+    public boolean hasSecondaryUV;
     public float nx, ny, nz;
     public int origIdx = -1;
 
@@ -29,6 +31,9 @@ public class Vertex {
     public Vertex copy() {
         Vertex copy = new Vertex(x, y, z, u, v, nx, ny, nz);
         copy.origIdx = this.origIdx;
+        copy.u2 = this.u2;
+        copy.v2 = this.v2;
+        copy.hasSecondaryUV = this.hasSecondaryUV;
         return copy;
     }
 

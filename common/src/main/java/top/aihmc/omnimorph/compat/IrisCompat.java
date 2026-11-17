@@ -1,5 +1,6 @@
 package top.aihmc.omnimorph.compat;
 
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
 import net.irisshaders.iris.api.v0.IrisApi;
 import net.irisshaders.iris.api.v0.IrisProgram;
 import net.irisshaders.iris.pbr.loader.PBRTextureLoaderRegistry;
@@ -28,15 +29,18 @@ public class IrisCompat {
         return IrisApi.getInstance().isRenderingShadowPass();
     }
 
+    public static void assignParticlePipeline(RenderPipeline pipeline, CustomParticlePipelines.Blend blend) {
+        IrisApi.getInstance().assignPipeline(pipeline, blend == CustomParticlePipelines.Blend.OPAQUE
+                ? IrisProgram.PARTICLES : IrisProgram.PARTICLES_TRANSLUCENT);
+    }
+
     public static void assignPipelinesToIrisPrograms() {
         registerFiguraPbr();
         IrisApi.getInstance().assignPipeline(FiguraRenderTypes.FiguraRenderPipelines.FIGURA_SOLID, IrisProgram.ENTITIES);
         // Custom particle layers use dedicated pipelines; without an Iris program they fall back to the
         // unpatched shader and disappear or ignore the pack's lighting/tonemapping.
         for (var entry : CustomParticlePipelines.registered().entrySet()) {
-            IrisApi.getInstance().assignPipeline(entry.getKey(),
-                    entry.getValue() == CustomParticlePipelines.Blend.OPAQUE
-                            ? IrisProgram.PARTICLES : IrisProgram.PARTICLES_TRANSLUCENT);
+            assignParticlePipeline(entry.getKey(), entry.getValue());
         }
         PBRTextureLoaderRegistry.INSTANCE.register(YsmMaterialTexture.class, (texture, resources, consumer) -> {
             var normal = texture.normalTexture();

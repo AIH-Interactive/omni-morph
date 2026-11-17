@@ -42,25 +42,38 @@ public final class CosmeticCreator {
         var created = new ArrayList<Path>();
         created.add(staging);
         try {
-            byte[] baseTexture = resource("textures/cosmetic_base.png");
-            var model = template.model(Base64.getEncoder().encodeToString(baseTexture));
-            Files.createDirectory(staging.resolve("textures"));
-            created.add(staging.resolve("textures"));
-            if (template == CosmeticTemplate.TRAIL) {
-                for (String texture : List.of("sakura_petal", "twinkle_star_sheet")) {
-                    byte[] bytes = resource("textures/" + texture + ".png");
-                    write(staging.resolve("textures/" + texture + ".png"), bytes, created);
-                    model.addImage(texture, Base64.getEncoder().encodeToString(bytes),
-                            texture.equals("sakura_petal") ? 32 : 128,
-                            texture.equals("sakura_petal") ? 32 : 64);
+            if (template.resourceId() != null) {
+                for (String folder : List.of("model", "textures")) {
+                    Path path = staging.resolve(folder);
+                    Files.createDirectory(path);
+                    created.add(path);
+                }
+                for (String relative : List.of("model/model.bbmodel", "script.lua",
+                        "textures/art.png", "textures/art.svg", "README.md")) {
+                    write(staging.resolve(relative),
+                            resource("accessories/" + template.resourceId() + "/" + relative), created);
                 }
             } else {
-                write(staging.resolve("textures/cosmetic_base.png"), baseTexture, created);
+                byte[] baseTexture = resource("textures/cosmetic_base.png");
+                var model = template.model(Base64.getEncoder().encodeToString(baseTexture));
+                Files.createDirectory(staging.resolve("textures"));
+                created.add(staging.resolve("textures"));
+                if (template == CosmeticTemplate.TRAIL) {
+                    for (String texture : List.of("sakura_petal", "twinkle_star_sheet")) {
+                        byte[] bytes = resource("textures/" + texture + ".png");
+                        write(staging.resolve("textures/" + texture + ".png"), bytes, created);
+                        model.addImage(texture, Base64.getEncoder().encodeToString(bytes),
+                                texture.equals("sakura_petal") ? 32 : 128,
+                                texture.equals("sakura_petal") ? 32 : 64);
+                    }
+                } else {
+                    write(staging.resolve("textures/cosmetic_base.png"), baseTexture, created);
+                }
+                write(staging.resolve("model.bbmodel"), JSON.toJson(model.build()).getBytes(StandardCharsets.UTF_8), created);
+                String script = new String(resource(template == CosmeticTemplate.TRAIL ? "trail.lua" : "geometry.lua"),
+                        StandardCharsets.UTF_8).replace("@CATEGORY@", template.category());
+                write(staging.resolve("script.lua"), script.getBytes(StandardCharsets.UTF_8), created);
             }
-            write(staging.resolve("model.bbmodel"), JSON.toJson(model.build()).getBytes(StandardCharsets.UTF_8), created);
-            String script = new String(resource(template == CosmeticTemplate.TRAIL ? "trail.lua" : "geometry.lua"),
-                    StandardCharsets.UTF_8).replace("@CATEGORY@", template.category());
-            write(staging.resolve("script.lua"), script.getBytes(StandardCharsets.UTF_8), created);
 
             JsonObject metadata = metadata(name, authors, description, template, anchor, transform);
             Path manifest = staging.resolve("cosmetic.json");
