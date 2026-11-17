@@ -5,7 +5,7 @@
 - 用户已授权将本轮装饰修复合并到 main：私有云读取、死亡复活重绑定、实例名称与作者默认元数据恢复。
 - 合并前已 fetch；dev/origin/dev 均为8cc2ede9，main/origin/main 均为e3ea1a21。main 已包含此前 dev 功能，本次仅新增上述已验证修复及测试、更新记录和交接文档。
 - 自动验证沿用本轮最新代码的通过结果：build/private-accessory-name-final.log（预览回归、Fabric/NeoForge release构建，46s，退出0）、build/outfit-private-figura-final.log（私有云原生源回归，42s，退出0）；git diff --check通过。游戏实测仍 MANUAL/PENDING。
-- 正在提交dev并推送，再使用既有 .worktrees/alpha11-main 合并及推送；完成状态将在合并后更新。保留原gradle.properties状态及两工作区未跟踪资料。不启动游戏、不部署、不移植其他版本。
+- 已完成：修复提交 c108429641070b254b559431da0d6ab1ed006551 已推送origin/dev；main双父合并提交 04a293c94477a3d7207a7162e1912b281e31d319 已推送origin/main，ls-remote核对一致。唯一冲突为交接文档，保留双方有效历史；生产代码及测试与dev一致。main工作区额外执行libraryPreviewRuntimeSmokeTest和libraryPackagePreparationSmokeTest通过，退出0，1m11s，11任务；日志.worktrees/alpha11-main/build/main-accessory-fixes-merge.log。本节为dev文档收尾提交，不再合并回main。原gradle.properties状态和两工作区未跟踪资料保留，无剩余实施任务；人工项仍MANUAL/PENDING。不启动游戏、不部署、不移植其他版本。
 
 
 ## 补充修复：装饰已恢复但实例名称仍为资源不可用（2026-11-17）
