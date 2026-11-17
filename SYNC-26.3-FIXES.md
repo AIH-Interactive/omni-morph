@@ -27,8 +27,12 @@ mixin-initial.log四项实际Mixin应用通过，18秒。lifecycle-sensitivity-r
 1. accessory-red.log：使用三方合并后的测试与合并前ea652117生产源码，名称断言和私有源OUTFIT_PRESET_DEPENDENCY_MISSING均失败；28秒、两任务非零退出。三份生产源码先完整字节备份，finally逐字节恢复并检查。
 2. respawn-red.log：保留资源/名称修复，仅临时使用旧OutfitComposition，实际初始化装饰脚本后将旧玩家标记KILLED并提供同UUID替身；断言组合未重绑而失败，28秒。finally恢复合并源码。它是实体生命周期夹具，不宣称实际游戏复活画面。
 3. accessory-green.log：全部三方合并实现恢复，libraryPreviewRuntimeSmokeTest、libraryPackagePreparationSmokeTest、双端MinecraftLifecycleMixin/ShaderManagerMixin、firstPersonMaterial、performanceHttp共8入口全部通过，1m35s、退出0、32任务。包含名称、同UUID实体/玩家API恢复、原实例保留、Figura/加密YSM ACCESSORY真实回环HTTP及缺绑定/撤权后的缓存拒绝，和原有私有聚合/预览回归。
-4. production-tasks.log：双remapJar dry-run2秒退出0，不含测试依赖；未改或触发Actions。双最终包CRC/嵌套依赖、26.2/Java25/loader依赖、全模板、新方法、Windows amd64/arm64 AVIF DLL、无测试/旧加速/Renderpearl类检查通过。最终源码提交和哈希待提交后记录于artifacts.json。
+4. production-tasks.log：双remapJar dry-run2秒退出0，不含测试依赖；未改或触发Actions。双最终包CRC/嵌套依赖、26.2/Java25/loader依赖、全模板、新方法、Windows amd64/arm64 AVIF DLL、无测试/旧加速/Renderpearl类检查通过。最终生产代码提交9435863fd5e3e8011fd1adb107484fec2c45e753已推送并核对远端一致；双亲为ea652117和源dev e2962c33。提交后post-commit-packaging.log双包20任务全部up-to-date、3秒退出0；最终哈希记录于artifacts.json/artifacts.log。
 
 一次自动审批拒绝未备份冲突手册的准备命令，命令未执行；先逐字节备份并整理手册、测试仅回退且完整恢复生产源码后，安全验证已通过。无待批准操作。其余日志中的创作失败/权限拒绝/损坏数据为断言覆盖的失败路径；既有PIP/scaleWidth/scaleHeight提示不扩大修改。
 
 当前实施与自动检查全部完成，待当前合并提交推送和最终交付记录。除原.codex/外无新增用户资料变更。完整客户端启动、GPU/GUI画面、游戏实际复活与跨维度MANUAL/PENDING，未启动游戏，不作为受阻。
+
+## 最终交付
+
+两个检查点ea652117、9435863f已分别提交推送；本节与交接/成品清单仅为收尾文档，不改变生产包。保持原未跟踪.codex/。游戏完整启动、真实画面/复活/跨维度MANUAL/PENDING，不等待人工或据此标记受阻。当前可靠额度剩余45%，未达Luna阈值。无后续实施，不自行移植其他版本。
