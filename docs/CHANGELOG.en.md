@@ -6,6 +6,10 @@
 
 ## 1.0.0-alpha.12
 
+- Fix accessory instance names showing unavailable after private cloud restoration without a local inventory entry; names and author defaults now use the prepared metadata.
+
+- Fix private cloud retrieval for published outfit accessories whose local files are missing, without requiring a separate model-library upload. Rebind accessories after player respawn while retaining script state and clearing old trail samples.
+
 - Added independent emissive and dynamic-light controls to painted ribbon, with light level, radius and a 1–64 particle light interval (default 1). Changes update the live particle and retain existing light permissions and budgets.
 
 - Removed client hard instruction ceilings for initialization and adaptive rendering while retaining configurable base windows. Removed ceiling inputs; restricted permissions, other execution channels and shared accounting remain enforced. Performance snapshots use -1 for unlimited.

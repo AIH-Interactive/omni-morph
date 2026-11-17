@@ -1,33 +1,30 @@
-# 当前 Agent 交接：PipelineCache 构造器 Mixin 修复
+# 当前 Agent 交接：同步 dev 最新装饰修复至26.3
 
-日期：2026-11-17。分支26.3，跟踪origin/26.3；任务起点5f97d32750f82311f986c3e097b12518cfa494b4。
+日期：2026-11-17。当前26.3跟踪origin/26.3；起点5ec91973e511fac5efa527907ed2017ce6183c4b。固定dev源e2962c33c7da36fa879b63759dcdf74e052966f1，增量实现c1084296。
 
 ## 已完成与验证
 
-- 根因：公共 AvatarShaderSourceMixin 在 PipelineCache 构造器 HEAD 使用实例 ModifyVariable 处理器；super() 前 this 未初始化，真实 Mixin 拒绝应用。Fabric、NeoForge 共用此缺陷。Minecraft-dev MCP 源码及两端目标字节码已核对。
-- 生产修改仅增加 static，保持构造器参数包装、注入时机和 AvatarMaterial.sources 行为。
-- 新增 PipelineCacheMixinSmokeTest 及两个本地 Gradle 入口，从两端最终 remapJar 加载完整生产配置/Mixin，使用各端真实 Sponge Mixin/MixinExtras 变换实际 Minecraft PipelineCache 类。
-- RED：两平台均复现原始 before super() invocation must be static 异常，20秒，非零退出。
-- GREEN：两平台真实应用通过，JVM 实例化变换后的真实构造器；验证原着色器源被包装、普通着色器/包含文件查询转发、关闭真实空缓存时原源恰好关闭一次。
-- 同次回归：两平台 Minecraft close()V 注入、firstPersonMaterialSmokeTest（含HTTP生命周期、真实shaderc和第一人称材质链）通过；共42秒，退出0。
-- 双release包CRC、嵌套依赖、内容及SHA256检查通过。生产remapJar任务图不含测试编译/执行，Actions未修改。
-- 未启动游戏；完整Knot/FML客户端启动和实机画面为MANUAL/PENDING，不计为PASS。离线Mixin和构造器验证已完成。
+- 按用户要求直接三方合并dev。3个生产文件、3个测试文件及四语言更新记录自动合并；唯一冲突AGENT_HANDOFF.md，整理为当前版本交接信息。没有用旧版本整文件覆盖26.3适配。
+- 已合入：本地装饰缺失时读取已有私有云源（保留账户/会话、授权、哈希和受保护缓存校验）；衣柜保留恢复字节并读取作者元数据；死亡复活后同UUID实体重绑，更新Lua玩家API、保留运行实例并清除旧拖尾。
+- 保留Minecraft close()V及PipelineCache静态构造器处理器修复；版本、Java25、SDL/Renderpearl和既有26.3适配未变。
+- RED：合并测试在旧生产实现上分别检出作者名称恢复失败和OUTFIT_PRESET_DEPENDENCY_MISSING；27秒、两入口非零退出。先前整份上游测试因旧版API编译失败，只算夹具准备失败，不算产品RED。
+- GREEN：libraryPreviewRuntimeSmokeTest、libraryPackagePreparationSmokeTest、双平台PipelineCache实际Mixin与JVM构造器、双平台Minecraft关闭Mixin、firstPersonMaterialSmokeTest全部通过；1分34秒，31项任务，退出0。
+- 原生回归涵盖同UUID复活保持运行实例及玩家API、Figura/YSM私有源真实回环HTTP与缓存、授权撤销/绑定删除、原生包与名称消费者。测试不是游戏完整启动或真实画面验证。
+- 双release包CRC/嵌套依赖/版本/内容及哈希校验通过；生产remapJar图不含测试编译或执行，Actions未修改。
 
-## 文件、日志与成品
+## 成品和日志
 
-生产：common/src/main/java/top/aihmc/omnimorph/mixin/AvatarShaderSourceMixin.java。验证：common/build.gradle、common/src/test/java/top/aihmc/omnimorph/testing/PipelineCacheMixinSmokeTest.java。交付记录：本文件及PIPELINE-CACHE-MIXIN-FIX.md。
+- D:\UserData\Desktop\Project\OMP\OMP_26.3\fabric\build\libs\omni-morph-1.0.0-alpha.12+26.3-fabric-mc.jar：19281970字节；SHA256 ba9d7d236a52e2edc272a43743af4471323fd9570405b599593cbdf81b9ae799。
+- D:\UserData\Desktop\Project\OMP\OMP_26.3\neoforge\build\libs\omni-morph-1.0.0-alpha.12+26.3-neoforge-mc.jar：18889941字节；SHA256 09d7146e41caae6db7344d708281b0d757c55b84e294c83ca8add39681262e93。
 
-本地日志（被忽略、未提交）：docs/pipeline-cache-mixin/red.log、green.log、artifacts.log、artifacts.json、production-tasks.log。
+本地日志（被忽略、未提交）：docs/dev-accessory-sync/ 的red.log、green.log、upstream-fixture-compile.log、artifacts.log、artifacts.json、production-tasks.log。重跑命令及范围见DEV-ACCESSORY-SYNC-26.3.md。
 
-- fabric/build/libs/omni-morph-1.0.0-alpha.12+26.3-fabric-mc.jar：19280327字节；SHA256 a22827d354eabb0da5955681465cd878d9707806994163296c2f5b5fd9c61256。
-- neoforge/build/libs/omni-morph-1.0.0-alpha.12+26.3-neoforge-mc.jar：18888291字节；SHA256 5d4dd79e93e11ab9559f7f867fa8104016186a8918359c80f6d77fd5024cceaa。
+## Git和后续状态
 
-## 交付与后续
+实施和自动验证已完成，正在执行合并提交与推送检查点。原.codex/未跟踪内容保留，无剩余实施任务。未启动游戏；完整双客户端启动、实机复活画面及跨维度表现为MANUAL/PENDING，不作为受阻条件。
 
-实施与自动验证完成。修复提交fa91a4dd6d2e9281117066db267538fd3e2d2144已推送origin/26.3，ls-remote确认同值；后续记录提交仅更新交付状态。原.codex/未跟踪内容保留，无剩余实施任务。
+历史：DEV-MERGE-26.3.md、MINECRAFT-LIFECYCLE-FIX.md、PIPELINE-CACHE-MIXIN-FIX.md；其中旧包哈希由本次成品替代。KNOWN_BUGS.md其他问题不在本次范围。
 
-此前关闭注入修复见MINECRAFT-LIFECYCLE-FIX.md，dev Alpha.12合并见DEV-MERGE-26.3.md；两份历史记录保留，其中旧包哈希由本次成品替代。KNOWN_BUGS.md中其他问题不在本次范围。
+最近可靠周池已用53%、剩余47%，未触发额度交接阈值，未调用Luna。
 
-最近可靠额度查询：周池已用50%，剩余50%，未达交接阈值，未调用Luna。
-
-必须遵守：CodeGraph优先；Java/Gradle前usejdk25并确认JVM；PowerShell前台Tee日志并立即检查退出码；仅Windows原生、禁止WSL；Actions仅生产；不未经许可启动游戏；禁止Qt offscreen；保留已有工作区内容，不扩大范围。
+必须遵守：CodeGraph优先；usejdk25并核对JVM；前台PowerShell Tee日志并立即检查退出码；Windows原生、禁止WSL；Actions仅生产；不未经许可启动游戏；Qt offscreen禁止；保留现有修改，不扩大范围。

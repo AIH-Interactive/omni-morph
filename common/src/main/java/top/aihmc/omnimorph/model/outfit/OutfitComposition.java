@@ -109,7 +109,7 @@ public final class OutfitComposition implements AutoCloseable {
         return Map.copyOf(active);
     }
 
-    private final LivingEntity wearer;
+    private LivingEntity wearer;
     private final Map<UUID, Avatar> instances;
     public record ControlGroup(OutfitConfig.Instance instance, Avatar avatar) {}
     private final Map<UUID, Long> controlDefinitions = new HashMap<>();
@@ -486,6 +486,16 @@ public final class OutfitComposition implements AutoCloseable {
 
     public void tick(Avatar base) {
         if (!closed) {
+            if (wearer != null && wearer.isRemoved()) {
+                var client = net.minecraft.client.Minecraft.getInstance();
+                LivingEntity replacement = null;
+                if (client.player != null && wearer.getUUID().equals(client.player.getUUID())) {
+                    replacement = client.player;
+                } else if (client.level != null) {
+                    replacement = client.level.getPlayerByUUID(wearer.getUUID());
+                }
+                rebindWearer(replacement);
+            }
             for (TrailBuffer trail : trails.values()) {
                 if (wearer == null || wearer.level() == null || wearer.isRemoved()) {
                     clearTrail(trail);
@@ -511,6 +521,24 @@ public final class OutfitComposition implements AutoCloseable {
         }
     }
 
+    /** Respawn replaces the entity, while the outfit and its script state still belong to the same player. */
+    private void rebindWearer(LivingEntity replacement) {
+        if (wearer == null || replacement == null || wearer == replacement || replacement.isRemoved()
+                || !wearer.getUUID().equals(replacement.getUUID())) {
+            return;
+        }
+        wearer = replacement;
+        for (TrailBuffer trail : trails.values()) {
+            clearTrail(trail);
+        }
+        for (UUID id : initialized) {
+            Avatar avatar = instances.get(id);
+            if (avatar.luaRuntime != null) {
+                avatar.luaRuntime.setUser(replacement);
+            }
+        }
+    }
+
     /** The existing preview owns base ticking/preparation; scope its work with the same outfit quota. */
     public void withBaseBudget(Avatar base, Runnable preparation) {
         bindBaseBudget(base);
@@ -528,6 +556,9 @@ public final class OutfitComposition implements AutoCloseable {
     Frame retain(LivingEntity viewWearer) {
         if (closed) {
             throw new IllegalStateException("OUTFIT_COMPOSITION_CLOSED");
+        }
+        if (wearer != null && wearer.isRemoved()) {
+            rebindWearer(viewWearer);
         }
         retainedFrames++;
         return new Frame(viewWearer);
