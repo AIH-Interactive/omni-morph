@@ -6,6 +6,8 @@
 
 ## 1.0.0-alpha.12
 
+- Removed client hard instruction ceilings for initialization and adaptive rendering while retaining configurable base windows. Removed ceiling inputs; restricted permissions, other execution channels and shared accounting remain enforced. Performance snapshots use -1 for unlimited.
+
 - Added an editable Cosmetic root to orbital charms, prismatic badge, view sigil, painted ribbon and sprint light; particle origins follow the mounted root. Painted ribbon now has a lifetime slider from 1 to 300 ticks, defaulting to 20, applied to newly created particles.
 
 ## 1.0.0-alpha.11
