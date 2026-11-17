@@ -56,4 +56,11 @@ release元数据1.0.0-alpha.12+26.3，无Git后缀；对应包含本记录的合
 
 实机GUI/GPU、Minecraft/Mixin启动、shader画面、特殊物品全链和双客户端为MANUAL/PENDING；未启动游戏、未修改用户模型、未导出解密资源。离线shaderc/原生顶点证明实际编译与数据链，不称GPU画面PASS。
 
-本目标仅当前26.3，本轮不派发其他版本。待完成提交、正常merge最新8cc2ede9并核对生产树、push和远端祖先审计后正常完成；最终SHA记入交接记录。无其他实施计划。最新可靠周额度剩余56%，未触发Luna交接。
+本目标仅当前26.3，本轮不派发其他版本。提交推送及远端祖先审计均完成；本版正常完成，最终SHA见下方检查点。无其他实施计划。最新可靠周额度剩余56%，未触发Luna交接。
+
+## 最终完成检查点
+
+- 6dbb2cc42ecfadcb91444286eaeaadca0757aceb：完整实现/验证及增量生产树合并，已推送并核对。
+- ae3500c22598fd195b06da54ecf6bd3063b16f34：正常merge最新dev 8cc2ede9。只需解决交接文档冲突，common/fabric/neoforge/配置/Actions/tools/tests与已验证生产树完全无差异，不重复运行无变化的构建。
+- git merge-base --is-ancestor 8cc2ede9 HEAD退出0；git ls-remote确认origin/26.3为ae3500c2，origin/dev仍为8cc2ede9，暂无漏合入源提交。
+- 工作树仅保留原.codex/；当前没有剩余实施。此完成记录提交不改生产代码/包，所有实机项仍MANUAL/PENDING。
