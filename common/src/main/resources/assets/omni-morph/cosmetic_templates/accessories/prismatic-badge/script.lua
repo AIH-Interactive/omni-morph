@@ -1,6 +1,6 @@
 -- The mesh's authored normals and UV2 become native shader attributes.
 accessory = {options={speed=0.3}, time=0}
-local badge = models.model.model.Badge
+local badge = models.model.model.Cosmetic.Badge
 badge:setShaderMaterial({
     vertex_shader=[[
 #version 330

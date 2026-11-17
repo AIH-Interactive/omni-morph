@@ -4,6 +4,10 @@
 
 [Project overview](../README.en.md)
 
+## 1.0.0-alpha.12
+
+- Added an editable Cosmetic root to orbital charms, prismatic badge, view sigil, painted ribbon and sprint light; particle origins follow the mounted root. Painted ribbon now has a lifetime slider from 1 to 300 ticks, defaulting to 20, applied to newly created particles.
+
 ## 1.0.0-alpha.11
 
 - Add a First-Person Weapon Replacement toggle under Settings → Rendering, disabled by default. It controls Figura/YSM item replacement without changing arms, third-person rendering or outfits.

@@ -71,9 +71,24 @@
       }
     }
   ],
-  "groups": [],
+  "groups": [
+    {
+      "name": "Cosmetic",
+      "uuid": "bc1a376c-5fff-57af-abcc-6ebb1cd2a6de",
+      "origin": [
+        0,
+        0,
+        0
+      ]
+    }
+  ],
   "outliner": [
-    "51952653-3572-5fd7-a68c-391314762835"
+    {
+      "uuid": "bc1a376c-5fff-57af-abcc-6ebb1cd2a6de",
+      "children": [
+        "51952653-3572-5fd7-a68c-391314762835"
+      ]
+    }
   ],
   "textures": [
     {

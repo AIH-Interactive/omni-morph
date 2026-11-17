@@ -91,6 +91,25 @@ public final class CosmeticCreationSmokeTest {
                         new SkeletonIndex.Cache(), OutfitLimits.defaults());
                 require(adapter.binding().definition().hash().equals(metadata.skeletonHash()),
                         "Declared skeleton matches actual renderer: " + template);
+                if (switch (template) {
+                    case ORBITAL_CHARMS, PRISMATIC_BADGE, VIEW_SIGIL, PAINTED_RIBBON, SPRINT_LIGHT -> true;
+                    default -> false;
+                }) {
+                    int rootIndex = -1;
+                    for (int index = 0; index < adapter.binding().parts().size(); index++) {
+                        if (adapter.binding().parts().get(index).name.equals("Cosmetic")) {
+                            rootIndex = index;
+                            break;
+                        }
+                    }
+                    require(rootIndex >= 0, "Bindable Cosmetic origin exists: " + template);
+                    int expectedRoot = rootIndex;
+                    require(metadata.editableBones().stream().anyMatch(bone ->
+                                    adapter.binding().definition().resolve(bone).orElse(-1) == expectedRoot),
+                            "Cosmetic origin is declared editable: " + template);
+                    require(adapter.binding().parts().get(rootIndex).children.size() == 1,
+                            "Authored mesh remains below the Cosmetic origin: " + template);
+                }
                 for (int tick = 0; tick < 3; tick++) {
                     avatar.tick.reset(65536);
                     avatar.run("TICK", avatar.tick);
@@ -99,6 +118,11 @@ public final class CosmeticCreationSmokeTest {
                 String assertion;
                 if (template.resourceId() != null) {
                     assertion = "assert(accessory ~= nil and accessory.options ~= nil)";
+                    if (template == CosmeticTemplate.PAINTED_RIBBON) {
+                        assertion += "; assert(cosmetic_controls:get('lifetime') == 20); "
+                                + "cosmetic_controls:set('lifetime', 300); "
+                                + "assert(cosmetic_controls:get('lifetime') == 300)";
+                    }
                 } else if (template == CosmeticTemplate.TRAIL) {
                     assertion = "assert(cosmetic_controls:get('interval') == 4); cosmetic_controls:set('star', true); "
                             + "assert(cosmetic_controls:get('emissive') and not cosmetic_controls:get('light'))";

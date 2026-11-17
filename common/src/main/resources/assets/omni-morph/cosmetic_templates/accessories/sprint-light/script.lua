@@ -6,7 +6,8 @@ local aspect = dimensions.x / dimensions.y
 local image = textures:newTexture("sprint-glow", 1, 1)
 image:fill(0, 0, 1, 1, 1, 1, 1, 1)
 local particle
-models.model.model.Marker:setVisible(false)
+local root = models.model.model.Cosmetic
+models.model.model.Cosmetic.Marker:setVisible(false)
 
 function accessory.clear()
     if particle then
@@ -20,8 +21,8 @@ function accessory.update(time)
         accessory.clear()
         return
     end
-    local origin = player:getPos() + vectors.vec3(0, accessory.options.height,
-        0.25 + 0.05 * math.sin(time * 3))
+    local origin = root:partToWorldMatrix():apply(0, accessory.options.height * 16,
+        (0.25 + 0.05 * math.sin(time * 3)) * 16)
     if not particle or not particle:isAlive() then
         particle = particles:newCustomParticle(image, origin):setLifetime(20):setEmissive(true)
         particle:setQuad(matrices.scale4(accessory.options.size * aspect, accessory.options.size, 1))
@@ -37,6 +38,6 @@ end
 events.TICK:register(function()
     accessory.time = accessory.time + 1/20
 end)
-events.RENDER:register(function(delta)
+events.POST_RENDER:register(function(delta)
     accessory.update(accessory.time + delta/20)
 end)

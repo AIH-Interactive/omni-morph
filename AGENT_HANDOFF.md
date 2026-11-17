@@ -1,5 +1,18 @@
 # Agent 交接手册
 
+## 当前任务：装饰模板绑定起点与新拖尾寿命（2026-11-17）
+
+- 用户授权：五种没有独立骨骼的新装饰像原拖尾一样增加绑定起点；新拖尾增加寿命滑块，最大300、默认20，单位tick；完成后提交推送并编译新包。任务在当前 `dev` / `origin/dev` 实施，起点 `d19483c24c1ff7bbb90b92afa44b603351fd2c4b`。本次未操作main或其他版本；此前Alpha.12合并到main的检查点是 `bf4379b7`。
+- 轨道挂饰、棱彩徽章、观察者符印、渐变拖尾、疾跑光饰均增加零位移的 `Cosmetic` 根分组，原网格与纹理保留在其下。脚本改为 `models.model.model.Cosmetic` 路径，创建器既有原生骨架扫描自动把根骨骼列入可编辑声明；没有伪造hash或修改骨骼协议。柔性背旗与采样灯饰不改。
+- 三种粒子效果在POST_RENDER从根骨骼实际世界矩阵采样，跟随挂载/骨骼编辑，保留配置偏移并换算像素到世界单位；新拖尾每tick最多记录一次。新拖尾 `lifetime` 滑块范围1–300 tick、默认20 tick，新创建粒子读取该值；存活粒子沿用创建时寿命。模板README与四语言Alpha.12更新记录已补齐本次内容。
+- RED：`build/cosmetic-origin-red.log`，真实创建与原生加载后断言缺少 `ORBITAL_CHARMS` 的可绑定Cosmetic根骨骼。GREEN：五种根骨骼存在、声明可编辑且原网格保留；全部16种模板的实际Lua初始化/tick、寿命默认20及设置300通过。第一人称材质回归夹具曾引用旧 `Badge` 路径导致失败，日志 `build/cosmetic-origin-stale-fixture.log`；更新为 `Cosmetic.Badge` 后重跑通过，没有改生产渲染逻辑。
+- 最终命令：`:common:cosmeticCreationSmokeTest :common:firstPersonMaterialSmokeTest :common:customParticleSmokeTest :fabric:build :neoforge:build -Prelease`，前台Windows PowerShell/Tee，退出0，BUILD SUCCESSFUL in 53s，37任务；日志 `build/cosmetic-origin-final.log`。构建包含的配装预览回归与NeoForge分发检查通过。实际绑定后的游戏画面、粒子位置和滑块GUI为 `MANUAL/PENDING`；未启动游戏或覆盖用户模型/安装包。
+- 产物：`fabric/build/libs/omni-morph-1.0.0-alpha.12+26.1.2-fabric-mc.jar`，19260786字节，SHA256 `5f3f25fc6b91defb1cfa36ed2ea0b359d8f2336661d583c1a5d24a07b4479906`；`neoforge/build/libs/omni-morph-1.0.0-alpha.12+26.1.2-neoforge-mc.jar`，18872551字节，SHA256 `8e95825e87f46c91077ef3d4f5c662a57b1ebc21f622dbfe242805d16a2fbdb2`。`build/cosmetic-origin-artifacts/build.log`核对主ZIP/嵌套JAR CRC、五套模型/脚本与源码逐字节一致、根骨骼结构及寿命消费表达式全部PASS。
+- 本次只影响新建模板，已创建的用户装饰不自动迁移。本轮实施和自动验证完成，无剩余实施任务。本节与资源、回归和更新记录一起提交到dev并推送；实际最终提交见 `git log -1`，推送后用 `git ls-remote`核对。保留开始时已有的gradle.properties状态和未跟踪资料，不纳入本次提交。
+- 相关路径：`common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/`、`CosmeticCreationSmokeTest.java`、`FirstPersonMaterialSmokeTest.java`、四语言 `docs/CHANGELOG*`。继续遵守CodeGraph优先、范围控制、Windows原生前台构建、禁止WSL/本地非Windows目标和Qt offscreen。可靠周额度已用42%、剩余58%，未触发Luna交接。
+
+下方为历史交付状态；本轮模板及产物以本节为准。
+
 ## 最新任务：第一人称武器替换开关（2026-11-13，已完成）
 
 - 用户已确认放在“设置 → 渲染”，名称“第一人称武器替换”，默认关闭；统一控制 Figura/YSM 第一人称替换，手臂、第三人称和配装保持原有功能。实施完成，无剩余开发任务。

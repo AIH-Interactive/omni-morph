@@ -6,3 +6,5 @@ API：matrices.sample4、matrices.composeEulerXYZ。模型坐标为像素，粒�
 
 贴图由自绘SVG的rect/circle/polygon原语转为64×64 PNG，并嵌入bbmodel。可编辑源码随包提供。
 加载/数值检查见总P5验收记录；游戏外观MANUAL/PENDING。
+
+绑定起点：`Cosmetic` 根骨骼；原网格保留在其下。脚本路径为 `models.model.model.Cosmetic`。
