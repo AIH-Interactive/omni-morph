@@ -225,7 +225,7 @@ public class AvatarAPI {
     @LuaWhitelist
     @LuaMethodDoc("avatar.get_max_render_count")
     public int getMaxRenderCount() {
-        return avatar.permissions.get(Permissions.RENDER_INST);
+        return org.figuramc.figura.lua.FiguraLuaRuntime.instructionCeiling(avatar, Permissions.RENDER_INST);
     }
 
     @LuaWhitelist

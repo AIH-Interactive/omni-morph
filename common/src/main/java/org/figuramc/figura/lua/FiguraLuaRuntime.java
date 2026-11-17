@@ -397,7 +397,7 @@ public class FiguraLuaRuntime {
         try {
             var budget = OutfitInstructionBudget.current(owner);
             if (budget != null) {
-                if (budget.allowance(owner, owner.init) <= 0) {
+                if (budget.allowance(owner, owner.init) == 0) {
                     throw new LuaError("Outfit initialization budget exhausted");
                 }
                 return runBounded(owner.init, () -> {
@@ -458,21 +458,24 @@ public class FiguraLuaRuntime {
         int permitted = avatar.permissions.get(permission);
         if (permission == Permissions.INIT_INST) {
             // Initialization has its own trust baseline; explicitly restricted models stay restricted.
-            return permitted < 65536 ? permitted : Configs.INIT_INSTRUCTION_CEILING.value;
+            return permitted < 65536 ? permitted : Configs.INIT_INSTRUCTION_CEILING;
         }
         if (permission != Permissions.RENDER_INST) {
             return permitted;
         }
         return AdaptiveInstructionWindow.ceiling(permitted,
                 Configs.ADAPTIVE_RENDER_BUDGET.value,
-                Configs.RENDER_INSTRUCTION_CEILING.value);
+                Configs.RENDER_INSTRUCTION_CEILING);
     }
 
     private void setExecutionInstructionLimit(int available, Avatar.Instructions instructions) {
+        if (instructions.max != -1) {
+            available = Math.max(0, available);
+        }
         setInstructionLimit(available);
         boolean initialization = instructions == owner.init;
         boolean adaptiveRender = instructions == owner.render && Configs.ADAPTIVE_RENDER_BUDGET.value;
-        if (available > 0 && (initialization || adaptiveRender)) {
+        if (available != 0 && (initialization || adaptiveRender)) {
             int base = initialization ? Configs.INIT_INSTRUCTION_BASE.value : Configs.RENDER_INSTRUCTION_BASE.value;
             adaptiveWindow = new AdaptiveInstructionWindow(base, available);
             setHookFunction.invoke(LuaValue.varargsOf(onReachedLimit, LuaValue.EMPTYSTRING,
@@ -483,6 +486,12 @@ public class FiguraLuaRuntime {
     private final ZeroArgFunction onReachedLimit = new ZeroArgFunction() {
         @Override
         public LuaValue call() {
+            if (adaptiveWindow != null && adaptiveWindow.unlimited()
+                    && adaptiveWindow.threshold() == Integer.MAX_VALUE) {
+                // LuaJ's hook count is an int; its range must not become an unlimited script's ceiling.
+                setHookFunction.invoke(LuaValue.NIL);
+                return LuaValue.NIL;
+            }
             if (adaptiveWindow != null && adaptiveWindow.grow(getInstructions())) {
                 // Re-arm the hook on the same monotonically increasing bytecode counter.
                 setHookFunction.invoke(LuaValue.varargsOf(onReachedLimit, LuaValue.EMPTYSTRING,
@@ -503,7 +512,12 @@ public class FiguraLuaRuntime {
         adaptiveWindow = null;
         exhaustedInstructions = 0;
         userGlobals.running.state.bytecodes = 0;
-        setHookFunction.invoke(LuaValue.varargsOf(onReachedLimit, LuaValue.EMPTYSTRING, LuaValue.valueOf(Math.max(limit, 1))));
+        if (limit == -1) {
+            setHookFunction.invoke(LuaValue.NIL);
+        } else {
+            setHookFunction.invoke(LuaValue.varargsOf(onReachedLimit, LuaValue.EMPTYSTRING,
+                    LuaValue.valueOf(Math.max(limit, 1))));
+        }
     }
 
     public int getInstructions() {
@@ -532,7 +546,8 @@ public class FiguraLuaRuntime {
     }
 
     public Varargs run(Object toRun, Avatar.Instructions limit, Object... args) {
-        if (limit == owner.render && limit.remaining == limit.max) {
+        if (limit == owner.render && limit.remaining == limit.max
+                && limit.max != instructionCeiling(owner, Permissions.RENDER_INST)) {
             limit.reset(instructionCeiling(owner, Permissions.RENDER_INST));
         }
         prepareParticleCallbackInstructions(limit);
@@ -611,7 +626,8 @@ public class FiguraLuaRuntime {
         var limit = frame ? owner.render : owner.tick;
         prepareParticleCallbackInstructions(limit);
         var budget = OutfitInstructionBudget.current(owner);
-        return budget == null ? Math.max(0, limit.remaining) : budget.allowance(owner, limit);
+        return budget == null ? (limit.max == -1 ? -1 : Math.max(0, limit.remaining))
+                : budget.allowance(owner, limit);
     }
 
     private Varargs invoke(Object toRun, Varargs args) {
@@ -635,7 +651,7 @@ public class FiguraLuaRuntime {
             return action.get();
         }
         int available = budget.allowance(owner, limit);
-        if (available <= 0) {
+        if (available == 0) {
             return null;
         }
         setExecutionInstructionLimit(available, limit);

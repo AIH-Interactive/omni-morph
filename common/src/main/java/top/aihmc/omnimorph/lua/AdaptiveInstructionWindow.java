@@ -11,11 +11,11 @@ public final class AdaptiveInstructionWindow {
     }
 
     public AdaptiveInstructionWindow(int baseLimit, int hardLimit) {
-        if (baseLimit < 1 || hardLimit < 1) {
-            throw new IllegalArgumentException("Instruction limits must be positive");
+        if (baseLimit < 1 || hardLimit == 0 || hardLimit < -1) {
+            throw new IllegalArgumentException("Base must be positive; ceiling must be positive or -1");
         }
         this.hardLimit = hardLimit;
-        threshold = Math.min(baseLimit, hardLimit);
+        threshold = hardLimit == -1 ? baseLimit : Math.min(baseLimit, hardLimit);
     }
 
     public int threshold() {
@@ -23,11 +23,16 @@ public final class AdaptiveInstructionWindow {
     }
 
     public boolean grow(int consumed) {
-        if (consumed < threshold || consumed >= hardLimit) {
+        if (consumed < threshold || hardLimit != -1 && consumed >= hardLimit) {
             return false;
         }
-        threshold = (int) Math.min(hardLimit, Math.max((long) threshold * 2, (long) consumed + 1));
+        int maximum = hardLimit == -1 ? Integer.MAX_VALUE : hardLimit;
+        threshold = (int) Math.min(maximum, Math.max((long) threshold * 2, (long) consumed + 1));
         return true;
+    }
+
+    public boolean unlimited() {
+        return hardLimit == -1;
     }
 
     /** Retains blocked and explicitly restricted trust levels. */
@@ -35,6 +40,6 @@ public final class AdaptiveInstructionWindow {
         if (!enabled || permission < INITIAL_LIMIT) {
             return permission;
         }
-        return Math.max(1, configuredLimit);
+        return configuredLimit == -1 ? -1 : Math.max(1, configuredLimit);
     }
 }

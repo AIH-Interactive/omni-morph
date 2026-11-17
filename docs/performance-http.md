@@ -48,10 +48,12 @@
 
 GPU时间、Lua渲染wall time、draw calls、Lua私有发射器数、拖尾历史样本数和shader编译计数首版为null/`not_collected`。完整候选指标及其可能来源仍见[P4.5计划](p4.5-performance-http-plan.md)，候选不表示已实现。服务不因缺少这些观测点而启动持续profiler。
 
-`references`还提供模组版本、Debug状态、实际端点、初始化与渲染的基础/最高配置及自适应开关。P95/P99、趋势和前后对比由调用方在相同模型、代次和场景下计算。
+`references`还提供模组版本、Debug状态、实际端点、初始化与渲染的可配置基础窗口、无限硬上限标记及自适应开关。P95/P99、趋势和前后对比由调用方在相同模型、代次和场景下计算。
 
 ## 请求与CSV
 
 配置`tools/performance_capture.json`后运行Python采集器，详见[采集脚本说明](performance-capture.md)。每次请求只写一行，模型选择、选择代次、生效模型或加载代次变化时另起`模型名-类型-时间戳.csv`。间隔为`interval_ms`，单位毫秒；相对CSV路径以配置文件目录为基准。
 
 自动验证使用真实回环HTTP、实际加载Avatar、原计数/共享账本和真实Python CSV写入；游戏内UI、帧画面和渲染耗时对应关系仍为MANUAL/PENDING。
+
+初始化和自适应渲染不设客户端指令硬上限，`references.renderBudget.hardCeiling` 与 `references.initBudget.hardCeiling` 使用 `-1` 表示无限；基础窗口仍可设置。指标中的有效 `limit` / `remaining` 为 `-1` 时也表示无限，不当作缺失或零。禁用、低信任权限、关闭渲染自适应时的原权限以及其他通道限制仍保留。

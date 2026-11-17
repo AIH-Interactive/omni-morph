@@ -1,5 +1,14 @@
 # Agent 交接手册
 
+## 当前任务：初始化与渲染取消硬上限（2026-11-17）
+
+- 用户明确基础保持可设置，初始化与渲染不需要硬上限，也不要求使用特定数值。实施在dev，源提交6a6c977c；初始化和自适应渲染使用内部-1表示无限，移除两个可编辑硬上限配置。基础默认仍为渲染8192、初始化65536，范围8192–2147483647。关闭渲染自适应恢复原权限；禁用、低信任权限及其他通道仍保持有限。
+- 修改实际VM钩子、共享账本、粒子回调门槛和计数消费者；无限remaining不递减、不当作耗尽，同帧反复调用不会重置累计计数。LuaJ最大int钩子范围不作为无限脚本的停止条件；基础窗口按需扩展，不重放脚本。性能HTTP保留原字段，hardCeiling=-1表示无限，基础仍来自设置。中英文提示、实际HTTP契约、AGENTS相关预算说明和四语言更新记录同步。
+- RED：build/unlimited-budget-red.log，真实VM回归在“初始化/渲染固定无限”断言失败。GREEN：build/unlimited-budget-green.log，真实初始化/渲染超过基础窗口且不重跑、剩余无限、粒子回调、低信任有限共享初始化与关闭自适应保留限制均通过。
+- 最终：build/unlimited-budget-final.log，ysmMaterialNative、firstPersonMaterial、cosmeticCreation、firstPersonItemRender、outfitApplyClient与双平台build -Prelease通过，退出0，1m40s，39任务。未启动游戏，设置页、实际脚本画面和真实HTTP与渲染画面的对应关系MANUAL/PENDING；没有运行无限死循环作为无限路径测试，死循环仅用于有限权限回归。
+- 本阶段实施/自动验证完成，工作在dev；提交推送以git log及ls-remote为准，原gradle.properties状态和未跟踪资料保留。用户追加了“新拖尾加入自发光和动态光源相关设置”，预算检查点提交后继续该项；不操作main、Wiki或其他版本。
+- 持续约束：CodeGraph优先、Windows原生前台PowerShell/Tee、禁止WSL/Qt offscreen、范围控制。最近可靠周额度已用42%，未触发Luna交接。
+
 ## 当前任务：装饰模板绑定起点与新拖尾寿命（2026-11-17）
 
 - 用户授权：五种没有独立骨骼的新装饰像原拖尾一样增加绑定起点；新拖尾增加寿命滑块，最大300、默认20，单位tick；完成后提交推送并编译新包。任务在当前 `dev` / `origin/dev` 实施，起点 `d19483c24c1ff7bbb90b92afa44b603351fd2c4b`。本次未操作main或其他版本；此前Alpha.12合并到main的检查点是 `bf4379b7`。

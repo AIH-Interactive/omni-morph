@@ -11,141 +11,119 @@ import org.figuramc.figura.permissions.Permissions;
 import top.aihmc.omnimorph.config.InstructionCeilingConfig;
 import top.aihmc.omnimorph.lua.AdaptiveInstructionWindow;
 
-/** Generic VM execution, with no converted data or source-engine dependencies. */
+/** Actual VM execution distinguishes initial windows, unlimited execution and restricted permissions. */
 public final class AdaptiveRenderBudgetSmokeTest {
     public static void verify() throws Exception {
         boolean enabled = Configs.ADAPTIVE_RENDER_BUDGET.value;
-        int ceiling = Configs.RENDER_INSTRUCTION_CEILING.value;
-        int base = Configs.RENDER_INSTRUCTION_BASE.value;
+        int renderBase = Configs.RENDER_INSTRUCTION_BASE.value;
+        int initBase = Configs.INIT_INSTRUCTION_BASE.value;
         try {
-            verifyInitialization();
-            require(Configs.RENDER_INSTRUCTION_CEILING.defaultValue == Integer.MAX_VALUE, "Default hard ceiling");
-            require(Configs.RENDER_INSTRUCTION_BASE.defaultValue == 8192, "Default base limit");
-            require(Configs.RENDER_INSTRUCTION_BASE.parent == Configs.PERFORMANCE
-                            && Configs.RENDER_INSTRUCTION_CEILING.parent == Configs.PERFORMANCE
-                            && Configs.ADAPTIVE_RENDER_BUDGET.parent == Configs.PERFORMANCE,
-                    "All budget controls belong in Performance settings");
-            Configs.RENDER_INSTRUCTION_BASE.value = 8192;
+            require(Configs.RENDER_INSTRUCTION_CEILING == -1 && Configs.INIT_INSTRUCTION_CEILING == -1,
+                    "Client initialization/render ceilings are unlimited constants");
+            require(Configs.PERFORMANCE.children.stream().noneMatch(config ->
+                            config.id.equals("render_instruction_ceiling") || config.id.equals("init_instruction_ceiling")),
+                    "Hard ceilings are absent from editable settings");
+            require(Configs.RENDER_INSTRUCTION_BASE.defaultValue == 8192
+                            && Configs.INIT_INSTRUCTION_BASE.defaultValue == 65536,
+                    "Existing base defaults remain configurable");
             Configs.ADAPTIVE_RENDER_BUDGET.value = true;
-            Configs.RENDER_INSTRUCTION_CEILING.value = 32768;
-            try (var fixture = new Owner()) {
-                var result = fixture.runtime.run(fixture.runtime.load("adaptive",
-                        "hits=0; for i=1,6000 do hits=hits+1 end; return hits"), fixture.avatar.render);
-                require(result != null && result.arg1().checkint() == 6000,
-                        "One VM execution must grow beyond 8192 without replaying side effects");
-                require(fixture.runtime.getInstructions() > 8192
-                                && fixture.runtime.getInstructions() < 32768,
-                        "Adaptive execution keeps its actual monotonically increasing instruction count");
-                require(fixture.avatar.render.max == 32768, "Client ceiling reaches the real render counter");
+            Configs.RENDER_INSTRUCTION_BASE.value = 8192;
+            for (int attempt = 0; attempt < 2; attempt++) {
+                try (var fixture = new Owner()) {
+                    var result = fixture.runtime.run(fixture.runtime.load("unlimited-render",
+                            "hits=0; for i=1,40000 do hits=hits+1 end; "
+                                    + "assert(avatar:getMaxRenderCount()==-1); return hits"), fixture.avatar.render);
+                    require(result != null && result.arg1().checkint() == 40000,
+                            "Rendering crosses its initial window without replaying side effects");
+                    require(fixture.runtime.getInstructions() > 65536 && fixture.avatar.render.max == -1
+                                    && fixture.avatar.render.remaining == -1,
+                            "Unlimited rendering still records work without exhausting remaining allowance");
+                    require(fixture.runtime.particleCallbackAllowance(true) == -1,
+                            "Unlimited rendering remains available to native particle callbacks");
+                    int previous = fixture.avatar.render.getTotal();
+                    require(fixture.runtime.run(fixture.runtime.load("second-render",
+                                    "local n=0; for i=1,1000 do n=n+1 end; return n"), fixture.avatar.render) != null
+                                    && fixture.avatar.render.getTotal() > previous,
+                            "Unlimited remaining values do not reset cumulative same-frame instruction counts");
+                }
             }
-            try (var fixture = new Owner()) {
-                var result = fixture.runtime.run(fixture.runtime.load("hard-stop", "while true do end"),
-                        fixture.avatar.render);
-                require(result == null && fixture.avatar.scriptError, "Hard ceiling stops an actual runaway VM");
-                require(fixture.runtime.getInstructions() <= 32768, "Hard stop must not exceed configured ceiling");
+            Configs.INIT_INSTRUCTION_BASE.value = 8192;
+            for (int attempt = 0; attempt < 2; attempt++) {
+                try (var fixture = new Owner()) {
+                    var runtime = new FiguraLuaRuntime(fixture.avatar, Map.of("main",
+                            "hits=0; start=avatar:getCurrentInstructions(); for i=1,40000 do hits=hits+1 end; "
+                                    + "assert(hits==40000 and start<8192 and avatar:getCurrentInstructions()>65536); "
+                                    + "assert(avatar:getMaxInitCount()==-1)"));
+                    require(runtime.init(null) && fixture.avatar.init.max == -1 && fixture.avatar.init.remaining == -1,
+                            "Each initialization starts from its configured base and has no hard stop");
+                }
             }
             Configs.ADAPTIVE_RENDER_BUDGET.value = false;
             try (var fixture = new Owner()) {
-                var result = fixture.runtime.run(fixture.runtime.load("legacy", "while true do end"),
-                        fixture.avatar.render);
+                var result = fixture.runtime.run(fixture.runtime.load("legacy", "while true do end"), fixture.avatar.render);
                 require(result == null && fixture.avatar.scriptError && fixture.avatar.render.max == 8192,
-                        "Turning adaptation off preserves the existing permissions budget");
+                        "Disabling adaptation preserves the existing permission budget");
             }
-            var window = new AdaptiveInstructionWindow(Integer.MAX_VALUE);
-            int previous = 0;
-            while (window.grow(window.threshold())) {
-                require(window.threshold() > previous, "Threshold growth cannot overflow");
-                previous = window.threshold();
-            }
-            require(window.threshold() == Integer.MAX_VALUE, "Largest signed-int ceiling remains exact");
-            for (InstructionCeilingConfig input : new InstructionCeilingConfig[]{
-                    Configs.RENDER_INSTRUCTION_BASE, Configs.RENDER_INSTRUCTION_CEILING,
-                    Configs.INIT_INSTRUCTION_BASE, Configs.INIT_INSTRUCTION_CEILING}) {
-                for (int value : new int[]{8192, 32768, 65536, Integer.MAX_VALUE}) {
-                    require(input.parseValue(Integer.toString(value)) == value,
-                            "Integer input accepts exact configured limits");
-                    require(input.inputType.validator.test(Integer.toString(value)),
-                            "Settings field accepts in-range values");
+            Configs.ADAPTIVE_RENDER_BUDGET.value = true;
+            for (int permission : new int[]{0, 4096}) {
+                try (var fixture = new Owner()) {
+                    fixture.avatar.permissions.insert(Permissions.RENDER_INST, permission,
+                            org.figuramc.figura.FiguraMod.MOD_ID);
+                    fixture.avatar.render.reset(permission);
+                    require(FiguraLuaRuntime.instructionCeiling(fixture.avatar, Permissions.RENDER_INST) == permission,
+                            "Explicitly restricted rendering cannot borrow unlimited execution");
+                    require(fixture.runtime.run(fixture.runtime.load("restricted-render", "while true do end"),
+                                    fixture.avatar.render) == null && fixture.avatar.scriptError,
+                            "Restricted rendering still stops the actual Lua VM");
                 }
-                for (String invalid : new String[]{"8", "8191", "0", "-1", "2147483648", "1.5"}) {
-                    require(!input.inputType.validator.test(invalid),
-                            "Settings field must reject invalid intermediate text before updating config");
-                    try {
-                        input.parseValue(invalid);
-                        throw new AssertionError("Input accepted an out-of-range limit: " + invalid);
-                    } catch (IllegalArgumentException expected) {
-                        // Exact bounds are enforced for UI, file loading and programmatic updates.
-                    }
+                try (var fixture = new Owner()) {
+                    fixture.avatar.permissions.insert(Permissions.INIT_INST, permission,
+                            org.figuramc.figura.FiguraMod.MOD_ID);
+                    require(FiguraLuaRuntime.instructionCeiling(fixture.avatar, Permissions.INIT_INST) == permission,
+                            "Explicitly restricted initialization stays finite");
+                    var runtime = new FiguraLuaRuntime(fixture.avatar, Map.of("main", "while true do end"));
+                    require(!runtime.init(null) && fixture.avatar.scriptError,
+                            "Restricted initialization still stops the actual Lua VM");
                 }
             }
-            require(new AdaptiveInstructionWindow(16384, 32768).threshold() == 16384,
-                    "Configured base controls the initial instruction window");
-            require(new AdaptiveInstructionWindow(65536, 32768).threshold() == 32768,
-                    "Hard ceiling takes precedence when the base is larger");
-            require(AdaptiveInstructionWindow.ceiling(0, true, 32768) == 0
-                            && AdaptiveInstructionWindow.ceiling(4096, true, 32768) == 4096,
-                    "Adaptation cannot grant script execution to blocked or low-trust models");
+            var unlimited = new AdaptiveInstructionWindow(16384, -1);
+            require(unlimited.threshold() == 16384, "Configured base controls the initial window");
+            while (unlimited.threshold() < Integer.MAX_VALUE) {
+                require(unlimited.grow(unlimited.threshold()), "Unlimited windows grow without a hard stop");
+            }
+            require(unlimited.unlimited() && unlimited.grow(Integer.MAX_VALUE),
+                    "LuaJ's largest hook count does not become an execution ceiling");
+            var finite = new AdaptiveInstructionWindow(8192, 16384);
+            require(finite.grow(8192) && !finite.grow(16384), "Finite permission windows retain their hard stop");
+            verifyInputs();
         } finally {
             Configs.ADAPTIVE_RENDER_BUDGET.value = enabled;
-            Configs.RENDER_INSTRUCTION_CEILING.value = ceiling;
-            Configs.RENDER_INSTRUCTION_BASE.value = base;
+            Configs.RENDER_INSTRUCTION_BASE.value = renderBase;
+            Configs.INIT_INSTRUCTION_BASE.value = initBase;
         }
-        System.out.println("OMM_NATIVE_ADAPTIVE_BUDGET_OK base=8192 test_hard=32768 default_hard=2147483647 range=8192..2147483647");
+        System.out.println("OMM_NATIVE_UNLIMITED_BUDGET_OK render_base=8192 init_base=65536 "
+                + "ceiling=-1 editable_bases=true restricted_permissions=retained");
     }
 
-    private static void verifyInitialization() {
-        int base = Configs.INIT_INSTRUCTION_BASE.value;
-        int ceiling = Configs.INIT_INSTRUCTION_CEILING.value;
-        try {
-            require(Configs.INIT_INSTRUCTION_BASE.defaultValue == 65536,
-                    "Initialization base defaults to 65536");
-            require(Configs.INIT_INSTRUCTION_CEILING.defaultValue == Integer.MAX_VALUE,
-                    "Initialization ceiling defaults to Integer.MAX_VALUE");
-            require(Configs.INIT_INSTRUCTION_BASE.parent == Configs.PERFORMANCE
-                            && Configs.INIT_INSTRUCTION_CEILING.parent == Configs.PERFORMANCE,
-                    "Both initialization inputs belong in Performance");
-            Configs.INIT_INSTRUCTION_BASE.value = 8192;
-            Configs.INIT_INSTRUCTION_CEILING.value = 262144;
-            for (int attempt = 0; attempt < 2; attempt++) {
-                try (var owner = new Owner()) {
-                    var runtime = new FiguraLuaRuntime(owner.avatar, Map.of("main",
-                            "hits=(hits or 0)+1; start=avatar:getCurrentInstructions(); "
-                                    + "for i=1,30000 do hits=hits+1 end; "
-                                    + "finish=avatar:getCurrentInstructions(); "
-                                    + "assert(hits==30001); assert(start<8192); assert(finish>65536); assert(avatar:getMaxInitCount()==262144)"));
-                    require(runtime.init(null), "Initialization grows in the actual Lua VM");
-                    require(owner.avatar.init.max == 262144,
-                            "The actual initialization counter uses the client ceiling");
+    private static void verifyInputs() {
+        for (InstructionCeilingConfig input : new InstructionCeilingConfig[]{
+                Configs.RENDER_INSTRUCTION_BASE, Configs.INIT_INSTRUCTION_BASE}) {
+            require(input.parent == Configs.PERFORMANCE, "Base inputs remain in Performance");
+            for (int value : new int[]{8192, 32768, 65536, Integer.MAX_VALUE}) {
+                require(input.parseValue(Integer.toString(value)) == value
+                                && input.inputType.validator.test(Integer.toString(value)),
+                        "Base inputs preserve their existing valid range");
+            }
+            for (String invalid : new String[]{"8", "8191", "0", "-1", "2147483648", "1.5"}) {
+                require(!input.inputType.validator.test(invalid), "Invalid base input is rejected before applying");
+                try {
+                    input.parseValue(invalid);
+                    throw new AssertionError("Base input accepted: " + invalid);
+                } catch (IllegalArgumentException expected) {
+                    // File loading and programmatic updates enforce the same range as the UI.
                 }
             }
-            Configs.INIT_INSTRUCTION_CEILING.value = 8192;
-            try (var owner = new Owner()) {
-                var runtime = new FiguraLuaRuntime(owner.avatar, Map.of("main", "while true do end"));
-                require(!runtime.init(null) && owner.avatar.scriptError,
-                        "The configured initialization ceiling stops runaway scripts");
-            }
-            Configs.INIT_INSTRUCTION_CEILING.value = Integer.MAX_VALUE;
-            for (int permission : new int[]{0, 4096}) {
-                try (var owner = new Owner()) {
-                    owner.avatar.permissions.insert(Permissions.INIT_INST, permission,
-                            org.figuramc.figura.FiguraMod.MOD_ID);
-                    require(FiguraLuaRuntime.instructionCeiling(owner.avatar, Permissions.INIT_INST) == permission,
-                            "Initialization settings preserve explicit low-trust restrictions");
-                    var runtime = new FiguraLuaRuntime(owner.avatar, Map.of("main", "while true do end"));
-                    require(!runtime.init(null) && owner.avatar.scriptError,
-                            "Restricted initialization cannot borrow the configured maximum");
-                }
-            }
-            for (InstructionCeilingConfig input : new InstructionCeilingConfig[]{
-                    Configs.INIT_INSTRUCTION_BASE, Configs.INIT_INSTRUCTION_CEILING}) {
-                require(input.parseValue("2147483647") == Integer.MAX_VALUE,
-                        "Both initialization inputs accept the largest signed integer");
-            }
-        } finally {
-            Configs.INIT_INSTRUCTION_BASE.value = base;
-            Configs.INIT_INSTRUCTION_CEILING.value = ceiling;
         }
-        System.out.println("OMM_NATIVE_ADAPTIVE_INIT_OK base=65536 test_hard=262144 default_hard=2147483647");
     }
 
     private static final class Owner implements AutoCloseable {
