@@ -21,7 +21,7 @@
 
 ## Git和后续状态
 
-实施和自动验证已完成，正在执行合并提交与推送检查点。原.codex/未跟踪内容保留，无剩余实施任务。未启动游戏；完整双客户端启动、实机复活画面及跨维度表现为MANUAL/PENDING，不作为受阻条件。
+实施和自动验证已完成。合并提交312d87b3b1d202e8159b6287858c587323edf38a已推送origin/26.3并经ls-remote确认；固定dev源为HEAD祖先，远端dev仍为e2962c33。后续记录提交仅更新交付状态。原.codex/未跟踪内容保留，无剩余实施任务。未启动游戏；完整双客户端启动、实机复活画面及跨维度表现为MANUAL/PENDING，不作为受阻条件。
 
 历史：DEV-MERGE-26.3.md、MINECRAFT-LIFECYCLE-FIX.md、PIPELINE-CACHE-MIXIN-FIX.md；其中旧包哈希由本次成品替代。KNOWN_BUGS.md其他问题不在本次范围。
 
