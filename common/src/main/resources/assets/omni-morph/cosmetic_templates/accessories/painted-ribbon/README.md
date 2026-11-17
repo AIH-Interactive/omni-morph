@@ -10,3 +10,5 @@ API：Particle.setQuads、Particle.setQuadsTransform、particle.vertices.color�
 绑定起点：`Cosmetic` 根骨骼；原网格保留在其下。脚本路径为 `models.model.model.Cosmetic`。
 粒子位置在 POST_RENDER 从该根骨骼的实际世界矩阵采样，跟随挂载与骨骼编辑。
 寿命滑块范围为 1–300 tick，默认 20 tick；修改后用于新建的拖尾粒子。
+
+光效控件：自发光默认开启，动态光源默认关闭；光照亮度0–15（默认15）、光照半径0.5–16方块（默认7.5）、发光间隔1–64个粒子（默认1，每N个粒子选一个光源）。修改作用于当前存活粒子；自发光不等于照亮环境，动态光源继续受权限及后端上限约束。
