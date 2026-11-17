@@ -1,5 +1,45 @@
 # Agent 交接手册
 
+## 当前交付：装饰修复合并 main（2026-11-17）
+
+- 用户已授权将本轮装饰修复合并到 main：私有云读取、死亡复活重绑定、实例名称与作者默认元数据恢复。
+- 合并前已 fetch；dev/origin/dev 均为8cc2ede9，main/origin/main 均为e3ea1a21。main 已包含此前 dev 功能，本次仅新增上述已验证修复及测试、更新记录和交接文档。
+- 自动验证沿用本轮最新代码的通过结果：build/private-accessory-name-final.log（预览回归、Fabric/NeoForge release构建，46s，退出0）、build/outfit-private-figura-final.log（私有云原生源回归，42s，退出0）；git diff --check通过。游戏实测仍 MANUAL/PENDING。
+- 正在提交dev并推送，再使用既有 .worktrees/alpha11-main 合并及推送；完成状态将在合并后更新。保留原gradle.properties状态及两工作区未跟踪资料。不启动游戏、不部署、不移植其他版本。
+
+
+## 补充修复：装饰已恢复但实例名称仍为资源不可用（2026-11-17）
+
+- 用户截图确认已加载的装饰在实例菜单仍显示“资源不可用 #序号”。根因：draftMetadata 仅查固定聚合/本地库存/模型库描述，没有读从已加载组合恢复到 draftPreparedResources 的原生元数据；此前只补了资源读取，遗漏名称消费者。
+- 已修改 WardrobeScreen.draftMetadata：读取已准备 NBT 中的 cosmetic_json；固定聚合按当前引用是否成功准备判断，不再因其他资源失败而隐藏成功资源的名称。实例菜单、相关标题及恢复作者默认设置复用此元数据。仅补齐该缺陷，没有新增功能。
+- RED：build/private-accessory-name-red.log，真实衣柜恢复夹具移除本地库存条目后，instanceName 不等于作者名和序号。GREEN：build/private-accessory-name-final.log，libraryPreviewRuntimeSmokeTest、Fabric/NeoForge build -Prelease通过，退出0，BUILD SUCCESSFUL in 46s，34任务；修正既有测试将名称不可用视作预期的旧断言，保留完整原预览/复活回归。四语言更新记录已补齐。
+- 新包如下，覆盖下文旧哈希：
+- fabric: `fabric/build/libs/omni-morph-1.0.0-alpha.12+26.1.2-fabric-mc.jar`，19263055字节，SHA256 `99cb0d1691b5ff90fdf63f030dc40215c861e000224fb6b03777ac221cbd2215`。
+- neoforge: `neoforge/build/libs/omni-morph-1.0.0-alpha.12+26.1.2-neoforge-mc.jar`，18874829字节，SHA256 `774ab95e0b0534b62825c87b24c2061c0991d8c029f6ab54be6e9b62439915a3`。
+- 最终状态：实施、自动回归、双平台构建与交接更新完成，无剩余实施项。当前dev起点8cc2ede9，所有本轮修复仍未提交/未推送；保留gradle.properties和原未跟踪资料。git diff --check通过。游戏内实例菜单实测 MANUAL/PENDING，未启动游戏或覆盖安装。
+- 继续遵守上文项目约束：CodeGraph优先、Windows原生前台PowerShell/Tee、禁止WSL/Qt offscreen、范围控制及保留工作区。最近可靠周窗口已用52%、剩余48%，未触发交接阈值。
+
+下方为前序修复记录；最终包和名称修复状态以此节为准。
+
+
+## 当前任务：形象私有云装饰读取与死亡复活恢复（2026-11-17）
+
+- 用户报告：仅随形象发布、未单独上传模型库的装饰，本地没有文件时显示资源不可用；已存在模型库的装饰正常。追加报告：`/kill` 后复活装饰消失，重新载入才能恢复。本次仅处理这两项缺陷，没有新增阶段或功能。
+- 分支 `dev`，起点 `8cc2ede9`，上游 `origin/dev`。本轮修改尚未提交、未推送；未切换分支。原有 `gradle.properties` 状态与所有未跟踪资料保留。
+- 已实施：`OutfitPresetResources` 在确切本地源缺失时，使用已有 `OutfitSourceService` 读取相同引用的私有云包；仍执行当前账户/会话、服务端授权、原始哈希、元数据和受保护缓存校验。不以模型库条目作为前提，不触发隐式上传；本地已修改或正式聚合的固定输入错误不会被此路径掩盖。`WardrobeScreen` 导入时保留已准备的私有资源字节，防止离开源预览后丢失。
+- 已实施：`OutfitComposition` 在旧穿戴者实体被移除后，在 tick 或渲染提取时绑定相同 UUID 的新实体，更新已初始化 Lua 运行时的玩家 API，保留运行实例和脚本状态，并清理旧拖尾采样。不重新下载或重新执行初始化脚本。
+- 新增/修改回归：`OutfitSourceCacheSmokeTest` 的缺少本地文件且没有模型库条目的私有预览、重复/禁用实例、云绑定删除和权限撤销；`LibraryPackagePreparationSmokeTest` 增加 Figura ACCESSORY 原生包覆盖；`LibraryPreviewRuntimeSmokeTest` 用生产 NativeBridge 初始化 OWNER 装饰后模拟同 UUID 玩家实体替换，并验证 player:isLoaded 与运行实例保留。模拟离线 Authorizer 对 capabilities/私有源查询返回 IOException，其他意外网络调用仍拒绝。四语言 CHANGELOG 已更新。
+- RED：`build/private-source-preview-red.log` 明确失败于私有云资源存在而预览返回 OUTFIT_PRESET_DEPENDENCY_MISSING；`build/outfit-respawn-red.log` 明确失败于复活后组合仍绑定旧实体。夹具准备期间出现私有 userGlobals 访问编译失败、未初始化/已清理 Lua Runtime 和原离线 Authorizer 抛 Error 导致的等待超时，已修正夹具；不计作新增产品缺陷。`build/outfit-cloud-respawn-green.log` 留有早期夹具超时，不是最终结果。
+- 已验证：`build/outfit-cloud-respawn-final.log`，命令 `gradlew.bat :common:libraryPreviewRuntimeSmokeTest :common:libraryPackagePreparationSmokeTest :fabric:build :neoforge:build -Prelease --console=plain`，退出0，BUILD SUCCESSFUL in 1m17s，35任务。包含原生预览/脚本、私有真实回环 HTTP/缓存、Figura/YSM 主模型、加密装饰、复活绑定与 NeoForge 分发检查。具体游戏流程和画面没有由此证明。
+- Figura ACCESSORY 补充回归：PASS，日志 `build/outfit-private-figura-final.log`，退出0，BUILD SUCCESSFUL in 42s，10任务。确实覆盖 Figura ACCESSORY 和 YSM_ENCRYPTED ACCESSORY 的无本地文件私有云读取、缺少绑定和权限撤销。
+- 新包 ZIP CRC 和修复类存在性已核对：Fabric `fabric/build/libs/omni-morph-1.0.0-alpha.12+26.1.2-fabric-mc.jar`，19263014字节，SHA256 `d4a63ee266a7ab7bb30be20a7edce5c1e99dcf102bd81f7d672c74b820bd87f6`；NeoForge `neoforge/build/libs/omni-morph-1.0.0-alpha.12+26.1.2-neoforge-mc.jar`，18874787字节，SHA256 `6f0a9ed5e6d1263cba62a8d9e8d0fdaccf4f2381a49294bd12316f77aa3175af`。补充测试仅修改测试源码，不改变已构建生产包。
+- 游戏实际删除/移走本地装饰后的云端获取、`/kill` 复活画面、远端玩家及跨维度实测均为 MANUAL/PENDING；未启动游戏、未部署后端或覆盖用户模型/安装包。人工项不作为受阻条件。
+- 必须遵守：CodeGraph 优先、仅当前范围、保留原工作区、原生 Windows 前台 PowerShell/Tee 构建、禁止 WSL/本地非 Windows 构建及 Qt offscreen。最近可靠周窗口已用51%、剩余49%，未触发 Luna 交接。
+- 最终状态：本轮实施、自动回归、双平台新包、四语言更新记录和交接更新完成；git diff --check 通过，无剩余实施任务。提交/推送未执行，人工验收仍 MANUAL/PENDING。
+
+下方为此前任务的历史记录，本轮状态和新包以上述内容为准。
+
+
 ## 当前任务：新渐变拖尾光效设置，预算修改已交付（2026-11-17）
 
 - 当前分支dev跟踪origin/dev。初始化/自适应渲染取消硬上限的独立检查点 `19005abd11ae55c591f3b05b03f0fa857e2430e2` 已提交推送，ls-remote核对一致；保留可配置基础窗口、受限权限和共享计费。随后按用户追加要求，仅为新渐变拖尾（painted-ribbon）增加光效设置，不修改旧拖尾模板或其他模板。
