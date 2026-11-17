@@ -130,6 +130,7 @@ public final class OutfitPresetResources implements AutoCloseable {
     private Map<UUID, LocalCosmeticInventory.Entry> localAccessories;
     private AutoCloseable pending;
     private int next;
+    private boolean privateSources;
     private volatile boolean closed;
 
     public OutfitPresetResources(OutfitConfig configuration, OutfitLimits limits, UUID account, Path directory,
@@ -173,7 +174,8 @@ public final class OutfitPresetResources implements AutoCloseable {
 
     private boolean current() {
         return !closed && active.getAsBoolean()
-                && (!requiresCloud || client == null || client.current() && account.equals(client.session().player()));
+                && (!(requiresCloud || privateSources) || client == null
+                || client.current() && account.equals(client.session().player()));
     }
 
     /** One dependency at a time also bounds transfer handles and temporary decoded packages. */
@@ -199,7 +201,7 @@ public final class OutfitPresetResources implements AutoCloseable {
                     throw new CompletionException(failure);
                 }
             }).whenComplete((value, failure) ->
-                    publisher.execute(() -> accept(dependency, value, failure)));
+                    publisher.execute(() -> acceptLocal(dependency, value, failure)));
             return;
         }
         if (client == null || transfers == null || !client.origin().equals(reference.origin())) {
@@ -242,6 +244,34 @@ public final class OutfitPresetResources implements AutoCloseable {
         } catch (RuntimeException failure) {
             accept(dependency, null, failure);
         }
+    }
+
+    private void acceptLocal(Dependency dependency, Resource value, Throwable failure) {
+        Throwable cause = failure;
+        while (cause instanceof CompletionException && cause.getCause() != null) {
+            cause = cause.getCause();
+        }
+        boolean missing = cause instanceof IOException && ("OUTFIT_PRESET_DEPENDENCY_MISSING".equals(cause.getMessage())
+                || "OUTFIT_BASE_SOURCE_MISSING".equals(cause.getMessage()));
+        if (!missing || fixedLocal != null || client == null || !current() || future.isDone()) {
+            accept(dependency, value, failure);
+            return;
+        }
+        // LOCAL identifies the authored source; publishing also stores a private cloud copy of that exact source.
+        privateSources = true;
+        if (!current()) {
+            future.cancel(false);
+            return;
+        }
+        var kind = dependency.base() ? OutfitConfig.ResourceKind.AVATAR : OutfitConfig.ResourceKind.ACCESSORY;
+        var request = new OutfitSourceService(client, org.figuramc.figura.FiguraMod.getCacheDirectory())
+                .read(dependency.resource(), kind);
+        pending = request::cancel;
+        request.future().whenComplete((prepared, error) -> publisher.execute(() -> {
+            Resource resource = prepared == null ? null : new Resource(prepared.nbt(),
+                    prepared.binding().accessoryMetadata(), null);
+            accept(dependency, resource, error);
+        }));
     }
 
     private Resource readLocal(Dependency dependency) throws Exception {
