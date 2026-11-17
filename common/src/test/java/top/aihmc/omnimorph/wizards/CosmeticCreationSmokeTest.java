@@ -121,7 +121,11 @@ public final class CosmeticCreationSmokeTest {
                     if (template == CosmeticTemplate.PAINTED_RIBBON) {
                         assertion += "; assert(cosmetic_controls:get('lifetime') == 20); "
                                 + "cosmetic_controls:set('lifetime', 300); "
-                                + "assert(cosmetic_controls:get('lifetime') == 300)";
+                                + "assert(cosmetic_controls:get('lifetime') == 300); "
+                                + "assert(cosmetic_controls:get('emissive') and not cosmetic_controls:get('light')); "
+                                + "assert(cosmetic_controls:get('light_interval') == 1); "
+                                + "assert(cosmetic_controls:get('light_level') == 15); "
+                                + "assert(cosmetic_controls:get('light_radius') == 7.5)";
                     }
                 } else if (template == CosmeticTemplate.TRAIL) {
                     assertion = "assert(cosmetic_controls:get('interval') == 4); cosmetic_controls:set('star', true); "

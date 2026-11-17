@@ -1,5 +1,17 @@
 # Agent 交接手册
 
+## 当前任务：新渐变拖尾光效设置，预算修改已交付（2026-11-17）
+
+- 当前分支dev跟踪origin/dev。初始化/自适应渲染取消硬上限的独立检查点 `19005abd11ae55c591f3b05b03f0fa857e2430e2` 已提交推送，ls-remote核对一致；保留可配置基础窗口、受限权限和共享计费。随后按用户追加要求，仅为新渐变拖尾（painted-ribbon）增加光效设置，不修改旧拖尾模板或其他模板。
+- 新增独立自发光（默认true）、动态光源（默认false）、亮度0–15（默认15）、半径0.5–16方块（默认7.5）、发光间隔1–64个粒子（默认1）。间隔沿用原生API的每N个粒子选择光源语义，和寿命1–300 tick／默认20 tick分别计量。控件修改直接更新现有存活粒子；移除图层强制emissive=true，避免关掉自发光后仍发光。光源继续经过原有权限、半径/亮度及数量预算检查。
+- 实际生成模板→Lua→原生粒子的测试PASS：默认与300 tick寿命、Cosmetic起点位置变化、独立自发光/光源切换、亮度/半径、间隔1与64、即时修改及清理。测试只替代穿戴者isLoaded和未注入的ParticleAccessor位置字段桥，保留原生粒子/光源消费者；不是游戏实际Mixin/GPU画面验证。
+- 夹具准备失败保留：build/painted-ribbon-lighting-fixture-compile.log（误用原生粒子getPos，改走现有字段读取）、build/painted-ribbon-lighting-fixture-mixin.log（独立JVM缺ParticleAccessor注入，补测试字段桥）。没有改生产API绕过失败。最终build/painted-ribbon-lighting-green.log，退出0，BUILD SUCCESSFUL in 1m6s，36任务；cosmeticCreation、ysmMaterialNative（含预算/共享账本/粒子及既有预览回归）、Fabric/NeoForge build -Prelease通过。
+- 最终包：fabric/build/libs/omni-morph-1.0.0-alpha.12+26.1.2-fabric-mc.jar，19261398字节，SHA256 `7a8842091d6deb4f5d7d8dd19a1d11d2df93f64af9b3e1a22ac74d57edd37b3a`；neoforge/build/libs/omni-morph-1.0.0-alpha.12+26.1.2-neoforge-mc.jar，18873151字节，SHA256 `c91a5af51456432a5362d581bea3b163de1bb22e4ea54e5a1e491ea837f63c5a`。build/painted-ribbon-lighting-artifacts/build.log核对主ZIP/嵌套JAR CRC、模板脚本与源码一致、光效/寿命控件、两个无限常量与中英文硬上限输入文案移除，全部PASS；覆盖下方历史哈希。
+- 本任务实施、自动验证、新包和四语言更新记录完成，无剩余实施项。此节随光效资源/测试/文档提交推送dev，最终提交以git log及远端核对为准。原gradle.properties状态与未跟踪资料保留，main/Wiki/其他版本未操作；用户旧装饰不自动迁移。
+- 游戏内控件界面、实际发光/遮挡画面和Mixin启动为MANUAL/PENDING，未擅自启动游戏或覆盖安装包/模型。相关文件为painted-ribbon的script.lua/README、CosmeticCreationSmokeTest、CreatedTrailParticleSmokeTest、四语言CHANGELOG。继续遵守CodeGraph优先、原生Windows前台Tee构建、禁止WSL与Qt offscreen。最近可靠周额度已用43%、剩余57%，未触发Luna交接。
+
+下方为预算和此前任务的历史记录；交付完成状态和新包以本节为准。
+
 ## 当前任务：初始化与渲染取消硬上限（2026-11-17）
 
 - 用户明确基础保持可设置，初始化与渲染不需要硬上限，也不要求使用特定数值。实施在dev，源提交6a6c977c；初始化和自适应渲染使用内部-1表示无限，移除两个可编辑硬上限配置。基础默认仍为渲染8192、初始化65536，范围8192–2147483647。关闭渲染自适应恢复原权限；禁用、低信任权限及其他通道仍保持有限。

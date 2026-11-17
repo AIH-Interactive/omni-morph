@@ -9,6 +9,33 @@ local recordedTime
 cosmetic_controls:newSlider("lifetime"):setTitle("Lifetime (ticks) / 寿命（tick）")
     :setRange(1, 300, 1):setDefault(20)
 
+local function applyEmissive()
+    if particle and particle:isAlive() then
+        particle:setEmissive(cosmetic_controls:get("emissive"))
+    end
+end
+
+local function applyLight()
+    if particle and particle:isAlive() then
+        particle:setDynamicLight(false)
+            :setLightLevel(cosmetic_controls:get("light_level"))
+            :setLightRadius(cosmetic_controls:get("light_radius"))
+            :setLightInterval(cosmetic_controls:get("light_interval"))
+            :setDynamicLight(cosmetic_controls:get("light"))
+    end
+end
+
+cosmetic_controls:newToggle("emissive"):setTitle("Full bright / 自发光")
+    :setDefault(true):setOnChange(applyEmissive)
+cosmetic_controls:newToggle("light"):setTitle("Dynamic light / 动态光源")
+    :setDefault(false):setOnChange(applyLight)
+cosmetic_controls:newSlider("light_level"):setTitle("Light level / 光照亮度")
+    :setRange(0, 15, 1):setDefault(15):setOnChange(applyLight)
+cosmetic_controls:newSlider("light_radius"):setTitle("Light radius (blocks) / 光照半径（方块）")
+    :setRange(0.5, 16, 0.5):setDefault(7.5):setOnChange(applyLight)
+cosmetic_controls:newSlider("light_interval"):setTitle("Light interval (particles) / 发光间隔（粒子）")
+    :setRange(1, 64, 1):setDefault(1):setOnChange(applyLight)
+
 function accessory.clear()
     if particle then
         particle:remove()
@@ -37,9 +64,11 @@ function accessory.update(time)
     local origin = history[#history]
     if not particle or not particle:isAlive() then
         particle = particles:newCustomParticle(image, origin)
-            :setLifetime(cosmetic_controls:get("lifetime")):setEmissive(true)
+            :setLifetime(cosmetic_controls:get("lifetime"))
         particle:setLayers({{blend="alpha", cull=false, alpha_cutoff=0.001,
-            depth_test=true, order=1, emissive=true}})
+            depth_test=true, order=1}})
+        applyEmissive()
+        applyLight()
     end
     local vertices = {}
     local function edge(point, fraction, side)
