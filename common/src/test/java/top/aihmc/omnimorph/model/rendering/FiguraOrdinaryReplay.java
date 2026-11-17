@@ -66,9 +66,9 @@ public final class FiguraOrdinaryReplay {
                 return 16;
             }
         };
-        List<Vertex> vertices = List.of(new Vertex(1, 2, 3, 8, 4, 0, 1, 0),
-                new Vertex(2, 2, 3, 16, 4, 0, 1, 0), new Vertex(2, 3, 3, 16, 8, 0, 1, 0),
-                new Vertex(1, 3, 3, 8, 8, 0, 1, 0));
+        List<Vertex> vertices = List.of(new Vertex(1, 2, 3, 8, 4, 1, 1, 0),
+                new Vertex(2, 2, 3, 16, 4, 1, 1, 0), new Vertex(2, 3, 3, 16, 8, 1, 1, 0),
+                new Vertex(1, 3, 3, 8, 8, 1, 1, 0));
         var push = ImmediateFiguraRenderer.class.getDeclaredMethod("pushToBuffer", int.class, dataType,
                 PartCustomization.class, FiguraTextureSet.class, List.class, FiguraModelPart.class, FiguraMat4[].class);
         push.setAccessible(true);
@@ -108,8 +108,10 @@ public final class FiguraOrdinaryReplay {
         flush(destination);
         require(positions.size() == 4 && positions.getFirst()[0] == 4 && positions.getFirst()[2] == 8,
                 "actual Figura draw consumes transformed batch positions");
-        require(normals.size() == 4 && normals.getFirst()[1] == 0.5f,
-                "actual Figura draw preserves separate normal matrix");
+        require(normals.size() == 4
+                        && Math.abs(normals.getFirst()[0] - 2 / Math.sqrt(5)) < 0.00001
+                        && Math.abs(normals.getFirst()[1] - 1 / Math.sqrt(5)) < 0.00001,
+                "actual Figura draw preserves the separate normal matrix and normalizes its output");
         require(uvs.size() == 4 && uvs.getFirst()[0] == 0.5f && uvs.getFirst()[1] == 0.25f,
                 "actual Figura UV channel remains unchanged");
 

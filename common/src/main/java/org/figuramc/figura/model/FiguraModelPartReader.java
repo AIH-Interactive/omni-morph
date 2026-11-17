@@ -425,6 +425,25 @@ public class FiguraModelPartReader {
         }
     }
 
+    private static void applySecondaryUV(Vertex vertex, ListTag secondaryUVs) {
+        if (secondaryUVs.isEmpty()) {
+            return;
+        }
+        vertex.u2 = secondaryUVs.getFloat(vertex.origIdx * 2);
+        vertex.v2 = secondaryUVs.getFloat(vertex.origIdx * 2 + 1);
+        vertex.hasSecondaryUV = true;
+    }
+
+    private static void applyAuthoredNormal(Vertex vertex, ListTag normals) {
+        if (normals.isEmpty()) {
+            return;
+        }
+        int offset = vertex.origIdx * 3;
+        vertex.nx = normals.getFloat(offset);
+        vertex.ny = normals.getFloat(offset + 1);
+        vertex.nz = normals.getFloat(offset + 2);
+    }
+
     private static void readMesh(List<Integer> facesByTexture, CompoundTag data, Map<Integer, List<Vertex>> vertices) {
         CompoundTag meshData = data.getCompound("mesh_data");
         // mesh_data:
@@ -435,6 +454,14 @@ public class FiguraModelPartReader {
 
         // Get the vertex, UV, and texture lists from the mesh data
         ListTag verts = NbtDefaults.getListOrEmpty(meshData, "vtx");
+        ListTag normals = NbtDefaults.getListOrEmpty(meshData, "normals");
+        ListTag secondaryUVs = NbtDefaults.getListOrEmpty(meshData, "uv2");
+        if (!secondaryUVs.isEmpty() && (secondaryUVs.size() % 2 != 0 || secondaryUVs.size() / 2 * 3 != verts.size())) {
+            throw new IllegalArgumentException("Secondary UV count differs from vertex count");
+        }
+        if (!normals.isEmpty() && normals.size() != verts.size()) {
+            throw new IllegalArgumentException("Authored normal count differs from vertex count");
+        }
         ListTag uvs = NbtDefaults.getListOrEmpty(meshData, "uvs");
         ListTag tex = NbtDefaults.getListOrEmpty(meshData, "tex");
 
@@ -501,6 +528,8 @@ public class FiguraModelPartReader {
                         (float) p3.x, (float) p3.y, (float) p3.z
                 );
                 v.origIdx = origIdxForFace[j];
+                applySecondaryUV(v, secondaryUVs);
+                applyAuthoredNormal(v, normals);
                 list.add(v);
                 vertices.put(texId, list);
             }
@@ -513,6 +542,8 @@ public class FiguraModelPartReader {
                         (float) p3.x, (float) p3.y, (float) p3.z
                 );
                 v.origIdx = origIdxForFace[2];
+                applySecondaryUV(v, secondaryUVs);
+                applyAuthoredNormal(v, normals);
                 list.add(v);
                 vertices.put(texId, list);
             }

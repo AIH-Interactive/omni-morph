@@ -1,0 +1,321 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+
+> Configure project :
+Architect Plugin: 3.4.164
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+Mod was built with a newer version of Loom (1.17.493), you are using Loom (1.14.476)
+Mod was built with a newer version of Loom (1.17.21), you are using Loom (1.14.476)
+Mod was built with a newer version of Loom (1.16.3), you are using Loom (1.14.476)
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+
+> Task :common:compileJava
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\main\java\top\aihmc\omnimorph\compat\LambDynamicLightsCompat.java:26: 警告: [removal] DynamicLightsInitializer 中的 onInitializeDynamicLights(ItemLightSourceManager) 已过时, 且标记为待删除
+    public void onInitializeDynamicLights(ItemLightSourceManager itemLightSourceManager) {
+                ^
+注: 某些输入文件使用或覆盖了已过时的 API。
+注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+注: 某些输入文件使用了未经检查或不安全的操作。
+注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+1 个警告
+
+> Task :common:processResources
+> Task :common:classes
+> Task :common:extractIncludeTestProto UP-TO-DATE
+> Task :common:extractTestProto UP-TO-DATE
+> Task :common:generateTestProto NO-SOURCE
+
+> Task :common:compileTestJava
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:4: 错误: 找不到符号
+import com.mojang.blaze3d.shaders.ShaderSource;
+                                 ^
+  符号:   类 ShaderSource
+  位置: 程序包 com.mojang.blaze3d.shaders
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:5: 错误: 找不到符号
+import com.mojang.blaze3d.systems.GpuDevice;
+                                 ^
+  符号:   类 GpuDevice
+  位置: 程序包 com.mojang.blaze3d.systems
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:13: 错误: 程序包net.minecraft.client.renderer.entity.state不存在
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
+                                                 ^
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:224: 错误: 找不到符号
+    private static final class MaterialCompiler extends GpuDevice {
+                                                        ^
+  符号:   类 GpuDevice
+  位置: 类 FirstPersonMaterialSmokeTest
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:228: 错误: 找不到符号
+        private final GpuDevice textures;
+                      ^
+  符号:   类 GpuDevice
+  位置: 类 MaterialCompiler
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:230: 错误: 找不到符号
+        MaterialCompiler(GpuDevice textures) {
+                         ^
+  符号:   类 GpuDevice
+  位置: 类 MaterialCompiler
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:237: 错误: 程序包com.mojang.blaze3d.textures不存在
+                int usage, com.mojang.blaze3d.textures.TextureFormat format,
+                                                      ^
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:236: 错误: 程序包com.mojang.blaze3d.textures不存在
+        public com.mojang.blaze3d.textures.GpuTexture createTexture(java.util.function.Supplier<String> label,
+                                          ^
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:244: 错误: 程序包com.mojang.blaze3d.textures不存在
+                com.mojang.blaze3d.textures.GpuTexture texture) {
+                                           ^
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:243: 错误: 程序包com.mojang.blaze3d.textures不存在
+        public com.mojang.blaze3d.textures.GpuTextureView createTextureView(
+                                          ^
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:249: 错误: 找不到符号
+        public com.mojang.blaze3d.systems.CommandEncoder createCommandEncoder() {
+                                         ^
+  符号:   类 CommandEncoder
+  位置: 程序包 com.mojang.blaze3d.systems
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:255: 错误: 程序包com.mojang.blaze3d.textures不存在
+                com.mojang.blaze3d.textures.AddressMode u, com.mojang.blaze3d.textures.AddressMode v,
+                                           ^
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:255: 错误: 程序包com.mojang.blaze3d.textures不存在
+                com.mojang.blaze3d.textures.AddressMode u, com.mojang.blaze3d.textures.AddressMode v,
+                                                                                      ^
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:256: 错误: 程序包com.mojang.blaze3d.textures不存在
+                com.mojang.blaze3d.textures.FilterMode min, com.mojang.blaze3d.textures.FilterMode mag,
+                                           ^
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:256: 错误: 程序包com.mojang.blaze3d.textures不存在
+                com.mojang.blaze3d.textures.FilterMode min, com.mojang.blaze3d.textures.FilterMode mag,
+                                                                                       ^
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:254: 错误: 程序包com.mojang.blaze3d.textures不存在
+        public com.mojang.blaze3d.textures.GpuSampler createSampler(
+                                          ^
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:263: 错误: 找不到符号
+                RenderPipeline pipeline, ShaderSource source) {
+                                         ^
+  符号:   类 ShaderSource
+  位置: 类 MaterialCompiler
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:262: 错误: 找不到符号
+        public com.mojang.blaze3d.pipeline.CompiledRenderPipeline precompilePipeline(
+                                          ^
+  符号:   类 CompiledRenderPipeline
+  位置: 程序包 com.mojang.blaze3d.pipeline
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:44: 错误: 找不到符号
+            YsmMaterialNativeSmokeTest.replayFiguraAcceleration(temporary, base -> {
+                                      ^
+  符号:   方法 replayFiguraAcceleration(Path,(base)->{ [...]; } })
+  位置: 类 YsmMaterialNativeSmokeTest
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:72: 错误: 找不到符号
+        var recorder = new MaterialCompiler((GpuDevice) previousDevice);
+                                             ^
+  符号:   类 GpuDevice
+  位置: 类 FirstPersonMaterialSmokeTest
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:117: 错误: 找不到符号
+            var state = new AvatarRenderState();
+                            ^
+  符号:   类 AvatarRenderState
+  位置: 类 FirstPersonMaterialSmokeTest
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:120: 错误: 找不到符号
+                    OutfitComposition.Frame.class, Avatar.class, AvatarRenderState.class,
+                                                                 ^
+  符号:   类 AvatarRenderState
+  位置: 类 FirstPersonMaterialSmokeTest
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:235: 错误: 方法不会覆盖或实现超类型的方法
+        @Override
+        ^
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:242: 错误: 方法不会覆盖或实现超类型的方法
+        @Override
+        ^
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:248: 错误: 方法不会覆盖或实现超类型的方法
+        @Override
+        ^
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:253: 错误: 方法不会覆盖或实现超类型的方法
+        @Override
+        ^
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:261: 错误: 方法不会覆盖或实现超类型的方法
+        @Override
+        ^
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:264: 错误: 找不到符号
+            require(pipeline.getVertexFormat() == MaterialVertexFormat.FORMAT, "Native material format must remain");
+                            ^
+  符号:   方法 getVertexFormat()
+  位置: 类型为RenderPipeline的变量 pipeline
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:265: 错误: 找不到符号
+            require(source.get(pipeline.getVertexShader(), com.mojang.blaze3d.shaders.ShaderType.VERTEX)
+                                                                                     ^
+  符号:   类 ShaderType
+  位置: 程序包 com.mojang.blaze3d.shaders
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:265: 错误: 找不到符号
+            require(source.get(pipeline.getVertexShader(), com.mojang.blaze3d.shaders.ShaderType.VERTEX)
+                                       ^
+  符号:   方法 getVertexShader()
+  位置: 类型为RenderPipeline的变量 pipeline
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:271: 错误: 方法不会覆盖或实现超类型的方法
+        @Override
+        ^
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\wizards\CosmeticCreationSmokeTest.java:33: 错误: 找不到符号
+            top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.replayFiguraAcceleration(
+                                                                    ^
+  符号:   方法 replayFiguraAcceleration(Path,(ignored)-[...]; } })
+  位置: 类 YsmMaterialNativeSmokeTest
+注: 某些输入文件使用或覆盖了已过时的 API。
+注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+注: D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\CustomParticleNativeSmokeTest.java使用了未经检查或不安全的操作。
+注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+32 个错误
+
+> Task :common:compileTestJava FAILED
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_1.21.1/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:compileTestJava'.
+> Compilation failed; see the compiler output below.
+  注: 有关详细信息, 请使用 -Xlint:deprecation 重新编译。
+  注: D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\lua\api\particle\CustomParticleNativeSmokeTest.java使用了未经检查或不安全的操作。
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:4: 错误: 找不到符号
+  import com.mojang.blaze3d.shaders.ShaderSource;
+                                   ^
+    符号:   类 ShaderSource
+    位置: 程序包 com.mojang.blaze3d.shaders
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:5: 错误: 找不到符号
+  import com.mojang.blaze3d.systems.GpuDevice;
+                                   ^
+    符号:   类 GpuDevice
+    位置: 程序包 com.mojang.blaze3d.systems
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:224: 错误: 找不到符号
+      private static final class MaterialCompiler extends GpuDevice {
+                                                          ^
+    符号:   类 GpuDevice
+    位置: 类 FirstPersonMaterialSmokeTest
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:228: 错误: 找不到符号
+          private final GpuDevice textures;
+                        ^
+    符号:   类 GpuDevice
+    位置: 类 MaterialCompiler
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:230: 错误: 找不到符号
+          MaterialCompiler(GpuDevice textures) {
+                           ^
+    符号:   类 GpuDevice
+    位置: 类 MaterialCompiler
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:249: 错误: 找不到符号
+          public com.mojang.blaze3d.systems.CommandEncoder createCommandEncoder() {
+                                           ^
+    符号:   类 CommandEncoder
+    位置: 程序包 com.mojang.blaze3d.systems
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:263: 错误: 找不到符号
+                  RenderPipeline pipeline, ShaderSource source) {
+                                           ^
+    符号:   类 ShaderSource
+    位置: 类 MaterialCompiler
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:262: 错误: 找不到符号
+          public com.mojang.blaze3d.pipeline.CompiledRenderPipeline precompilePipeline(
+                                            ^
+    符号:   类 CompiledRenderPipeline
+    位置: 程序包 com.mojang.blaze3d.pipeline
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:72: 错误: 找不到符号
+          var recorder = new MaterialCompiler((GpuDevice) previousDevice);
+                                               ^
+    符号:   类 GpuDevice
+    位置: 类 FirstPersonMaterialSmokeTest
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:117: 错误: 找不到符号
+              var state = new AvatarRenderState();
+                              ^
+    符号:   类 AvatarRenderState
+    位置: 类 FirstPersonMaterialSmokeTest
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:120: 错误: 找不到符号
+                      OutfitComposition.Frame.class, Avatar.class, AvatarRenderState.class,
+                                                                   ^
+    符号:   类 AvatarRenderState
+    位置: 类 FirstPersonMaterialSmokeTest
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:265: 错误: 找不到符号
+              require(source.get(pipeline.getVertexShader(), com.mojang.blaze3d.shaders.ShaderType.VERTEX)
+                                                                                       ^
+    符号:   类 ShaderType
+    位置: 程序包 com.mojang.blaze3d.shaders
+  注: 有关详细信息, 请使用 -Xlint:unchecked 重新编译。
+  注: 某些输入文件使用或覆盖了已过时的 API。
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:235: 错误: 方法不会覆盖或实现超类型的方法
+          @Override
+          ^
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:242: 错误: 方法不会覆盖或实现超类型的方法
+          @Override
+          ^
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:248: 错误: 方法不会覆盖或实现超类型的方法
+          @Override
+          ^
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:253: 错误: 方法不会覆盖或实现超类型的方法
+          @Override
+          ^
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:261: 错误: 方法不会覆盖或实现超类型的方法
+          @Override
+          ^
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:271: 错误: 方法不会覆盖或实现超类型的方法
+          @Override
+          ^
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:44: 错误: 找不到符号
+              YsmMaterialNativeSmokeTest.replayFiguraAcceleration(temporary, base -> {
+                                        ^
+    符号:   方法 replayFiguraAcceleration(Path,(base)->{ [...]; } })
+    位置: 类 YsmMaterialNativeSmokeTest
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:264: 错误: 找不到符号
+              require(pipeline.getVertexFormat() == MaterialVertexFormat.FORMAT, "Native material format must remain");
+                              ^
+    符号:   方法 getVertexFormat()
+    位置: 类型为RenderPipeline的变量 pipeline
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:265: 错误: 找不到符号
+              require(source.get(pipeline.getVertexShader(), com.mojang.blaze3d.shaders.ShaderType.VERTEX)
+                                         ^
+    符号:   方法 getVertexShader()
+    位置: 类型为RenderPipeline的变量 pipeline
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\wizards\CosmeticCreationSmokeTest.java:33: 错误: 找不到符号
+              top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.replayFiguraAcceleration(
+                                                                      ^
+    符号:   方法 replayFiguraAcceleration(Path,(ignored)-[...]; } })
+    位置: 类 YsmMaterialNativeSmokeTest
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:13: 错误: 程序包net.minecraft.client.renderer.entity.state不存在
+  import net.minecraft.client.renderer.entity.state.AvatarRenderState;
+                                                   ^
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:237: 错误: 程序包com.mojang.blaze3d.textures不存在
+                  int usage, com.mojang.blaze3d.textures.TextureFormat format,
+                                                        ^
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:236: 错误: 程序包com.mojang.blaze3d.textures不存在
+          public com.mojang.blaze3d.textures.GpuTexture createTexture(java.util.function.Supplier<String> label,
+                                            ^
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:244: 错误: 程序包com.mojang.blaze3d.textures不存在
+                  com.mojang.blaze3d.textures.GpuTexture texture) {
+                                             ^
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:243: 错误: 程序包com.mojang.blaze3d.textures不存在
+          public com.mojang.blaze3d.textures.GpuTextureView createTextureView(
+                                            ^
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:255: 错误: 程序包com.mojang.blaze3d.textures不存在
+                  com.mojang.blaze3d.textures.AddressMode u, com.mojang.blaze3d.textures.AddressMode v,
+                                             ^
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:255: 错误: 程序包com.mojang.blaze3d.textures不存在
+                  com.mojang.blaze3d.textures.AddressMode u, com.mojang.blaze3d.textures.AddressMode v,
+                                                                                        ^
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:256: 错误: 程序包com.mojang.blaze3d.textures不存在
+                  com.mojang.blaze3d.textures.FilterMode min, com.mojang.blaze3d.textures.FilterMode mag,
+                                             ^
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:256: 错误: 程序包com.mojang.blaze3d.textures不存在
+                  com.mojang.blaze3d.textures.FilterMode min, com.mojang.blaze3d.textures.FilterMode mag,
+                                                                                         ^
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\test\java\top\aihmc\omnimorph\model\outfit\FirstPersonMaterialSmokeTest.java:254: 错误: 程序包com.mojang.blaze3d.textures不存在
+          public com.mojang.blaze3d.textures.GpuSampler createSampler(
+                                            ^
+  32 个错误
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 22s
+8 actionable tasks: 3 executed, 5 up-to-date

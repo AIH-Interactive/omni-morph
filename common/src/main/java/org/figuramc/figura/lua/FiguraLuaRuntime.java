@@ -5,6 +5,8 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.world.entity.Entity;
 import org.figuramc.figura.FiguraMod;
 import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.config.Configs;
+import top.aihmc.omnimorph.lua.AdaptiveInstructionWindow;
 import org.figuramc.figura.lua.api.AvatarAPI;
 import top.aihmc.omnimorph.lua.api.CosmeticPlayerAPI;
 import org.figuramc.figura.lua.api.HostAPI;
@@ -390,11 +392,12 @@ public class FiguraLuaRuntime {
 
     public boolean init(ListTag autoScripts) {
         owner.luaRuntime = this;
+        owner.init.reset(instructionCeiling(owner, Permissions.INIT_INST));
 
         try {
             var budget = OutfitInstructionBudget.current(owner);
             if (budget != null) {
-                if (budget.allowance(owner, owner.init) <= 0) {
+                if (budget.allowance(owner, owner.init) == 0) {
                     throw new LuaError("Outfit initialization budget exhausted");
                 }
                 return runBounded(owner.init, () -> {
@@ -402,6 +405,7 @@ public class FiguraLuaRuntime {
                     return LuaValue.TRUE;
                 }, budget) != null;
             }
+            setExecutionInstructionLimit(owner.init.remaining, owner.init);
             sharedExecutionDepth++;
             try {
                 initializeScripts(autoScripts);
@@ -447,9 +451,53 @@ public class FiguraLuaRuntime {
 
     // avatar limiting //
 
+    private AdaptiveInstructionWindow adaptiveWindow;
+
+    /** Client-local ceiling; explicit blocked/low trust permissions retain their limits. */
+    public static int instructionCeiling(Avatar avatar, Permissions permission) {
+        int permitted = avatar.permissions.get(permission);
+        if (permission == Permissions.INIT_INST) {
+            // Initialization has its own trust baseline; explicitly restricted models stay restricted.
+            return permitted < 65536 ? permitted : Configs.INIT_INSTRUCTION_CEILING;
+        }
+        if (permission != Permissions.RENDER_INST) {
+            return permitted;
+        }
+        return AdaptiveInstructionWindow.ceiling(permitted,
+                Configs.ADAPTIVE_RENDER_BUDGET.value,
+                Configs.RENDER_INSTRUCTION_CEILING);
+    }
+
+    private void setExecutionInstructionLimit(int available, Avatar.Instructions instructions) {
+        if (instructions.max != -1) {
+            available = Math.max(0, available);
+        }
+        setInstructionLimit(available);
+        boolean initialization = instructions == owner.init;
+        boolean adaptiveRender = instructions == owner.render && Configs.ADAPTIVE_RENDER_BUDGET.value;
+        if (available != 0 && (initialization || adaptiveRender)) {
+            int base = initialization ? Configs.INIT_INSTRUCTION_BASE.value : Configs.RENDER_INSTRUCTION_BASE.value;
+            adaptiveWindow = new AdaptiveInstructionWindow(base, available);
+            setHookFunction.invoke(LuaValue.varargsOf(onReachedLimit, LuaValue.EMPTYSTRING,
+                    LuaValue.valueOf(adaptiveWindow.threshold())));
+        }
+    }
+
     private final ZeroArgFunction onReachedLimit = new ZeroArgFunction() {
         @Override
         public LuaValue call() {
+            if (adaptiveWindow != null && adaptiveWindow.unlimited()
+                    && adaptiveWindow.threshold() == Integer.MAX_VALUE) {
+                // LuaJ's hook count is an int; its range must not become an unlimited script's ceiling.
+                setHookFunction.invoke(LuaValue.NIL);
+                return LuaValue.NIL;
+            }
+            if (adaptiveWindow != null && adaptiveWindow.grow(getInstructions())) {
+                // Re-arm the hook on the same monotonically increasing bytecode counter.
+                setHookFunction.invoke(LuaValue.varargsOf(onReachedLimit, LuaValue.EMPTYSTRING,
+                        LuaValue.valueOf(adaptiveWindow.threshold())));
+                return LuaValue.NIL;
+            }
             FiguraMod.LOGGER.warn("Avatar {} bypassed resource limits with {} instructions", owner.owner, getInstructions());
             LuaError error = new LuaError("Script overran resource limits!");
             owner.noPermissions.add(Permissions.INIT_INST);
@@ -461,9 +509,15 @@ public class FiguraLuaRuntime {
     };
 
     public void setInstructionLimit(int limit) {
+        adaptiveWindow = null;
         exhaustedInstructions = 0;
         userGlobals.running.state.bytecodes = 0;
-        setHookFunction.invoke(LuaValue.varargsOf(onReachedLimit, LuaValue.EMPTYSTRING, LuaValue.valueOf(Math.max(limit, 1))));
+        if (limit == -1) {
+            setHookFunction.invoke(LuaValue.NIL);
+        } else {
+            setHookFunction.invoke(LuaValue.varargsOf(onReachedLimit, LuaValue.EMPTYSTRING,
+                    LuaValue.valueOf(Math.max(limit, 1))));
+        }
     }
 
     public int getInstructions() {
@@ -480,7 +534,22 @@ public class FiguraLuaRuntime {
         return userGlobals.load(src, name, userGlobals);
     }
 
+    /** Lua keyframes sampled by Lua inherit its running hook and shared ledger. */
+    public Varargs runAnimationExpression(LuaValue expression, float delta,
+                                         org.figuramc.figura.animation.Animation animation) {
+        if (sharedExecutionDepth == 0) {
+            return run(expression, owner.animation, delta, animation);
+        }
+        return expression.invoke(LuaValue.varargsOf(new LuaValue[]{
+                LuaValue.valueOf(delta), typeManager.javaToLua(animation).arg1()
+        }));
+    }
+
     public Varargs run(Object toRun, Avatar.Instructions limit, Object... args) {
+        if (limit == owner.render && limit.remaining == limit.max
+                && limit.max != instructionCeiling(owner, Permissions.RENDER_INST)) {
+            limit.reset(instructionCeiling(owner, Permissions.RENDER_INST));
+        }
         prepareParticleCallbackInstructions(limit);
         // parse args
         LuaValue[] values = new LuaValue[args.length];
@@ -495,7 +564,7 @@ public class FiguraLuaRuntime {
         }
 
         // set instructions limit
-        setInstructionLimit(limit.remaining);
+        setExecutionInstructionLimit(limit.remaining, limit);
 
         // get and call event
         sharedExecutionDepth++;
@@ -547,7 +616,7 @@ public class FiguraLuaRuntime {
         } else if (limit == owner.render) {
             long epoch = top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.currentFrame();
             if (particleFrameInstructions != epoch && OutfitInstructionBudget.hasParticleCallbacks(owner)) {
-                limit.reset(owner.permissions.get(Permissions.RENDER_INST));
+                limit.reset(instructionCeiling(owner, Permissions.RENDER_INST));
             }
             particleFrameInstructions = epoch;
         }
@@ -557,7 +626,8 @@ public class FiguraLuaRuntime {
         var limit = frame ? owner.render : owner.tick;
         prepareParticleCallbackInstructions(limit);
         var budget = OutfitInstructionBudget.current(owner);
-        return budget == null ? Math.max(0, limit.remaining) : budget.allowance(owner, limit);
+        return budget == null ? (limit.max == -1 ? -1 : Math.max(0, limit.remaining))
+                : budget.allowance(owner, limit);
     }
 
     private Varargs invoke(Object toRun, Varargs args) {
@@ -581,10 +651,10 @@ public class FiguraLuaRuntime {
             return action.get();
         }
         int available = budget.allowance(owner, limit);
-        if (available <= 0) {
+        if (available == 0) {
             return null;
         }
-        setInstructionLimit(available);
+        setExecutionInstructionLimit(available, limit);
         sharedExecutionDepth++;
         try {
             return action.get();

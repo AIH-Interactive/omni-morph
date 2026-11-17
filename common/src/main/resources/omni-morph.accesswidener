@@ -24,3 +24,6 @@ accessible field net/minecraft/client/renderer/RenderType$CompositeRenderType st
 accessible field net/minecraft/client/renderer/RenderType$CompositeState transparencyState Lnet/minecraft/client/renderer/RenderStateShard$TransparencyStateShard;
 accessible field net/minecraft/client/renderer/RenderType$CompositeState cullState Lnet/minecraft/client/renderer/RenderStateShard$CullStateShard;
 accessible field net/minecraft/client/renderer/RenderStateShard CULL Lnet/minecraft/client/renderer/RenderStateShard$CullStateShard;
+
+# Authored float attributes use the native vertex writer.
+accessible method com/mojang/blaze3d/vertex/BufferBuilder beginElement (Lcom/mojang/blaze3d/vertex/VertexFormatElement;)J

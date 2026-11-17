@@ -118,3 +118,18 @@ MC1.21.1适配GuiGraphics/ResourceLocation/坐标输入/Font/PoseStack/同步截
 本版代码9b66a9f2及最终产物记录86e47ee7已推送且核验origin/1.21.1一致。交付双包绝对路径后，read_thread再次确认local/01a1970e-a221-7610-996d-9ef5214db4ce实际cwd为OMP_1.20.1、状态idle、最新旧停止消息。随后send_message_to_thread成功返回isError=false及同threadId。新消息包含已核验人类重启串行授权、全部固定来源/完整功能范围、本版API差异、22入口/RED-GREEN/生产包证据和最终JAR哈希，明确其为最后版本、在自身会话完成后结束；旧导航发送不算本轮。未创建聊天/覆盖模型设置/改其他目录。
 
 本版实施、自动验证、实际产物与已授权通信全部完成，无剩余任务，不等待1.20.1或人工验收。人工项仍SKIPPED（MANUAL，用户要求跳过；未验证），不作为阻塞。后续仅本条收件回执记录提交，不改变生产包代码9b66a9f2；原未跟踪三项保留。
+
+
+## 2026-11-17 dev完整合并（当前任务，实施中）
+
+目标：将dev更新完整合并当前Minecraft1.21.1，优先直接合并，冲突再移植。分支1.21.1，起点b7b51a9a，固定来源8cc2ede97a3af5cb109444586a05167322b58fb5，merge-base b01fc818。已直接merge --no-commit --no-ff，12个冲突；正在原生API适配。不要重复merge/abort/reset/清理；原未跟踪.codex/、.mcp.json、.omc/保留。
+
+完整范围117个源变更文件：Alpha.12、七个装饰模板及绑定起点/新拖尾寿命与光效、动画取样/Euler API、粒子几何/材质/光照、可见Avatar与第一人称材质、无硬上限的可配置基础指令窗口及共享计费、Debug按请求HTTP性能快照与Python采集工具。保持目标Java21/MC1.21.1、现有导航/原生渲染及双加载器；源26.1现代渲染API须映射而非直接替换。源AGENT_HANDOFF不可当成本版结果；新AGENTS中dev工作区偏好不允许切离用户目标当前版本。
+
+尚未编译/测试本轮；所有Alpha.11记录为历史。下一步解决剩余冲突和现代材质/粒子API，编译→实际功能回归→双生产包/证据→提交推送当前分支并核对远端→更新最终交接。不得将源测试PASS当目标PASS。人工客户端按用户此前要求SKIPPED（MANUAL，未验证），不阻塞。禁止WSL，本机只用Windows工具链；前台PowerShell Tee build.log/立即退出码检查。可靠周额度已用45%，未触发Luna。
+
+### dev合并安全检查点（2026-11-17，覆盖上节尚未编译状态）
+
+当前1.21.1正在merge固定dev8cc2ede9，生产/测试适配完整；12处冲突正文全部解决，索引尚待git add。公共/全部测试/双加载器编译PASS；firstPersonMaterial实际drawFigura+GLSL编译链接/重载、16模板、完整原生材质/粒子/新quad字节/拖尾灯光/无限预算/动画/Euler、FOV/PBR/无Iris/pose/lifetime/Apply和真实HTTP均通过；Python7项PASS。docs/dev-sync-1.21.1保存日志/117路径覆盖/适配和失败处理。源IrisCompat新版assignPipeline在本版API无对应，原生default shader钩子及PBR保持，shader pack实景SKIPPED（MANUAL，未验证）。
+
+双生产包预检PASS，版本alpha.12+1.21.1；24纯生产任务，未改/触发Actions。Java21/MC1.21.1及目标平台边界保持，无WSL/跨目标/自建GPU/JNI。仍有索引UU是未暂存状态，不代表正文冲突。下一步只需提交当前merge并推送核对远端，从代码提交强制双包重建/记录真实绝对路径和SHA256、最终文档收尾。代码未提交前产物只作预检，不能当最终交付。原未跟踪三项保留；本任务生成pycache已清除。周已用46%，无需Luna。无其他版本转发任务。

@@ -42,6 +42,11 @@ public abstract class MinecraftMixin {
 
     @Shadow @Final public Gui gui;
 
+    @Inject(at = @At("HEAD"), method = "destroy")
+    private void figura$closePerformanceHttp(CallbackInfo ci) {
+        top.aihmc.omnimorph.debug.PerformanceDebug.close();
+    }
+
     @Unique
     private boolean scriptMouseUnlock = false;
 

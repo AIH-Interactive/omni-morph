@@ -63,6 +63,12 @@ public class ModelLibraryScreen extends AbstractPanelScreen {
     private LibraryClient.Request<?> mutation;
     private LibraryModels.Page results;
     private LibraryModels.Model selected;
+    public top.aihmc.omnimorph.debug.PerformanceSelection performanceSelection() {
+        return selected == null ? null : new top.aihmc.omnimorph.debug.PerformanceSelection(
+                selected.modelId().toString(), selected.displayName(), selected.resourceKind(),
+                selected.modelType(), selected.revision());
+    }
+
     private UUID deleteArmed;
     private long generation;
     private int scope = 2;

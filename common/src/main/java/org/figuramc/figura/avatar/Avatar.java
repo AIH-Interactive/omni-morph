@@ -108,6 +108,11 @@ import top.aihmc.omnimorph.avatar.AvatarLoadProgress;
 // and also related to the owner, like its permissions
 public class Avatar {
     private volatile RenderOwner renderOwner;
+    private volatile long performanceLoadGeneration;
+
+    public String performanceGeneration() {
+        return renderOwner().generation() + ":" + performanceLoadGeneration;
+    }
 
     public RenderOwner renderOwner() {
         if (renderOwner == null) {
@@ -977,6 +982,12 @@ public class Avatar {
                      java.util.function.Consumer<AvatarLoadProgress.Stage> progress) {
         outfitSource = null;
         outfitSourceNbt = null;
+        // Observations from a retired load must not appear under the new generation.
+        // Preserve the actual instruction accounting; only telemetry freshness is invalidated.
+        for (var counter : List.of(init, render, worldRender, tick, worldTick, animation, complexity)) {
+            counter.performanceNanos = 0;
+        }
+        performanceLoadGeneration++;
         this.nbt = nbt;
         loaded = false;
         controls.clear();
@@ -1832,6 +1843,7 @@ public class Avatar {
      * also closes and stops this avatar sounds
      */
     public void clean() {
+        top.aihmc.omnimorph.model.rendering.material.AvatarMaterial.release(this);
         outfitSource = null;
         outfitSourceNbt = null;
         if (cosmeticAnimations != null) {
@@ -1974,9 +1986,6 @@ public class Avatar {
         FiguraLuaRuntime runtime = new FiguraLuaRuntime(this, scripts);
         if (renderer != null && renderer.root != null)
             runtime.setGlobal("models", renderer.root);
-
-        init.reset(permissions.get(Permissions.INIT_INST));
-        runtime.setInstructionLimit(init.remaining);
 
         events.offer(() -> {
             if (runtime.init(autoScripts)
@@ -2142,6 +2151,7 @@ public class Avatar {
 
         public int max, remaining;
         private int currPre, currPost;
+        public long performanceFrame, performanceTick, performanceNanos;
         public int pre, post;
         private boolean inverted;
 
@@ -2164,7 +2174,14 @@ public class Avatar {
         }
 
         public void use(int amount) {
-            remaining -= amount;
+            if (FiguraMod.debugModeEnabled()) {
+                performanceFrame = top.aihmc.omnimorph.model.ysm.animation.YsmRenderFrameClock.currentFrame();
+                performanceTick = FiguraMod.ticks;
+                performanceNanos = System.nanoTime();
+            }
+            if (max != -1) {
+                remaining -= amount;
+            }
 
             if (!inverted) {
                 currPre += amount;

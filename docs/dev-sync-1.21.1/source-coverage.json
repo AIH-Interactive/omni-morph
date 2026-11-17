@@ -1,0 +1,587 @@
+[
+  {
+    "path": "AGENTS.md",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "5e6f3309fbeca1f658d41eb26c5ce41032709411074616f93df58f83a09719f4"
+  },
+  {
+    "path": "AGENT_HANDOFF.md",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "51da5c1c0ce5b3d7ddb9598a5e601709c7d67a010356758293813576e5468e83"
+  },
+  {
+    "path": "common/build.gradle",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "215932166beca78f762a5a7d25a21f2b67e19f4a131b10277be7cebf377403a3"
+  },
+  {
+    "path": "common/src/main/java/org/figuramc/figura/FiguraMod.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "37ca42202b9a23bc6e1be9bf62116bd1cb5609afa0911b398238626fb62545cd"
+  },
+  {
+    "path": "common/src/main/java/org/figuramc/figura/animation/Animation.java",
+    "mapping": "source content retained",
+    "target_sha256": "6ec9d33f99096fb6e8ca85f1f86e99c1b3229c7a81e1006944a840f3920b3ed0"
+  },
+  {
+    "path": "common/src/main/java/org/figuramc/figura/animation/AnimationPlayer.java",
+    "mapping": "source content retained",
+    "target_sha256": "c26dff9ff08a8c427123741806c802f701af058c5a5d6d2803c20a3a66d15de2"
+  },
+  {
+    "path": "common/src/main/java/org/figuramc/figura/animation/Keyframe.java",
+    "mapping": "source content retained",
+    "target_sha256": "411b81819a0809908a45e5e87774f06893846f235038d6a9b90ff7bea7f9ef30"
+  },
+  {
+    "path": "common/src/main/java/org/figuramc/figura/avatar/Avatar.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "679242efd525bce67eecf6946a4aea3386363baaeace8f36386692b8f40cdc95"
+  },
+  {
+    "path": "common/src/main/java/org/figuramc/figura/config/Configs.java",
+    "mapping": "source content retained",
+    "target_sha256": "f59824b5540dd93e4200aec35e760274bd61e0878acb1f6806b07e7dce4e9f34"
+  },
+  {
+    "path": "common/src/main/java/org/figuramc/figura/config/InputType.java",
+    "mapping": "source content retained",
+    "target_sha256": "548f28553dbe08f8c75a8535f95391434daf132aaabb70100a1d5314259a5b1f"
+  },
+  {
+    "path": "common/src/main/java/org/figuramc/figura/gui/screens/WardrobeScreen.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "809c1d1846f2946165a4c9f0cf72b5c22d3d0c9b330c87c9d70251591199d263"
+  },
+  {
+    "path": "common/src/main/java/org/figuramc/figura/gui/widgets/EntityPreview.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "4250c3fccc977af767dd34a58b733862be6bd4c84d5be577a47cdf5954762c77"
+  },
+  {
+    "path": "common/src/main/java/org/figuramc/figura/lua/FiguraAPIManager.java",
+    "mapping": "source content retained",
+    "target_sha256": "7c7a780a37ee61ca864038a0d746aac764ba3b2bec46c714bc722288ffd79813"
+  },
+  {
+    "path": "common/src/main/java/org/figuramc/figura/lua/FiguraLuaRuntime.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "0960906a24092f2ea07248170f6365f74322b339457fabfb05a31d24bcb27e76"
+  },
+  {
+    "path": "common/src/main/java/org/figuramc/figura/lua/api/AvatarAPI.java",
+    "mapping": "source content retained",
+    "target_sha256": "e800173a584475264dd99a68052169efad484f45a2024a7b6f442640737a58dc"
+  },
+  {
+    "path": "common/src/main/java/org/figuramc/figura/lua/api/math/MatricesAPI.java",
+    "mapping": "source content retained",
+    "target_sha256": "0d43d7ae39e1cda9ba341f2b6bffac946139e5ad9e2bf0faf382d294eb39c7c6"
+  },
+  {
+    "path": "common/src/main/java/org/figuramc/figura/lua/api/particle/LuaParticle.java",
+    "mapping": "source content retained",
+    "target_sha256": "3c8a6c628a396bd66a0d5805a66f119324f9cb6baab4f37c80f014191678f1f6"
+  },
+  {
+    "path": "common/src/main/java/org/figuramc/figura/mixin/MinecraftMixin.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "9a222be26c946ff57a642e37b57c9fe1274fba00537849161c45d60cf2adb18d"
+  },
+  {
+    "path": "common/src/main/java/org/figuramc/figura/model/FiguraModelPart.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "a497f9786aa5b361a3718b5af3ef96ad21f781d74a69fda9d7a1688c83c7e224"
+  },
+  {
+    "path": "common/src/main/java/org/figuramc/figura/model/FiguraModelPartReader.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "4eba6a4505e2614f6d3ce9ec8ace41489f7be698d23038ec65fb4551e7c15b67"
+  },
+  {
+    "path": "common/src/main/java/org/figuramc/figura/model/rendering/Vertex.java",
+    "mapping": "source content retained",
+    "target_sha256": "6d96997b1938379bdb2a13b84ffddeab0ab5bdfd6bc9f547d1bfa058315f5dda"
+  },
+  {
+    "path": "common/src/main/java/org/figuramc/figura/parsers/BlockbenchCommonTypes.java",
+    "mapping": "source content retained",
+    "target_sha256": "0ed19e7ad6cd829840d2a75c120deb11de994aea899592e2b7c7304b949a4ed2"
+  },
+  {
+    "path": "common/src/main/java/org/figuramc/figura/parsers/BlockbenchV5Model.java",
+    "mapping": "source content retained",
+    "target_sha256": "e44800002c0ff5864ec506f8b90a2c38e8c37337ea139ce78f44f4b84420dcfa"
+  },
+  {
+    "path": "common/src/main/java/org/figuramc/figura/parsers/LuaScriptParser.java",
+    "mapping": "source content retained",
+    "target_sha256": "0304216728f8afa5a9f294af283ea4ecab20ae7109c3752db02314737fab08f9"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/compat/IrisCompat.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "9e4db9b2fbc0b37d63d45b37c08eca851c115827b28e13c45dd10f66e955ba24"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/config/InstructionCeilingConfig.java",
+    "mapping": "source content retained",
+    "target_sha256": "91accdae517d35be4d479d5956b70ac4201dedb82472628da2dc1fb248abaaa4"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/debug/PerformanceDebug.java",
+    "mapping": "source content retained",
+    "target_sha256": "54e547877203646fbbcd0cb419e52d78b0529f527127ff53892d7584bff9a64a"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/debug/PerformanceHttpServer.java",
+    "mapping": "source content retained",
+    "target_sha256": "781e2b08e79e67259b8aadd538922e0240c8f80db42e355bb32dd8ec615d87ac"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/debug/PerformancePortConfig.java",
+    "mapping": "source content retained",
+    "target_sha256": "fbcb5dd89ebd5a52f907f55fb769bd6621a92a04761aa6b7adfa4d12e20fceb1"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/debug/PerformanceSelection.java",
+    "mapping": "source content retained",
+    "target_sha256": "cc8c4d961247a7c5a31b160154575c9f567436643292fd52a79bc2728aecd4b4"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/debug/PerformanceSnapshot.java",
+    "mapping": "source content retained",
+    "target_sha256": "627845a20d1f65ac08381d0ee29eed025349e753cc11c68e3ee53aa2efc22418"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/gui/screens/CosmeticWizardScreen.java",
+    "mapping": "source content retained",
+    "target_sha256": "3704b53df4a7f9535ecd5035ef24e35612da3f484cb61e545abed97011a95841"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/gui/screens/ModelLibraryScreen.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "b1a825d20647516ec9652697a95f9e240a95b434d342403855c4a368eea69c63"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/lua/AdaptiveInstructionWindow.java",
+    "mapping": "source content retained",
+    "target_sha256": "b0515b34bd1a2f3fdb1177ef48efb85a72b4456ca23b37309baaa8f06aa9419c"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/lua/api/CosmeticClientAPI.java",
+    "mapping": "source content retained",
+    "target_sha256": "f0fcd335bdd195c0000134591dd2c4e9ed67b49a14f5981f4cefb13d123ca9a8"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/lua/api/CosmeticPlayerAPI.java",
+    "mapping": "source content retained",
+    "target_sha256": "de36755a626b86e69c6e4e116ba3493404c63372ccfea8d213e3c3da7ec8746c"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/lua/api/CosmeticTextureAPI.java",
+    "mapping": "source content retained",
+    "target_sha256": "f8c45b1e02a7d1c047e1528a429df59ffec1c4a22eb4f9089926f5e0b632740d"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/lua/api/particle/CustomParticle.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "1a9d5bfce18700f34f0aab2fb028374f978bc3e9b61f721dd531aef80033e94a"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/lua/api/particle/CustomParticleCallbacks.java",
+    "mapping": "source content retained",
+    "target_sha256": "f7854908b8ef0cde090f3a5b5dba215ca36209eb71390e731fff497e9eb3f3a9"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/lua/api/particle/CustomParticleLayer.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "05517d5a94c10addabf2ad8f39dda7bc48eefc8014fda73c154a79fb31ed69dd"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/lua/api/particle/CustomParticlePipelines.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "e92681560d51d02bfc80cd94ecaceed9701e6d4fcf6451ab731722dedcbcfd0f"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/lua/api/particle/CustomParticleRuntime.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "d93ec2d0fa22c4987dbfca88e23a1fc8a9e2761d031ae3c83005c58fa6150602"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/lua/api/particle/ParticleQuads.java",
+    "mapping": "source content retained",
+    "target_sha256": "83852db5e1b15593b29a98678ed289d9b9f50ef53b920f483619483b3b4263c7"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/lua/api/particle/PreviewParticleFrame.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "cfa0f1a8d7b6d7760d4f2643c515972283e6f961f9793bbcbd763cb919935448"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/lua/api/particle/RibbonMesh.java",
+    "mapping": "source content retained",
+    "target_sha256": "7c115e2efd6ff0b51052631f894f21f949591a1be090587b09bea9f7829cbc6c"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/lua/api/particle/RibbonRenderState.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "05144bbbfd30dcfb72449e421ca87072ffc3bd294d7362ca1cc713d2207def85"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/mixin/AvatarShaderSourceMixin.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "514daba29d2156795fbdf4b370ffc91c4789fce9b565cb177900e33292eacc61"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/model/FiguraSkinning.java",
+    "mapping": "source content retained",
+    "target_sha256": "224da869a0c3f4c6a7d08da995abccb82866479a085aabffc6fe075339edf5ba"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/model/outfit/LocalOutfitPreview.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "8e1fa23a1cb409dfecdc75c1f28c6f0319d33b130dafb493ad33c8b2a6947e1f"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/model/outfit/OutfitComposition.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "e4800abe10240afbc718420736784c95a8416d1561a3de52391999f23557180a"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/model/outfit/OutfitFirstPersonScripts.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "cd35ffb4a239b09c658801e4b08d89b9c74b5dc39f16b359f8ec26be35cde8fb"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/model/outfit/OutfitInstructionBudget.java",
+    "mapping": "source content retained",
+    "target_sha256": "32950177cb50cca91d6771e4ad17f2cb7cc1160e68a5761942a89c43f537613a"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/model/rendering/ImmediateFiguraRenderer.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "19f7907e14d599584d26f48cfc53cf547d7847abdabdc44d722dbe4dd34b212e"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/model/rendering/material/AvatarMaterial.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "31b779eebf1e58bd3d48bf6e7f0ebab1bb6a79d6db6d13ca5b012647c9856436"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/model/rendering/material/MaterialVertexFormat.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "e2089d489864cbebe52688f249008da02b2fb817aa3c63458911377dfdc3e3b4"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/wizards/CosmeticCreator.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "a1d81bcd39e679a7fa454e628624c25b5a07e0c9829305b21bb28f45b8d50590"
+  },
+  {
+    "path": "common/src/main/java/top/aihmc/omnimorph/wizards/CosmeticTemplate.java",
+    "mapping": "source content retained",
+    "target_sha256": "d053bb79f5b9c07d6a9559bfeb1166e1aa1fe92eac3a67b6181f1c1bf43d1e7f"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/flexible-pennant/README.md",
+    "mapping": "source content retained",
+    "target_sha256": "1a0bcaca96f7dc27548046ba08e85704f4a4077e430b66c324b31a0b8ff7517a"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/flexible-pennant/model/model.bbmodel",
+    "mapping": "source content retained",
+    "target_sha256": "e8da69ca9f7bc3a0a647581630e4159e92c54a727fd6cee7b10196db890db8a4"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/flexible-pennant/script.lua",
+    "mapping": "source content retained",
+    "target_sha256": "63ad98639899167777dbf0ec8791bcd251a3e575122ff0a502478e20115f1cf8"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/flexible-pennant/textures/art.png",
+    "mapping": "source content retained",
+    "target_sha256": "906f578f7fa2f7ec57bfbb6ebc6761871c05eb9575c1f1cf93cdebcef430a2ff"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/flexible-pennant/textures/art.svg",
+    "mapping": "source content retained",
+    "target_sha256": "1202f4b84bd6726dfef980f89be512eec2e5582c68f4e235b206d46d423ab6a1"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/orbital-charms/README.md",
+    "mapping": "source content retained",
+    "target_sha256": "8f2921d9b708fc602bc55696807712123ee0145b749e364625048a7c0d05cdc3"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/orbital-charms/model/model.bbmodel",
+    "mapping": "source content retained",
+    "target_sha256": "aabc0a8e824ee8de5c5cbf995d545bc310f44859d7bea25d4afff137635b58fe"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/orbital-charms/script.lua",
+    "mapping": "source content retained",
+    "target_sha256": "195e50bd0ceae4d9d673e3bee93ebde1a37d5bc6026d855def958d8801143f0a"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/orbital-charms/textures/art.png",
+    "mapping": "source content retained",
+    "target_sha256": "906f578f7fa2f7ec57bfbb6ebc6761871c05eb9575c1f1cf93cdebcef430a2ff"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/orbital-charms/textures/art.svg",
+    "mapping": "source content retained",
+    "target_sha256": "1202f4b84bd6726dfef980f89be512eec2e5582c68f4e235b206d46d423ab6a1"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/painted-ribbon/README.md",
+    "mapping": "source content retained",
+    "target_sha256": "10e5ef56e16ae2bd0bb4a0043efa549bdeab40c4e79471d32c541a1ba4c948c5"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/painted-ribbon/model/model.bbmodel",
+    "mapping": "source content retained",
+    "target_sha256": "a11c117c9105ebb530b897df5822e8de7f04edcc118ba49e88910e68c1c84de8"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/painted-ribbon/script.lua",
+    "mapping": "source content retained",
+    "target_sha256": "7ea15c7fac78586618469e2bf850004a800c29a18ac86c13f506d00733845298"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/painted-ribbon/textures/art.png",
+    "mapping": "source content retained",
+    "target_sha256": "2898a36ea0aca481730b5811e470d4420183b6eb6f2eaf0f1a890ea971c74851"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/painted-ribbon/textures/art.svg",
+    "mapping": "source content retained",
+    "target_sha256": "14ba0f7f0c37e7cb44907ac478b649cb7c9c1565213796fa7fcb8c58180648a0"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/prismatic-badge/README.md",
+    "mapping": "source content retained",
+    "target_sha256": "e17b80f9d7b7aeae706c3dea25aaf4eef5bd0bf3ddfffc170ff7d756d2d69320"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/prismatic-badge/model/model.bbmodel",
+    "mapping": "source content retained",
+    "target_sha256": "d608ae871e84166925604d24e6338cbddcf28a7fb1f94159e858dbe411b5ae10"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/prismatic-badge/script.lua",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "354baacdf3023662eff6ab51e225c70a1e6536ae5d78c061a3813d39f3707bfa"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/prismatic-badge/textures/art.png",
+    "mapping": "source content retained",
+    "target_sha256": "906f578f7fa2f7ec57bfbb6ebc6761871c05eb9575c1f1cf93cdebcef430a2ff"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/prismatic-badge/textures/art.svg",
+    "mapping": "source content retained",
+    "target_sha256": "1202f4b84bd6726dfef980f89be512eec2e5582c68f4e235b206d46d423ab6a1"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/sampled-lantern/README.md",
+    "mapping": "source content retained",
+    "target_sha256": "708480d74196937dee24b4a216bff583f2a295a19f2c8ad522e24c407d94b978"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/sampled-lantern/model/model.bbmodel",
+    "mapping": "source content retained",
+    "target_sha256": "6b2f29ce4796add83a56a440e5165f4d244dbf9b2238055bc9ca56d29cd852a5"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/sampled-lantern/script.lua",
+    "mapping": "source content retained",
+    "target_sha256": "76341199890e26213b5c758e8e82dbc0cadf70275c50eb7b163eeaa5716ef04e"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/sampled-lantern/textures/art.png",
+    "mapping": "source content retained",
+    "target_sha256": "906f578f7fa2f7ec57bfbb6ebc6761871c05eb9575c1f1cf93cdebcef430a2ff"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/sampled-lantern/textures/art.svg",
+    "mapping": "source content retained",
+    "target_sha256": "1202f4b84bd6726dfef980f89be512eec2e5582c68f4e235b206d46d423ab6a1"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/sprint-light/README.md",
+    "mapping": "source content retained",
+    "target_sha256": "2252fed8bfc33cc3a38886f56cd7ec358c5925351488875508394051950381ca"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/sprint-light/model/model.bbmodel",
+    "mapping": "source content retained",
+    "target_sha256": "d3cbdeecc1cfc6bf17c7591485953e6345bd3f42b0256104b70c650d94225b88"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/sprint-light/script.lua",
+    "mapping": "source content retained",
+    "target_sha256": "2398f0e22cf297341f440f8fae92918cf1e3df5ae35fe268f3de5fd979359278"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/sprint-light/textures/art.png",
+    "mapping": "source content retained",
+    "target_sha256": "906f578f7fa2f7ec57bfbb6ebc6761871c05eb9575c1f1cf93cdebcef430a2ff"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/sprint-light/textures/art.svg",
+    "mapping": "source content retained",
+    "target_sha256": "1202f4b84bd6726dfef980f89be512eec2e5582c68f4e235b206d46d423ab6a1"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/view-sigil/README.md",
+    "mapping": "source content retained",
+    "target_sha256": "a5e821c7f781b2f3363708cb0659e37c3f1a3a096d9cd844f9e453aceeacbe72"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/view-sigil/model/model.bbmodel",
+    "mapping": "source content retained",
+    "target_sha256": "fcbee576ef91a6412dcfb2c9cda77427a43910eb146cd2370289813400126d36"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/view-sigil/script.lua",
+    "mapping": "source content retained",
+    "target_sha256": "5c74ae0c6bbeaa4dc676bb3285da0c60f84491c8d83af33e5eb27a8585446c96"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/view-sigil/textures/art.png",
+    "mapping": "source content retained",
+    "target_sha256": "906f578f7fa2f7ec57bfbb6ebc6761871c05eb9575c1f1cf93cdebcef430a2ff"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/view-sigil/textures/art.svg",
+    "mapping": "source content retained",
+    "target_sha256": "1202f4b84bd6726dfef980f89be512eec2e5582c68f4e235b206d46d423ab6a1"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/lang/en_us.json",
+    "mapping": "source content retained",
+    "target_sha256": "acf2f2aba8023e4629e8d9696074d82189543a66a31c8321a13b0015941fcd67"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/lang/zh_cn.json",
+    "mapping": "source content retained",
+    "target_sha256": "b0cf714705c6e8502d61f46f177926411382d51567ae3ad3ffbb0b57cc05e408"
+  },
+  {
+    "path": "common/src/main/resources/assets/omni-morph/shaders/core/custom_particle.fsh",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "6bf1ff3fccf05936e11e2bbfa6e377850770e4e01df79e13b6e18ac5a145b9ee"
+  },
+  {
+    "path": "common/src/main/resources/omni-morph-common.mixins.json",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "f31b64171f9a61835b9332c17305b5f10d10a53c3e8cec97679818040e89b91a"
+  },
+  {
+    "path": "common/src/main/resources/omni-morph.accesswidener",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "5d7df65706082b25874b178d0e7b8d88177f2d2d39939daad09fbdc389172ef2"
+  },
+  {
+    "path": "common/src/test/java/top/aihmc/omnimorph/lua/api/math/EulerRotationSmokeTest.java",
+    "mapping": "source content retained",
+    "target_sha256": "6b7feebb11a8a81c1283433181691d73b973fd420fc818c42ae65eccd47376b7"
+  },
+  {
+    "path": "common/src/test/java/top/aihmc/omnimorph/lua/api/particle/CosmeticParticleEntrySmokeTest.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "102a14695b6dbd0b8092dcb5f397ec41f62bf2f5e0e39e935789e1b7f9a0d4b1"
+  },
+  {
+    "path": "common/src/test/java/top/aihmc/omnimorph/lua/api/particle/CreatedTrailParticleSmokeTest.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "512511cefa1bd047fd19eec8e7d63cb072ceca3694f0c563f3ae53a0d6dac0db"
+  },
+  {
+    "path": "common/src/test/java/top/aihmc/omnimorph/model/outfit/AdaptiveRenderBudgetSmokeTest.java",
+    "mapping": "source content retained",
+    "target_sha256": "0b6facf7eb6f1cded7760154efdce6b81663915d469d0f96665e1f6e320abcc9"
+  },
+  {
+    "path": "common/src/test/java/top/aihmc/omnimorph/model/outfit/AnimationSampleSmokeTest.java",
+    "mapping": "source content retained",
+    "target_sha256": "ab69f2d1e1edc2b1d4be11d6e4f462809c71ee6509433462fdf6d9b8dde18d44"
+  },
+  {
+    "path": "common/src/test/java/top/aihmc/omnimorph/model/outfit/CosmeticBoneOverrideSmokeTest.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "4826a42da5147c1f6e751c11b664a95c3687a95ef77eb9fdf71030d5c4a2a48d"
+  },
+  {
+    "path": "common/src/test/java/top/aihmc/omnimorph/model/outfit/FirstPersonMaterialSmokeTest.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "da20bf65c9c181d7ad379c928baff822bf335e5a3a93f756296432ebf44c21de"
+  },
+  {
+    "path": "common/src/test/java/top/aihmc/omnimorph/model/outfit/OutfitParticleCallbackSmokeTest.java",
+    "mapping": "source content retained",
+    "target_sha256": "e5c7d08c12623808096bc6345080d47126ae0553ab01c813fc0954d19cfcba9a"
+  },
+  {
+    "path": "common/src/test/java/top/aihmc/omnimorph/wizards/CosmeticCreationSmokeTest.java",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "7f06f5eca67e6b3453b26606cdc09a35733f6d58a9c81fdcd830f0acc6e9a708"
+  },
+  {
+    "path": "docs/CHANGELOG.en.md",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "0948d9ef070551b77f5d05af2c72439c76eb7adf085f2b6de21147919ed3183a"
+  },
+  {
+    "path": "docs/CHANGELOG.ja.md",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "ed0382bbecdcd38f1d61d687473089cef79f68246a9a83d4faddedc8338b9891"
+  },
+  {
+    "path": "docs/CHANGELOG.ko.md",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "ba6f13ddc95be2451499715e4869e6b4d198f38dd9a9ea0b06be1ac803d9fe50"
+  },
+  {
+    "path": "docs/CHANGELOG.md",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "044d46c1ad037e3c939c430f102519a77f9af4201dac3376aeab5623ed83c4f6"
+  },
+  {
+    "path": "docs/p4.5-performance-http-plan.md",
+    "mapping": "source content retained",
+    "target_sha256": "68877d47afc8b69c28d0f173e8ff36b278a5c598b41f5536943daa856c788de6"
+  },
+  {
+    "path": "docs/performance-capture.md",
+    "mapping": "source content retained",
+    "target_sha256": "d199b9f7fb63978928c1537419313c026f5d225896032f6d126c4362033ea5bd"
+  },
+  {
+    "path": "docs/performance-http.md",
+    "mapping": "source content retained",
+    "target_sha256": "74087d090b29ec576795b64b7291719361527bb48df831edfe06fc5a5a425ccd"
+  },
+  {
+    "path": "gradle.properties",
+    "mapping": "native merge/adaptation or target history retained",
+    "target_sha256": "18861332befb46dc41152221b5275d2e9178a07933f92e4303eec8341682f63d"
+  },
+  {
+    "path": "tests/test_performance_capture.py",
+    "mapping": "source content retained",
+    "target_sha256": "996b7e227b21c27aaf80b856ae1f8547c280625047ecc613645f163ab38b4ffb"
+  },
+  {
+    "path": "tools/performance_capture.json",
+    "mapping": "source content retained",
+    "target_sha256": "526ecd0778111f08eee198f3c112e8181be78a8d9f60095c8647ab162fe9d877"
+  },
+  {
+    "path": "tools/performance_capture.py",
+    "mapping": "source content retained",
+    "target_sha256": "160a08b30dcca692efb0b3767f6af2f18e2b44153447b6ecbdc0e29b174b8117"
+  }
+]

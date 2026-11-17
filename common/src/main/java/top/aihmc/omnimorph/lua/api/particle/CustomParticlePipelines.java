@@ -7,6 +7,18 @@ import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.ShaderInstance;
+import org.figuramc.figura.utils.FiguraIdentifier;
+import top.aihmc.omnimorph.model.rendering.material.NativeShader;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /** Bounded author-layer descriptors, independent of Minecraft's particle batching API. */
 public final class CustomParticlePipelines {
@@ -14,9 +26,19 @@ public final class CustomParticlePipelines {
         ALPHA, ADDITIVE, OPAQUE
     }
 
-    public record Pipeline(int layer, Blend blend) {
+    static final float DEFAULT_ALPHA_CUTOFF = 0.1f;
+    private static final Set<Pipeline> CUTOFF_VARIANTS = new HashSet<>();
+    private static final Map<Pipeline, NativeShader> SHADERS =
+            new HashMap<>();
+
+    public record Pipeline(int layer, Blend blend, int order, boolean depthTest, boolean cull, float alphaCutoff) {
+        public Pipeline(int layer, Blend blend) {
+            this(layer, blend, 0, true, false, DEFAULT_ALPHA_CUTOFF);
+        }
+
         public Pipeline {
-            if (layer < 0 || layer >= 8 || blend == null) {
+            if (layer < 0 || layer >= 8 || blend == null || order < -128 || order > 127
+                    || !Float.isFinite(alphaCutoff) || alphaCutoff < 0 || alphaCutoff > 1) {
                 throw new IllegalArgumentException("CUSTOM_PARTICLE_LAYER_LIMIT");
             }
         }
@@ -63,6 +85,45 @@ public final class CustomParticlePipelines {
         return new Pipeline(layer, blend);
     }
 
+    public static Pipeline pipeline(int layer, Blend blend, int order, boolean depthTest,
+                                    boolean cull, float alphaCutoff) {
+        var descriptor = new Pipeline(layer, blend, order, depthTest, cull, alphaCutoff);
+        if (alphaCutoff != DEFAULT_ALPHA_CUTOFF && !CUTOFF_VARIANTS.contains(descriptor)) {
+            if (CUTOFF_VARIANTS.size() >= 4096) {
+                throw new IllegalArgumentException("CUSTOM_PARTICLE_PIPELINE_VARIANT_LIMIT");
+            }
+            CUTOFF_VARIANTS.add(descriptor);
+        }
+        return descriptor;
+    }
+
+    public static int sortOrder(Pipeline pipeline) {
+        return pipeline.order() * 8 + pipeline.layer();
+    }
+
+    public static void invalidateShaders() {
+        SHADERS.values().forEach(NativeShader::close);
+    }
+
+    private static ShaderInstance shader(Pipeline pipeline) {
+        if (pipeline.alphaCutoff() == DEFAULT_ALPHA_CUTOFF) {
+            return GameRenderer.getParticleShader();
+        }
+        return SHADERS.computeIfAbsent(pipeline, key -> {
+            var resources = Minecraft.getInstance().getResourceManager();
+            try (var vertex = resources.openAsReader(ResourceLocation.withDefaultNamespace("shaders/core/particle.vsh"));
+                 var fragment = resources.openAsReader(FiguraIdentifier.of("shaders/core/custom_particle.fsh"))) {
+                String vsh = vertex.lines().collect(Collectors.joining("\n"));
+                String fsh = fragment.lines().collect(Collectors.joining("\n"))
+                        .replace("ALPHA_CUTOFF", Float.toString(key.alphaCutoff()));
+                return new NativeShader(vsh, fsh,
+                        DefaultVertexFormat.PARTICLE, List.of("Sampler0", "Sampler2"));
+            } catch (IOException error) {
+                throw new IllegalStateException("Custom particle shader resource failed", error);
+            }
+        }).get();
+    }
+
     private static final class ParticleType extends RenderType {
         private static final TransparencyStateShard ADDITIVE = new TransparencyStateShard(
                 "omnimorph_particle_additive", () -> {
@@ -89,7 +150,7 @@ public final class CustomParticlePipelines {
             // Explicit batch order controls compositing, including opaque layers. Never write depth.
             return create("omnimorph_particle_" + material.pipeline.layer(), DefaultVertexFormat.PARTICLE,
                     VertexFormat.Mode.QUADS, 256, false, false, CompositeState.builder()
-                            .setShaderState(new ShaderStateShard(GameRenderer::getParticleShader))
+                            .setShaderState(new ShaderStateShard(() -> shader(material.pipeline)))
                             .setTextureState(new TextureStateShard(material.texture, false, false) {
                                 @Override
                                 public void setupRenderState() {
@@ -99,8 +160,8 @@ public final class CustomParticlePipelines {
                             })
                             .setTransparencyState(transparency)
                             .setLightmapState(LIGHTMAP)
-                            .setCullState(NO_CULL)
-                            .setDepthTestState(LEQUAL_DEPTH_TEST)
+                            .setCullState(material.pipeline.cull() ? CULL : NO_CULL)
+                            .setDepthTestState(material.pipeline.depthTest() ? LEQUAL_DEPTH_TEST : NO_DEPTH_TEST)
                             .setWriteMaskState(COLOR_WRITE)
                             .setOutputState(world ? PARTICLES_TARGET : MAIN_TARGET)
                             .createCompositeState(false));

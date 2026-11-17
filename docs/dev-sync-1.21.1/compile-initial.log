@@ -1,0 +1,58 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+Starting a Gradle Daemon, 3 busy and 1 incompatible Daemons could not be reused, use --status for details
+
+> Configure project :
+Architect Plugin: 3.4.164
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+Mod was built with a newer version of Loom (1.17.21), you are using Loom (1.14.476)
+Mod was built with a newer version of Loom (1.17.493), you are using Loom (1.14.476)
+Mod was built with a newer version of Loom (1.16.3), you are using Loom (1.14.476)
+
+> Configure project :neoforge
+:found 1 forge source jars
+:extracted 944 forge source classes
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+
+> Task :common:compileJava
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\main\java\org\figuramc\figura\mixin\MinecraftMixin.java:48: 错误: 进行语法分析时已到达文件结尾
+    }
+     ^
+D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\main\java\org\figuramc\figura\model\FiguraModelPartReader.java:466: 错误: 进行语法分析时已到达文件结尾
+        ListTag tex = NbtDefaults.getListOrEmpty(meshData, "tex");
+                                                                  ^
+2 个错误
+
+
+> Task :common:compileJava FAILED
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_1.21.1/build/reports/problems/problems-report.html
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:compileJava'.
+> Compilation failed; see the compiler output below.
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\main\java\org\figuramc\figura\mixin\MinecraftMixin.java:48: 错误: 进行语法分析时已到达文件结尾
+      }
+       ^
+  D:\UserData\Desktop\Project\OMP\OMP_1.21.1\common\src\main\java\org\figuramc\figura\model\FiguraModelPartReader.java:466: 错误: 进行语法分析时已到达文件结尾
+          ListTag tex = NbtDefaults.getListOrEmpty(meshData, "tex");
+                                                                    ^
+  2 个错误
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 1m 6s
+4 actionable tasks: 1 executed, 3 up-to-date

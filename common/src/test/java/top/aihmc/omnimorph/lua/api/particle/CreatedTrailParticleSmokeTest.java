@@ -115,6 +115,7 @@ final class CreatedTrailParticleSmokeTest {
                 CustomParticleRuntime.finishFrame();
                 drain.run();
             }
+            paintedRibbon(data, drain, submissions);
             System.out.println("PASS created Trail emission: generated package -> authored Lua -> native particles, "
                     + "static/sprite UV, full bright, frame-independent rate, duplicate controls, reload/teleport/expiry "
                     + "and isolated GUI scope; controlled matrices and test-only scale mixin bridge, "
@@ -126,6 +127,91 @@ final class CreatedTrailParticleSmokeTest {
                 }
             }
         }
+    }
+
+    private static void paintedRibbon(Path data, Runnable drain, Supplier<List<Particle>> submissions) throws Exception {
+        Path source = CosmeticCreator.create(data.resolve("cosmetics"), "Painted ribbon", "author", "",
+                CosmeticTemplate.PAINTED_RIBBON, "tailtip", OutfitConfig.Transform.identity());
+        var description = LocalCosmeticSource.describe(source, () -> false);
+        var prepared = LocalCosmeticSource.prepare(source, UUID.randomUUID(), description.contentHash(), () -> false);
+        var resource = new OutfitConfig.ResourceRef(OutfitConfig.Source.LOCAL, UUID.randomUUID(), null, null,
+                null, description.contentHash(), OutfitConfig.Format.FIGURA);
+        Avatar avatar = owner(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), 1,
+                resource, prepared.nbt(), CosmeticInstanceContext.Scope.OWNER);
+        try {
+            installPositionMixinBridge(avatar);
+            // The native matrix is controlled as above; only the wearer-presence query is supplied here.
+            lua(avatar, "player = {isLoaded=function() return true end}; accessory.options.radius=0; "
+                    + "assert(cosmetic_controls:get('lifetime')==20); cosmetic_controls:set('lifetime',300)");
+            pose(avatar, resource, 1, 2, 3);
+            for (int tick = 0; tick < 2; tick++) {
+                CustomParticleRuntime.beginTick();
+                event(avatar, "TICK");
+                draw(avatar, "RENDER");
+                drain.run();
+            }
+            var particles = owned(submissions, avatar);
+            require(particles.size() == 1, "Generated painted ribbon emits after two mounted samples");
+            CustomParticle particle = particles.getFirst();
+            require(particle.getLifetime() == 300 && particle.emissive() && !particle.dynamicLight(),
+                    "Painted ribbon lifetime and independent lighting defaults reach the actual particle");
+            require(particle.currentLayers().getFirst().emissive() == null,
+                    "The material layer does not override the emissive control");
+            lua(avatar, "cosmetic_controls:set('emissive',false); cosmetic_controls:set('light_level',9); "
+                    + "cosmetic_controls:set('light_radius',4); cosmetic_controls:set('light',true)");
+            require(!particle.emissive() && particle.dynamicLight()
+                            && particle.lightLevel() == 9 && particle.lightRadius() == 4,
+                    "Changing controls updates the existing particle's independent dynamic illumination");
+            lua(avatar, "cosmetic_controls:set('light_interval',64)");
+            require(particle.lightInterval() == 64, "Maximum light interval reaches the existing particle");
+            lua(avatar, "cosmetic_controls:set('light_interval',1); cosmetic_controls:set('emissive',true)");
+            require(particle.lightInterval() == 1 && particle.dynamicLight() && particle.emissive(),
+                    "Light interval and emissive changes remain independently effective");
+            double previousX = particle.lightPosition(1f).x;
+            pose(avatar, resource, 11, 2, 3);
+            CustomParticleRuntime.beginTick();
+            event(avatar, "TICK");
+            draw(avatar, "RENDER");
+            require(Math.abs(particle.lightPosition(1f).x - previousX - 10) < 0.0001,
+                    "Painted ribbon particle follows its actual Cosmetic root matrix");
+            lua(avatar, "cosmetic_controls:set('light',false); accessory.clear()");
+            require(!particle.dynamicLight() && !particle.isAlive(), "Light disable and retirement clean up the particle");
+        } finally {
+            avatar.clean();
+            CustomParticleRuntime.finishFrame();
+            drain.run();
+        }
+        System.out.println("PASS created painted ribbon: mounted origin, lifetime ticks, independent emissive/light, "
+                + "level/radius/interval, live updates and cleanup; controlled wearer/matrices, game MANUAL/PENDING");
+    }
+
+    /** The standalone JVM has no transformed ParticleAccessor; reproduce only its position field writes. */
+    private static void installPositionMixinBridge(Avatar avatar) {
+        var wrapped = avatar.luaRuntime.typeManager.javaToLua(new LuaParticle("position fixture", null, avatar)).arg1();
+        var methods = wrapped.getmetatable().get("__index").checktable();
+        methods.set("setPos", new org.luaj.vm2.lib.TwoArgFunction() {
+            @Override
+            public org.luaj.vm2.LuaValue call(org.luaj.vm2.LuaValue self, org.luaj.vm2.LuaValue argument) {
+                try {
+                    var position = (org.figuramc.figura.math.vector.FiguraVec3)
+                            argument.checkuserdata(org.figuramc.figura.math.vector.FiguraVec3.class);
+                    var field = LuaParticle.class.getDeclaredField("particle");
+                    field.setAccessible(true);
+                    var particle = (Particle) field.get(self.checkuserdata(LuaParticle.class));
+                    particle.setPos(position.x, position.y, position.z);
+                    String[] names = {"xo", "yo", "zo"};
+                    double[] values = {position.x, position.y, position.z};
+                    for (int index = 0; index < names.length; index++) {
+                        var previous = Particle.class.getDeclaredField(names[index]);
+                        previous.setAccessible(true);
+                        previous.setDouble(particle, values[index]);
+                    }
+                    return self;
+                } catch (ReflectiveOperationException failure) {
+                    throw new AssertionError(failure);
+                }
+            }
+        });
     }
 
     private static Avatar owner(UUID account, UUID outfit, UUID wearer, int ordinal,

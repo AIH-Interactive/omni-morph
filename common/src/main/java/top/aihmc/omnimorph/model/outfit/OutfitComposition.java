@@ -89,6 +89,11 @@ public final class OutfitComposition implements AutoCloseable {
         return configuration;
     }
 
+    /** Include disabled and failed instances in diagnostics without refreshing editor caches. */
+    public Map<UUID, Avatar> performanceInstances() {
+        return closed ? Map.of() : Map.copyOf(instances);
+    }
+
     public Map<UUID, Avatar> runtimeInstances() {
         if (closed) {
             return Map.of();

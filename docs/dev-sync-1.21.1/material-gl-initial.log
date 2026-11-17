@@ -1,0 +1,68 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+
+> Configure project :
+Architect Plugin: 3.4.164
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+Mod was built with a newer version of Loom (1.17.21), you are using Loom (1.14.476)
+Mod was built with a newer version of Loom (1.16.3), you are using Loom (1.14.476)
+Mod was built with a newer version of Loom (1.17.493), you are using Loom (1.14.476)
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+> Task :common:compileJava UP-TO-DATE
+> Task :common:processResources
+> Task :common:classes
+> Task :common:extractIncludeTestProto UP-TO-DATE
+> Task :common:extractTestProto UP-TO-DATE
+> Task :common:generateTestProto NO-SOURCE
+> Task :common:compileTestJava
+> Task :common:processTestResources UP-TO-DATE
+> Task :common:testClasses
+
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+> Task :common:firstPersonMaterialSmokeTest
+[22:10:23] [main/WARN]: Shader omnimorph_7981f7199f6a4ea2b2d9499703dd7095 could not find uniform named TextureMat in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_7981f7199f6a4ea2b2d9499703dd7095 could not find uniform named ColorModulator in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_7981f7199f6a4ea2b2d9499703dd7095 could not find uniform named FogStart in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_7981f7199f6a4ea2b2d9499703dd7095 could not find uniform named FogEnd in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_7981f7199f6a4ea2b2d9499703dd7095 could not find uniform named FogColor in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_7981f7199f6a4ea2b2d9499703dd7095 could not find uniform named FogShape in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_7981f7199f6a4ea2b2d9499703dd7095 could not find uniform named GameTime in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_7981f7199f6a4ea2b2d9499703dd7095 could not find uniform named ScreenSize in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_7981f7199f6a4ea2b2d9499703dd7095 could not find uniform named Light0_Direction in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_7981f7199f6a4ea2b2d9499703dd7095 could not find uniform named Light1_Direction in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_c2c5e766a7dd41c8afb0565d0a6e00d4 could not find uniform named TextureMat in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_c2c5e766a7dd41c8afb0565d0a6e00d4 could not find uniform named ColorModulator in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_c2c5e766a7dd41c8afb0565d0a6e00d4 could not find uniform named FogStart in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_c2c5e766a7dd41c8afb0565d0a6e00d4 could not find uniform named FogEnd in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_c2c5e766a7dd41c8afb0565d0a6e00d4 could not find uniform named FogColor in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_c2c5e766a7dd41c8afb0565d0a6e00d4 could not find uniform named FogShape in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_c2c5e766a7dd41c8afb0565d0a6e00d4 could not find uniform named GameTime in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_c2c5e766a7dd41c8afb0565d0a6e00d4 could not find uniform named ScreenSize in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_c2c5e766a7dd41c8afb0565d0a6e00d4 could not find uniform named Light0_Direction in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_c2c5e766a7dd41c8afb0565d0a6e00d4 could not find uniform named Light1_Direction in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_7981f7199f6a4ea2b2d9499703dd7095 could not find uniform named TextureMat in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_7981f7199f6a4ea2b2d9499703dd7095 could not find uniform named ColorModulator in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_7981f7199f6a4ea2b2d9499703dd7095 could not find uniform named FogStart in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_7981f7199f6a4ea2b2d9499703dd7095 could not find uniform named FogEnd in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_7981f7199f6a4ea2b2d9499703dd7095 could not find uniform named FogColor in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_7981f7199f6a4ea2b2d9499703dd7095 could not find uniform named FogShape in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_7981f7199f6a4ea2b2d9499703dd7095 could not find uniform named GameTime in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_7981f7199f6a4ea2b2d9499703dd7095 could not find uniform named ScreenSize in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_7981f7199f6a4ea2b2d9499703dd7095 could not find uniform named Light0_Direction in the specified shader program.
+[22:10:23] [main/WARN]: Shader omnimorph_7981f7199f6a4ea2b2d9499703dd7095 could not find uniform named Light1_Direction in the specified shader program.
+[22:10:23] [main/INFO]: [STDOUT]: FIRST_PERSON_MATERIAL_OK chain=drawFigura+capture+renderer+writer callbacks=base+accessory pose=refreshed normal_attributes=retained GL_compile+reload=verified pixels=MANUAL/PENDING
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_1.21.1/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 14s
+10 actionable tasks: 3 executed, 7 up-to-date

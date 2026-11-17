@@ -81,6 +81,7 @@ public final class CustomParticleLayeredSmokeTest {
             particle.extract(repeated, new FixtureCamera(), .5f);
             require(state.quads.equals(repeated.quads), "layer tint does not accumulate or mutate authored particle color");
             checkMaterialsAndOrder(owner, particle, base, a.layer, b.layer);
+            authoredGeometry(owner, base);
             testRejectedChanges(particle, first, base, foreign, retired);
             // Retaining the first candidate must be rolled back when the second texture cannot be acquired.
             int candidateGpu = candidate.getId();
@@ -190,6 +191,62 @@ public final class CustomParticleLayeredSmokeTest {
 
     private record Quad(CustomParticlePipelines.Material layer, float u0, float u1, float v0, float v1,
                         int color, int light) {
+    }
+
+    private static void authoredGeometry(Avatar owner, FiguraTexture texture) throws Exception {
+        var particle = new CustomParticle(owner, Minecraft.getInstance().level, texture, Vec3.ZERO, Vec3.ZERO);
+        try {
+            require(particle.activate(), "Authored quad particle activates");
+            particle.setLayers(array(options("order", 3, "depth_test", false, "cull", true,
+                    "alpha_cutoff", 0.25, "emissive", true)));
+            var vertices = new LuaTable();
+            for (int index = 0; index < 4; index++) {
+                vertices.set(index + 1, options("position", org.figuramc.figura.math.vector.FiguraVec3.of(
+                                index == 1 || index == 2 ? 1 : 0, index >= 2 ? 1 : 0, 0),
+                        "uv", org.figuramc.figura.math.vector.FiguraVec2.of(0, 0),
+                        "color", FiguraVec4.of(.25, .5, .75, .5)));
+            }
+            particle.setQuads(vertices);
+            var transform = org.figuramc.figura.math.matrix.FiguraMat4.of();
+            transform.translate(2, 3, 4);
+            var uv = org.figuramc.figura.math.matrix.FiguraMat3.of();
+            uv.v13 = .25;
+            uv.v23 = .1;
+            particle.setQuadsTransform(transform, uv);
+            var state = particle.extractRibbon(new FixtureCamera(), null, .5f, particle.availableGeometryVertices());
+            require(state != null, "Authored quad follows the native geometry path");
+            var pipeline = state.layers().getFirst().material().pipeline();
+            require(CustomParticlePipelines.sortOrder(pipeline) == 24 && !pipeline.depthTest()
+                            && pipeline.cull() && pipeline.alphaCutoff() == .25f,
+                    "Authored layer order/depth/cull/cutoff survive native extraction");
+            try (var storage = new ByteBufferBuilder(2048)) {
+                var format = DefaultVertexFormat.PARTICLE;
+                var builder = new BufferBuilder(storage, VertexFormat.Mode.QUADS, format);
+                state.writeVertices(builder);
+                try (var mesh = builder.buildOrThrow()) {
+                    var bytes = mesh.vertexBuffer().order(java.nio.ByteOrder.nativeOrder());
+                    require(bytes.remaining() == format.getVertexSize() * 4
+                                    && bytes.getFloat(0) == 2 && bytes.getFloat(4) == 3 && bytes.getFloat(8) == 4,
+                            "Copied authored positions reach actual native quad vertex bytes");
+                    int uvOffset = format.getOffset(com.mojang.blaze3d.vertex.VertexFormatElement.UV0);
+                    near(bytes.getFloat(uvOffset), .25f);
+                    near(bytes.getFloat(uvOffset + 4), .1f);
+                    int colorOffset = format.getOffset(com.mojang.blaze3d.vertex.VertexFormatElement.COLOR);
+                    require(Byte.toUnsignedInt(bytes.get(colorOffset)) == 63
+                                    && Byte.toUnsignedInt(bytes.get(colorOffset + 1)) == 127
+                                    && Byte.toUnsignedInt(bytes.get(colorOffset + 2)) == 191
+                                    && Byte.toUnsignedInt(bytes.get(colorOffset + 3)) == 127,
+                            "Per-vertex RGBA reaches the real native color channel");
+                }
+            }
+            particle.setQuadsTransform(transform, uv);
+            var repeat = particle.extractRibbon(new FixtureCamera(), null, .5f, particle.availableGeometryVertices());
+            require(repeat != null && repeat.layers().size() == 1,
+                    "Repeated transforms reapply the copied source without adding a layer");
+        } finally {
+            particle.remove();
+        }
+        System.out.println("PASS authored particle quads: copied geometry, position/UV transforms, native RGBA bytes and layer states");
     }
 
     private static final class RecordingQuads implements BiConsumer<

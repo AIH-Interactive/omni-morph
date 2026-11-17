@@ -26,6 +26,8 @@ import org.figuramc.figura.math.vector.FiguraVec4;
 import org.figuramc.figura.model.FiguraModelPart;
 import org.figuramc.figura.model.FiguraModelPartReader;
 import top.aihmc.omnimorph.model.FiguraSkinning;
+import top.aihmc.omnimorph.model.rendering.material.AvatarMaterial;
+import top.aihmc.omnimorph.model.rendering.material.MaterialVertexFormat;
 import org.figuramc.figura.model.ParentType;
 import org.figuramc.figura.model.PartCustomization;
 import org.figuramc.figura.model.TextureCustomization;
@@ -37,6 +39,8 @@ import org.figuramc.figura.utils.ColorUtils;
 import org.figuramc.figura.utils.ui.UIHelper;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
+import org.joml.Matrix3f;
+import org.joml.Vector3f;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -804,6 +808,11 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         VertexData primary = getTexture(customization, textureSet, true);
         VertexData secondary = getTexture(customization, textureSet, false);
 
+        if (part.shaderMaterial != null && !glowing && !translucent) {
+            primary.renderType = part.shaderMaterial.renderType(PreviewBoneHighlight.opacity(avatar, part) < 1f);
+            primary.material = part.shaderMaterial;
+            secondary.renderType = null;
+        }
         if (primary.renderType == null && secondary.renderType == null) {
             remainingComplexity[0] += faceCount;
             return;
@@ -877,6 +886,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
     private void pushToBuffer(int faceCount, VertexData vertexData, PartCustomization customization, FiguraTextureSet textureSet, List<Vertex> vertices,
                               FiguraModelPart part, @Nullable FiguraMat4[] boneDeltas) {
         int vertCount = faceCount * 4;
+        FiguraVec4 materialOrigin = FiguraVec4.of(0, 0, 0, 1).transform(customization.positionMatrix);
 
         if (vertexData.renderType == RenderType.lines()) {
             return;
@@ -884,7 +894,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         // Capture GUI selection before deferred emission; never edit the shared customization stack.
         float opacity = PreviewBoneHighlight.opacity(avatar, part);
         float alpha = customization.alpha * opacity;
-        RenderType rt = opacity < 1f
+        RenderType rt = opacity < 1f && vertexData.material == null
                 ? PreviewBoneHighlight.translucent(vertexData.renderType, vertexData.texture) : vertexData.renderType;
 
         FiguraVec3 uvFixer = FiguraVec3.of();
@@ -894,6 +904,14 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         int light = vertexData.fullBright ? LightTexture.FULL_BRIGHT : customization.light;
 
         boolean useSkinning = boneDeltas != null && boneDeltas.length > 0 && part.skinBoneIndices != null && part.skinBoneWeights != null;
+        Matrix3f[] normalDeltas = null;
+        if (useSkinning) {
+            normalDeltas = new Matrix3f[boneDeltas.length];
+            for (int i = 0; i < boneDeltas.length; i++) {
+                normalDeltas[i] = new Matrix3f(boneDeltas[i].toMatrix4f()).invert().transpose();
+            }
+        }
+        Matrix3f[] capturedNormalDeltas = normalDeltas;
         RenderLifetime lifetime = RenderLifetime.INSTANCE;
         var lease = lifetime.capture(avatar.renderOwner(), String.valueOf(avatar.renderMode));
 
@@ -911,12 +929,28 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
                 }
                 pos.transform(customization.positionMatrix);
                 pos.add(pos.normalized().scale(vertexData.vertexOffset));
-                normal.set(vertex.nx, vertex.ny, vertex.nz).transform(customization.normalMatrix);
+                normal.set(vertex.nx, vertex.ny, vertex.nz);
+                if (useSkinning && vertex.origIdx >= 0 && vertex.origIdx < part.skinBoneIndices.length
+                        && part.skinBoneIndices[vertex.origIdx] != null) {
+                    applySkinningNormal(normal, vertex.origIdx, part, capturedNormalDeltas);
+                }
+                normal.transform(customization.normalMatrix);
+                double normalLength = normal.length();
+                if (normalLength > 0) {
+                    normal.scale(1 / normalLength);
+                }
                 uv.set(vertex.u, vertex.v, 1).divide(uvFixer).transform(customization.uvMatrix);
                 vertexConsumer.addVertex((float) pos.x, (float) pos.y, (float) pos.z)
                         .setColor((float) vertexData.color.x, (float) vertexData.color.y, (float) vertexData.color.z, alpha)
                         .setUv((float) uv.x, (float) uv.y).setOverlay(overlay).setLight(light)
                         .setNormal((float) normal.x, (float) normal.y, (float) normal.z);
+                if (vertexData.material != null) {
+                    MaterialVertexFormat.write(vertexConsumer,
+                            vertex.hasSecondaryUV ? vertex.u2 : (float) uv.x,
+                            vertex.hasSecondaryUV ? vertex.v2 : (float) uv.y,
+                            vertexData.material.time,
+                            (float) materialOrigin.x, (float) materialOrigin.y, (float) materialOrigin.z);
+                }
             }
         });
     }
@@ -957,8 +991,29 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         }
     }
 
+    private static final Vector3f skinTempNormal = new Vector3f();
+
+    private void applySkinningNormal(FiguraVec3 normal, int vertexIndex, FiguraModelPart part,
+                                     Matrix3f[] normalDeltas) {
+        int[] indices = part.skinBoneIndices[vertexIndex];
+        float[] weights = part.skinBoneWeights[vertexIndex];
+        float x = 0, y = 0, z = 0;
+        for (int i = 0; i < indices.length; i++) {
+            if (weights[i] <= 0 || indices[i] < 0 || indices[i] >= normalDeltas.length) {
+                continue;
+            }
+            skinTempNormal.set((float) normal.x, (float) normal.y, (float) normal.z);
+            normalDeltas[indices[i]].transform(skinTempNormal);
+            x += skinTempNormal.x * weights[i];
+            y += skinTempNormal.y * weights[i];
+            z += skinTempNormal.z * weights[i];
+        }
+        normal.set(x, y, z);
+    }
+
     private static class VertexData {
         public RenderType renderType;
+        public AvatarMaterial material;
         public ResourceLocation texture;
         public boolean fullBright;
         public float vertexOffset;

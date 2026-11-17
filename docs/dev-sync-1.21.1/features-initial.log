@@ -1,0 +1,127 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+
+> Configure project :
+Architect Plugin: 3.4.164
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+Mod was built with a newer version of Loom (1.16.3), you are using Loom (1.14.476)
+Mod was built with a newer version of Loom (1.17.21), you are using Loom (1.14.476)
+Mod was built with a newer version of Loom (1.17.493), you are using Loom (1.14.476)
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+> Task :common:compileJava UP-TO-DATE
+> Task :common:processResources UP-TO-DATE
+> Task :common:classes UP-TO-DATE
+> Task :common:extractIncludeTestProto UP-TO-DATE
+> Task :common:extractTestProto UP-TO-DATE
+> Task :common:generateTestProto NO-SOURCE
+> Task :common:compileTestJava UP-TO-DATE
+> Task :common:processTestResources UP-TO-DATE
+> Task :common:testClasses UP-TO-DATE
+
+> Task :common:firstPersonMaterialSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+[22:05:27] [main/INFO]: [STDOUT]: FIRST_PERSON_MATERIAL_OK chain=drawFigura+capture+renderer+writer callbacks=base+accessory pose=refreshed normal_attributes=retained pixels=MANUAL/PENDING
+
+> Task :common:cosmeticCreationSmokeTest
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+[22:05:38] [main/INFO]: [STDOUT]: PASS created cosmetic templates: all sixteen native packages, exact runtime skeleton hashes, authored Lua init/tick/controls, empty tailtip and Trail, owned textures and RGBA margins; GUI/Blockbench/world particle rendering MANUAL/PENDING
+
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+> Task :common:ysmMaterialNativeSmokeTest
+[22:05:46] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:05:46] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:05:46] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:05:46] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:05:46] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:05:46] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:05:46] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:05:46] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:05:46] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:05:47] [main/INFO]: [STDOUT]: PASS Layered particles: native UV/tint/light extraction, material selection/native draw order, atomic leases, layer bounds and frame cleanup; real GPU/game MANUAL/PENDING
+[22:05:47] [main/INFO]: [STDOUT]: PASS native Ribbon: Lua mode/settings, world extraction, actual particle vertex bytes, immediate frame replay, frozen replay, shared vertices/trail slots and cleanup; GPU/game MANUAL/PENDING
+[22:05:47] [main/INFO]: [STDOUT]: PASS native particle motion: Lua properties, real acceleration/gravity/tick, all built-ins, native roll interpolation, actual EntityAPI target movement/ID reuse/loss and overflow cleanup
+[22:05:47] [main/INFO]: [STDOUT]: PASS native particle lights: Lua settings, production world hook/region identity, section invalidation, interpolated entities, shared count/settings policy and cleanup; GPU/game MANUAL/PENDING
+[22:05:47] [main/INFO]: [STDOUT]: PASS attached controller Ribbon: actual Lua/frame sampling, native vertices/submission, one history slot, failed transition, target/teleport/retirement and head light; pixels MANUAL/PENDING
+[22:05:48] [main/ERROR]: 
+java.io.IOException: YSM main model is empty
+	at top.aihmc.omnimorph.model.ysm.YsmModelRuntime.fromNbt(YsmModelRuntime.java:172) ~[main/:?]
+	at org.figuramc.figura.avatar.Avatar.load(Avatar.java:1035) [main/:?]
+	at org.figuramc.figura.avatar.Avatar.load(Avatar.java:965) [main/:?]
+	at org.figuramc.figura.avatar.Avatar.load(Avatar.java:960) [main/:?]
+	at org.figuramc.figura.avatar.Avatar.load(Avatar.java:956) [main/:?]
+	at top.aihmc.omnimorph.lua.api.particle.PreviewParticleNativeSmokeTest.preparationFence(PreviewParticleNativeSmokeTest.java:235) [test/:?]
+	at top.aihmc.omnimorph.lua.api.particle.PreviewParticleNativeSmokeTest.run(PreviewParticleNativeSmokeTest.java:59) [test/:?]
+	at top.aihmc.omnimorph.lua.api.particle.CustomParticleNativeSmokeTest.run(CustomParticleNativeSmokeTest.java:59) [test/:?]
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:267) [test/:?]
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:80) [test/:?]
+	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.main(YsmMaterialNativeSmokeTest.java:53) [test/:?]
+[22:05:48] [main/INFO]: [STDOUT]: PASS isolated preview particle lifecycle: public construction, no world engine/light, private budgets, tick/frame callbacks, native expiry, reload/retirement/session cleanup, frozen native GUI geometry; pixels MANUAL/PENDING
+[22:05:48] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:05:48] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:05:48] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:05:48] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:05:48] [main/INFO]: [STDOUT]: PASS authored cosmetic particles: actual NBT/Lua init, owned PNG name, native animation marker, next-tick creation, duplicate isolation, preview/world routing, reload and retirement; pixels MANUAL/PENDING
+[22:05:48] [main/INFO]: [STDOUT]: PASS created painted ribbon: mounted origin, lifetime ticks, independent emissive/light, level/radius/interval, live updates and cleanup; controlled wearer/matrices, game MANUAL/PENDING
+[22:05:48] [main/INFO]: [STDOUT]: PASS created Trail emission: generated package -> authored Lua -> native particles, static/sprite UV, full bright, frame-independent rate, duplicate controls, reload/teleport/expiry and isolated GUI scope; controlled matrices and test-only scale mixin bridge, actual mixin/mounted draw/pixels MANUAL/PENDING
+[22:05:48] [main/WARN]: Avatar 193c6b09-5979-4be2-9843-33fd8b65c06e bypassed resource limits with 49 instructions
+[22:05:48] [main/WARN]: Outfit accessory allowance exhausted: permission=RENDER_INST, accessoryMax=64, accessoryRemaining=64, basePermission=-1, baseCounter=-1/-1, sharedUsed=64, observedBase=0
+[22:05:48] [main/WARN]: Avatar 8f92c039-8dd3-4fb5-bd6d-b083a0c610cf bypassed resource limits with 128 instructions
+[22:05:48] [main/WARN]: Avatar 84a7d949-2cbc-40a8-8d8a-d49905ff2c2b bypassed resource limits with 64 instructions
+[22:05:48] [main/WARN]: Outfit accessory allowance exhausted: permission=TICK_INST, accessoryMax=64, accessoryRemaining=64, basePermission=-1, baseCounter=-1/-1, sharedUsed=64, observedBase=0
+[22:05:48] [main/INFO]: [YSM Validation] main_model: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:05:48] [main/INFO]: [STDOUT]: PASS cosmetic animation events: real Lua registration, native Figura/YSM sources, next-tick queue, generation/instance isolation, shared count/instructions, bounded reentry and reload; game timing MANUAL/PENDING
+[22:05:49] [main/WARN]: Avatar 90e4f26d-c745-47de-8151-737b4cb700d3 bypassed resource limits with 8192 instructions
+[22:05:49] [main/WARN]: Avatar e5fc76e0-822d-44dd-8e6f-d2e099f80f3b bypassed resource limits with 1 instructions
+[22:05:49] [main/WARN]: Avatar 8eace8c7-4dea-4aba-8dde-85743eb5f764 bypassed resource limits with 1 instructions
+[22:05:49] [main/WARN]: Avatar 1a20eb26-2dae-4b21-b2ca-ae9a27b4268d bypassed resource limits with 4096 instructions
+[22:05:49] [main/WARN]: Avatar d2f52bd5-c716-4f77-9631-60a29a0a7f19 bypassed resource limits with 4096 instructions
+[22:05:49] [main/INFO]: [STDOUT]: OMM_NATIVE_UNLIMITED_BUDGET_OK render_base=8192 init_base=65536 ceiling=-1 editable_bases=true restricted_permissions=retained
+[22:05:49] [main/WARN]: Avatar 2c850c9b-43db-4f64-a882-c32710b8fe92 bypassed resource limits with 1684 instructions
+[22:05:49] [main/INFO]: [STDOUT]: OMM_NATIVE_SHARED_INIT_BUDGET_OK maximum=unlimited
+[22:05:49] [main/WARN]: Avatar 1e0c34a3-a50b-4858-8b71-f4ccd851ccd2 bypassed resource limits with 4096 instructions
+[22:05:49] [main/INFO]: [STDOUT]: OMM_NATIVE_ANIMATION_SAMPLE_OK matrix+blend+isolation+Lua_budget
+[22:05:49] [main/INFO]: [STDOUT]: PASS generic XYZ Euler composition: order, matrix geometry, inputs and errors
+[22:05:49] [main/INFO]: [STDOUT]: PASS particle callbacks: real Lua tick/frame hooks, shared count/instruction quotas, epoch/reentry guards, zero limits, removal and VM failure isolation; game MANUAL/PENDING
+[22:05:49] [main/INFO]: [STDOUT]: PASS custom Billboard: actual Lua wrappers/native quad extraction, UV/full-bright, shared capacity, execution cleanup and extracted texture lifetime; GPU/game MANUAL/PENDING
+[22:05:49] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:05:49] [main/INFO]: [STDOUT]: YSM Figura face complexity: visible/hidden geometry, per-frame draws, permission budget and detached preview PASS
+[22:05:49] [main/WARN]: Outfit accessory allowance exhausted: permission=COMPLEXITY, accessoryMax=8, accessoryRemaining=8, basePermission=8, baseCounter=8/8, sharedUsed=8, observedBase=0
+[22:05:49] [main/INFO]: [STDOUT]: PASS particle/model face budget: actual YSM vertices and layered quads, either order, counter reset, exact/insufficient allowance, hidden-owner refill, duplicate instances and frame retirement
+[22:05:49] [main/INFO]: [YSM Validation] main.json: 1 bones, 1 roots, 1 cubes, 6 quads, 0 locators - OK
+[22:05:49] [main/INFO]: [YSM Validation] main.json: 3 bones, 1 roots, 3 cubes, 18 quads, 0 locators - OK
+[22:05:49] [main/INFO]: [STDERR]: java.lang.AssertionError: actual Figura draw preserves separate normal matrix
+[22:05:49] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.rendering.FiguraOrdinaryReplay.require(FiguraOrdinaryReplay.java:213)
+[22:05:49] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.rendering.FiguraOrdinaryReplay.replay(FiguraOrdinaryReplay.java:111)
+[22:05:49] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.testPreviewBoneFade(YsmMaterialNativeSmokeTest.java:1291)
+[22:05:49] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:271)
+[22:05:49] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.run(YsmMaterialNativeSmokeTest.java:80)
+[22:05:49] [main/INFO]: [STDERR]: 	at top.aihmc.omnimorph.model.ysm.YsmMaterialNativeSmokeTest.main(YsmMaterialNativeSmokeTest.java:53)
+
+> Task :common:ysmMaterialNativeSmokeTest FAILED
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_1.21.1/build/reports/problems/problems-report.html
+Exception in thread "main" 
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:ysmMaterialNativeSmokeTest'.
+> Process 'command 'D:\Program Files\Java\21\bin\java.exe'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 35s
+12 actionable tasks: 3 executed, 9 up-to-date
