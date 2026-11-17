@@ -1455,6 +1455,17 @@ public class WardrobeScreen extends AbstractPanelScreen {
         }
     }
 
+    public top.aihmc.omnimorph.debug.PerformanceSelection performanceSelection() {
+        if (selected == null) {
+            return null;
+        }
+        String id = selected.cloud() != null ? selected.cloud().toString()
+                : UUID.nameUUIDFromBytes(selected.path().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
+        return new top.aihmc.omnimorph.debug.PerformanceSelection(id,
+                selected.name().getString(), selected.cosmetic() == null ? "avatar" : "cosmetic",
+                selected.ysm() ? "ysm" : "figura", resourceSelectionGeneration);
+    }
+
     private boolean selectionPreview() {
         return tab == Tab.COLLECTION || selected != null || draftPreviewActive;
     }

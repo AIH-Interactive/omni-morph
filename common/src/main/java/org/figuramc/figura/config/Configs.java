@@ -1,5 +1,7 @@
 package org.figuramc.figura.config;
 
+import top.aihmc.omnimorph.config.InstructionCeilingConfig;
+
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -54,6 +56,7 @@ public class Configs {
             NAMEPLATE = new ConfigType.Category("nameplate"),
             SCRIPT = new ConfigType.Category("script"),
             RENDERING = new ConfigType.Category("rendering"),
+            PERFORMANCE = new ConfigType.Category("performance"),
             ACTION_WHEEL = new ConfigType.Category("action_wheel"),
             UI = new ConfigType.Category("ui"),
             PAPERDOLL = new ConfigType.Category("paperdoll"),
@@ -103,6 +106,19 @@ public class Configs {
                 this.enumTooltip = NAMEPLATE_TOOLTIP;
             }};
 
+
+    public static final ConfigType.BoolConfig ADAPTIVE_RENDER_BUDGET =
+            new ConfigType.BoolConfig("adaptive_render_budget", PERFORMANCE, true);
+    public static final InstructionCeilingConfig
+            RENDER_INSTRUCTION_BASE = new InstructionCeilingConfig("render_instruction_base", PERFORMANCE, 8192);
+    public static final int RENDER_INSTRUCTION_CEILING = -1;
+
+    public static final InstructionCeilingConfig
+            INIT_INSTRUCTION_BASE = new InstructionCeilingConfig("init_instruction_base", PERFORMANCE, 65536);
+    public static final int INIT_INSTRUCTION_CEILING = -1;
+
+    public static final top.aihmc.omnimorph.debug.PerformancePortConfig PERFORMANCE_HTTP_PORT =
+            new top.aihmc.omnimorph.debug.PerformancePortConfig("performance_http_port", PERFORMANCE, 18081);
 
     // -- script -- // 
 
@@ -265,6 +281,7 @@ public class Configs {
                 public void onChange() {
                     if (!ConfigManager.isInitializing()) {
                         NetworkStuff.debugPermissionChanged();
+                        top.aihmc.omnimorph.debug.PerformanceDebug.reconcile();
                     }
                 }
             };

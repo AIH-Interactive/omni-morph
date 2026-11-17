@@ -96,7 +96,8 @@ final class RibbonRenderState extends QuadParticleRenderState {
         float u = (float) (uv.u0() + (uv.u1() - uv.u0()) * vertex.u());
         float v = (float) (uv.v0() + (uv.v1() - uv.v0()) * vertex.v());
         consumer.addVertex((float) relative.x, (float) relative.y, (float) relative.z)
-                .setUv(u, v).setColor(layer.red(), layer.green(), layer.blue(), layer.alpha() * vertex.alpha())
+                .setUv(u, v).setColor(layer.red() * vertex.red(), layer.green() * vertex.green(),
+                        layer.blue() * vertex.blue(), layer.alpha() * vertex.alpha())
                 .setLight(layer.light());
     }
 }

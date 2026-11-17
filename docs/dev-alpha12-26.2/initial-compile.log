@@ -1,0 +1,67 @@
+Picked up JAVA_TOOL_OPTIONS: -Dfile.encoding=UTF-8
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by net.rubygrapefruit.platform.internal.NativeLibraryLoader in an unnamed module (file:/C:/Users/eryth/.gradle/wrapper/dists/gradle-9.4.1-bin/arn2x92ynaizyzdaamcbpbhtj/gradle-9.4.1/lib/native-platform-0.22-milestone-29.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+
+> Configure project :
+Architect Plugin: 3.5.168
+Architectury Loom: 1.14.476
+This version of Architectury Loom is in beta! Please report any issues you encounter: https://github.com/architectury/architectury-loom/issues
+
+> Configure project :neoforge
+:found 1 forge source jars
+:extracted 0 forge source classes
+
+> Task :common:protobufDummy UP-TO-DATE
+> Task :common:extractIncludeProto UP-TO-DATE
+> Task :common:extractProto UP-TO-DATE
+> Task :common:generateProto UP-TO-DATE
+
+> Task :common:compileJava
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\material\AvatarMaterial.java:8: 错误: 找不到符号
+import com.mojang.blaze3d.platform.DestFactor;
+                                  ^
+  符号:   类 DestFactor
+  位置: 程序包 com.mojang.blaze3d.platform
+D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\material\AvatarMaterial.java:9: 错误: 找不到符号
+import com.mojang.blaze3d.platform.SourceFactor;
+                                  ^
+  符号:   类 SourceFactor
+  位置: 程序包 com.mojang.blaze3d.platform
+2 个错误
+
+
+> Task :common:compileJava FAILED
+
+[Incubating] Problems report is available at: file:///D:/UserData/Desktop/Project/OMP/OMP_26.2/build/reports/problems/problems-report.html
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':common:compileJava'.
+> Compilation failed; see the compiler output below.
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\material\AvatarMaterial.java:8: 错误: 找不到符号
+  import com.mojang.blaze3d.platform.DestFactor;
+                                    ^
+    符号:   类 DestFactor
+    位置: 程序包 com.mojang.blaze3d.platform
+  D:\UserData\Desktop\Project\OMP\OMP_26.2\common\src\main\java\top\aihmc\omnimorph\model\rendering\material\AvatarMaterial.java:9: 错误: 找不到符号
+  import com.mojang.blaze3d.platform.SourceFactor;
+                                    ^
+    符号:   类 SourceFactor
+    位置: 程序包 com.mojang.blaze3d.platform
+  2 个错误
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 33s
+4 actionable tasks: 1 executed, 3 up-to-date
