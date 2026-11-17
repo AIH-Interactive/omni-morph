@@ -1,0 +1,26 @@
+[
+  {
+    "windowsNative": [
+      "META-INF/jars/avif-imageio-native-reader-master-6af2f277a8-1.jar!/META-INF/native/arm64/avif-imageio-jni.dll",
+      "META-INF/jars/avif-imageio-native-reader-master-6af2f277a8-1.jar!/META-INF/native/amd64/avif-imageio-jni.dll"
+    ],
+    "loader": "fabric",
+    "path": "D:\\UserData\\Desktop\\Project\\OMP\\OMP_26.2\\fabric\\build\\libs\\omni-morph-1.0.0-alpha.12+26.2-fabric-mc.jar",
+    "version": "1.0.0-alpha.12+26.2",
+    "sourceCommit": "911ad48c1b4912aa00a7fe451959faefa46c59b1",
+    "sha256": "90845a2d4d2f382d60dc46536e4cd68b7a69b9acc6c3313b981795649d7645a7",
+    "bytes": 19267820
+  },
+  {
+    "windowsNative": [
+      "META-INF/native/amd64/avif-imageio-jni.dll",
+      "META-INF/native/arm64/avif-imageio-jni.dll"
+    ],
+    "loader": "neoforge",
+    "path": "D:\\UserData\\Desktop\\Project\\OMP\\OMP_26.2\\neoforge\\build\\libs\\omni-morph-1.0.0-alpha.12+26.2-neoforge-mc.jar",
+    "version": "1.0.0-alpha.12+26.2",
+    "sourceCommit": "911ad48c1b4912aa00a7fe451959faefa46c59b1",
+    "sha256": "90377fe8e31ef4c486ac0c933c1a0bc390f54b839157f157f3c0bac29b8ebbae",
+    "bytes": 18877147
+  }
+]
