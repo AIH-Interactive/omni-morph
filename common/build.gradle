@@ -288,6 +288,19 @@ tasks.register('deferredMaterialSmokeTest', JavaExec) {
             args platform, artifact.absolutePath
         }
     }
+    tasks.register("${platform}PipelineCacheMixinSmokeTest", JavaExec) {
+        group = 'verification'
+        description = "Applies the packaged shader-source Mixin to the ${platform} PipelineCache and invokes its constructor."
+        dependsOn testClasses, ":${platform}:remapJar"
+        mainClass = 'top.aihmc.omnimorph.testing.PipelineCacheMixinSmokeTest'
+        maxHeapSize = '1g'
+        doFirst {
+            def platformProject = project(":${platform}")
+            def artifact = platformProject.tasks.named('remapJar').get().archiveFile.get().asFile
+            classpath = files(artifact) + sourceSets.test.output + platformProject.sourceSets.main.compileClasspath
+            args platform, artifact.absolutePath
+        }
+    }
 }
 
 [

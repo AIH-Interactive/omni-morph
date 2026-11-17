@@ -11,7 +11,7 @@ import top.aihmc.omnimorph.model.rendering.material.AvatarMaterial;
 @Mixin(PipelineCache.class)
 public abstract class AvatarShaderSourceMixin {
     @ModifyVariable(method = "<init>", at = @At("HEAD"), argsOnly = true)
-    private ShaderSource avatarShader(ShaderSource original) {
+    private static ShaderSource avatarShader(ShaderSource original) {
         return AvatarMaterial.sources(original);
     }
 }
