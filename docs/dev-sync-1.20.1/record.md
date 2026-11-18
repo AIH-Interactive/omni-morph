@@ -29,4 +29,24 @@
 
 ## 后续固定更新
 
-基线检查点提交推送后，继续直接merge `e2962c33c7da36fa879b63759dcdf74e052966f1`（功能提交c1084296），处理私有装饰精确引用与缓存撤权、衣柜元数据恢复及同UUID复活实体重绑定；这部分尚未实施。
+基线检查点提交推送后，继续直接merge `e2962c33c7da36fa879b63759dcdf74e052966f1`（功能提交c1084296），处理私有装饰精确引用与缓存撤权、衣柜元数据恢复及同UUID复活实体重绑定；本次已完成，见下节。
+
+
+## e2962c33 追加更新：已完成
+
+Alpha.12 基线 merge `23e3c0c8d5ec1ebd2639625bbc2f7d5b8de4be1e` 已提交推送并核对远端一致，随后真实merge固定来源 `e2962c33c7da36fa879b63759dcdf74e052966f1`，其功能提交 `c1084296`。生产自动合并，冲突只有本版手册与预览测试；保持原生 EntityFrame，Wardrobe prepared NBT读取改为1.20.1 `getCompound/getString`。新增实现：
+
+- 本地源或库存缺失时，当前账户经私有发布接口读取精确 ResourceRef；不要求上传模型库。固定输入不走fallback，未绑定/撤权不接受已缓存字节。
+- 衣柜把已准备的私有NBT保持到草稿，并从其cosmetic_json恢复名称和作者默认参数。
+- 同UUID复活的新玩家替换已移除实体；保留现有Avatar与Lua实例，更新player API，并清理旧拖尾采样。
+
+`build/tmp/alpha12-restoration-regression.log`：libraryPreviewRuntime/libraryPackagePreparation/outfitApplyClient全部通过，1分12秒退出0。包含真实配装草稿名称/默认值、同UUID玩家替换与脚本实例保留、私有FIGURA/YSM资源真实HTTP/加密缓存及未绑定/撤权拒绝；不把回环测试冒充生产服务器验收。
+
+最终生产源码未再修改：`:forge:remapJar -Prelease --rerun-tasks --offline`，Forge41秒、NeoForge加`-PnativeLoader=neoforge`32秒，均13项生产任务全部执行、退出0。日志分别 `build/tmp/alpha12-final-forge.log` 和 `alpha12-final-neoforge.log`。构建发生在merge提交前；产物源码与随后提交的生产源一致，版本使用release，不含基线Git后缀。
+
+独立交付目录 `build/distributions/alpha12-dev-sync/`；旧发布包均保留。`audit-artifacts.py`和`artifacts.json`记录完整绝对路径、字节数、SHA及代码来源。检查两外包/14嵌套CRC、jarjar清单、Minecraft1.20.1/Java17、完整新旧特性、7模板逐字节一致、最新恢复入口、许可证、Windows AVIF x86_64 PE及无测试/撤销加速，全部PASS；日志 `build/tmp/alpha12-final-artifact-audit.log`。
+
+- Forge SHA256：`843cc58430adb6751633c4e55bd6bad7988343cc4fc31d7d206624cea6357dd5`。
+- NeoForge SHA256：`3f1824f1ff3ddcac5175b46ca23c989b7995a5577d75ba09002ffa958f7e4436`。
+
+实际调用CodeGraph及minecraft-dev MCP公开1.20.1 VertexFormat/VertexFormatElement/ClientLevel/EntityGetter源码；确认FLOAT额外UV属性和按UUID取得玩家接口，不只依赖新版参考。可靠额度剩44%，未触发Luna。本任务实施与自动验证已完成，无剩余开发项；最终merge与文档提交以git/远端核对为准。游戏/Mixin运行时、GUI/像素/光影/多人及真实服务器验收SKIPPED（MANUAL，用户要求跳过；未验证）。未运行Actions、游戏、WSL或其他平台本地构建，未覆盖mods/模型/旧包，保留原未跟踪.codex/。

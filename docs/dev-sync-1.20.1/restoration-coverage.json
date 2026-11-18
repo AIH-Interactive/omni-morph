@@ -1,0 +1,49 @@
+{
+  "source": "e2962c33c7da36fa879b63759dcdf74e052966f1",
+  "paths": [
+    {
+      "source_path": "AGENT_HANDOFF.md",
+      "target_sha256": "3e797b7bcbebd643bbd4412261af78b4d20272827c73f4ec6b45136d4480caee"
+    },
+    {
+      "source_path": "common/src/main/java/org/figuramc/figura/gui/screens/WardrobeScreen.java",
+      "target_sha256": "c41b32e3d10ea0e775228d738bad5037c42baafca2634a0d3672d38704ce5059"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/model/library/OutfitPresetResources.java",
+      "target_sha256": "205504d72452f4f27cbed17aa15e7718c7458fe6f37c93c051182646b94c6068"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/model/outfit/OutfitComposition.java",
+      "target_sha256": "7b7b0eb815dd9eed2489403d201461db6fc9f7b3604048e36b2bb4c80528f32c"
+    },
+    {
+      "source_path": "common/src/test/java/top/aihmc/omnimorph/model/library/LibraryPackagePreparationSmokeTest.java",
+      "target_sha256": "264a1423af928d0977cbdc5a2c53a493fe61c9dab0cc85d6d0d0c30d21d0fdc0"
+    },
+    {
+      "source_path": "common/src/test/java/top/aihmc/omnimorph/model/library/LibraryPreviewRuntimeSmokeTest.java",
+      "target_sha256": "170279ee15b9243218379ad528d18714bf6f6b12f01095a3a2f687972df84cf1"
+    },
+    {
+      "source_path": "common/src/test/java/top/aihmc/omnimorph/model/library/OutfitSourceCacheSmokeTest.java",
+      "target_sha256": "2962cd183ffa42c63633afdc7fc392b4307ad28da0cbfbcf6faffa9685314e36"
+    },
+    {
+      "source_path": "docs/CHANGELOG.en.md",
+      "target_sha256": "e8b170661219428c5536262634c617b29e926c6e731cb46abf2000a63a71387c"
+    },
+    {
+      "source_path": "docs/CHANGELOG.ja.md",
+      "target_sha256": "e57f87d42073630380b65f81d4603e4c7ba180ea8e484bfc34d1e2df494bbf08"
+    },
+    {
+      "source_path": "docs/CHANGELOG.ko.md",
+      "target_sha256": "8910ed459cc8d0b237966cc7571dff2f64a871f7999458dd96bc247192e26371"
+    },
+    {
+      "source_path": "docs/CHANGELOG.md",
+      "target_sha256": "c4760f26f9800842f042a045f26056b08db33c92b35bc18a180f97cf6a9b1ba9"
+    }
+  ]
+}

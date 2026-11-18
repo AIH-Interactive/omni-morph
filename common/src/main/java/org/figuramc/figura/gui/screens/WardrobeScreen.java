@@ -994,8 +994,17 @@ public class WardrobeScreen extends AbstractPanelScreen {
             throw new IllegalStateException("OUTFIT_BASE_NOT_READY");
         }
         var local = prepared.localAccessories();
+        var privateSources = new HashMap<OutfitConfig.ResourceRef, CompoundTag>();
         var cloud = new HashMap<OutfitConfig.ResourceRef, CloudCosmeticSource.Descriptor>();
         for (var instance : configuration.instances()) {
+            if (instance.resource().source() == OutfitConfig.Source.LOCAL && !local.containsKey(instance.resource())
+                    && !privateSources.containsKey(instance.resource())) {
+                try {
+                    privateSources.put(instance.resource(), prepared.read(instance.resource(), () -> false));
+                } catch (java.io.IOException unavailable) {
+                    throw new IllegalStateException("OUTFIT_DEPENDENCY_UNAVAILABLE", unavailable);
+                }
+            }
             if (instance.resource().source() == OutfitConfig.Source.CLOUD) {
                 var metadata = prepared.metadata(instance.resource());
                 cloud.put(instance.resource(), new CloudCosmeticSource.Descriptor(instance.resource(), metadata, metadata.common().name));
@@ -1005,6 +1014,7 @@ public class WardrobeScreen extends AbstractPanelScreen {
         draftBase = base;
         draftBasePersistent = true;
         draftResources.putAll(local);
+        draftPreparedResources.putAll(privateSources);
         draftCloudResources.putAll(cloud);
         pruneDraftResources();
         clearAnchorSelection();
@@ -3080,8 +3090,12 @@ public class WardrobeScreen extends AbstractPanelScreen {
     }
 
     private CosmeticMetadata draftMetadata(OutfitConfig.ResourceRef reference) {
-        if (draftFixedResources != null && draftFixedResources.ready() && draftFixedResources.contains(reference)) {
+        if (draftFixedResources != null && containsQuietly(draftFixedResources, reference)) {
             return draftFixedResources.metadata(reference);
+        }
+        var prepared = draftPreparedResources.get(reference);
+        if (prepared != null) {
+            return CosmeticMetadata.read(prepared.getCompound("metadata").getString("cosmetic_json"));
         }
         var local = draftResources.get(reference);
         if (local != null && local.source() != null) {

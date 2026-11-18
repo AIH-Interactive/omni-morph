@@ -72,6 +72,11 @@ public final class LibraryPreviewRuntimeSmokeTest {
         var live = new AtomicBoolean(true);
         var endpoint = CloudEndpoint.parse("https://example.invalid", () -> false);
         try (var access = new LibraryAccess(endpoint, HttpClient.newHttpClient(), request -> {
+            String path = request.build().uri().getPath();
+            if (path.equals("/api/library/v1/capabilities")
+                    || path.equals("/api/library/v1/outfits/resources/local/resolve")) {
+                throw new java.io.IOException("OUTFIT_PRESET_DEPENDENCY_OFFLINE");
+            }
             throw new AssertionError("Detached draft preview must not perform an HTTP operation");
         }); var client = new LibraryClient(access,
                 new LibrarySession("synthetic-preview", FiguraMod.getLocalPlayerUUID(), epoch, live::get),
@@ -1494,7 +1499,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
                     new org.figuramc.figura.avatar.UserData.OutfitState(config, base, composition));
             users.put(owner, user);
             field(type, "preview").set(screen, preview);
-            field(type, "observedCosmetics").set(screen, java.util.List.of(entry));
+            field(type, "observedCosmetics").set(screen, java.util.List.of());
             var tabType = field(type, "tab").getType();
             @SuppressWarnings({"unchecked", "rawtypes"})
             Object collectionTab = Enum.valueOf((Class) tabType, "COLLECTION");
@@ -1508,6 +1513,11 @@ public final class LibraryPreviewRuntimeSmokeTest {
             require(start != null, "opening the outfit tab starts a draft from the restored outfit");
             await(start, drain);
             awaitDraftComposition(screen, preview, drain);
+            var instanceName = type.getDeclaredMethod("instanceName", OutfitConfig.Instance.class);
+            instanceName.setAccessible(true);
+            require(((net.minecraft.network.chat.Component) instanceName.invoke(screen, instance)).getString()
+                            .equals("restored accessory #1"),
+                    "cloud-restored local references retain their authored name without a local inventory entry");
             preview.outfitBase().loadScript("preserve live particle toggle",
                     "assert(particle_runtime_enabled(), 'opening wardrobe reset the active particle toggle')").call();
             require(preview.outfitBase() == base,
@@ -1533,6 +1543,7 @@ public final class LibraryPreviewRuntimeSmokeTest {
             }
             require(listed && preview.outfitComposition().runtimeInstances().containsKey(instance.instanceId()),
                     "the restored accessory appears in the bone tree and preview without selecting an entry");
+            testRespawnedOutfitWearer(unsafe, composition, player);
             preview.withPlayerContext(() -> LibraryPreviewBinding.capture(player, new EntityFrame(player, 1)));
             preview.close();
             LibraryPreviewBinding.finishFrame();
@@ -1636,8 +1647,9 @@ public final class LibraryPreviewRuntimeSmokeTest {
             var nameOf = type.getDeclaredMethod("instanceName", OutfitConfig.Instance.class);
             nameOf.setAccessible(true);
             String unavailable = org.figuramc.figura.utils.FiguraText.of("gui.wardrobe.unavailable").getString();
-            require(((net.minecraft.network.chat.Component) nameOf.invoke(screen, first)).getString().startsWith(unavailable),
-                    "fixture reproduces a restored local instance without its inventory entry");
+            require(((net.minecraft.network.chat.Component) nameOf.invoke(screen, first)).getString()
+                            .equals(source.metadata().common().name + " #" + first.displayOrdinal()),
+                    "restored native metadata supplies instance names before the local inventory entry is rebound");
             field(type, "observedCosmetics").set(screen, java.util.List.of(entry));
             var bind = type.getDeclaredMethod("bindLocalDraftResources");
             bind.setAccessible(true);
@@ -1923,6 +1935,46 @@ public final class LibraryPreviewRuntimeSmokeTest {
                 var writable = (Map<Object, Object>) entities;
                 writable.put(player, original);
             }
+        }
+    }
+
+    private static void testRespawnedOutfitWearer(Unsafe unsafe,
+                                                 top.aihmc.omnimorph.model.outfit.OutfitComposition composition,
+                                                 CurrentPreviewPlayer player) throws Exception {
+        var bridge = (top.aihmc.omnimorph.model.outfit.OutfitComposition.NativeBridge)
+                field(composition.getClass(), "bridge").get(composition);
+        for (UUID id : composition.runtimeInstances().keySet()) {
+            require(bridge.tick(id.toString()), "respawn fixture initializes the native accessory player API");
+        }
+        var replacement = (CurrentPreviewPlayer) unsafe.allocateInstance(CurrentPreviewPlayer.class);
+        replacement.setUUID(player.getUUID());
+        var minecraft = Minecraft.getInstance();
+        var previousRemoval = field(net.minecraft.world.entity.Entity.class, "removalReason").get(player);
+        var instances = Map.copyOf(composition.runtimeInstances());
+        require(!instances.isEmpty(), "respawn regression uses actual loaded accessory scripts");
+        try {
+            field(net.minecraft.world.entity.Entity.class, "removalReason").set(player,
+                    net.minecraft.world.entity.Entity.RemovalReason.KILLED);
+            minecraft.player = replacement;
+            composition.tick();
+            require(field(composition.getClass(), "wearer").get(composition) == replacement,
+                    "respawn binds the existing outfit to the new player entity without reloading resources");
+            for (Avatar accessory : instances.values()) {
+                var globals = (org.luaj.vm2.LuaTable) field(accessory.luaRuntime.getClass(), "userGlobals")
+                        .get(accessory.luaRuntime);
+                var api = (top.aihmc.omnimorph.lua.api.CosmeticPlayerAPI) globals.get("player")
+                        .checkuserdata(top.aihmc.omnimorph.lua.api.CosmeticPlayerAPI.class);
+                require(api.isLoaded() && !accessory.scriptError,
+                        "accessory player API recovers after the old entity is removed");
+            }
+            require(composition.runtimeInstances().equals(instances), "respawn retains accessory runtime instances");
+            System.out.println("PASS respawn: same-UUID replacement restores OWNER accessory player API and keeps native runtimes");
+        } finally {
+            field(net.minecraft.world.entity.Entity.class, "removalReason").set(player, previousRemoval);
+            minecraft.player = player;
+            field(net.minecraft.world.entity.Entity.class, "removalReason").set(replacement,
+                    net.minecraft.world.entity.Entity.RemovalReason.KILLED);
+            composition.tick();
         }
     }
 

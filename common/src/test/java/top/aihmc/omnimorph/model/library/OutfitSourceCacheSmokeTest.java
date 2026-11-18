@@ -161,6 +161,27 @@ public final class OutfitSourceCacheSmokeTest {
         var configuration = new OutfitConfig(1, 0, server.kind == OutfitConfig.ResourceKind.AVATAR ? server.reference : null,
                 instances, List.of(), instances.isEmpty() ? java.util.Map.of() : java.util.Map.of(server.reference.identity(), 2), false);
         int bodies = server.bodies.get();
+        try (var operation = new OutfitPresetResources(configuration, OutfitLimits.defaults(), client.session().player(),
+                directory.resolve("unavailable-local-data"), client, null, Runnable::run, () -> true)) {
+            var prepared = operation.future().get(5, TimeUnit.SECONDS);
+            require(prepared.ready() && prepared.read(server.reference, () -> false).equals(source.nbt()),
+                    "published outfit preview fetches private cloud dependencies without local files or library entries: "
+                            + prepared.issues());
+        }
+        bodies = server.bodies.get();
+        for (String mode : List.of("unbound", "revoked")) {
+            server.mode = mode;
+            try (var operation = new OutfitPresetResources(configuration, OutfitLimits.defaults(), client.session().player(),
+                    directory.resolve("unavailable-local-data"), client, null, Runnable::run, () -> true)) {
+                var denied = operation.future().get(5, TimeUnit.SECONDS);
+                require(!denied.ready() && denied.issues().size() == 1
+                                && denied.issues().get(0).instances().size() == instances.size()
+                                && denied.issues().get(0).code().equals(mode.equals("unbound") ? "NOT_FOUND" : "FORBIDDEN")
+                                && server.bodies.get() == bodies,
+                        "private preview does not use cached bytes after binding removal or permission revocation");
+            }
+        }
+        server.mode = "normal";
         try (var operation = new OutfitApplyResources(configuration, client, null,
                 directory.resolve("unavailable-local-data"), cacheRoot, Runnable::run, () -> true)) {
             var prepared = operation.future().get(5, TimeUnit.SECONDS);
