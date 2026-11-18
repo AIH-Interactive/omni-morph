@@ -43,3 +43,11 @@ Iris1.8.8公开API不存在assignPipeline，保持本版GameRenderer默认粒子
 游戏/Mixin启动、实际穿戴与Iris shader pack组合、各模板世界效果、GUI/字体、多人：SKIPPED（MANUAL，用户要求跳过；未验证），不得记PASS或当作阻塞。没有剩余实施或自动验证，不因为人工项重复构建、等待或新增阶段。下一步仅等待用户新任务。
 
 继续遵守用户最新AGENTS指令和本版目标：当前分支、不覆盖已有工作；CodeGraph优先；原生Windows/JDK21前台PowerShell构建2>&1 | Tee-Object build.log并立即检查退出码；禁止WSL及本机非Windows目标；禁止Qt offscreen。不自动启动游戏/覆盖mods或用户模型。当前无可用minecraft-dev工具，不冒称调用；本轮CodeGraph与官方本地映射JAR用于API查证。最近可靠周额度已用46%（剩54%），未触发Luna交接。
+
+## 2026-11-18 dev 增量合并
+
+当前分支 1.21.1，基线 e3883876。直接合并 dev e2962c33c7da36fa879b63759dcdf74e052966f1，包含 c1084296 的私有装饰恢复、名称和默认设置读取、复活后同 UUID 重新绑定及拖尾清理。冲突保留 1.21.1 EntityFrame 和四语历史。minecraft-dev MCP 核对 Entity、CompoundTag 的映射并读取 1.21.1 NBT 源码，元数据读取适配原生 getter。
+
+libraryPreviewRuntimeSmokeTest、libraryPackagePreparationSmokeTest、outfitApplyClientSmokeTest、Fabric 和 NeoForge remapJar 全部通过。回归覆盖复活后保留 Lua 实例和私有源撤权拒绝缓存。双包元数据和 CRC 检查通过。人工客户端验收按用户要求跳过。原未跟踪资料保留。此次合并完成后无剩余实施项，当前提交见 Git 历史。
+- D:\UserData\Desktop\Project\OMP\OMP_1.21.1\fabric\build\libs\omni-morph-1.0.0-alpha.12+1.21.1-fabric-mc.jar SHA256 68c1115eeef9a9bc8ab0655788e4303653e7330cba51cef4b0c40dc188c9e0b8
+- D:\UserData\Desktop\Project\OMP\OMP_1.21.1\neoforge\build\libs\omni-morph-1.0.0-alpha.12+1.21.1-neoforge-mc.jar SHA256 c07f9efd2f8cd0cb900ddf591898db8b392264c08bff521b769dd223e4630444

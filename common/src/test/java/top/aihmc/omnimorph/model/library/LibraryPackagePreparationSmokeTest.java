@@ -160,6 +160,9 @@ public final class LibraryPackagePreparationSmokeTest {
             var phases = new java.util.ArrayList<LibraryPackagePreparation.Phase>();
             var prepared = LibraryPackagePreparation.prepareAccessory(input, owner, 1024 * 1024,
                     () -> false, phases::add);
+            if (input.equals(folder)) {
+                OutfitSourceCacheSmokeTest.run(directory, prepared);
+            }
             require(prepared.resourceKind().equals("ACCESSORY")
                             && prepared.metadataSource().equals("cosmetic.json")
                             && prepared.metadata().authors().equals(java.util.List.of("Original"))
