@@ -1,0 +1,591 @@
+{
+  "source": "8cc2ede97a3af5cb109444586a05167322b58fb5",
+  "target_baseline": "e7d89f997b3c6d545daeef47297eb0f582b14f5f",
+  "paths": [
+    {
+      "source_path": "AGENTS.md",
+      "present": true,
+      "working_sha256": "394d13feee30ac42c0816423c787fc4b311ad3bb18bd850773b4b1af7537c603"
+    },
+    {
+      "source_path": "AGENT_HANDOFF.md",
+      "present": true,
+      "working_sha256": "21e8715a1b9416cd4d092d0211741d10b3b06cc29b9beba5d590a1f890bf7883"
+    },
+    {
+      "source_path": "common/build.gradle",
+      "present": true,
+      "working_sha256": "67c1846682a2ca8f0446451901c55af782c7a24fca4773f7e9e32dc0743602c6"
+    },
+    {
+      "source_path": "common/src/main/java/org/figuramc/figura/FiguraMod.java",
+      "present": true,
+      "working_sha256": "8c79839db13d513bc9a6ea73c2296b4cdad2312151b634d0291068ed373d00d7"
+    },
+    {
+      "source_path": "common/src/main/java/org/figuramc/figura/animation/Animation.java",
+      "present": true,
+      "working_sha256": "6ec9d33f99096fb6e8ca85f1f86e99c1b3229c7a81e1006944a840f3920b3ed0"
+    },
+    {
+      "source_path": "common/src/main/java/org/figuramc/figura/animation/AnimationPlayer.java",
+      "present": true,
+      "working_sha256": "c26dff9ff08a8c427123741806c802f701af058c5a5d6d2803c20a3a66d15de2"
+    },
+    {
+      "source_path": "common/src/main/java/org/figuramc/figura/animation/Keyframe.java",
+      "present": true,
+      "working_sha256": "411b81819a0809908a45e5e87774f06893846f235038d6a9b90ff7bea7f9ef30"
+    },
+    {
+      "source_path": "common/src/main/java/org/figuramc/figura/avatar/Avatar.java",
+      "present": true,
+      "working_sha256": "bce5ec936be6de3a89318df51930c92f78a5dfa3637d3c059e50d51ae6f56b8d"
+    },
+    {
+      "source_path": "common/src/main/java/org/figuramc/figura/config/Configs.java",
+      "present": true,
+      "working_sha256": "f59824b5540dd93e4200aec35e760274bd61e0878acb1f6806b07e7dce4e9f34"
+    },
+    {
+      "source_path": "common/src/main/java/org/figuramc/figura/config/InputType.java",
+      "present": true,
+      "working_sha256": "548f28553dbe08f8c75a8535f95391434daf132aaabb70100a1d5314259a5b1f"
+    },
+    {
+      "source_path": "common/src/main/java/org/figuramc/figura/gui/screens/WardrobeScreen.java",
+      "present": true,
+      "working_sha256": "04c3d20c3fc13323e98ada25f293d61a756603f7514b69c7877482b2d4e6b5cc"
+    },
+    {
+      "source_path": "common/src/main/java/org/figuramc/figura/gui/widgets/EntityPreview.java",
+      "present": true,
+      "working_sha256": "181cf2f2770092764b24f36d03bc80a20c3bdae74a3098b51784f4a1b0162b53"
+    },
+    {
+      "source_path": "common/src/main/java/org/figuramc/figura/lua/FiguraAPIManager.java",
+      "present": true,
+      "working_sha256": "7c7a780a37ee61ca864038a0d746aac764ba3b2bec46c714bc722288ffd79813"
+    },
+    {
+      "source_path": "common/src/main/java/org/figuramc/figura/lua/FiguraLuaRuntime.java",
+      "present": true,
+      "working_sha256": "0960906a24092f2ea07248170f6365f74322b339457fabfb05a31d24bcb27e76"
+    },
+    {
+      "source_path": "common/src/main/java/org/figuramc/figura/lua/api/AvatarAPI.java",
+      "present": true,
+      "working_sha256": "e800173a584475264dd99a68052169efad484f45a2024a7b6f442640737a58dc"
+    },
+    {
+      "source_path": "common/src/main/java/org/figuramc/figura/lua/api/math/MatricesAPI.java",
+      "present": true,
+      "working_sha256": "bb6bb6cf085c00818573511542868637329dce4c0bc932e24ca2051787b02f06"
+    },
+    {
+      "source_path": "common/src/main/java/org/figuramc/figura/lua/api/particle/LuaParticle.java",
+      "present": true,
+      "working_sha256": "3c8a6c628a396bd66a0d5805a66f119324f9cb6baab4f37c80f014191678f1f6"
+    },
+    {
+      "source_path": "common/src/main/java/org/figuramc/figura/mixin/MinecraftMixin.java",
+      "present": true,
+      "working_sha256": "9a62c11617ba45fa0ea07cabb1ea8d5d21e310ea76779a76235bd6d3874e438e"
+    },
+    {
+      "source_path": "common/src/main/java/org/figuramc/figura/model/FiguraModelPart.java",
+      "present": true,
+      "working_sha256": "a497f9786aa5b361a3718b5af3ef96ad21f781d74a69fda9d7a1688c83c7e224"
+    },
+    {
+      "source_path": "common/src/main/java/org/figuramc/figura/model/FiguraModelPartReader.java",
+      "present": true,
+      "working_sha256": "fe43621b124e717b1472d881912443dff41bba98e3ef85d02fea4c61274d4cc4"
+    },
+    {
+      "source_path": "common/src/main/java/org/figuramc/figura/model/rendering/Vertex.java",
+      "present": true,
+      "working_sha256": "6d96997b1938379bdb2a13b84ffddeab0ab5bdfd6bc9f547d1bfa058315f5dda"
+    },
+    {
+      "source_path": "common/src/main/java/org/figuramc/figura/parsers/BlockbenchCommonTypes.java",
+      "present": true,
+      "working_sha256": "0ed19e7ad6cd829840d2a75c120deb11de994aea899592e2b7c7304b949a4ed2"
+    },
+    {
+      "source_path": "common/src/main/java/org/figuramc/figura/parsers/BlockbenchV5Model.java",
+      "present": true,
+      "working_sha256": "e44800002c0ff5864ec506f8b90a2c38e8c37337ea139ce78f44f4b84420dcfa"
+    },
+    {
+      "source_path": "common/src/main/java/org/figuramc/figura/parsers/LuaScriptParser.java",
+      "present": true,
+      "working_sha256": "0304216728f8afa5a9f294af283ea4ecab20ae7109c3752db02314737fab08f9"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/compat/IrisCompat.java",
+      "present": true,
+      "working_sha256": "140bc76e6adbb454c331fe27cf1df55fd5ca36de9686124b4717894c5ada7cfd"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/config/InstructionCeilingConfig.java",
+      "present": true,
+      "working_sha256": "91accdae517d35be4d479d5956b70ac4201dedb82472628da2dc1fb248abaaa4"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/debug/PerformanceDebug.java",
+      "present": true,
+      "working_sha256": "54e547877203646fbbcd0cb419e52d78b0529f527127ff53892d7584bff9a64a"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/debug/PerformanceHttpServer.java",
+      "present": true,
+      "working_sha256": "781e2b08e79e67259b8aadd538922e0240c8f80db42e355bb32dd8ec615d87ac"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/debug/PerformancePortConfig.java",
+      "present": true,
+      "working_sha256": "fbcb5dd89ebd5a52f907f55fb769bd6621a92a04761aa6b7adfa4d12e20fceb1"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/debug/PerformanceSelection.java",
+      "present": true,
+      "working_sha256": "cc8c4d961247a7c5a31b160154575c9f567436643292fd52a79bc2728aecd4b4"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/debug/PerformanceSnapshot.java",
+      "present": true,
+      "working_sha256": "627845a20d1f65ac08381d0ee29eed025349e753cc11c68e3ee53aa2efc22418"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/gui/screens/CosmeticWizardScreen.java",
+      "present": true,
+      "working_sha256": "3704b53df4a7f9535ecd5035ef24e35612da3f484cb61e545abed97011a95841"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/gui/screens/ModelLibraryScreen.java",
+      "present": true,
+      "working_sha256": "b1a825d20647516ec9652697a95f9e240a95b434d342403855c4a368eea69c63"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/lua/AdaptiveInstructionWindow.java",
+      "present": true,
+      "working_sha256": "b0515b34bd1a2f3fdb1177ef48efb85a72b4456ca23b37309baaa8f06aa9419c"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/lua/api/CosmeticClientAPI.java",
+      "present": true,
+      "working_sha256": "f0fcd335bdd195c0000134591dd2c4e9ed67b49a14f5981f4cefb13d123ca9a8"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/lua/api/CosmeticPlayerAPI.java",
+      "present": true,
+      "working_sha256": "de36755a626b86e69c6e4e116ba3493404c63372ccfea8d213e3c3da7ec8746c"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/lua/api/CosmeticTextureAPI.java",
+      "present": true,
+      "working_sha256": "f8c45b1e02a7d1c047e1528a429df59ffec1c4a22eb4f9089926f5e0b632740d"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/lua/api/particle/CustomParticle.java",
+      "present": true,
+      "working_sha256": "7f95adbc53444ae5f9d7c4d59045decb0a5e0bf6e29bed39d204118e71f4ea85"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/lua/api/particle/CustomParticleCallbacks.java",
+      "present": true,
+      "working_sha256": "f7854908b8ef0cde090f3a5b5dba215ca36209eb71390e731fff497e9eb3f3a9"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/lua/api/particle/CustomParticleLayer.java",
+      "present": true,
+      "working_sha256": "e5c2b491f1dc4c4e0a2483a49a38d4d212d672897ceabc07d4d3633a1fc93e40"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/lua/api/particle/CustomParticlePipelines.java",
+      "present": true,
+      "working_sha256": "99e402e2017d34893bd2365c67a66f035134c25cfdc7d8293cc68a7196970f87"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/lua/api/particle/CustomParticleRuntime.java",
+      "present": true,
+      "working_sha256": "a9b831d6ba8cf1288df9d91e61daa3c5fbb5660c8b422052c176cbc71bf43683"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/lua/api/particle/ParticleQuads.java",
+      "present": true,
+      "working_sha256": "83852db5e1b15593b29a98678ed289d9b9f50ef53b920f483619483b3b4263c7"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/lua/api/particle/PreviewParticleFrame.java",
+      "present": true,
+      "working_sha256": "7e2ce0d7db9fdb40c437833ed701a07dc45f3c3064b699a86671e969d5284429"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/lua/api/particle/RibbonMesh.java",
+      "present": true,
+      "working_sha256": "87d114bfc992400ad8fa7d6fb1bea98f41e7353365ec68d159482ca215ec8747"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/lua/api/particle/RibbonRenderState.java",
+      "present": true,
+      "working_sha256": "9ed3e93b25d01a71da01fec858833e161c88f0c36f8da21042488a93598e37de"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/mixin/AvatarShaderSourceMixin.java",
+      "present": true,
+      "working_sha256": "8718603c6e6f2189472b97b9cc68e7ec4b9b96ca28a2c53dca209ab81e975f89"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/model/FiguraSkinning.java",
+      "present": true,
+      "working_sha256": "224da869a0c3f4c6a7d08da995abccb82866479a085aabffc6fe075339edf5ba"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/model/outfit/LocalOutfitPreview.java",
+      "present": true,
+      "working_sha256": "87c94d521dd5462180d90695e4bc22970e58b739388b924166d042dfaebcf7e8"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/model/outfit/OutfitComposition.java",
+      "present": true,
+      "working_sha256": "b5e6781eb3efa61c3385ffadbe8c50f39c3c076586e1961bcd8837493bd504a8"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/model/outfit/OutfitFirstPersonScripts.java",
+      "present": true,
+      "working_sha256": "ad05ecce60cbac0bd7ff176926a259a1c8a370b00dd0b37faafdc69a42f0ff81"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/model/outfit/OutfitInstructionBudget.java",
+      "present": true,
+      "working_sha256": "32950177cb50cca91d6771e4ad17f2cb7cc1160e68a5761942a89c43f537613a"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/model/rendering/ImmediateFiguraRenderer.java",
+      "present": true,
+      "working_sha256": "f0b6c6104763327c7555b23564caf43b3199b807936fcabb5515c1db8132ac50"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/model/rendering/material/AvatarMaterial.java",
+      "present": true,
+      "working_sha256": "4153577d439f29ff56341fd477574ec1b7758a37673bf242719fbe2aaf0961c3"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/model/rendering/material/MaterialVertexFormat.java",
+      "present": true,
+      "working_sha256": "909c39f0aa641f021c8d71ce56f2ae4393e61c68f51908d241efa91bbc08f9bb"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/wizards/CosmeticCreator.java",
+      "present": true,
+      "working_sha256": "a1d81bcd39e679a7fa454e628624c25b5a07e0c9829305b21bb28f45b8d50590"
+    },
+    {
+      "source_path": "common/src/main/java/top/aihmc/omnimorph/wizards/CosmeticTemplate.java",
+      "present": true,
+      "working_sha256": "d053bb79f5b9c07d6a9559bfeb1166e1aa1fe92eac3a67b6181f1c1bf43d1e7f"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/flexible-pennant/README.md",
+      "present": true,
+      "working_sha256": "1a0bcaca96f7dc27548046ba08e85704f4a4077e430b66c324b31a0b8ff7517a"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/flexible-pennant/model/model.bbmodel",
+      "present": true,
+      "working_sha256": "e8da69ca9f7bc3a0a647581630e4159e92c54a727fd6cee7b10196db890db8a4"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/flexible-pennant/script.lua",
+      "present": true,
+      "working_sha256": "63ad98639899167777dbf0ec8791bcd251a3e575122ff0a502478e20115f1cf8"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/flexible-pennant/textures/art.png",
+      "present": true,
+      "working_sha256": "906f578f7fa2f7ec57bfbb6ebc6761871c05eb9575c1f1cf93cdebcef430a2ff"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/flexible-pennant/textures/art.svg",
+      "present": true,
+      "working_sha256": "1202f4b84bd6726dfef980f89be512eec2e5582c68f4e235b206d46d423ab6a1"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/orbital-charms/README.md",
+      "present": true,
+      "working_sha256": "8f2921d9b708fc602bc55696807712123ee0145b749e364625048a7c0d05cdc3"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/orbital-charms/model/model.bbmodel",
+      "present": true,
+      "working_sha256": "aabc0a8e824ee8de5c5cbf995d545bc310f44859d7bea25d4afff137635b58fe"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/orbital-charms/script.lua",
+      "present": true,
+      "working_sha256": "195e50bd0ceae4d9d673e3bee93ebde1a37d5bc6026d855def958d8801143f0a"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/orbital-charms/textures/art.png",
+      "present": true,
+      "working_sha256": "906f578f7fa2f7ec57bfbb6ebc6761871c05eb9575c1f1cf93cdebcef430a2ff"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/orbital-charms/textures/art.svg",
+      "present": true,
+      "working_sha256": "1202f4b84bd6726dfef980f89be512eec2e5582c68f4e235b206d46d423ab6a1"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/painted-ribbon/README.md",
+      "present": true,
+      "working_sha256": "10e5ef56e16ae2bd0bb4a0043efa549bdeab40c4e79471d32c541a1ba4c948c5"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/painted-ribbon/model/model.bbmodel",
+      "present": true,
+      "working_sha256": "a11c117c9105ebb530b897df5822e8de7f04edcc118ba49e88910e68c1c84de8"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/painted-ribbon/script.lua",
+      "present": true,
+      "working_sha256": "7ea15c7fac78586618469e2bf850004a800c29a18ac86c13f506d00733845298"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/painted-ribbon/textures/art.png",
+      "present": true,
+      "working_sha256": "2898a36ea0aca481730b5811e470d4420183b6eb6f2eaf0f1a890ea971c74851"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/painted-ribbon/textures/art.svg",
+      "present": true,
+      "working_sha256": "14ba0f7f0c37e7cb44907ac478b649cb7c9c1565213796fa7fcb8c58180648a0"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/prismatic-badge/README.md",
+      "present": true,
+      "working_sha256": "e17b80f9d7b7aeae706c3dea25aaf4eef5bd0bf3ddfffc170ff7d756d2d69320"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/prismatic-badge/model/model.bbmodel",
+      "present": true,
+      "working_sha256": "d608ae871e84166925604d24e6338cbddcf28a7fb1f94159e858dbe411b5ae10"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/prismatic-badge/script.lua",
+      "present": true,
+      "working_sha256": "2b321d5bde2bae7d5dc04749bb205eceafb0c81e2e17f83d7235a959b7c259b3"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/prismatic-badge/textures/art.png",
+      "present": true,
+      "working_sha256": "906f578f7fa2f7ec57bfbb6ebc6761871c05eb9575c1f1cf93cdebcef430a2ff"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/prismatic-badge/textures/art.svg",
+      "present": true,
+      "working_sha256": "1202f4b84bd6726dfef980f89be512eec2e5582c68f4e235b206d46d423ab6a1"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/sampled-lantern/README.md",
+      "present": true,
+      "working_sha256": "708480d74196937dee24b4a216bff583f2a295a19f2c8ad522e24c407d94b978"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/sampled-lantern/model/model.bbmodel",
+      "present": true,
+      "working_sha256": "6b2f29ce4796add83a56a440e5165f4d244dbf9b2238055bc9ca56d29cd852a5"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/sampled-lantern/script.lua",
+      "present": true,
+      "working_sha256": "76341199890e26213b5c758e8e82dbc0cadf70275c50eb7b163eeaa5716ef04e"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/sampled-lantern/textures/art.png",
+      "present": true,
+      "working_sha256": "906f578f7fa2f7ec57bfbb6ebc6761871c05eb9575c1f1cf93cdebcef430a2ff"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/sampled-lantern/textures/art.svg",
+      "present": true,
+      "working_sha256": "1202f4b84bd6726dfef980f89be512eec2e5582c68f4e235b206d46d423ab6a1"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/sprint-light/README.md",
+      "present": true,
+      "working_sha256": "2252fed8bfc33cc3a38886f56cd7ec358c5925351488875508394051950381ca"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/sprint-light/model/model.bbmodel",
+      "present": true,
+      "working_sha256": "d3cbdeecc1cfc6bf17c7591485953e6345bd3f42b0256104b70c650d94225b88"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/sprint-light/script.lua",
+      "present": true,
+      "working_sha256": "2398f0e22cf297341f440f8fae92918cf1e3df5ae35fe268f3de5fd979359278"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/sprint-light/textures/art.png",
+      "present": true,
+      "working_sha256": "906f578f7fa2f7ec57bfbb6ebc6761871c05eb9575c1f1cf93cdebcef430a2ff"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/sprint-light/textures/art.svg",
+      "present": true,
+      "working_sha256": "1202f4b84bd6726dfef980f89be512eec2e5582c68f4e235b206d46d423ab6a1"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/view-sigil/README.md",
+      "present": true,
+      "working_sha256": "a5e821c7f781b2f3363708cb0659e37c3f1a3a096d9cd844f9e453aceeacbe72"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/view-sigil/model/model.bbmodel",
+      "present": true,
+      "working_sha256": "fcbee576ef91a6412dcfb2c9cda77427a43910eb146cd2370289813400126d36"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/view-sigil/script.lua",
+      "present": true,
+      "working_sha256": "5c74ae0c6bbeaa4dc676bb3285da0c60f84491c8d83af33e5eb27a8585446c96"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/view-sigil/textures/art.png",
+      "present": true,
+      "working_sha256": "906f578f7fa2f7ec57bfbb6ebc6761871c05eb9575c1f1cf93cdebcef430a2ff"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/cosmetic_templates/accessories/view-sigil/textures/art.svg",
+      "present": true,
+      "working_sha256": "1202f4b84bd6726dfef980f89be512eec2e5582c68f4e235b206d46d423ab6a1"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/lang/en_us.json",
+      "present": true,
+      "working_sha256": "acf2f2aba8023e4629e8d9696074d82189543a66a31c8321a13b0015941fcd67"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/lang/zh_cn.json",
+      "present": true,
+      "working_sha256": "b0cf714705c6e8502d61f46f177926411382d51567ae3ad3ffbb0b57cc05e408"
+    },
+    {
+      "source_path": "common/src/main/resources/assets/omni-morph/shaders/core/custom_particle.fsh",
+      "present": true,
+      "working_sha256": "3f318550157f5c36d777a7de7413e6621f993fc7755a4c1374105bad6ed192aa"
+    },
+    {
+      "source_path": "common/src/main/resources/omni-morph-common.mixins.json",
+      "present": true,
+      "working_sha256": "c1c6d6f1b785e3169dd6ea0af8e0493ffa06c161e5cc931f5a1e170475265bc9"
+    },
+    {
+      "source_path": "common/src/main/resources/omni-morph.accesswidener",
+      "present": true,
+      "working_sha256": "c5262741b7d4df65d5024430472d475140fc9fbab1c2b87087a16a9cb57dfdae"
+    },
+    {
+      "source_path": "common/src/test/java/top/aihmc/omnimorph/lua/api/math/EulerRotationSmokeTest.java",
+      "present": true,
+      "working_sha256": "6b7feebb11a8a81c1283433181691d73b973fd420fc818c42ae65eccd47376b7"
+    },
+    {
+      "source_path": "common/src/test/java/top/aihmc/omnimorph/lua/api/particle/CosmeticParticleEntrySmokeTest.java",
+      "present": true,
+      "working_sha256": "102a14695b6dbd0b8092dcb5f397ec41f62bf2f5e0e39e935789e1b7f9a0d4b1"
+    },
+    {
+      "source_path": "common/src/test/java/top/aihmc/omnimorph/lua/api/particle/CreatedTrailParticleSmokeTest.java",
+      "present": true,
+      "working_sha256": "ea851ba4390b5362532d43049fe985686bb1e51858d3439bb08b2ff800105719"
+    },
+    {
+      "source_path": "common/src/test/java/top/aihmc/omnimorph/model/outfit/AdaptiveRenderBudgetSmokeTest.java",
+      "present": true,
+      "working_sha256": "0b6facf7eb6f1cded7760154efdce6b81663915d469d0f96665e1f6e320abcc9"
+    },
+    {
+      "source_path": "common/src/test/java/top/aihmc/omnimorph/model/outfit/AnimationSampleSmokeTest.java",
+      "present": true,
+      "working_sha256": "ab69f2d1e1edc2b1d4be11d6e4f462809c71ee6509433462fdf6d9b8dde18d44"
+    },
+    {
+      "source_path": "common/src/test/java/top/aihmc/omnimorph/model/outfit/CosmeticBoneOverrideSmokeTest.java",
+      "present": true,
+      "working_sha256": "99359a48cb4763a4b2c1bdb5ca8b839cde508da8f44d2203860c389b306aa3bd"
+    },
+    {
+      "source_path": "common/src/test/java/top/aihmc/omnimorph/model/outfit/FirstPersonMaterialSmokeTest.java",
+      "present": true,
+      "working_sha256": "ccc8282962bc86feec7451874fa2e61bce67bb832b7449103d66ecdec7f35cea"
+    },
+    {
+      "source_path": "common/src/test/java/top/aihmc/omnimorph/model/outfit/OutfitParticleCallbackSmokeTest.java",
+      "present": true,
+      "working_sha256": "e5c7d08c12623808096bc6345080d47126ae0553ab01c813fc0954d19cfcba9a"
+    },
+    {
+      "source_path": "common/src/test/java/top/aihmc/omnimorph/wizards/CosmeticCreationSmokeTest.java",
+      "present": true,
+      "working_sha256": "b0577ee4f38f7fc04f8b1e079b144c28b1985a704d13afc2d5724ff124374ab4"
+    },
+    {
+      "source_path": "docs/CHANGELOG.en.md",
+      "present": true,
+      "working_sha256": "7ee0b049c819152f6ab5301bce5fc1fd941db5f465889d58262d743246498927"
+    },
+    {
+      "source_path": "docs/CHANGELOG.ja.md",
+      "present": true,
+      "working_sha256": "69db6883f4c4fb688c2226cb47be31c6ea1b7ce4021f3bc4ccd1179bc263138e"
+    },
+    {
+      "source_path": "docs/CHANGELOG.ko.md",
+      "present": true,
+      "working_sha256": "a7323a7f6cff9c223cdb5f38ea6fb4197f5ac08d508f6c9819c521d91e28286e"
+    },
+    {
+      "source_path": "docs/CHANGELOG.md",
+      "present": true,
+      "working_sha256": "cadc8b1fd48b6164eb091dd1b57b8cf100715d8a69bb651890214b0b572e7e23"
+    },
+    {
+      "source_path": "docs/p4.5-performance-http-plan.md",
+      "present": true,
+      "working_sha256": "68877d47afc8b69c28d0f173e8ff36b278a5c598b41f5536943daa856c788de6"
+    },
+    {
+      "source_path": "docs/performance-capture.md",
+      "present": true,
+      "working_sha256": "d199b9f7fb63978928c1537419313c026f5d225896032f6d126c4362033ea5bd"
+    },
+    {
+      "source_path": "docs/performance-http.md",
+      "present": true,
+      "working_sha256": "74087d090b29ec576795b64b7291719361527bb48df831edfe06fc5a5a425ccd"
+    },
+    {
+      "source_path": "gradle.properties",
+      "present": true,
+      "working_sha256": "fc3a80c3300264d0230724d8acf51fab0f3a39f1cdcbbf335810267585add0bb"
+    },
+    {
+      "source_path": "tests/test_performance_capture.py",
+      "present": true,
+      "working_sha256": "996b7e227b21c27aaf80b856ae1f8547c280625047ecc613645f163ab38b4ffb"
+    },
+    {
+      "source_path": "tools/performance_capture.json",
+      "present": true,
+      "working_sha256": "526ecd0778111f08eee198f3c112e8181be78a8d9f60095c8647ab162fe9d877"
+    },
+    {
+      "source_path": "tools/performance_capture.py",
+      "present": true,
+      "working_sha256": "160a08b30dcca692efb0b3767f6af2f18e2b44153447b6ecbdc0e29b174b8117"
+    }
+  ]
+}

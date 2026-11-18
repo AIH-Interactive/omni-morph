@@ -158,7 +158,9 @@ final class CosmeticParticleEntrySmokeTest {
         var scripts = new CompoundTag();
         scripts.putByteArray("main", """
                 assert(particles ~= nil and cosmetic_animations ~= nil)
-                assert(host == nil and net == nil and world == nil and textures == nil)
+                assert(host == nil and net == nil and world == nil)
+                assert(textures ~= nil and textures.fromVanilla == nil and textures.read == nil)
+                assert(client ~= nil and client.getServerBrand == nil and client.getSystemTime == nil)
                 cosmetic_animations:onEvent(function(event)
                     if event.type == 'keyframe' or event.type == 'timeline' then
                         local particle = particles:newCustomParticle('effect.png', vectors.vec3(0, 0, 0))

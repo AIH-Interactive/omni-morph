@@ -14,6 +14,7 @@ import org.figuramc.figura.math.matrix.FiguraMat4;
 import org.figuramc.figura.math.vector.FiguraVec2;
 import org.figuramc.figura.math.vector.FiguraVec3;
 import top.aihmc.omnimorph.model.rendering.FiguraRenderer;
+import top.aihmc.omnimorph.model.rendering.material.AvatarMaterial;
 import top.aihmc.omnimorph.model.rendering.ImmediateFiguraRenderer;
 import org.figuramc.figura.model.rendering.Vertex;
 import top.aihmc.omnimorph.model.rendering.texture.FiguraRenderTypes;
@@ -42,6 +43,7 @@ import top.aihmc.omnimorph.model.FiguraSkinning;
 public class FiguraModelPart implements Comparable<FiguraModelPart> {
 
     private final Avatar owner;
+    public AvatarMaterial shaderMaterial;
 
     public final String name;
     public FiguraModelPart parent;
@@ -103,6 +105,27 @@ public class FiguraModelPart implements Comparable<FiguraModelPart> {
         this.customization = customization;
         this.vertices = vertices;
         this.children = children;
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("model_part.set_shader_material")
+    public FiguraModelPart setShaderMaterial(LuaTable definition) {
+        shaderMaterial = definition == null ? null
+                : new AvatarMaterial(owner, definition);
+        return this;
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("model_part.set_material_time")
+    public FiguraModelPart setMaterialTime(double seconds) {
+        if (!Double.isFinite(seconds) || !Float.isFinite((float) seconds)) {
+            throw new LuaError("Material time must be finite");
+        }
+        if (shaderMaterial == null) {
+            throw new LuaError("Model part has no shader material");
+        }
+        shaderMaterial.time = (float) seconds;
+        return this;
     }
 
     public boolean pushVerticesImmediate(ImmediateFiguraRenderer avatarRenderer, int[] remainingComplexity) {
@@ -1564,6 +1587,37 @@ public class FiguraModelPart implements Comparable<FiguraModelPart> {
             newer.setParentType(parentType);
 
         return newer;
+    }
+
+    /** Replaces one authored inverse bind without changing the shared bone hierarchy. */
+    @LuaWhitelist
+    @LuaMethodDoc(
+            overloads = @LuaMethodOverload(
+                    argumentTypes = {String.class, FiguraMat4.class},
+                    argumentNames = {"boneName", "matrix"}
+            ),
+            value = "model_part.set_inverse_bind_matrix"
+    )
+    public FiguraModelPart setInverseBindMatrix(@LuaNotNil String boneName, @LuaNotNil FiguraMat4 matrix) {
+        if (skinBoneNames == null || skinBoneIndices == null || skinBoneWeights == null) {
+            throw new LuaError("Inverse bind matrices require a skinned mesh");
+        }
+        int index = Arrays.asList(skinBoneNames).indexOf(boneName);
+        if (index < 0) {
+            throw new LuaError("Unknown skinning bone: " + boneName);
+        }
+        var values = matrix.toMatrix4f();
+        if (!values.isFinite() || values.m03() != 0 || values.m13() != 0
+                || values.m23() != 0 || values.m33() != 1) {
+            throw new LuaError("Inverse bind matrix must be finite and affine");
+        }
+        // Resolve through the ordinary skinning setup, including mesh rest baking.
+        FiguraSkinning.deltas(this, null);
+        if (skinBindInverse == null || skinBoneParts[index] == null) {
+            throw new LuaError("Unresolved skinning bone: " + boneName);
+        }
+        skinBindInverse[index] = matrix.copy();
+        return this;
     }
 
     // -- METAMETHODS --// 

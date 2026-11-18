@@ -1,5 +1,6 @@
 package top.aihmc.omnimorph.compat;
 
+import com.mojang.blaze3d.pipeline.RenderPipeline;
 import net.irisshaders.iris.api.v0.IrisApi;
 import net.irisshaders.iris.texture.pbr.loader.PBRTextureLoaderRegistry;
 import top.aihmc.omnimorph.model.ysm.YsmMaterialTexture;

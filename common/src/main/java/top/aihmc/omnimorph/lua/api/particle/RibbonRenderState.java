@@ -65,7 +65,7 @@ final class RibbonRenderState {
         float u = (float) (uv.u0() + (uv.u1() - uv.u0()) * vertex.u());
         float v = (float) (uv.v0() + (uv.v1() - uv.v0()) * vertex.v());
         consumer.vertex((float) relative.x, (float) relative.y, (float) relative.z)
-                .uv(u, v).color(layer.red(), layer.green(), layer.blue(), layer.alpha() * vertex.alpha())
+                .uv(u, v).color(layer.red() * vertex.red(), layer.green() * vertex.green(), layer.blue() * vertex.blue(), layer.alpha() * vertex.alpha())
                 .uv2(layer.light()).endVertex();
     }
 

@@ -187,7 +187,13 @@ public final class CosmeticBoneOverrideSmokeTest {
                     near(positions.get(5), 7 + 25f / 16, 11 + 7f / 16, 13 + 7f / 16);
                     near(positions.get(8), 7 + 19f / 16, 11 + 7f / 16, 13 + 19f / 16);
                     require(normals.size() == positions.size(), "native Figura normals accompany every emitted vertex");
-                    near(normals.get(4), 0, 0, normals.get(0)[2] * (float) Math.cbrt(24) / 4);
+                    // Native Figura emission normalizes after the inverse-transpose transform.
+                    var sourceNormal = normals.get(0);
+                    var expectedNormal = new Matrix4f().rotateZ((float) (Math.PI / 2)).scale(2, 3, 4)
+                            .normal(new org.joml.Matrix3f())
+                            .transform(new org.joml.Vector3f(sourceNormal[0], sourceNormal[1], sourceNormal[2]))
+                            .normalize();
+                    near(normals.get(4), expectedNormal.x, expectedNormal.y, expectedNormal.z);
                     var part = parent.renderer.root.children.get(0);
                     require(part.customization.getPos().x == 4 && part.customization.getAnimPos().x == 2
                                     && part.customization.getScale().x == 1,

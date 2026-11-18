@@ -1,3 +1,25 @@
+# 当前交接：1.20.1 Alpha.12 完整同步（2026-11-18）
+
+当前分支 1.20.1；起点 e7d89f99。上轮暂停留下的 8cc2ede9 merge 已恢复处理，保留 merge 历史。
+14 个冲突已完成源码适配；本版保留 Java 17、Forge 47.1.3 / 历史 NeoForge 47.1.106、原生预览帧、导航、RenderLifetime 与粒子内存复用。
+新增作者材质采用 ShaderInstance/RenderType，1.20.1 顶点属性在 endVertex 前写入；重载与 Avatar 退休关闭所属 GL 程序。
+七套新模板、粒子四边形及层参数、动画采样/Euler、无限自适应预算、Debug HTTP 与采集工具均纳入本次合并。
+
+已通过：生产源与全部测试编译；真实 Windows OpenGL 材质/粒子 cutoff 编译、链接与重载；16模板实际创建/加载/Lua；customParticle 与 outfitApplyClient。
+粒子原生回归已通过四边形位置/UV/RGBA字节、1024帧 native 稳定2097200字节、拖尾/光照/预算/动画/Euler；旧普通法线断言与新归一化语义冲突，已更新斜法线方向+单位长度检查，完整复跑进行中。
+日志 build/tmp/alpha12-features.log、alpha12-native-first.log；最后者记录旧法线断言失败，不是 PASS。
+
+完整回归及双加载器生产打包已通过，详见 docs/dev-sync-1.20.1/record.md。当前完成8cc2ede9检查点，提交推送以git和远端核验为准。随后直接 merge e2962c33c7da36fa879b63759dcdf74e052966f1，迁移私有装饰精确引用/撤权缓存拒绝、衣柜名称默认值、复活实体重绑定；运行对应回归并交付双包。
+本检查点准备提交推送，不触发 Actions。游戏、Mixin运行时、像素/光影/GUI、多人：SKIPPED（MANUAL，用户要求跳过；未验证）。
+.codex/ 原未跟踪保留，禁止重置/清理/切分支。接续先核对实际 git status；本记录不代表全部任务完成。
+参考 docs/dev-sync-1.20.1/source-coverage.json、docs/performance-http.md、docs/performance-capture.md。
+Windows 原生前台 PowerShell Tee build.log 并立即检查退出码；禁止本地 WSL/非Windows构建/Qt offscreen，不自动启动游戏或覆盖 mods。
+可靠额度最近剩44%，未触发 Luna。来源1.21.1证据仅供参考，本版以本地日志为准。
+
+---
+
+以下为 Alpha.11 历史，不替代当前状态。
+
 # 当前交接：Alpha.11 NoFigura 1.20.1完成
 
 ## 最终状态与Git

@@ -5,6 +5,8 @@ import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.SingleQuadParticle;
 import net.minecraft.client.particle.WakeParticle;
 import org.figuramc.figura.avatar.Avatar;
+import org.figuramc.figura.math.matrix.FiguraMat3;
+import org.figuramc.figura.math.matrix.FiguraMat4;
 import org.figuramc.figura.ducks.SingleQuadParticleAccessor;
 import org.figuramc.figura.lua.LuaWhitelist;
 import org.figuramc.figura.lua.docs.LuaMethodDoc;
@@ -87,12 +89,40 @@ public class LuaParticle {
     }
 
     @LuaWhitelist
+    @LuaMethodDoc("particle.set_quad")
+    public LuaParticle setQuad(FiguraMat4 transform) {
+        custom().setQuad(transform);
+        return this;
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("particle.set_quads")
+    public LuaParticle setQuads(LuaTable vertices) {
+        custom().setQuads(vertices);
+        return this;
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("particle.set_quads_transform")
+    public LuaParticle setQuadsTransform(FiguraMat4 position, FiguraMat3 uv) {
+        custom().setQuadsTransform(position, uv);
+        return this;
+    }
+
+    @LuaWhitelist
+    @LuaMethodDoc("particle.get_quad")
+    public FiguraMat4 getQuad() {
+        return custom().getQuad();
+    }
+
+    @LuaWhitelist
     public LuaParticle setSpriteSheet(LuaTable options) {
         custom().setSpriteSheet(options);
         return this;
     }
 
     @LuaWhitelist
+    @LuaMethodDoc("particle.set_layers")
     public LuaParticle setLayers(LuaTable layers) {
         custom().setLayers(layers);
         return this;

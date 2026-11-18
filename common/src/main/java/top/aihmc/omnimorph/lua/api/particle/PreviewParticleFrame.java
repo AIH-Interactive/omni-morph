@@ -43,9 +43,9 @@ public final class PreviewParticleFrame {
             if (!particle.active()) {
                 continue;
             }
-            if (particle.ribbon()) {
+            if (particle.usesGeometry()) {
                 var ribbon = particle.extractRibbon(camera, frustum, partialTick,
-                        CustomParticleRuntime.availableRibbonVertices(particle));
+                        particle.availableGeometryVertices());
                 if (ribbon != null) {
                     for (var layer : ribbon.layers()) {
                         capture(batches, particle, layer.material(), offset, consumer -> ribbon.writeLayer(consumer, layer));
@@ -56,8 +56,9 @@ public final class PreviewParticleFrame {
                         camera, partialTick);
             }
         }
-        // Match the world particle pass: author layer indices determine compositing order.
-        batches.sort(Comparator.comparingInt(Batch::layerIndex));
+        // Match the world particle pass: instance priority precedes the author layer index.
+        batches.sort(Comparator.comparingInt((Batch batch) ->
+                CustomParticlePipelines.sortOrder(batch.material().pipeline())));
         return new PreviewParticleFrame(batches);
     }
 

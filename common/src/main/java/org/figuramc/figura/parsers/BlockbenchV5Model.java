@@ -100,6 +100,10 @@ public class BlockbenchV5Model extends ModelFormat {
         // if it is truly an expression, then this will work
         // otherwise this is definitely invalid syntax, so we put a label on it
         // in case it breaks
+        if (BlockbenchCommonTypes.isMolang(source)) {
+            // Lua migration comments are not valid Molang syntax.
+            return "-(" + source + ")";
+        }
         return String.format("-(%s)--v5", source);
     }
 

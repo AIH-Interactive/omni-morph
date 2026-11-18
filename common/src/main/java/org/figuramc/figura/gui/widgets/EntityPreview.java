@@ -462,6 +462,11 @@ public class EntityPreview extends AbstractContainerElement {
         entity = preview == null ? null : preview.entity();
     }
 
+    /** Inspect the existing preview without preparing or ticking it. */
+    public LibraryPreviewSession performanceSession() {
+        return libraryPreview != null ? libraryPreview : localPreview;
+    }
+
     public record View(float pitch, float yaw, float zoom, float x, float y) {}
 
     public View view() {

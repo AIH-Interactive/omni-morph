@@ -4,6 +4,14 @@
 
 [Project overview](../README.en.md)
 
+## 1.0.0-alpha.12
+
+- Added independent emissive and dynamic-light controls to painted ribbon, with light level, radius and a 1–64 particle light interval (default 1). Changes update the live particle and retain existing light permissions and budgets.
+
+- Removed client hard instruction ceilings for initialization and adaptive rendering while retaining configurable base windows. Removed ceiling inputs; restricted permissions, other execution channels and shared accounting remain enforced. Performance snapshots use -1 for unlimited.
+
+- Added an editable Cosmetic root to orbital charms, prismatic badge, view sigil, painted ribbon and sprint light; particle origins follow the mounted root. Painted ribbon now has a lifetime slider from 1 to 300 ticks, defaulting to 20, applied to newly created particles.
+
 ## 1.0.0-alpha.11
 
 - Minecraft 1.20.1 / Java17 / Forge47.1.3 / NeoForge47.1.106: Alpha.11 NoFigura — [本版适配与验证 / target API and validation record](../NoFigura-1.20.1同步记录.md).

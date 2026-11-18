@@ -235,7 +235,7 @@ public final class CustomParticleRuntime {
                 particle.remove();
                 continue;
             }
-            (particle.ribbon() ? ribbons : billboards).add(particle);
+            (particle.usesGeometry() ? ribbons : billboards).add(particle);
         }
         billboards.addAll(ribbons);
         if (billboards.isEmpty()) {

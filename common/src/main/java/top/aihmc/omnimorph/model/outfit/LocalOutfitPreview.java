@@ -35,6 +35,13 @@ public final class LocalOutfitPreview {
         return session != null && session == preview;
     }
 
+    /** Telemetry reads the existing valid draft without triggering cleanup or preparation. */
+    public static LibraryPreviewSession performanceSession() {
+        var client = Minecraft.getInstance();
+        return session != null && client.player != null && !AvatarManager.panic && client.level == world
+                && account.equals(FiguraMod.getLocalPlayerUUID()) ? session : null;
+    }
+
     public static boolean active() {
         return state(Minecraft.getInstance().player) != null;
     }

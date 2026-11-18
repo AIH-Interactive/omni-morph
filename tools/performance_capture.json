@@ -1,0 +1,7 @@
+{
+  "url": "http://127.0.0.1:18081/debug/performance",
+  "csv_path": "../performance-captures/{model_name}-{model_type}-{timestamp}.csv",
+  "interval_ms": 500,
+  "timeout_ms": 5000,
+  "request_count": 30
+}

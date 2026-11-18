@@ -15,6 +15,7 @@ import org.joml.Matrix4f;
 import org.figuramc.figura.avatar.Avatar;
 import org.figuramc.figura.model.rendering.EntityRenderMode;
 import org.figuramc.figura.model.rendering.PartFilterScheme;
+import top.aihmc.omnimorph.model.rendering.material.MaterialVertexFormat;
 import top.aihmc.omnimorph.model.ysm.YsmModelRuntime;
 import top.aihmc.omnimorph.model.ysm.YsmRenderer;
 
@@ -42,6 +43,12 @@ public final class OutfitFirstPersonScripts {
     private OutfitFirstPersonScripts() {
     }
 
+    static MultiBufferSource discardBuffers() {
+        return type -> (VertexConsumer) Proxy.newProxyInstance(
+                OutfitFirstPersonScripts.class.getClassLoader(),
+                new Class<?>[]{MaterialVertexFormat.DiscardingConsumer.class}, DISCARD);
+    }
+
     public static void render(Minecraft minecraft, LocalPlayer player, float delta) {
         if (minecraft == null || player == null || player.level() == null
                 || !OutfitRenderBinding.hasComposition(player)) {
@@ -60,9 +67,7 @@ public final class OutfitFirstPersonScripts {
         Vec3 feet = player.getPosition(delta);
         Matrix4f entityToDraw = cameraRelativeBody(feet, minecraft.gameRenderer.getMainCamera());
         float bodyYaw = Mth.rotLerp(delta, player.yBodyRotO, player.yBodyRot);
-        MultiBufferSource discard = type -> (VertexConsumer) Proxy.newProxyInstance(
-                OutfitFirstPersonScripts.class.getClassLoader(),
-                new Class<?>[]{VertexConsumer.class}, DISCARD);
+        MultiBufferSource discard = discardBuffers();
         EntityRenderMode previousMode = base.renderMode;
         boolean previousMatrixUpdate = base.renderer.allowMatrixUpdate;
         base.renderMode = EntityRenderMode.FIRST_PERSON_WORLD;
