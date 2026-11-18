@@ -1,0 +1,30 @@
+[
+  {
+    "loader": "forge",
+    "minecraft": "1.20.1",
+    "java": 17,
+    "code_commit": "f4f881e9eefb4642585b22300108d689bc76b214",
+    "version": "1.0.0-alpha.12+1.20.1",
+    "path": "D:\\UserData\\Desktop\\Project\\OMP\\OMP_1.20.1\\build\\distributions\\alpha12-dev-sync\\omni-morph-1.0.0-alpha.12+1.20.1-minecraftforge-mc.jar",
+    "bytes": 16780028,
+    "sha256": "843cc58430adb6751633c4e55bd6bad7988343cc4fc31d7d206624cea6357dd5",
+    "nested_jars": 14,
+    "windows_native": "AVIF amd64 PE x86_64",
+    "built_before_merge_commit": true,
+    "source_status": "Production sources unchanged between validated build and merge commit"
+  },
+  {
+    "loader": "neoforge",
+    "minecraft": "1.20.1",
+    "java": 17,
+    "code_commit": "f4f881e9eefb4642585b22300108d689bc76b214",
+    "version": "1.0.0-alpha.12+1.20.1",
+    "path": "D:\\UserData\\Desktop\\Project\\OMP\\OMP_1.20.1\\build\\distributions\\alpha12-dev-sync\\omni-morph-1.0.0-alpha.12+1.20.1-neoforge-mc.jar",
+    "bytes": 16780024,
+    "sha256": "3f1824f1ff3ddcac5175b46ca23c989b7995a5577d75ba09002ffa958f7e4436",
+    "nested_jars": 14,
+    "windows_native": "AVIF amd64 PE x86_64",
+    "built_before_merge_commit": true,
+    "source_status": "Production sources unchanged between validated build and merge commit"
+  }
+]

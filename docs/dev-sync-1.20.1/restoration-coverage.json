@@ -3,7 +3,7 @@
   "paths": [
     {
       "source_path": "AGENT_HANDOFF.md",
-      "target_sha256": "3e797b7bcbebd643bbd4412261af78b4d20272827c73f4ec6b45136d4480caee"
+      "target_sha256": "41eecd25b368a87c1851f7d4d8015deb2451a4c17408968dc49827efd307de98"
     },
     {
       "source_path": "common/src/main/java/org/figuramc/figura/gui/screens/WardrobeScreen.java",
@@ -45,5 +45,6 @@
       "source_path": "docs/CHANGELOG.md",
       "target_sha256": "c4760f26f9800842f042a045f26056b08db33c92b35bc18a180f97cf6a9b1ba9"
     }
-  ]
+  ],
+  "code_commit": "f4f881e9eefb4642585b22300108d689bc76b214"
 }

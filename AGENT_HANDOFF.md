@@ -1,7 +1,7 @@
 # 当前交接：Minecraft 1.20.1 Alpha.12 同步完成
 
 2026-11-18，当前分支1.20.1。完整Alpha.12基线已在23e3c0c8d5ec1ebd2639625bbc2f7d5b8de4be1e真实merge并push，远端一致。
-随后直接merge固定dev e2962c33c7da36fa879b63759dcdf74e052966f1（功能c1084296）；当前代码/文档已完成验证，随本次检查点提交推送，准确最终提交见git与交付回复。未触发Actions。
+随后直接merge固定dev e2962c33c7da36fa879b63759dcdf74e052966f1（功能c1084296）；代码merge f4f881e9eefb4642585b22300108d689bc76b214 已提交推送，远端SHA一致，e2962c33祖先关系通过；最后产物元数据/本手册随文档收尾提交，最终HEAD见git与交付回复。未触发Actions。
 
 ## 完成范围
 
@@ -26,7 +26,7 @@ artifacts.json与audit-artifacts.py记录绝对路径/字节及检查；外包�
 ## 未验证及接续
 
 游戏/Mixin转换、GUI/像素/光影/多人和真实生产服务器：SKIPPED（MANUAL，用户要求跳过；未验证）。可选voicechat/renderRaw等既有静态缺失与编译警告保留，无未解决自动失败。
-没有剩余实施任务或下一阶段。仅核对最终提交和push结果后交付；不重复移植，不给其他版本自行发指令。
+没有剩余实施任务或下一阶段。实施与生产交付已完成；不重复移植，不给其他版本自行发指令。
 原未跟踪.codex/保留。继续在当前分支，禁止重置/清理/切分支；不自动启动游戏、覆盖mods/模型或Actions。
 CodeGraph优先；minecraft-dev本轮已查询1.20.1原版API。Java17目标、Gradle JDK21；所有构建测试原生Windows前台PowerShell Tee build.log立即检查退出码。禁止WSL/本地非Windows构建/Qt offscreen。
 可靠周窗口已用56%、剩44%，未达阈值，当前Agent更新手册，未委派Luna。

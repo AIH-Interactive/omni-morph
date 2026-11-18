@@ -50,3 +50,5 @@ Alpha.12 基线 merge `23e3c0c8d5ec1ebd2639625bbc2f7d5b8de4be1e` 已提交推送
 - NeoForge SHA256：`3f1824f1ff3ddcac5175b46ca23c989b7995a5577d75ba09002ffa958f7e4436`。
 
 实际调用CodeGraph及minecraft-dev MCP公开1.20.1 VertexFormat/VertexFormatElement/ClientLevel/EntityGetter源码；确认FLOAT额外UV属性和按UUID取得玩家接口，不只依赖新版参考。可靠额度剩44%，未触发Luna。本任务实施与自动验证已完成，无剩余开发项；最终merge与文档提交以git/远端核对为准。游戏/Mixin运行时、GUI/像素/光影/多人及真实服务器验收SKIPPED（MANUAL，用户要求跳过；未验证）。未运行Actions、游戏、WSL或其他平台本地构建，未覆盖mods/模型/旧包，保留原未跟踪.codex/。
+
+最终代码merge：`f4f881e9eefb4642585b22300108d689bc76b214`，已push并核验远端同SHA，`e2962c33`为HEAD祖先。双包构建于该merge提交前，生产源随后未改动；artifacts.json如实标记built_before_merge_commit，最后仅记录/手册提交，不重新编译。
