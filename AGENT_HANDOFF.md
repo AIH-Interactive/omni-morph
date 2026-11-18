@@ -1,11 +1,16 @@
 # Agent 交接手册
 
+## 当前交付：合并 dev 交接记录（2026-11-18）
+
+- 本轮将 dev 的 e2962c33 合并到 main。唯一冲突为交接手册，保留已验证的装饰修复记录及 main 的既有历史。
+- 验证：合并结果与合并前 main 的差异仅为本手册，git diff --check 通过。沿用前次代码验证，游戏实测 MANUAL/PENDING，生命周期测试 SKIPPED（用户禁止）。无剩余实施项。本次合并提交及推送状态以本地和远端 Git 记录为准。
+
 ## 当前交付：装饰修复合并 main（2026-11-17）
 
 - 用户已授权将本轮装饰修复合并到 main：私有云读取、死亡复活重绑定、实例名称与作者默认元数据恢复。
 - 合并前已 fetch；dev/origin/dev 均为8cc2ede9，main/origin/main 均为e3ea1a21。main 已包含此前 dev 功能，本次仅新增上述已验证修复及测试、更新记录和交接文档。
 - 自动验证沿用本轮最新代码的通过结果：build/private-accessory-name-final.log（预览回归、Fabric/NeoForge release构建，46s，退出0）、build/outfit-private-figura-final.log（私有云原生源回归，42s，退出0）；git diff --check通过。游戏实测仍 MANUAL/PENDING。
-- 修复已提交dev为 c108429641070b254b559431da0d6ab1ed006551，并推送origin/dev及ls-remote核对。main仅交接文档冲突，保留双方有效历史；生产源码和测试与dev完全一致。main合并后验证PASS：libraryPreviewRuntimeSmokeTest、libraryPackagePreparationSmokeTest，退出0，BUILD SUCCESSFUL in 1m11s，11任务；日志build/main-accessory-fixes-merge.log。源码及测试与dev一致，沿用dev已通过的双平台release构建，不重复打包。此记录随双父merge提交推送，最终SHA以本工作区git log及远端核对为准。保留原gradle.properties状态及两工作区未跟踪资料。不启动游戏、不部署、不移植其他版本。
+- 已完成：修复提交 c108429641070b254b559431da0d6ab1ed006551 已推送origin/dev；main双父合并提交 04a293c94477a3d7207a7162e1912b281e31d319 已推送origin/main，ls-remote核对一致。唯一冲突为交接文档，保留双方有效历史；生产代码及测试与dev一致。main工作区额外执行libraryPreviewRuntimeSmokeTest和libraryPackagePreparationSmokeTest通过，退出0，1m11s，11任务；日志.worktrees/alpha11-main/build/main-accessory-fixes-merge.log。原gradle.properties状态和两工作区未跟踪资料保留，无剩余实施任务；人工项仍MANUAL/PENDING。不启动游戏、不部署、不移植其他版本。
 
 
 ## 补充修复：装饰已恢复但实例名称仍为资源不可用（2026-11-17）
