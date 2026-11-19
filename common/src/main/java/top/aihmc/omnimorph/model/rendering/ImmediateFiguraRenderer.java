@@ -822,10 +822,20 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         if (part.skinBoneNames != null && part.skinBoneNames.length > 0 && part.parent != null)
             boneDeltas = collectBoneSkinningDeltas(part);
 
-        if (primary.renderType != null)
-            pushToBuffer(faceCount, primary, customization, textureSet, vertices, part, boneDeltas);
-        if (secondary.renderType != null)
-            pushToBuffer(faceCount, secondary, customization, textureSet, vertices, part, boneDeltas);
+        boolean drawPrimary = primary.renderType != null && primary.renderType != RenderTypes.lines();
+        boolean drawSecondary = secondary.renderType != null && secondary.renderType != RenderTypes.lines();
+        Matrix3f[] normalDeltas = null;
+        if ((drawPrimary || drawSecondary) && boneDeltas != null && boneDeltas.length > 0
+                && part.skinBoneIndices != null && part.skinBoneWeights != null) {
+            normalDeltas = new Matrix3f[boneDeltas.length];
+            for (int i = 0; i < boneDeltas.length; i++) {
+                normalDeltas[i] = new Matrix3f(boneDeltas[i].toMatrix4f()).invert().transpose();
+            }
+        }
+        if (drawPrimary)
+            pushToBuffer(faceCount, primary, customization, textureSet, vertices, part, boneDeltas, normalDeltas);
+        if (drawSecondary)
+            pushToBuffer(faceCount, secondary, customization, textureSet, vertices, part, boneDeltas, normalDeltas);
     }
 
     private FiguraMat4[] collectBoneSkinningDeltas(FiguraModelPart skinnedPart) {
@@ -884,13 +894,10 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
     private static final FiguraVec3 normal = FiguraVec3.of();
     private static final FiguraVec3 uv = FiguraVec3.of(0, 0, 1);
     private void pushToBuffer(int faceCount, VertexData vertexData, PartCustomization customization, FiguraTextureSet textureSet, List<Vertex> vertices,
-                              FiguraModelPart part, @Nullable FiguraMat4[] boneDeltas) {
+                              FiguraModelPart part, @Nullable FiguraMat4[] boneDeltas, @Nullable Matrix3f[] normalDeltas) {
         int vertCount = faceCount * 4;
         FiguraVec4 materialOrigin = FiguraVec4.of(0, 0, 0, 1).transform(customization.positionMatrix);
 
-        if (vertexData.renderType == RenderTypes.lines()) {
-            return;
-        }
         // Capture GUI selection before deferred emission; never edit the shared customization stack.
         float opacity = PreviewBoneHighlight.opacity(avatar, part);
         float alpha = customization.alpha * opacity;
@@ -903,15 +910,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
         int overlay = customization.overlay;
         int light = vertexData.fullBright ? LightCoordsUtil.FULL_BRIGHT : customization.light;
 
-        boolean useSkinning = boneDeltas != null && boneDeltas.length > 0 && part.skinBoneIndices != null && part.skinBoneWeights != null;
-        Matrix3f[] normalDeltas = null;
-        if (useSkinning) {
-            normalDeltas = new Matrix3f[boneDeltas.length];
-            for (int i = 0; i < boneDeltas.length; i++) {
-                normalDeltas[i] = new Matrix3f(boneDeltas[i].toMatrix4f()).invert().transpose();
-            }
-        }
-        Matrix3f[] capturedNormalDeltas = normalDeltas;
+        boolean useSkinning = normalDeltas != null;
         RenderLifetime acceleration = RenderLifetime.INSTANCE;
         var lease = acceleration.capture(avatar.renderOwner(), String.valueOf(avatar.renderMode));
 
@@ -932,7 +931,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
                 normal.set(vertex.nx, vertex.ny, vertex.nz);
                 if (useSkinning && vertex.origIdx >= 0 && vertex.origIdx < part.skinBoneIndices.length
                         && part.skinBoneIndices[vertex.origIdx] != null) {
-                    applySkinningNormal(normal, vertex.origIdx, part, capturedNormalDeltas);
+                    applySkinningNormal(normal, vertex.origIdx, part, normalDeltas);
                 }
                 normal.transform(customization.normalMatrix);
                 double normalLength = normal.length();
