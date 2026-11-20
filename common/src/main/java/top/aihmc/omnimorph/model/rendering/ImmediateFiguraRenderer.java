@@ -918,7 +918,7 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
             if (!acceleration.isCurrent(lease)) {
                 return;
             }
-            VertexConsumer vertexConsumer = buffers.getBuffer(rt);
+            VertexConsumer vertexConsumer = buffers.get();
             for (int i = 0; i < vertCount; i++) {
                 Vertex vertex = vertices.get(i);
                 pos.set(vertex.x, vertex.y, vertex.z, 1);
@@ -1021,21 +1021,22 @@ public class ImmediateFiguraRenderer extends FiguraRenderer {
     }
 
     private static class VertexBuffer {
-        private final HashMap<RenderType, List<Consumer<MultiBufferSource>>> primaryBuffers = new LinkedHashMap<>();
-        private final HashMap<RenderType, List<Consumer<MultiBufferSource>>> secondaryBuffers = new LinkedHashMap<>();
+        private final HashMap<RenderType, List<Consumer<ConsecutiveVertexBuffer>>> primaryBuffers = new LinkedHashMap<>();
+        private final HashMap<RenderType, List<Consumer<ConsecutiveVertexBuffer>>> secondaryBuffers = new LinkedHashMap<>();
 
-        public void getBufferFor(RenderType renderType, boolean primary, Consumer<MultiBufferSource> consumer) {
-            HashMap<RenderType, List<Consumer<MultiBufferSource>>> buffer = primary ? primaryBuffers : secondaryBuffers;
-            List<Consumer<MultiBufferSource>> list = buffer.computeIfAbsent(renderType, renderType1 -> new ArrayList<>());
+        public void getBufferFor(RenderType renderType, boolean primary, Consumer<ConsecutiveVertexBuffer> consumer) {
+            var buffer = primary ? primaryBuffers : secondaryBuffers;
+            var list = buffer.computeIfAbsent(renderType, renderType1 -> new ArrayList<>());
             list.add(consumer);
         }
 
         public void consume(boolean primary, MultiBufferSource bufferSource) {
-            HashMap<RenderType, List<Consumer<MultiBufferSource>>> map = primary ? primaryBuffers : secondaryBuffers;
-            for (Map.Entry<RenderType, List<Consumer<MultiBufferSource>>> entry : map.entrySet()) {
-                List<Consumer<MultiBufferSource>> consumers = entry.getValue();
-                for (Consumer<MultiBufferSource> consumer : consumers)
-                    consumer.accept(bufferSource);
+            var map = primary ? primaryBuffers : secondaryBuffers;
+            for (var entry : map.entrySet()) {
+                var buffer = new ConsecutiveVertexBuffer(bufferSource, entry.getKey());
+                for (var consumer : entry.getValue()) {
+                    consumer.accept(buffer);
+                }
             }
             map.clear();
         }
